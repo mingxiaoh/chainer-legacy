@@ -112,8 +112,9 @@ class Function(object):
             # Topological ordering
             self.rank = max([x.rank for x in inputs]) if inputs else 0
             # Backward edges
-            for y in ret:
+            for i, y in enumerate(ret):
                 y.set_creator(self)
+                y.arg_id = i
             self.inputs = inputs
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])

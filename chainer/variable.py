@@ -53,6 +53,7 @@ class Variable(object):
 
         self._grad = None
         self.creator = None
+        self.arg_id = None
 
         self.name = name
 
@@ -110,7 +111,7 @@ script, please report this error to the issue tracker with the stack trace,
 the information of your environment, and your script:
 https://github.com/pfnet/chainer/issues/new.
 '''
-        if g is not None:
+        if self.data is not None and g is not None:
             if not isinstance(g, type(self.data)):
                 raise TypeError('Type of data and grad mismatch: %s != %s%s'
                                 % (type(self.data), type(g), error_msg))
@@ -271,7 +272,7 @@ https://github.com/pfnet/chainer/issues/new.
             _, _, func = heapq.heappop(cand_funcs)
             outputs = tuple(y() for y in func.outputs)  # access via weak ref
 
-            in_data = tuple(x.data for x in func.inputs)
+            in_data = tuple(x.recalculate() for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
             with cuda.get_device(*(in_data + out_grad)):
                 gxs = func.backward(in_data, out_grad)
@@ -308,6 +309,15 @@ https://github.com/pfnet/chainer/issues/new.
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
                             x._grad += gx
+
+    def recalculate(self):
+        if self.data is not None:
+            return self.data
+        else:
+            func = self.creator
+            x_data = tuple(x.recalculate() for x in func.inputs)
+            outs = func.forward(x_data)
+            return outs[self.arg_id]
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.
