@@ -100,7 +100,7 @@ def concat(xs, axis=1):
         if chainer.is_cosim():
             func.cosim_func = Concat(axis=axis)
             numpy_result = func.cosim_func(*xs)
-            func.cpu_cosim_verify_result(ret, numpy_result)
+            func.cpu_cosim_verify_result(ret, numpy_result, xs)
         return ret
     else:
         return Concat(axis=axis)(*xs)

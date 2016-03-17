@@ -61,11 +61,15 @@ modules = {
         'mkldnn.api._view': ['mkldnn/api/view.i'],
 
         'mkldnn.api._bn_forward': ['mkldnn/api/bn_forward.i'],
-        'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i']}
+        'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i'],
+
+        'mkldnn.api._cosim_dump':
+        ['mkldnn/api/cosim_dump.i', 'mkldnn/api/cosim_dump.cc'],
+        }
 
 
 swig_opts = [
-            '-c++', '-Imkldnn', '-relativeimport',
+            '-c++', '-Imkldnn',
             '-builtin', '-modern', '-modernargs',
             '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 

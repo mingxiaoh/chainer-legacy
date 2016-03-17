@@ -96,7 +96,7 @@ def relu(x):
         if chainer.is_cosim():
             func.cosim_func = ReLU()
             numpy_result = func.cosim_func(x)
-            func.cpu_cosim_verify_result(ret, numpy_result)
+            func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
         return ret
     else:
         if chainer.mkld.available and \

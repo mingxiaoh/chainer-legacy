@@ -330,10 +330,11 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
             if b is None:
                 ret = func(x, W)
                 numpy_result = func.cosim_func(x, W)
+                func.cpu_cosim_verify_result(ret, numpy_result, (x, W))
             else:
                 ret = func(x, W, b)
                 numpy_result = func.cosim_func(x, W, b)
-            func.cpu_cosim_verify_result(ret, numpy_result)
+                func.cpu_cosim_verify_result(ret, numpy_result, (x, W, b))
             return ret
     else:
         func = Convolution2DFunction(
