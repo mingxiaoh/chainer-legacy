@@ -61,153 +61,313 @@
  */
 
 #include "utils.hpp"
-
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 1300)
-#include <immintrin.h>
-int has_intel_knl_features()
-{
-  const unsigned long knl_features =
-      (_FEATURE_AVX512F | _FEATURE_AVX512ER |
-       _FEATURE_AVX512PF | _FEATURE_AVX512CD );
-  return _may_i_use_cpu_feature( knl_features );
-}
-
-int has_intel_avx2_features()
-{
-  const unsigned long avx2_features = _FEATURE_AVX2;
-  return _may_i_use_cpu_feature( avx2_features );
-}
-#else /* non-Intel compiler */
 #include <stdint.h>
+
 #if defined(_MSC_VER)
+static inline uint64_t __cpuidXfeature()
+{
+#if (_MSC_VER > 1600)
+    return _xgetbv(0);
+#else
+    uint32_t a, d;
+    __asm {
+        push edx
+        push ecx
+        push eax
+        xor ecx, ecx
+        _asm _emit 0x0f _asm _emit 0x01 _asm _emit 0xd0
+        mov a, eax
+        mov d, edx
+        pop eax
+        pop ecx
+        pop edx
+    } 
+    return (((uint64_t)d << 32) | a);
+#endif
+}
+
+#if (_MSC_VER < 1400)
+static inline __declspec(naked) void __cpuid(int[4] result, int level)
+{
+    __asm {
+        push    ebx
+        push    edi
+        mov     eax, dword ptr [esp + 4 * 4]    // level
+        cpuid
+        mov     edi, dword ptr [esp + 4 * 3]    // result
+        mov     dword ptr [edi + 4 * 0], eax    // result[0]
+        mov     dword ptr [edi + 4 * 1], ebx    // result[1]
+        mov     dword ptr [edi + 4 * 2], ecx    // result[2]
+        mov     dword ptr [edi + 4 * 3], edx    // result[3]
+        pop     edi
+        pop     ebx
+        ret
+    }
+}
+
+static inline __declspec(naked) void __cpuidex(int[4] result, int level, int count)
+{
+    __asm {
+        push    ebx
+        push    ecx
+        push    edi
+        mov     ecx, dword ptr [esp + 4 * 6]    // count
+        mov     eax, dword ptr [esp + 4 * 5]    // level
+        cpuid
+        mov     edi, dword ptr [esp + 4 * 4]    // result
+        mov     dword ptr [edi + 4 * 0], eax    // result[0]
+        mov     dword ptr [edi + 4 * 1], ebx    // result[1]
+        mov     dword ptr [edi + 4 * 2], ecx    // result[2]
+        mov     dword ptr [edi + 4 * 3], edx    // result[3]
+        pop     edi
+        pop     ecx
+        pop     ebx
+        ret
+    }
+}
+
+#else
 #include <intrin.h>
+
 #endif
-void run_cpuid(uint32_t eax, uint32_t ecx, uint32_t* abcd)
+
+#else   // Non-MSC
+static inline uint64_t __cpuidXfeature()
 {
-#if defined(_MSC_VER)
-  __cpuidex(abcd, eax, ecx);
+    uint32_t eax, edx;
+#if (((__GNUC__) > 4) || (((__GNUC__) == 4) && ((__GNUC_MINOR_) > 2)))
+    __asm__ volatile("xgetbv"
+            : "=a"(eax), "=d"(edx)
+            : "c"(0));
 #else
-  uint32_t ebx = 0, edx = 0;
- #if defined( __i386__ ) && defined ( __PIC__ )
-  /* in case of PIC under 32-bit EBX cannot be clobbered */
-  __asm__ ( "movl %%ebx, %%edi \n\t cpuid \n\t xchgl %%ebx, %%edi" : "=D" (ebx),
- # else
-  __asm__ ( "cpuid" : "+b" (ebx),
- # endif
-              "+a" (eax), "+c" (ecx), "=d" (edx) );
-        abcd[0] = eax; abcd[1] = ebx; abcd[2] = ecx; abcd[3] = edx;
+    __asm__ volatile(".byte 0x0f, 0x01, 0xd0"
+            : "=a"(eax), "=d"(edx)
+            : "c"(0));
 #endif
+    return (((uint64_t)edx << 32) | eax);
 }
 
-int check_xcr0_zmm() {
-  uint32_t xcr0;
-  uint32_t zmm_ymm_xmm = (7 << 5) | (1 << 2) | (1 << 1);
-#if defined(_MSC_VER)
-  xcr0 = (uint32_t)_xgetbv(0);  /* min VS2010 SP1 compiler is required */
+#if defined(__APPLE__)
+#define __cpuid(a, b, c, d, level) \
+    __asm__ __volatile__(   \
+            "pushl %%ebx\ncpuid\nmovl %%ebp, %%esi\npopl %%ebx"    \
+                : "=a"(a), "=S"(b), "=c"(c), "=d"(d)    \
+                : "0"(level))
+
+#define __cpuid_count(a, b, c, d, level, count) \
+    __asm__ __volatile__(   \
+            "pushl %%ebx\ncpuid\nmovl %%ebp, %%esi\npopl %%ebx" \
+                : "=a"(a), "=S"(b), "=c"(c), "=d"(d)    \
+                : "0"(level), "2"(count))
+
+#else   // Non-APPLE
+#define __cpuid(a, b, c, d, level)  \
+    __asm__ __volatile__(   \
+            "cpuid\n"   \
+                : "=a"(a), "=b"(b), "=c"(c), "=d"(d)    \
+                : "0"(level))
+
+#define __cpuid_count(a, b, c, d, level, count) \
+    __asm__ __volatile__(   \
+            "cpuid\n"   \
+                : "=a"(a), "=b"(b), "=c"(c), "=d"(d)    \
+                : "0"(level), "2"(count))
+#endif
+#endif
+
+static inline void get_cpu_feature(uint32_t level, uint32_t result[4])
+{
+#ifdef _MSC_VER
+        __cpuid(reinterpret_cast<int*>(result), level);
 #else
-  __asm__ ("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx" );
+        __cpuid(result[0], result[1], result[2], result[3], level);
 #endif
-  return ((xcr0 & zmm_ymm_xmm) == zmm_ymm_xmm); /* check if xmm, zmm and zmm state are enabled in XCR0 */
 }
 
-int check_xcr0_ymm()
+static inline void get_cpu_feature_ext(uint32_t level, uint32_t count, uint32_t result[4])
 {
- uint32_t xcr0;
-  uint32_t ymm_xmm = (1 << 2) | (1 << 1);
-#if defined(_MSC_VER)
- xcr0 = (uint32_t)_xgetbv(0); /* min VS2010 SP1 compiler is required */
+#ifdef _MSC_VER
+    __cpuidex(reinterpret_cast<int*>(result), level, count);
 #else
- __asm__ ("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx" );
+    __cpuid_count(result[0], result[1], result[2], result[3], level, count);
 #endif
- return ((xcr0 & ymm_xmm) == ymm_xmm); /* checking if xmm and ymm state are enabled in XCR0 */
 }
 
-int has_intel_knl_features() {
-    uint32_t abcd[4];
-    uint32_t osxsave_mask   =   (1 << 27); // OSX.
-    uint32_t knl_bmi12_mask =   (1 << 16) | // AVX-512F
-                                (1 << 26) | // AVX-512PF
-                                (1 << 27) | // AVX-512ER
-                                (1 << 28);  // AVX-512CD
-    run_cpuid( 1, 0, abcd );
-    // step 1 - must ensure OS supports extended processor state management
-    if ( (abcd[2] & osxsave_mask) != osxsave_mask )
-        return 0;
-    run_cpuid( 7, 0, abcd );
-    if ( (abcd[1] & knl_bmi12_mask) != knl_bmi12_mask )
-        return 0;
-    // step 2 - must ensure OS supports ZMM registers (and YMM, and XMM)
-    if ( ! check_xcr0_zmm() )
-        return 0;
-
-    return 1;
-}
-
-int has_intel_avx2_features() {
-    uint32_t abcd[4];
-    uint32_t fma_movbe_osxsave_mask = ((1 << 12) | (1 << 22) | (1 << 27));
-    uint32_t avx2_bmi12_mask = (1 << 5) | (1 << 3) | (1 << 8);
-    run_cpuid( 1, 0, abcd );
-    if ( (abcd[2] & fma_movbe_osxsave_mask) != fma_movbe_osxsave_mask )
-        return 0;
-    if ( ! check_xcr0_ymm() )
-        return 0;
-    run_cpuid( 7, 0, abcd );
-    if ( (abcd[1] & avx2_bmi12_mask) != avx2_bmi12_mask )
-        return 0;
-    return 1;
-}
-#endif /* non-Intel compiler */
-
-static int can_use_intel_knl_features() {
-  static int knl_features_available = -1;
-  /* test is performed once */
-  if (knl_features_available < 0 )
-    knl_features_available = has_intel_knl_features();
-  return knl_features_available;
-}
-
-static int can_use_intel_avx2_features() {
-  static int avx2_features_available = -1;
-  /* test is performed once */
-  if (avx2_features_available < 0 )
-    avx2_features_available = has_intel_avx2_features();
-  return avx2_features_available;
-}
-
-int cpu_support_avx512_p()
+class CpuFeatures
 {
-    return can_use_intel_knl_features();
-    // TODO the following code requires gcc 6 or above
-    //__builtin_cpu_init();
-    //return  true && __builtin_cpu_supports("avx512f")
-    //             && __builtin_cpu_supports("avx512cd")
-    //             && __builtin_cpu_supports("avx512er")
-    //             && __builtin_cpu_supports("avx512pf");
-    // TODO icc path not enabled
-    //const unsigned long knl_features =
-    //    (_FEATURE_AVX512F | _FEATURE_AVX512ER |
-    //    _FEATURE_AVX512PF | _FEATURE_AVX512CD );
-    //    return _may_i_use_cpu_feature( knl_features );
-}
+public:
+    static const uint64_t f_NONE            = uint64_t(0);
+    static const uint64_t f_MMX             = uint64_t(1) << 0;
+    static const uint64_t f_MMX2            = uint64_t(1) << 1;
+    static const uint64_t f_CMOV            = uint64_t(1) << 2;
+    static const uint64_t f_SSE             = uint64_t(1) << 3;
+    static const uint64_t f_SSE2            = uint64_t(1) << 4;
+    static const uint64_t f_SSE3            = uint64_t(1) << 5;
+    static const uint64_t f_SSSE3           = uint64_t(1) << 6;
+    static const uint64_t f_SSE41           = uint64_t(1) << 7;
+    static const uint64_t f_SSE42           = uint64_t(1) << 8;
+    static const uint64_t f_POPCNT          = uint64_t(1) << 9;
+    static const uint64_t f_AESNI           = uint64_t(1) << 10;
+    static const uint64_t f_SSE5            = uint64_t(1) << 11;
+    static const uint64_t f_OSXSAVE         = uint64_t(1) << 12;
+    static const uint64_t f_PCLMULQDQ       = uint64_t(1) << 13;
+    static const uint64_t f_AVX             = uint64_t(1) << 14;
+    static const uint64_t f_FMA             = uint64_t(1) << 15;
+    static const uint64_t f_SSE4a           = uint64_t(1) << 16;
+    static const uint64_t f_RDTSCP          = uint64_t(1) << 17;
+    static const uint64_t f_AVX2            = uint64_t(1) << 18;
+    static const uint64_t f_BMI1            = uint64_t(1) << 19;
+    static const uint64_t f_BMI2            = uint64_t(1) << 20;
+    static const uint64_t f_LZCNT           = uint64_t(1) << 21;
+    static const uint64_t f_ENHANCED_REP    = uint64_t(1) << 22;
+    static const uint64_t f_RDRAND          = uint64_t(1) << 23;
+    static const uint64_t f_ADX             = uint64_t(1) << 24;
+    static const uint64_t f_RDSEED          = uint64_t(1) << 25;
+    static const uint64_t f_SMAP            = uint64_t(1) << 26;
+    static const uint64_t f_HLE             = uint64_t(1) << 27;
+    static const uint64_t f_RTM             = uint64_t(1) << 28;
+    static const uint64_t f_F16C            = uint64_t(1) << 29;
+    static const uint64_t f_MOVBE           = uint64_t(1) << 30;
+    static const uint64_t f_AVX512F         = uint64_t(1) << 31;
+    static const uint64_t f_AVX512DQ        = uint64_t(1) << 32;
+    static const uint64_t f_AVX512IFMA      = uint64_t(1) << 33;
+    static const uint64_t f_AVX512PF        = uint64_t(1) << 34;
+    static const uint64_t f_AVX512ER        = uint64_t(1) << 35;
+    static const uint64_t f_AVX512CD        = uint64_t(1) << 36;
+    static const uint64_t f_AVX512BW        = uint64_t(1) << 37;
+    static const uint64_t f_AVX512VL        = uint64_t(1) << 38;
+    static const uint64_t f_AVX512VBMI      = uint64_t(1) << 39;
+    static const uint64_t f_AVX512_4VNNIW   = uint64_t(1) << 40;
+    static const uint64_t f_AVX512_4FMAPS   = uint64_t(1) << 41;
+    static const uint64_t f_PREFETCHWT1     = uint64_t(1) << 42;
 
-int cpu_support_avx2_p()
-{
-    return can_use_intel_avx2_features();
-    //__builtin_cpu_init();
-    //return 1 && __builtin_cpu_supports("avx2");
-    // TODO icc path not enabled
-    //const unsigned long avx2_features = _FEATURE_AVX2
-    //    return _may_i_use_cpu_feature( avx2_features );
-}
+    static const uint32_t any               = 0;
+    static const uint32_t sse42             = 1;
+    static const uint32_t avx               = 2;
+    static const uint32_t avx2              = 3;
+    static const uint32_t avx512_comm       = 4;
+    static const uint32_t avx512_core       = 5;
+    static const uint32_t avx512_mic        = 6;
+    static const uint32_t avx512_mic_4ops   = 7;
+
+    CpuFeatures()
+    {
+        features = f_NONE;
+        uint32_t result[4] = {0};
+
+        get_cpu_feature(1, result);
+        if (result[2] & (1U << 0))  features |= f_SSE3;
+        if (result[2] & (1U << 1))  features |= f_PCLMULQDQ;
+        if (result[2] & (1U << 9))  features |= f_SSSE3;
+        if (result[2] & (1U << 19)) features |= f_SSE41;
+        if (result[2] & (1U << 20)) features |= f_SSE42;
+        if (result[2] & (1U << 22)) features |= f_MOVBE;
+        if (result[2] & (1U << 23)) features |= f_POPCNT;
+        if (result[2] & (1U << 25)) features |= f_AESNI;
+        if (result[2] & (1U << 27)) features |= f_OSXSAVE;
+        if (result[2] & (1U << 30)) features |= f_RDRAND;
+        if (result[2] & (1U << 29)) features |= f_F16C;
+        if (result[3] & (1U << 15)) features |= f_CMOV;
+        if (result[3] & (1U << 23)) features |= f_MMX;
+        if (result[3] & (1U << 25)) features |= f_MMX2 | f_SSE;
+        if (result[3] & (1U << 26)) features |= f_SSE2;
+
+        get_cpu_feature(0x80000001, result);
+        if (result[2] & (1U << 5))  features |= f_LZCNT;
+        if (result[3] & (1U << 27)) features |= f_RDTSCP;
+
+        if (features & f_OSXSAVE) {
+            uint64_t x_enabled = __cpuidXfeature();
+            if ((x_enabled & 0x6) == 0x6) {
+                if (result[2] & (1U << 28)) features |= f_AVX;
+                if (result[2] & (1U << 12)) features |= f_FMA;
+                if (((x_enabled >> 5) & 0x7) == 0x7) {
+                    get_cpu_feature_ext(0x7, 0x0, result);
+                    if (result[1] & (1U << 16)) {
+                        features |= f_AVX512F;
+                        if (result[1] & (1U << 17)) features |= f_AVX512DQ;
+                        if (result[1] & (1U << 21)) features |= f_AVX512IFMA;
+                        if (result[1] & (1U << 26)) features |= f_AVX512PF;
+                        if (result[1] & (1U << 27)) features |= f_AVX512ER;
+                        if (result[1] & (1U << 28)) features |= f_AVX512CD;
+                        if (result[1] & (1U << 30)) features |= f_AVX512BW;
+                        if (result[1] & (1U << 31)) features |= f_AVX512VL;
+                        if (result[2] & (1U << 1))  features |= f_AVX512VBMI;
+                        if (result[3] & (1U << 2))  features |= f_AVX512_4VNNIW;
+                        if (result[3] & (1U << 3))  features |= f_AVX512_4FMAPS;
+                    }
+                }
+            }
+        }
+
+        get_cpu_feature(0x0, result);
+        if (result[0] >= 7) {
+            get_cpu_feature_ext(0x7, 0x0, result);
+            if ((features & f_AVX) && (result[1] & 0x20)) features |= f_AVX2;
+            if (result[1] & (1U << 3))  features |= f_BMI1;
+            if (result[1] & (1U << 8))  features |= f_BMI2;
+            if (result[1] & (1U << 9))  features |= f_ENHANCED_REP;
+            if (result[1] & (1U << 18)) features |= f_RDSEED;
+            if (result[1] & (1U << 19)) features |= f_ADX;
+            if (result[1] & (1U << 20)) features |= f_SMAP;
+            if (result[1] & (1U << 4))  features |= f_HLE;
+            if (result[1] & (1U << 11)) features |= f_RTM;
+            if (result[2] & (1U << 0))  features |= f_PREFETCHWT1;
+        }
+
+    }
+
+    bool has_feature(uint64_t f)
+    {
+        return (features & f) ? true : false;
+    }
+
+    bool is_supported(const uint32_t cpu_isa)
+    {
+        switch (cpu_isa) {
+            case sse42:
+                return has_feature(f_SSE42);
+            case avx:
+                return has_feature(f_AVX);
+            case avx2:
+                return has_feature(f_AVX2);
+            case avx512_comm:
+                return has_feature(f_AVX512F);
+            case avx512_core:
+                return has_feature(f_AVX512F)
+                    && has_feature(f_AVX512BW)
+                    && has_feature(f_AVX512VL)
+                    && has_feature(f_AVX512DQ);
+            case avx512_mic:
+                return has_feature(f_AVX512F)
+                    && has_feature(f_AVX512CD)
+                    && has_feature(f_AVX512ER)
+                    && has_feature(f_AVX512PF);
+            case avx512_mic_4ops:
+                return is_supported(avx512_mic)
+                    && has_feature(f_AVX512_4FMAPS)
+                    && has_feature(f_AVX512_4VNNIW);
+            case any:
+                return true;
+            default:
+                return false;
+        }
+
+        return false;
+    }
+
+private:
+    uint64_t features;
+};
 
 memory::format get_desired_format(int channel)
 {
+    CpuFeatures cpu_f;
     memory::format fmt_desired = memory::format::any;
 
-    if (cpu_support_avx512_p() && (channel % 16) == 0) {
+    if (cpu_f.is_supported(CpuFeatures::avx512_comm) && (channel % 16) == 0) {
         fmt_desired = memory::format::nChw16c;
-    } else if (cpu_support_avx2_p() && (channel % 8) == 0) {
+    } else if (cpu_f.is_supported(CpuFeatures::avx2) && (channel % 8) == 0) {
         fmt_desired = memory::format::nChw8c;
     } else {
         fmt_desired = memory::format::nchw;
