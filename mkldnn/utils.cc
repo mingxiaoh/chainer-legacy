@@ -255,6 +255,10 @@ public:
         features = f_NONE;
         uint32_t result[4] = {0};
 
+        get_cpu_feature(0x80000001, result);
+        if (result[2] & (1U << 5))  features |= f_LZCNT;
+        if (result[3] & (1U << 27)) features |= f_RDTSCP;
+
         get_cpu_feature(1, result);
         if (result[2] & (1U << 0))  features |= f_SSE3;
         if (result[2] & (1U << 1))  features |= f_PCLMULQDQ;
@@ -271,10 +275,6 @@ public:
         if (result[3] & (1U << 23)) features |= f_MMX;
         if (result[3] & (1U << 25)) features |= f_MMX2 | f_SSE;
         if (result[3] & (1U << 26)) features |= f_SSE2;
-
-        get_cpu_feature(0x80000001, result);
-        if (result[2] & (1U << 5))  features |= f_LZCNT;
-        if (result[3] & (1U << 27)) features |= f_RDTSCP;
 
         if (features & f_OSXSAVE) {
             uint64_t x_enabled = __cpuidXfeature();
