@@ -64,7 +64,8 @@ for iteration in six.moves.range(args.iteration):
 
     with function_hooks.TimerHook() as t:
         y = model(x_batch)
-        print('forward total time\t{}\tms'.format(t.total_time()))
+        forward_time = t.total_time()
+        print('forward total time\t{}\tms'.format(forward_time))
 
     if args.gpu >= 0:
         y.grad = cuda.ones_like(y.data)
@@ -73,4 +74,9 @@ for iteration in six.moves.range(args.iteration):
 
     with function_hooks.TimerHook() as t:
         y.backward()
-        print('backward total time\t{}\tms'.format(t.total_time()))
+        backward_time = t.total_time()
+        print('backward total time\t{}\tms'.format(backward_time))
+
+with open('profile.csv', 'w') as o:
+    o.write('forward,backwrad\n')
+    o.write('{},{}'.format(forward_time, backward_time))
