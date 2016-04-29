@@ -76,7 +76,7 @@ class TestBroadcastTypeError(unittest.TestCase):
 
     def test_invalid_shape_fill(self):
         x_data = numpy.zeros((3, 2, 5), dtype=numpy.int32)
-        y_data = numpy.zeros((4), dtype=numpy.float32)
+        y_data = numpy.zeros(4, dtype=numpy.float32)
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
 
@@ -132,6 +132,7 @@ class TestBroadcastTo(unittest.TestCase):
     {'in_shape': (3, 2, 5), 'out_shape': (1, 3, 2, 3)},
 )
 class TestBroadcastToTypeCheck(unittest.TestCase):
+
     def setUp(self):
         uniform = numpy.random.uniform
         self.data = uniform(0, 1, self.in_shape).astype(numpy.float32)

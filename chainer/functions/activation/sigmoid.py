@@ -22,7 +22,7 @@ class Sigmoid(function.Function):
         type_check.expect(in_types[0].dtype == numpy.float32)
 
     def forward_cpu(self, x):
-        self.y = 1 / (1 + numpy.exp(-x[0]))
+        self.y = numpy.tanh(x[0] * 0.5) * 0.5 + 0.5
         return self.y,
 
     def forward_gpu(self, x):
@@ -34,7 +34,7 @@ class Sigmoid(function.Function):
             handle = cudnn.get_handle()
             x_mat = x[0].reshape(x[0].shape[0], -1, 1, 1)
             desc = cudnn.create_tensor_descriptor(x_mat)
-            libcudnn.activationForward(
+            libcudnn.activationForward_v3(
                 handle, _mode, alpha.data, desc.value, x_mat.data.ptr,
                 beta.data, desc.value, self.y.data.ptr)
         else:
@@ -55,7 +55,7 @@ class Sigmoid(function.Function):
             handle = cudnn.get_handle()
             y_mat = self.y.reshape(self.y.shape[0], -1, 1, 1)
             desc = cudnn.create_tensor_descriptor(y_mat)
-            libcudnn.activationBackward(
+            libcudnn.activationBackward_v3(
                 handle, _mode, one.data, desc.value, y_mat.data.ptr,
                 desc.value, gy[0].data.ptr, desc.value, x[0].data.ptr,
                 zero.data, desc.value, gx.data.ptr)
@@ -72,8 +72,8 @@ def sigmoid(x, use_cudnn=True):
 
     Args:
         x (~chainer.Variable): Input variable.
-        use_cudnn (bool): If True and CuDNN is enabled, then this function uses
-            CuDNN as the core implementation.
+        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
+            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.

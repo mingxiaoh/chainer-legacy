@@ -33,10 +33,10 @@ class NumericalGradientTest(unittest.TestCase):
     eps = None
 
     def f(self, xs):
-        return (xs[0] ** 2,)
+        return xs[0] ** 2,
 
     def df(self, xs):
-        return ((2 * xs[0],),)
+        return (2 * xs[0],),
 
     def setUp(self):
         self.xs = (_uniform(2, 1),)
@@ -60,7 +60,7 @@ class NumericalGradientTest(unittest.TestCase):
 
     def check_numerical_grad(self, f, df, xs, gys, eps=None):
         if eps is None:
-            eps = tuple(10**(-i) for i in six.moves.range(2, 5))
+            eps = tuple(10 ** (-i) for i in six.moves.range(2, 5))
         elif not isinstance(eps, tuple):
             eps = (eps, )
 
@@ -86,10 +86,10 @@ class NumericalGradientTest(unittest.TestCase):
 class NumericalGradientTest2(NumericalGradientTest):
 
     def f(self, xs):
-        return (1,)
+        return 1,
 
     def df(self, xs):
-        return ((0,),)
+        return (0,),
 
 
 class NumericalGradientTest3(NumericalGradientTest):
@@ -164,7 +164,7 @@ class NumericalGradientReferenceTest(unittest.TestCase):
         # A returned value and an input refers the same memory.
         # See issue #488
         def func():
-            return (x,)
+            return x,
         gx, = gradient_check.numerical_grad(func, (x,), (1,))
         gradient_check.assert_allclose(cuda.to_cpu(gx), 1)
 

@@ -34,6 +34,7 @@ from chainer.functions.loss import contrastive
 from chainer.functions.loss import cross_covariance
 from chainer.functions.loss import ctc
 from chainer.functions.loss import hinge
+from chainer.functions.loss import huber_loss
 from chainer.functions.loss import mean_squared_error
 from chainer.functions.loss import negative_sampling
 from chainer.functions.loss import sigmoid_cross_entropy
@@ -41,6 +42,7 @@ from chainer.functions.loss import softmax_cross_entropy
 from chainer.functions.loss import vae  # NOQA
 from chainer.functions.math import basic_math  # NOQA
 from chainer.functions.math import batch_l2_norm_squared
+from chainer.functions.math import clip
 from chainer.functions.math import det
 from chainer.functions.math import exponential
 from chainer.functions.math import identity
@@ -148,6 +150,8 @@ mean_squared_error = mean_squared_error.mean_squared_error
 negative_sampling = negative_sampling.negative_sampling
 SigmoidCrossEntropy = sigmoid_cross_entropy.SigmoidCrossEntropy
 sigmoid_cross_entropy = sigmoid_cross_entropy.sigmoid_cross_entropy
+HuberLoss = huber_loss.HuberLoss
+huber_loss = huber_loss.huber_loss
 SoftmaxCrossEntropy = softmax_cross_entropy.SoftmaxCrossEntropy
 softmax_cross_entropy = softmax_cross_entropy.softmax_cross_entropy
 
@@ -159,6 +163,8 @@ BatchL2NormSquared = batch_l2_norm_squared.BatchL2NormSquared
 batch_l2_norm_squared = batch_l2_norm_squared.batch_l2_norm_squared
 BatchMatMul = matmul.BatchMatMul
 batch_matmul = matmul.batch_matmul
+Clip = clip.Clip
+clip = clip.clip
 Cos = trigonometric.Cos
 cos = trigonometric.cos
 det = det.det
@@ -215,7 +221,6 @@ InceptionBN = inceptionbn.InceptionBN
 Linear = links_linear.Linear
 Parameter = parameter.Parameter
 
-BinaryHierarchicalSoftmax = hierarchical_softmax.BinaryHierarchicalSoftmax
 NegativeSampling = links_negative_sampling.NegativeSampling
 
 BatchNormalization = links_batch_normalization.BatchNormalization
