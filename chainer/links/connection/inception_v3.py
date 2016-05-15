@@ -82,7 +82,7 @@ class InceptionV3(link.Chain):
             # pool
             s4 = AuxConv(C.Convolution2D(input_channel,
                                          pool_channel, 3, pad=1),
-                         pool=M.MaxPooling2D(3, stride=1, pad=1))
+                         pool=M.MaxPooling2D(3, 1, 1))
 
             return Inception(s1, s2, s3, s4)
 
@@ -164,7 +164,7 @@ class InceptionV3(link.Chain):
 
             # pool
             s4 = AuxConv(C.Convolution2D(input_channel, 192, 3, pad=1),
-                         pool=A.AveragePooling2D(3, stride=1, pad=1))
+                         pool=A.AveragePooling2D(3, 1, 1))
             return Inception(s1, s2, s3, s4)
 
         inception2 = Sequential(*[inception_2(input_channel)
@@ -172,7 +172,7 @@ class InceptionV3(link.Chain):
 
         auxiliary_convolution = Sequential(
             AuxConv(C.Convolution2D(768, 128, 1),
-                    pool=A.AveragePooling2D(5, stride=3)),
+                    pool=A.AveragePooling2D(5, 3)),
             AuxConv(C.Convolution2D(128, 768, 5)))
 
         super(InceptionV3, self).__init__(
