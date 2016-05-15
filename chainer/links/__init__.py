@@ -9,6 +9,7 @@ from chainer.links.connection import embed_id
 from chainer.links.connection import gru
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
+from chainer.links.connection import inception_v3
 from chainer.links.connection import linear
 from chainer.links.connection import lstm
 from chainer.links.connection import mlp_convolution_2d
@@ -30,6 +31,7 @@ GRU = gru.GRU
 StatefulGRU = gru.StatefulGRU
 Inception = inception.Inception
 InceptionBN = inceptionbn.InceptionBN
+InceptionV3 = inception_v3.InceptionV3
 Linear = linear.Linear
 LSTM = lstm.LSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
