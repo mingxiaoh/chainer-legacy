@@ -5,10 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import links
-from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
-from chainer.utils import type_check
 
 
 class TestInceptionV3(unittest.TestCase):
