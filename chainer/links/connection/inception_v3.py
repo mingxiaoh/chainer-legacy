@@ -22,7 +22,9 @@ class AuxConv(link.Chain):
         if self.pool:
             x = self.pool(x)
         x = self.conv(x)
-        return self.batch_norm(x, test=not train)
+        if self.batch_norm:
+            x = self.batch_norm(x, test=not train)
+        return x
 
 
 class Sequential(link.ChainList):
