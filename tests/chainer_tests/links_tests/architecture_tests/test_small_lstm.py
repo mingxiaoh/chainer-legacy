@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -8,15 +9,16 @@ from chainer import links
 from chainer.testing import attr
 
 
-class TestInceptionV3(unittest.TestCase):
+class TestSmallLSTM(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (1, 3, 299, 299)).astype(numpy.float32)
-        self.l = links.InceptionV3()
+        self.xs = [numpy.random.uniform(-1, 1, (1, 128)).astype(numpy.float32)
+                   for _ in six.moves.range(10)]
+        self.l = links.SmallLSTM()
 
     def check_forward(self, xp):
-        x = chainer.Variable(xp.asarray(self.x))
-        self.l(x)
+        xs = [chainer.Variable(xp.asarray(x)) for x in self.xs]
+        self.l(xs)
 
     def test_forward_cpu(self):
         self.check_forward(numpy)

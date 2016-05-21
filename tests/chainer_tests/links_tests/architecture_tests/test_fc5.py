@@ -8,11 +8,11 @@ from chainer import links
 from chainer.testing import attr
 
 
-class TestInceptionV3(unittest.TestCase):
+class TestFC5(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (1, 3, 299, 299)).astype(numpy.float32)
-        self.l = links.InceptionV3()
+        self.x = numpy.random.uniform(-1, 1, (1, 512)).astype(numpy.float32)
+        self.l = links.FC5()
 
     def check_forward(self, xp):
         x = chainer.Variable(xp.asarray(self.x))

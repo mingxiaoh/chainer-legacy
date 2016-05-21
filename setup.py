@@ -48,6 +48,7 @@ setup(
               'chainer.function_hooks',
               'chainer.links',
               'chainer.links.activation',
+              'chainer.links.architecture',
               'chainer.links.caffe',
               'chainer.links.connection',
               'chainer.links.loss',

@@ -2,15 +2,19 @@
 
 from chainer.links.activation import maxout
 from chainer.links.activation import prelu
+from chainer.links.architecture import alex
+from chainer.links.architecture import big_lstm
+from chainer.links.architecture import deepspeech2
+from chainer.links.architecture import fc5
+from chainer.links.architecture import inception_v3
+from chainer.links.architecture import small_lstm
 from chainer.links.connection import bilinear
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import deconvolution_2d
-from chainer.links.connection import deepspeech2
 from chainer.links.connection import embed_id
 from chainer.links.connection import gru
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
-from chainer.links.connection import inception_v3
 from chainer.links.connection import linear
 from chainer.links.connection import lstm
 from chainer.links.connection import mlp_convolution_2d
@@ -24,16 +28,21 @@ from chainer.links.normalization import batch_normalization
 Maxout = maxout.Maxout
 PReLU = prelu.PReLU
 
+Alex = alex.Alex
+BigLSTM = big_lstm.BigLSTM
+DeepSpeech2 = deepspeech2.DeepSpeech2
+FC5 = fc5.FC5
+InceptionV3 = inception_v3.InceptionV3
+SmallLSTM = small_lstm.SmallLSTM
+
 Bilinear = bilinear.Bilinear
 Convolution2D = convolution_2d.Convolution2D
 Deconvolution2D = deconvolution_2d.Deconvolution2D
-DeepSpeech2 = deepspeech2.DeepSpeech2
 EmbedID = embed_id.EmbedID
 GRU = gru.GRU
 StatefulGRU = gru.StatefulGRU
 Inception = inception.Inception
 InceptionBN = inceptionbn.InceptionBN
-InceptionV3 = inception_v3.InceptionV3
 Linear = linear.Linear
 LSTM = lstm.LSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
