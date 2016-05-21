@@ -12,8 +12,12 @@ class Timer(object):
     def __init__(self, xp):
         self.xp = xp
         self.running = False
+        self.reset()
+
+    def reset(self):
         self.total_time = 0.0
         self.last_increment = None
+        self.count = 0
 
     def start(self):
         if self.running:
@@ -39,10 +43,19 @@ class Timer(object):
             # Note that `get_elapsed_time` returns result in milliseconds
             elapsed_time = cuda.cupy.cuda.get_elapsed_time(
                 self._start, self._stop) / 1000
+
         self.running = False
         self.total_time += elapsed_time
         self.last_increment = elapsed_time
+        self.count += 1
+
         return elapsed_time
+
+    def mean(self):
+        if self.count == 0:
+            raise ValueError('count is 0')
+        else:
+            return self.total_time / self.count
 
 
 class TimerHook(function.FunctionHook):
