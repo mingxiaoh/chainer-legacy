@@ -35,6 +35,10 @@ elu
 ~~~
 .. autofunction:: elu
 
+hard_sigmoid
+~~~~~~~~~~~~
+.. autofunction:: hard_sigmoid
+
 leaky_relu
 ~~~~~~~~~~
 .. autofunction:: leaky_relu
@@ -102,6 +106,10 @@ copy
 expand_dims
 ~~~~~~~~~~~
 .. autofunction:: expand_dims
+
+get_item
+~~~~~~~~
+.. autofunction:: get_item
 
 reshape
 ~~~~~~~
@@ -246,6 +254,10 @@ identity
 inv
 ~~~
 .. autofunction:: inv
+
+linear_interpolate
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: linear_interpolate
 
 log
 ~~~
