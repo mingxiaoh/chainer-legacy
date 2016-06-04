@@ -8,6 +8,7 @@ from chainer.links.architecture import deepspeech2
 from chainer.links.architecture import fc5
 from chainer.links.architecture import inception_v3
 from chainer.links.architecture import small_lstm
+from chainer.links.architecture import vgg
 from chainer.links.connection import bilinear
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import deconvolution_2d
@@ -34,6 +35,7 @@ DeepSpeech2 = deepspeech2.DeepSpeech2
 FC5 = fc5.FC5
 InceptionV3 = inception_v3.InceptionV3
 SmallLSTM = small_lstm.SmallLSTM
+VGG = vgg.VGG
 
 Bilinear = bilinear.Bilinear
 Convolution2D = convolution_2d.Convolution2D
