@@ -1,4 +1,6 @@
 from chainer import link
+from chainer.functions.array import concat
+from chainer.functions.array import split_axis
 from chainer.links.connection import linear
 
 
@@ -9,14 +11,18 @@ class FC5(link.ChainList):
 
     """
 
-    def __init__(self):
-        super(FC5, self).__init__(linear.Linear(512, 2048),
-                                  linear.Linear(2048, 2048),
-                                  linear.Linear(2048, 2048),
-                                  linear.Linear(2048, 2048),
-                                  linear.Linear(2048, 10000))
+    def __init__(self, in_size=512, hidden_size=2048, out_size=10000):
+        super(FC5, self).__init__(linear.Linear(in_size, hidden_size),
+                                  linear.Linear(hidden_size, hidden_size),
+                                  linear.Linear(hidden_size, hidden_size),
+                                  linear.Linear(hidden_size, hidden_size),
+                                  linear.Linear(hidden_size, out_size))
 
     def __call__(self, x):
-        for l in self:
-            x = l(x)
-        return x
+        xs = split_axis.split_axis(x, x.data.shape[1], 1)
+        ret = []
+        for x in xs:
+            for l in self:
+                x = l(x)
+            ret.append(x)
+        return ret
