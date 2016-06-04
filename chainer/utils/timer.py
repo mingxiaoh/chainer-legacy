@@ -31,13 +31,11 @@ class Timer(object):
         raise NotImplementedError
 
     def __enter__(self, *args, **kwargs):
-        self.reset()
         self.start()
         return self
 
     def __exit__(self, *args, **kwargs):
         self.stop()
-        return self
 
     def total_time(self):
         raise NotImplementedError
