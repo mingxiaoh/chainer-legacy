@@ -29,9 +29,9 @@ class AuxConv(link.Chain):
 
 class Sequential(link.ChainList):
 
-    def __call__(self, x, train=True):
+    def __call__(self, x, *args, **kwargs):
         for l in self:
-            x = l(x, train)
+            x = l(x, *args, **kwargs)
         return x
 
 
@@ -56,33 +56,33 @@ class InceptionV3(link.Chain):
 
     """
 
-    def __init__(self):
+    def __init__(self, use_cudnn=True):
         convolution = link.ChainList(
-            AuxConv(C.Convolution2D(3, 32, 3, 2)),
-            AuxConv(C.Convolution2D(32, 32, 3)),
-            AuxConv(C.Convolution2D(32, 64, 3, 1, 1)),
-            AuxConv(C.Convolution2D(64, 80, 3, 1, 1)),
-            AuxConv(C.Convolution2D(80, 192, 3)))
+            AuxConv(C.Convolution2D(3, 32, 3, 2, use_cudnn=use_cudnn)),
+            AuxConv(C.Convolution2D(32, 32, 3, use_cudnn=use_cudnn)),
+            AuxConv(C.Convolution2D(32, 64, 3, 1, 1, use_cudnn=use_cudnn)),
+            AuxConv(C.Convolution2D(64, 80, 3, 1, 1, use_cudnn=use_cudnn)),
+            AuxConv(C.Convolution2D(80, 192, 3, use_cudnn=use_cudnn)))
 
         def inception_0(input_channel, pool_channel):
             # 1x1
-            s1 = AuxConv(C.Convolution2D(input_channel, 64, 1))
+            s1 = AuxConv(C.Convolution2D(input_channel, 64, 1, use_cudnn=use_cudnn))
 
             # 5x5
-            s21 = AuxConv(C.Convolution2D(input_channel, 48, 1))
-            s22 = AuxConv(C.Convolution2D(48, 64, 5, pad=2))
+            s21 = AuxConv(C.Convolution2D(input_channel, 48, 1, use_cudnn=use_cudnn))
+            s22 = AuxConv(C.Convolution2D(48, 64, 5, pad=2, use_cudnn=use_cudnn))
             s2 = Sequential(s21, s22)
 
             # double 3x3
-            s31 = AuxConv(C.Convolution2D(input_channel, 64, 1))
-            s32 = AuxConv(C.Convolution2D(64, 96, 3, pad=1))
-            s33 = AuxConv(C.Convolution2D(96, 96, 3, pad=1))
+            s31 = AuxConv(C.Convolution2D(input_channel, 64, 1, use_cudnn=use_cudnn))
+            s32 = AuxConv(C.Convolution2D(64, 96, 3, pad=1, use_cudnn=use_cudnn))
+            s33 = AuxConv(C.Convolution2D(96, 96, 3, pad=1, use_cudnn=use_cudnn))
             s3 = Sequential(s31, s32, s33)
 
             # pool
             s4 = AuxConv(C.Convolution2D(input_channel,
-                                         pool_channel, 3, pad=1),
-                         pool=M.MaxPooling2D(3, 1, 1))
+                                         pool_channel, 3, pad=1, use_cudnn=use_cudnn),
+                         pool=M.MaxPooling2D(3, 1, 1, use_cudnn=use_cudnn))
 
             return Inception(s1, s2, s3, s4)
 
@@ -92,36 +92,36 @@ class InceptionV3(link.Chain):
 
         grid_reduction0 = Inception(
             # strided 3x3
-            AuxConv(C.Convolution2D(288, 384, 3, 2)),
+            AuxConv(C.Convolution2D(288, 384, 3, 2, use_cudnn=use_cudnn)),
             # double 3x3
             Sequential(
-                AuxConv(C.Convolution2D(288, 64, 1)),
-                AuxConv(C.Convolution2D(64, 96, 3, pad=1)),
-                AuxConv(C.Convolution2D(96, 96, 3, 2))),
+                AuxConv(C.Convolution2D(288, 64, 1, use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(64, 96, 3, pad=1, use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(96, 96, 3, 2, use_cudnn=use_cudnn))),
             # pool
             pool=M.MaxPooling2D(3, 2))
 
         def inception_1(hidden_channel):
             # 1x1
-            s1 = AuxConv(C.Convolution2D(768, 192, 1))
+            s1 = AuxConv(C.Convolution2D(768, 192, 1, use_cudnn=use_cudnn))
 
             # 7x7
-            s21 = AuxConv(C.Convolution2D(768, c, 1))
-            s22 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3)))
-            s23 = AuxConv(C.Convolution2D(c, 192, (7, 1), pad=(3, 0)))
+            s21 = AuxConv(C.Convolution2D(768, c, 1, use_cudnn=use_cudnn))
+            s22 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3), use_cudnn=use_cudnn))
+            s23 = AuxConv(C.Convolution2D(c, 192, (7, 1), pad=(3, 0), use_cudnn=use_cudnn))
             s2 = Sequential(s21, s22, s23)
 
             # double 7x7
-            s31 = AuxConv(C.Convolution2D(768, c, 1))
-            s32 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3)))
-            s33 = AuxConv(C.Convolution2D(c, c, (7, 1), pad=(3, 0)))
-            s34 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3)))
-            s35 = AuxConv(C.Convolution2D(c, 192, (7, 1), pad=(3, 0)))
+            s31 = AuxConv(C.Convolution2D(768, c, 1, use_cudnn=use_cudnn))
+            s32 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3), use_cudnn=use_cudnn))
+            s33 = AuxConv(C.Convolution2D(c, c, (7, 1), pad=(3, 0), use_cudnn=use_cudnn))
+            s34 = AuxConv(C.Convolution2D(c, c, (1, 7), pad=(0, 3), use_cudnn=use_cudnn))
+            s35 = AuxConv(C.Convolution2D(c, 192, (7, 1), pad=(3, 0), use_cudnn=use_cudnn))
             s3 = Sequential(s31, s32, s33, s34, s35)
 
             # pool
-            s4 = AuxConv(C.Convolution2D(768, 192, 3, pad=1),
-                         pool=A.AveragePooling2D(3, 1, 1))
+            s4 = AuxConv(C.Convolution2D(768, 192, 3, pad=1, use_cudnn=use_cudnn),
+                         pool=A.AveragePooling2D(3, 1, 1, use_cudnn=use_cudnn))
 
             return Inception(s1, s2, s3, s4)
 
@@ -131,49 +131,49 @@ class InceptionV3(link.Chain):
         grid_reduction1 = Inception(
             # strided 3x3
             Sequential(
-                AuxConv(C.Convolution2D(768, 192, 1)),
-                AuxConv(C.Convolution2D(192, 320, 3, 2))),
+                AuxConv(C.Convolution2D(768, 192, 1, use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(192, 320, 3, 2, use_cudnn=use_cudnn))),
             # 7x7 and 3x3
             Sequential(
-                AuxConv(C.Convolution2D(768, 192, 1)),
-                AuxConv(C.Convolution2D(192, 192, (1, 7), pad=(0, 3))),
-                AuxConv(C.Convolution2D(192, 192, (7, 1), pad=(3, 0))),
-                AuxConv(C.Convolution2D(192, 192, 3, 2))),
+                AuxConv(C.Convolution2D(768, 192, 1, use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(192, 192, (1, 7), pad=(0, 3), use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(192, 192, (7, 1), pad=(3, 0), use_cudnn=use_cudnn)),
+                AuxConv(C.Convolution2D(192, 192, 3, 2, use_cudnn=use_cudnn))),
             # pool
-            pool=M.MaxPooling2D(3, 2))
+            pool=M.MaxPooling2D(3, 2, use_cudnn=use_cudnn))
 
         def inception_2(input_channel):
             # 1x1
-            s1 = AuxConv(C.Convolution2D(input_channel, 320, 1))
+            s1 = AuxConv(C.Convolution2D(input_channel, 320, 1, use_cudnn=use_cudnn))
 
             # 3x3
-            s21 = AuxConv(C.Convolution2D(input_channel, 384, 1))
+            s21 = AuxConv(C.Convolution2D(input_channel, 384, 1, use_cudnn=use_cudnn))
             s22 = Inception(AuxConv(C.Convolution2D(384, 384, (1, 3),
-                                                    pad=(0, 1))),
+                                                    pad=(0, 1), use_cudnn=use_cudnn)),
                             AuxConv(C.Convolution2D(384, 384, (3, 1),
-                                                    pad=(1, 0))))
+                                                    pad=(1, 0), use_cudnn=use_cudnn)))
             s2 = Sequential(s21, s22)
 
             # double 3x3
-            s31 = AuxConv(C.Convolution2D(input_channel, 448, 1))
-            s32 = AuxConv(C.Convolution2D(448, 384, 3, pad=1))
-            s331 = AuxConv(C.Convolution2D(384, 384, (1, 3), pad=(0, 1)))
-            s332 = AuxConv(C.Convolution2D(384, 384, (3, 1), pad=(1, 0)))
+            s31 = AuxConv(C.Convolution2D(input_channel, 448, 1, use_cudnn=use_cudnn))
+            s32 = AuxConv(C.Convolution2D(448, 384, 3, pad=1, use_cudnn=use_cudnn))
+            s331 = AuxConv(C.Convolution2D(384, 384, (1, 3), pad=(0, 1), use_cudnn=use_cudnn))
+            s332 = AuxConv(C.Convolution2D(384, 384, (3, 1), pad=(1, 0), use_cudnn=use_cudnn))
             s33 = Inception(s331, s332)
             s3 = Sequential(s31, s32, s33)
 
             # pool
-            s4 = AuxConv(C.Convolution2D(input_channel, 192, 3, pad=1),
-                         pool=A.AveragePooling2D(3, 1, 1))
+            s4 = AuxConv(C.Convolution2D(input_channel, 192, 3, pad=1, use_cudnn=use_cudnn),
+                         pool=A.AveragePooling2D(3, 1, 1, use_cudnn=use_cudnn))
             return Inception(s1, s2, s3, s4)
 
         inception2 = Sequential(*[inception_2(input_channel)
                                   for input_channel in [1280, 2048]])
 
         auxiliary_convolution = Sequential(
-            AuxConv(C.Convolution2D(768, 128, 1),
-                    pool=A.AveragePooling2D(5, 3)),
-            AuxConv(C.Convolution2D(128, 768, 5)))
+            AuxConv(C.Convolution2D(768, 128, 1, use_cudnn=use_cudnn),
+                    pool=A.AveragePooling2D(5, 3, use_cudnn=use_cudnn)),
+            AuxConv(C.Convolution2D(128, 768, 5, use_cudnn=use_cudnn)))
 
         super(InceptionV3, self).__init__(
             convolution=convolution,
