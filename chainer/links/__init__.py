@@ -4,6 +4,7 @@ from chainer.links.activation import maxout
 from chainer.links.activation import prelu
 from chainer.links.architecture import alex
 from chainer.links.architecture import big_lstm
+from chainer.links.architecture import c3d
 from chainer.links.architecture import deepspeech2
 from chainer.links.architecture import fc5
 from chainer.links.architecture import inception_v3
@@ -31,6 +32,7 @@ PReLU = prelu.PReLU
 
 Alex = alex.Alex
 BigLSTM = big_lstm.BigLSTM
+C3D = c3d.C3D
 DeepSpeech2 = deepspeech2.DeepSpeech2
 FC5 = fc5.FC5
 InceptionV3 = inception_v3.InceptionV3
