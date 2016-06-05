@@ -8,6 +8,7 @@ from chainer.links.architecture import c3d
 from chainer.links.architecture import deepspeech2
 from chainer.links.architecture import fc5
 from chainer.links.architecture import inception_v3
+from chainer.links.architecture import resnet_50
 from chainer.links.architecture import small_lstm
 from chainer.links.architecture import vgg
 from chainer.links.connection import bilinear
@@ -36,6 +37,7 @@ C3D = c3d.C3D
 DeepSpeech2 = deepspeech2.DeepSpeech2
 FC5 = fc5.FC5
 InceptionV3 = inception_v3.InceptionV3
+ResNet50 = resnet_50.ResNet50
 SmallLSTM = small_lstm.SmallLSTM
 VGG = vgg.VGG
 
