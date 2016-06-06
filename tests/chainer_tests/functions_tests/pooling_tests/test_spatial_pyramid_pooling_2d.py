@@ -28,11 +28,11 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         # values.
         shape = (self.n, self.c, self.h, self.w)
         size = numpy.prod(shape)
-        self.x = numpy.arange(size, dtype=self.dtype).reshape(shape)
-        numpy.random.shuffle(self.x)
-        self.x += numpy.random.uniform(
-            0.4, 0.6, shape).astype(self.dtype)
-        self.x /= size
+        x = numpy.arange(size, dtype=self.dtype)
+        numpy.random.shuffle(x)
+        x += numpy.random.uniform(0.4, 0.6, size).astype(self.dtype)
+        x /= self.dtype(size)
+        self.x = x.reshape(shape)
 
         self.one = numpy.ones(
             (self.n, self.c, self.h, self.w)).astype(self.dtype)

@@ -56,7 +56,8 @@ class BatchNormalizationFunction(function.Function):
             self.mean = mean
             self.var = var
 
-        self.std = xp.sqrt(var, dtype=var.dtype)
+        self.std = xp.empty_like(var)
+        xp.sqrt(var, self.std)
 
         if xp is numpy:
             x_mu = x - mean[expander]

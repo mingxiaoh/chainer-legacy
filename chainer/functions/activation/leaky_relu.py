@@ -1,3 +1,5 @@
+import numpy
+
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -22,8 +24,8 @@ class LeakyReLU(function.Function):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, x):
-        y = x[0].copy()
-        y[x[0] < 0] *= self.slope
+        y = numpy.empty_like(x[0])
+        numpy.multiply(x[0], numpy.where(x[0] < 0, self.slope, 1), y)
         return y,
 
     def forward_gpu(self, x):
@@ -31,8 +33,8 @@ class LeakyReLU(function.Function):
         return y,
 
     def backward_cpu(self, x, gy):
-        gx = gy[0].copy()
-        gx[x[0] < 0] *= self.slope
+        gx = numpy.empty_like(x[0])
+        numpy.multiply(gy[0], numpy.where(x[0] < 0, self.slope, 1), gx)
         return gx,
 
     def backward_gpu(self, x, gy):

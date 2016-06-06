@@ -35,7 +35,7 @@ class Contrastive(function.Function):
         x0, x1, y = inputs
 
         self.diff = x0 - x1
-        self.dist_sq = xp.sum(self.diff ** 2, axis=1)
+        self.dist_sq = xp.sum(self.diff * self.diff, axis=1)
         self.dist = xp.sqrt(self.dist_sq)
         self.mdist = self.margin - self.dist
         dist = xp.maximum(self.mdist, 0)

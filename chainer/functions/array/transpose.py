@@ -19,7 +19,10 @@ class Transpose(function.Function):
 
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
+        axes = self.axes
+        if axes:
+            axes = [a % len(axes) for a in axes]
+        y = x.transpose(axes)
         return y,
 
     def backward(self, inputs, grad_outputs):

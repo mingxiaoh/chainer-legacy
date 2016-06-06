@@ -21,10 +21,10 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def setUp(self):
         # Avoid unstability of numerical gradient
-        self.x = numpy.arange(
-            2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
-        numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        x = numpy.arange(2 * 3 * 4 * 3, dtype=self.dtype)
+        numpy.random.shuffle(x)
+        x = 2 * x / x.size - 1
+        self.x = x.reshape(2, 3, 4, 3)
         if self.cover_all:
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 3, 3, 2)).astype(self.dtype)

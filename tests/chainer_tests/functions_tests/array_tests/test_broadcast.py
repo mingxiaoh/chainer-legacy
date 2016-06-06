@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -57,6 +58,7 @@ class TestBroadcast(unittest.TestCase):
             self.assertEqual(bx.data.shape, self.out_shape)
             self.assertEqual(bx.data.dtype, self.dtype)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_forward_cpu(self):
         self.check_forward(self.data)
 
@@ -69,6 +71,7 @@ class TestBroadcast(unittest.TestCase):
             functions.Broadcast(), data, grads,
             **self.check_backward_options)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.data, self.grads)
@@ -134,6 +137,7 @@ class TestBroadcastTo(unittest.TestCase):
 
         self.assertEqual(bx.data.shape, self.out_shape)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_forward_cpu(self):
         self.check_forward(self.data)
 
@@ -147,6 +151,7 @@ class TestBroadcastTo(unittest.TestCase):
             functions.BroadcastTo(self.out_shape), data, grads,
             **self.check_backward_options)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.data, self.grad)

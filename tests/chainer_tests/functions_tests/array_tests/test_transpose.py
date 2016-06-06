@@ -25,7 +25,10 @@ class TestTranspose(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = functions.transpose(x, axes)
         self.assertEqual(y.data.dtype, self.dtype)
-        self.assertTrue((self.x.transpose(axes) == cuda.to_cpu(y.data)).all())
+
+        pos_axes = [a % len(axes) for a in axes] if axes else None
+        self.assertTrue(
+            (self.x.transpose(pos_axes) == cuda.to_cpu(y.data)).all())
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

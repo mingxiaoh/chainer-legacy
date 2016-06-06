@@ -289,7 +289,7 @@ class DivFromConstant(function.Function):
 
     def backward_cpu(self, x, gy):
         value = utils.force_type(x[0].dtype, self.value)
-        return utils.force_array(-value * gy[0] / (x[0] ** 2)),
+        return utils.force_array(-value * gy[0] / (x[0] * x[0])),
 
     def backward_gpu(self, x, gy):
         value = utils.force_type(x[0].dtype, self.value)
@@ -325,7 +325,7 @@ class PowVarVar(function.Function):
         return self.y,
 
     def forward_gpu(self, x):
-        return x[0] ** x[1],
+        return cuda.cupy.power(x[0], x[1]),
 
     def backward_cpu(self, x, gy):
         one = x[1].dtype.type(1)
@@ -357,7 +357,9 @@ class PowVarConst(function.Function):
 
     def forward(self, x):
         value = utils.force_type(x[0].dtype, self.value)
-        return utils.force_array((x[0] ** value).astype(x[0].dtype)),
+        xp = cuda.get_array_module(*x)
+        y = xp.power(x[0], value)
+        return utils.force_array(y),
 
     def backward_cpu(self, x, gy):
         val_1 = utils.force_type(x[0].dtype, self.value - 1)
@@ -395,13 +397,14 @@ class PowConstVar(function.Function):
 
     def forward(self, x):
         value = utils.force_type(x[0].dtype, self.value)
-        self.y = utils.force_array(value ** x[0])
+        xp = cuda.get_array_module(*x)
+        self.y = utils.force_array(xp.power(value, x[0]))
         return self.y,
 
     def backward_cpu(self, x, gy):
         value = utils.force_type(x[0].dtype, self.value)
         return utils.force_array(
-            numpy.log(value, dtype=x[0].dtype) * self.y * gy[0]),
+            numpy.log(value) * self.y * gy[0]),
 
     def backward_gpu(self, x, gy):
         value = utils.force_type(x[0].dtype, self.value)

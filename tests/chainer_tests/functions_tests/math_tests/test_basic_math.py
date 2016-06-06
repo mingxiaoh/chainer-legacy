@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -120,6 +121,7 @@ class TestBinaryOp(unittest.TestCase):
         self.forward_gpu(lambda x, y: y.__rtruediv__(x))
 
     @attr.gpu
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(3)
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rpow__(x))
@@ -423,6 +425,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         self._test_constant_array(lambda x, y: y ** x)
 
     @attr.gpu
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_rpow_constant_array_gpu(self):
         # _test_constant_array_one throws pycuda._pvt_struct.error
         self._test_constant_array_gpu(lambda x, y: y ** x, exception=Exception)
@@ -655,6 +658,7 @@ class TestVariableConstantOp(unittest.TestCase):
         self.backward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(10)
     def test_rpow_backward_gpu(self):
         self.backward_gpu(lambda x, y: y ** x)
@@ -779,6 +783,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.forward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(3)
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y ** x, positive=True)
@@ -883,6 +888,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.backward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @condition.retry(10)
     def test_rpow_backward_gpu(self):
         self.backward_gpu(lambda x, y: y ** x, positive=True)

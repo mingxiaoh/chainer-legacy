@@ -1,4 +1,5 @@
 import operator
+import sys
 import unittest
 
 import numpy
@@ -97,18 +98,22 @@ class TestArrayElementwiseOp(unittest.TestCase):
         with testing.NumpyError(divide='ignore'):
             self.check_array_scalar_op(operator.ifloordiv)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_pow_scalar(self):
         self.check_array_scalar_op(operator.pow)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_rpow_scalar(self):
         self.check_array_scalar_op(operator.pow, swap=True)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.for_all_dtypes_combination(names=['x_type', 'y_type'])
     @testing.numpy_cupy_allclose(atol=1.0)
     def check_ipow_scalar(self, xp, x_type, y_type):
         a = xp.array([[1, 2, 3], [4, 5, 6]], x_type)
         return operator.ipow(a, y_type(3))
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.with_requires('numpy>=1.10')
     def test_ipow_scalar(self):
         self.check_ipow_scalar()
@@ -206,9 +211,11 @@ class TestArrayElementwiseOp(unittest.TestCase):
         with testing.NumpyError(divide='ignore'):
             self.check_array_array_op(operator.ifloordiv)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_pow_array(self):
         self.check_array_array_op(operator.pow)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.for_all_dtypes_combination(names=['x_type', 'y_type'])
     @testing.numpy_cupy_allclose(atol=1.0)
     def check_ipow_array(self, xp, x_type, y_type):
@@ -216,6 +223,7 @@ class TestArrayElementwiseOp(unittest.TestCase):
         b = xp.array([[6, 5, 4], [3, 2, 1]], y_type)
         return operator.ipow(a, b)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.with_requires('numpy>=1.10')
     def test_ipow_array(self):
         self.check_ipow_array()
@@ -305,9 +313,11 @@ class TestArrayElementwiseOp(unittest.TestCase):
         with testing.NumpyError(divide='ignore'):
             self.check_array_broadcasted_op(operator.ifloordiv)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_broadcasted_pow(self):
         self.check_array_broadcasted_op(operator.pow)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.with_requires('numpy>=1.10')
     @testing.for_all_dtypes_combination(names=['x_type', 'y_type'])
     @testing.numpy_cupy_allclose(atol=1.0)
@@ -316,6 +326,7 @@ class TestArrayElementwiseOp(unittest.TestCase):
         b = xp.array([[1], [2]], y_type)
         return operator.ipow(a, b)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.with_requires('numpy>=1.10')
     def test_broadcasted_ipow(self):
         self.check_broadcasted_ipow()
@@ -376,6 +387,7 @@ class TestArrayElementwiseOp(unittest.TestCase):
         with testing.NumpyError(divide='ignore'):
             self.check_array_doubly_broadcasted_op(operator.div)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_doubly_broadcasted_pow(self):
         self.check_array_doubly_broadcasted_op(operator.pow)
 
@@ -612,6 +624,7 @@ class TestArrayIntElementwiseOp(unittest.TestCase):
     def test_ixor_array(self):
         self.check_array_array_op(operator.ixor)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_mod_array(self):
         with testing.NumpyError(divide='ignore', invalid='ignore'):
             self.check_array_array_op(operator.mod)
@@ -663,10 +676,12 @@ class TestArrayIntElementwiseOp(unittest.TestCase):
     def test_broadcasted_ixor(self):
         self.check_array_broadcasted_op(operator.ixor)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_broadcasted_mod(self):
         with testing.NumpyError(divide='ignore', invalid='ignore'):
             self.check_array_broadcasted_op(operator.mod)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     @testing.with_requires('numpy>=1.10')
     def test_broadcasted_imod(self):
         with testing.NumpyError(divide='ignore', invalid='ignore'):
@@ -694,6 +709,7 @@ class TestArrayIntElementwiseOp(unittest.TestCase):
     def test_doubly_broadcasted_xor(self):
         self.check_array_doubly_broadcasted_op(operator.xor)
 
+    @unittest.skipIf('__pypy__' in sys.builtin_module_names, "skip on pypy")
     def test_doubly_broadcasted_mod(self):
         with testing.NumpyError(divide='ignore', invalid='ignore'):
             self.check_array_doubly_broadcasted_op(operator.mod)

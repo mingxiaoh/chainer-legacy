@@ -1,5 +1,6 @@
 import collections
 import ctypes
+import gc
 import weakref
 
 import six
@@ -344,6 +345,7 @@ cdef class SingleDeviceMemoryPool:
         # Round up the memory size to fit memory alignment of cudaMalloc
         unit = self._allocation_unit_size
         size = (((size + unit - 1) // unit) * unit)
+        gc.collect(0)
         free = self._free[size]
         if free:
             mem = free.pop()
@@ -353,6 +355,7 @@ cdef class SingleDeviceMemoryPool:
             except runtime.CUDARuntimeError as e:
                 if e.status != 2:
                     raise
+                gc.collect(2)
                 self.free_all_free()
                 mem = self._alloc(size).mem
 

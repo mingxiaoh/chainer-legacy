@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -35,7 +34,7 @@ class SelectItem(function.Function):
         if xp is numpy:
             # This code is equivalent to `t.choose(x.T)`, but `numpy.choose`
             # does not work when `x.shape[1] > 32`.
-            return x[six.moves.range(t.size), t],
+            return x[numpy.arange(t.size), t],
         else:
             y = cuda.elementwise(
                 'S t, raw T x',
@@ -49,7 +48,7 @@ class SelectItem(function.Function):
         x, t = inputs
         gloss = grad_outputs[0]
         gx = numpy.zeros_like(x)
-        gx[six.moves.range(t.size), t] = gloss
+        gx[numpy.arange(t.size), t] = gloss
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):

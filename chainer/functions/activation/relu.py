@@ -28,7 +28,7 @@ class ReLU(function.Function):
         )
 
     def forward_cpu(self, x):
-        return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
+        return utils.force_array(numpy.maximum(x[0], x[0].dtype.type(0))),
 
     def forward_gpu(self, x):
         if (cuda.cudnn_enabled and self.use_cudnn and

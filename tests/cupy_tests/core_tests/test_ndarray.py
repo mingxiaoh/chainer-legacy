@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -30,7 +31,8 @@ class TestGetSize(unittest.TestCase):
 
 
 def wrap_take(array, *args, **kwargs):
-    if get_array_module(array) == numpy:
+    if (get_array_module(array) == numpy and
+            '__pypy__' not in sys.builtin_module_names):
         kwargs["mode"] = "wrap"
 
     return array.take(*args, **kwargs)

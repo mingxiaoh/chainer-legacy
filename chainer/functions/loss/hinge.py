@@ -57,7 +57,7 @@ class Hinge(function.Function):
         if self.norm == 'L1':
             loss = self.bottom_diff.sum() / num
         elif self.norm == 'L2':
-            loss = (self.bottom_diff ** 2).sum() / num
+            loss = (self.bottom_diff * self.bottom_diff).sum() / num
         else:
             raise NotImplementedError()
 

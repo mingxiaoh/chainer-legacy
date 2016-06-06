@@ -76,6 +76,7 @@ cdef inline CPointer _pointer(x):
             raise TypeError('Unsupported type %s' % type(x))
 
     itemsize = x.itemsize
+    x = numpy.asarray(x)
     if itemsize == 1:
         return CInt8(x.view(numpy.int8))
     if itemsize == 2:

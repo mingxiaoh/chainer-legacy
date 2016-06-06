@@ -56,14 +56,14 @@ class TestSLSTM(unittest.TestCase):
         self.assertEqual(h.data.dtype, self.dtype)
 
         # Compute expected out
-        a1_in = self.x1[:, [0, 4]]
-        i1_in = self.x1[:, [1, 5]]
-        f1_in = self.x1[:, [2, 6]]
-        o1_in = self.x1[:, [3, 7]]
-        a2_in = self.x2[:, [0, 4]]
-        i2_in = self.x2[:, [1, 5]]
-        f2_in = self.x2[:, [2, 6]]
-        o2_in = self.x2[:, [3, 7]]
+        a1_in = self.x1[:, 0:5:4]
+        i1_in = self.x1[:, 1:6:4]
+        f1_in = self.x1[:, 2:7:4]
+        o1_in = self.x1[:, 3:8:4]
+        a2_in = self.x2[:, 0:5:4]
+        i2_in = self.x2[:, 1:6:4]
+        f2_in = self.x2[:, 2:7:4]
+        o2_in = self.x2[:, 3:8:4]
 
         c_expect = _sigmoid(i1_in) * numpy.tanh(a1_in) + \
             _sigmoid(i2_in) * numpy.tanh(a2_in) + \

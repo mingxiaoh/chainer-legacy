@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -86,7 +85,7 @@ class SoftmaxCrossEntropy(function.Function):
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
 
-        log_p = log_yd[numpy.maximum(t.ravel(), 0), six.moves.range(t.size)]
+        log_p = log_yd[numpy.maximum(t.ravel(), 0), numpy.arange(t.size)]
         # deal with the case where the SoftmaxCrossEntropy is
         # unpickled from the old version
         if getattr(self, 'normalize', True):
@@ -133,7 +132,7 @@ class SoftmaxCrossEntropy(function.Function):
             y = numpy.exp(log_y)
         if y.ndim == 2:
             gx = y
-            gx[six.moves.xrange(len(t)), numpy.maximum(t, 0)] -= 1
+            gx[numpy.arange(len(t)), numpy.maximum(t, 0)] -= 1
             gx *= (t != self.ignore_label).reshape((len(t), 1))
         else:
             # in the case where y.ndim is higher than 2,

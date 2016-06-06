@@ -48,10 +48,10 @@ class TestLSTM(unittest.TestCase):
         self.assertEqual(h.data.dtype, self.dtype)
 
         # Compute expected out
-        a_in = self.x[:, [0, 4]]
-        i_in = self.x[:, [1, 5]]
-        f_in = self.x[:, [2, 6]]
-        o_in = self.x[:, [3, 7]]
+        a_in = self.x[:, 0:5:4]
+        i_in = self.x[:, 1:6:4]
+        f_in = self.x[:, 2:7:4]
+        o_in = self.x[:, 3:8:4]
 
         c_expect = _sigmoid(i_in) * numpy.tanh(a_in) + \
             _sigmoid(f_in) * self.c_prev

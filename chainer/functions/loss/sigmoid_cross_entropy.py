@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy
 
 from chainer import cuda
@@ -40,7 +41,7 @@ class SigmoidCrossEntropy(function.Function):
         loss = -xp.sum(
             self.ignore_mask * (x * (t - (x >= 0)) -
                                 xp.log1p(xp.exp(-xp.abs(x)))))
-        return utils.force_array(xp.divide(loss, self.count, dtype=x.dtype)),
+        return utils.force_array((loss / self.count).astype(x.dtype)),
 
     def backward(self, inputs, grad_outputs):
         xp = cuda.get_array_module(*inputs)

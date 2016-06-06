@@ -37,11 +37,12 @@ class TestUnpooling2D(unittest.TestCase):
         self.N = 2
         self.n_channels = 3
         inh, inw = 2, 1
-        self.x = numpy.arange(
-            self.N * self.n_channels * inh * inw,
-            dtype=self.dtype).reshape(self.N, self.n_channels, inh, inw)
-        numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+
+        x = numpy.arange(
+            self.N * self.n_channels * inh * inw, dtype=self.dtype)
+        numpy.random.shuffle(x)
+        x = 2 * x / x.size - 1
+        self.x = x.reshape(self.N, self.n_channels, inh, inw)
 
         self.ksize = 2
         outh, outw = self.outsize or self.expected_outsize

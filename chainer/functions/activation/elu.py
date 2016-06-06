@@ -19,9 +19,10 @@ class ELU(function.Function):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, x):
-        y = x[0].copy()
-        neg_indices = x[0] < 0
-        y[neg_indices] = self.alpha * (numpy.exp(y[neg_indices]) - 1)
+        dtype = x[0].dtype.type
+        alpha = dtype(self.alpha)
+        one = dtype(1)
+        y = numpy.where(x[0] < 0, alpha * (numpy.exp(x[0]) - one), x[0])
         return y,
 
     def forward_gpu(self, x):
@@ -33,9 +34,12 @@ class ELU(function.Function):
         return y,
 
     def backward_cpu(self, x, gy):
-        gx = gy[0].copy()
-        neg_indices = x[0] < 0
-        gx[neg_indices] *= self.alpha * numpy.exp(x[0][neg_indices])
+        dtype = x[0].dtype.type
+        alpha = dtype(self.alpha)
+        one = dtype(1)
+        gx = numpy.empty_like(x[0])
+        numpy.multiply(
+            gy, numpy.where(x[0] < 0, alpha * numpy.exp(x[0]), one), gx)
         return gx,
 
     def backward_gpu(self, x, gy):

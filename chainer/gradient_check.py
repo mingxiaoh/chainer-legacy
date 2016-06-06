@@ -46,6 +46,8 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         xp = numpy
     grads = tuple(xp.zeros_like(x) for x in inputs)
     for x, gx in zip(inputs, grads):
+        if x.size == 0:
+            continue
         for i in numpy.ndindex(x.shape):
             orig = x[i].copy()  # hold original value
             x[i] = orig + eps
