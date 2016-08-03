@@ -2,9 +2,10 @@ import numpy
 import six
 
 from chainer import cuda
+from chainer import variable
 
 
-def concat_examples(batch, device=None, padding=None):
+def concat_examples(batch, device=None, padding=None, make_var=variable.Variable):
     """Concatenates a list of examples into array(s).
 
     Dataset iterator yields a list of examples. If each example is an array,
@@ -66,8 +67,8 @@ def concat_examples(batch, device=None, padding=None):
             padding = [padding] * len(first_elem)
 
         for i in six.moves.range(len(first_elem)):
-            result.append(to_device(_concat_arrays(
-                [example[i] for example in batch], padding[i])))
+            result.append(make_var(to_device(_concat_arrays(
+                [example[i] for example in batch], padding[i]))))
 
         return tuple(result)
 
@@ -77,13 +78,13 @@ def concat_examples(batch, device=None, padding=None):
             padding = {key: padding for key in first_elem}
 
         for key in first_elem:
-            result[key] = to_device(_concat_arrays(
-                [example[key] for example in batch], padding[key]))
+            result[key] = make_var(to_device(_concat_arrays(
+                [example[key] for example in batch], padding[key])))
 
         return result
 
     else:
-        return to_device(_concat_arrays(batch, padding))
+        return make_var(to_device(_concat_arrays(batch, padding)))
 
 
 def _concat_arrays(arrays, padding):

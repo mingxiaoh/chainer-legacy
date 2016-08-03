@@ -169,21 +169,17 @@ class StandardUpdater(Updater):
 
     def update_core(self):
         batch = self._iterators['main'].next()
-        in_arrays = self.converter(batch, self.device)
+        in_vars = self.converter(batch, self.device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target
 
-        if isinstance(in_arrays, tuple):
-            in_vars = tuple(variable.Variable(x) for x in in_arrays)
+        if isinstance(in_vars, tuple):
             optimizer.update(loss_func, *in_vars)
-        elif isinstance(in_arrays, dict):
-            in_vars = {key: variable.Variable(x)
-                       for key, x in six.iteritems(in_arrays)}
+        elif isinstance(in_vars, dict):
             optimizer.update(loss_func, **in_vars)
         else:
-            in_var = variable.Variable(in_arrays)
-            optimizer.update(loss_func, in_var)
+            optimizer.update(loss_func, in_vars)
 
     def serialize(self, serializer):
         for name, iterator in six.iteritems(self._iterators):

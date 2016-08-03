@@ -7,7 +7,6 @@ from chainer.dataset import iterator as iterator_module
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
-from chainer import variable
 
 
 class Evaluator(extension.Extension):
@@ -162,17 +161,13 @@ class Evaluator(extension.Extension):
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self.converter(batch, self.device)
-                if isinstance(in_arrays, tuple):
-                    in_vars = tuple(variable.Variable(x) for x in in_arrays)
+                in_vars = self.converter(batch, self.device)
+                if isinstance(in_vars, tuple):
                     eval_func(*in_vars)
-                elif isinstance(in_arrays, dict):
-                    in_vars = {key: variable.Variable(x)
-                               for key, x in six.iteritems(in_arrays)}
+                elif isinstance(in_vars, dict):
                     eval_func(**in_vars)
                 else:
-                    in_var = variable.Variable(in_arrays)
-                    eval_func(in_var)
+                    eval_func(in_vars)
 
             summary.add(observation)
 
