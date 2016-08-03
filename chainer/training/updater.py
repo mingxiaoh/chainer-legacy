@@ -274,28 +274,23 @@ class ParallelUpdater(StandardUpdater):
         # Split the batch to sub-batches.
         #
         n = len(self._models)
-        in_arrays_list = {}
+        in_vars_list = {}
         for i, key in enumerate(six.iterkeys(self._models)):
-            in_arrays_list[key] = self.converter(
-                batch[i::n], self._devices[key])
+            in_vars_list[key] = self.converter(batch[i::n], self._devices[key])
 
         for model in six.itervalues(self._models):
             model.zerograds()
 
         losses = []
         for model_key, model in six.iteritems(self._models):
-            in_arrays = in_arrays_list[model_key]
+            in_vars = in_vars_list[model_key]
             loss_func = self.loss_func or model
 
-            if isinstance(in_arrays, tuple):
-                in_vars = tuple(variable.Variable(x) for x in in_arrays)
+            if isinstance(in_vars, tuple):
                 losses.append(loss_func(*in_vars))
-            elif isinstance(in_arrays[0], dict):
-                in_vars = {key: variable.Variable(x)
-                           for key, x in six.iteritems(in_arrays)}
+            elif isinstance(in_vars, dict):
                 losses.append(loss_func(**in_vars))
             else:
-                in_vars = variable.Variable(in_arrays)
                 losses.append(loss_func(in_vars))
 
         for loss in losses:
