@@ -33,7 +33,7 @@ parser.add_argument('--model', '-m', choices=['skipgram', 'cbow'],
                     help='model type ("skipgram", "cbow")')
 parser.add_argument('--negative-size', default=5, type=int,
                     help='number of negative samples')
-parser.add_argument('--out-type', '-o', choices=['hsm', 'ns', 'original'],
+parser.add_argument('--out-type', '-o', choices=['hsm', 'ns', 'blackout', 'original'],
                     default='hsm',
                     help='output model type ("hsm": hierarchical softmax, '
                     '"ns": negative sampling, "original": no approximation)')
@@ -135,6 +135,10 @@ if args.out_type == 'hsm':
 elif args.out_type == 'ns':
     cs = [counts[w] for w in range(len(counts))]
     loss_func = L.NegativeSampling(args.unit, cs, args.negative_size)
+    loss_func.W.data[...] = 0
+elif args.out_type == 'blackout':
+    cs = [counts[w] for w in range(len(counts))]
+    loss_func = L.BlackOut(args.unit, cs, args.negative_size)
     loss_func.W.data[...] = 0
 elif args.out_type == 'original':
     loss_func = SoftmaxCrossEntropyLoss(args.unit, n_vocab)
