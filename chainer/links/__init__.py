@@ -21,6 +21,7 @@ from chainer.links.connection import n_step_lstm
 from chainer.links.connection import parameter
 from chainer.links.connection import peephole
 from chainer.links.connection import scale
+from chainer.links.connection import sparse_embed_id
 from chainer.links.loss import black_out
 from chainer.links.loss import crf1d
 from chainer.links.loss import hierarchical_softmax
@@ -53,6 +54,7 @@ NStepLSTM = n_step_lstm.NStepLSTM
 Parameter = parameter.Parameter
 StatefulPeepholeLSTM = peephole.StatefulPeepholeLSTM
 Scale = scale.Scale
+SparseEmbedID = sparse_embed_id.SparseEmbedID
 
 BlackOut = black_out.BlackOut
 CRF1d = crf1d.CRF1d
