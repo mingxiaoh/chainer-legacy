@@ -25,6 +25,7 @@ from cupy import logic
 from cupy import manipulation
 from cupy import math
 import cupy.random
+from cupy import padding
 from cupy import sorting
 from cupy import statistics
 from cupy import testing  # NOQA
@@ -326,6 +327,11 @@ maximum = math.misc.maximum
 minimum = math.misc.minimum
 fmax = math.misc.fmax
 fmin = math.misc.fmin
+
+# -----------------------------------------------------------------------------
+# Padding
+# -----------------------------------------------------------------------------
+pad = padding.pad.pad
 
 # -----------------------------------------------------------------------------
 # Sorting, searching, and counting
