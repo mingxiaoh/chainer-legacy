@@ -77,6 +77,7 @@ cdef class ndarray:
 
     def __init__(self, shape, dtype=float, memptr=None, order='C'):
         cdef Py_ssize_t x
+        cdef Py_ssize_t size
         self._shape = internal.get_size(shape)
         for x in self._shape:
             if x < 0:
