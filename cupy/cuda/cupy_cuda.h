@@ -39,7 +39,9 @@ typedef enum cudaDataType_t cudaDataType;
 #endif // #if CUDA_VERSION >= 7050
 #endif // #if CUDA_VERSION < 8000
 
+
 #if CUDA_VERSION < 7050
+
 cublasStatus_t cublasSgemmEx(
         cublasHandle_t handle, cublasOperation_t transa,
         cublasOperation_t transb, int m, int n, int k,
@@ -48,11 +50,26 @@ cublasStatus_t cublasSgemmEx(
         const float *beta, void *C, cudaDataType Ctype, int ldc) {
     return CUBLAS_STATUS_NOT_SUPPORTED;
 }
+
 #endif // #if CUDA_VERSION < 7050
+
+
+#if CUDA_VERSION < 8000
+
+enum cudaMemoryAdvise {};
+
+cudaError_t cudaMemAdvise(const void *devPtr, size_t count,
+                          enum cudaMemoryAdvise advice, int device) {
+    return cudaErrorUnknown;
+}
+
+#endif // #if CUDA_VERSION < 8000
 
 } // extern "C"
 
 #else // #ifndef CUPY_NO_CUDA
+
+
 
 extern "C" {
 
@@ -129,6 +146,7 @@ typedef enum {
 } cudaError_t;
 typedef enum {} cudaDataType;
 enum cudaDeviceAttr {};
+enum cudaMemoryAdvise {};
 enum cudaMemcpyKind {};
 
 
@@ -251,6 +269,11 @@ cudaError_t cudaMemset(void* devPtr, int value, size_t count) {
 
 cudaError_t cudaMemsetAsync(
         void* devPtr, int value, size_t count, cudaStream_t stream) {
+    return cudaSuccess;
+}
+
+cudaError_t cudaMemAdvise(const void *devPtr, size_t count,
+                          enum cudaMemoryAdvise advice, int device) {
     return cudaSuccess;
 }
 
