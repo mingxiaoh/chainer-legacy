@@ -52,7 +52,7 @@ class ClippedReLU(function.Function):
 def clipped_relu(x, z=20.0):
     """Clipped Rectifier Unit function.
 
-    This function is expressed as :math:`ClippedReLU(x, z)
+    This function is expressed as :math:`\\mathrm{ClippedReLU}(x, z)
     = \\min(\\max(0, x), z)`, where :math:`z(>0)` is a clipping value.
 
     Args:
