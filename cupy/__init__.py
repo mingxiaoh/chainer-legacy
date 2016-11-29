@@ -24,6 +24,7 @@ from cupy import linalg
 from cupy import logic
 from cupy import manipulation
 from cupy import math
+from cupy import padding
 import cupy.random
 from cupy import sorting
 from cupy import statistics
@@ -327,6 +328,11 @@ maximum = math.misc.maximum
 minimum = math.misc.minimum
 fmax = math.misc.fmax
 fmin = math.misc.fmin
+
+# -----------------------------------------------------------------------------
+# Padding
+# -----------------------------------------------------------------------------
+pad = padding.pad.pad
 
 # -----------------------------------------------------------------------------
 # Sorting, searching, and counting
