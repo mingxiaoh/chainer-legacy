@@ -58,6 +58,11 @@ cublasStatus_t cublasSgemmEx(
 
 enum cudaMemoryAdvise {};
 
+cudaError_t cudaMemPrefetchAsync(const void *devPtr, size_t count,
+                                 int dstDevice, cudaStream_t stream) {
+    return cudaErrorUnknown;
+}
+
 cudaError_t cudaMemAdvise(const void *devPtr, size_t count,
                           enum cudaMemoryAdvise advice, int device) {
     return cudaErrorUnknown;
@@ -273,6 +278,11 @@ cudaError_t cudaMemset(void* devPtr, int value, size_t count) {
 
 cudaError_t cudaMemsetAsync(
         void* devPtr, int value, size_t count, cudaStream_t stream) {
+    return cudaSuccess;
+}
+
+cudaError_t cudaMemPrefetchAsync(const void *devPtr, size_t count,
+                                 int dstDevice, cudaStream_t stream) {
     return cudaSuccess;
 }
 
