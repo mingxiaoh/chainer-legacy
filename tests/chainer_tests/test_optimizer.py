@@ -11,6 +11,130 @@ from chainer import testing
 from chainer.testing import attr
 
 
+class TestUpdateRule(unittest.TestCase):
+
+    def setUp(self):
+        self.data = np.ones((2, 3), np.float32)
+        self.grad = np.ones_like(self.data)
+
+        self.update_rule = optimizer.UpdateRule()
+        self.update_rule._update_core_cpu = mock.MagicMock()
+        self.update_rule._update_core_gpu = mock.MagicMock()
+
+    def test_update_cpu(self):
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(self.update_rule._update_core_cpu.call_count, 1)
+        self.assertEqual(self.update_rule._update_core_gpu.call_count, 0)
+
+    @attr.gpu
+    def test_update_gpu(self):
+        self.update_rule.update(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
+        self.assertEqual(self.update_rule._update_core_cpu.call_count, 0)
+        self.assertEqual(self.update_rule._update_core_gpu.call_count, 1)
+
+    def test_add_hook(self):
+        hook = mock.MagicMock()
+        self.update_rule.add_hook(hook, name='hook')
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(hook.call_count, 1)
+
+        args = hook.call_args_list[0][0]
+        self.assertEqual(len(args), 3)
+        self.assertIs(args[0], self.update_rule)
+        self.assertIs(args[1], self.data)
+        self.assertIs(args[2], self.grad)
+
+    def test_remove_hook(self):
+        hook = mock.MagicMock()
+        self.update_rule.add_hook(hook, name='hook')
+        self.update_rule.remove_hook('hook')
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(hook.call_count, 0)
+
+    def test_add_hook_with_function_name(self):
+        hook_body = mock.MagicMock()
+
+        def foo(update_rule, data, grad):
+            hook_body(update_rule, data, grad)
+
+        self.update_rule.add_hook(foo)
+        self.update_rule.remove_hook('foo')
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(hook_body.call_count, 0)
+
+    def test_add_hook_no_name(self):
+        class CallableWithoutName(object):
+            def __call__(self, update_rule, data, grad):
+                pass
+
+        with self.assertRaises(ValueError):
+            self.update_rule.add_hook(CallableWithoutName())
+
+    def test_add_hook_duplicated_name(self):
+        self.update_rule.add_hook(mock.MagicMock(), name='foo')
+        with self.assertRaises(ValueError):
+            self.update_rule.add_hook(mock.MagicMock(), name='foo')
+
+    def test_remove_hook_not_exist(self):
+        with self.assertRaises(KeyError):
+            self.update_rule.remove_hook('foo')
+
+    def test_disabled_update_rule(self):
+        self.update_rule._update_core = mock.MagicMock()
+        self.update_rule.enabled = False
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(self.update_rule._update_core.call_count, 0)
+
+        self.update_rule.enabled = True
+        self.update_rule.update(self.data, self.grad)
+        self.assertEqual(self.update_rule._update_core.call_count, 1)
+
+    def setup_state(self):
+        def init_state(data):
+            state = self.update_rule.state
+            state['a'] = 0
+            state['b'] = np.array([1, 2, 3], dtype=np.float32)
+        self.update_rule._init_state = init_state
+
+    @attr.gpu
+    def test_state_copy_to_gpu(self):
+        self.setup_state()
+
+        def update_core(data, grad):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertIsInstance(self.update_rule.state['b'], cuda.ndarray)
+
+        self.update_rule._update_core = update_core
+        self.update_rule.update(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
+
+    @attr.multi_gpu(2)
+    def test_state_copy_to_another_gpu(self):
+        self.setup_state()
+
+        def update_core(data, grad):
+            self.assertIsInstance(self.update_rule.state['b'], cuda.ndarray)
+            self.assertEqual(self.update_rule.state['b'].device.id, 1)
+
+        self.update_rule._update_core = lambda data, grad: None
+        self.update_rule.update(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
+        self.update_rule._update_core = update_core
+        self.update_rule.update(cuda.to_gpu(self.data, 1),
+                                cuda.to_gpu(self.grad, 1))
+
+    @attr.gpu
+    def test_state_copy_to_cpu(self):
+        self.setup_state()
+
+        def update_core(data, grad):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertIsInstance(self.update_rule.state['b'], np.ndarray)
+
+        self.update_rule._update_core = lambda data, grad: None
+        self.update_rule.update(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
+        self.update_rule._update_core = update_core
+        self.update_rule.update(self.data, self.grad)
+
+
 class TestOptimizerUtility(unittest.TestCase):
 
     def setUp(self):
