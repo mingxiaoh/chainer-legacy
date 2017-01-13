@@ -27,6 +27,174 @@ def exponential_decay_noise(xp, shape, dtype, hook, opt):
     return xp.random.normal(0, std, shape).astype(dtype)
 
 
+class UpdateRule(object):
+
+    """Base class of all update rules.
+
+    Update rule is an object that implements how to update one parameter
+    variable using the gradient of a loss function. This class provides the
+    interface and the common features of any update rules.
+
+    An update rule can be set to a :class:`~chainer.Variable` object that
+    represents a parameter array of a model. An :class:`~chainer.Optimizer`
+    instance defines which parameters to update, and the update rule instance
+    of each parameter defines how to update it.
+
+    Hook functions can be set to any update rule instance. The hook function is
+    called just before any updates.
+
+    An implementation of update rule should override :meth:`_update_core` or
+    its device-dependent variants (i.e., :meth:`_update_core_cpu` and
+    :meth:`_update_core_gpu`).
+
+    The state (e.g. a moving average of the gradient) of the update rule is
+    stored into the state dictionary. An implementation of update rule using
+    state should also override :meth:`_init_state` to initialize the state at
+    the first update. The values of the state dictionary are automatically
+    copied to the appropriate device before the update based on the data and
+    grad arrays.
+
+    Attributes:
+        enabled (bool): Flag to configure if this update rule is active. If the
+            update rule is not active (i.e., ``enabled = False``), the
+            :meth:`update` method does not update the parameter.
+
+    """
+    def __init__(self):
+        self._hooks = collections.OrderedDict()
+        self._state = None
+        self.enabled = True
+
+    @property
+    def state(self):
+        return self._state
+
+    def add_hook(self, hook, name=None):
+        """Adds a hook function.
+
+        The hook function is called before any updates.
+
+        Args:
+            hook (callable): Hook function to be added. It takes three
+                arguments: the update rule object, the data array, and the
+                gradient array.
+            name (str): Name of the hook function. The name attribute of the
+                hook function is used by default.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function must be callable')
+
+        if name is None:
+            name = getattr(hook, 'name', getattr(hook, '__name__', None))
+            if name is None:
+                raise ValueError(
+                    'the name of the hook function is not specified')
+        if name in self._hooks:
+            raise ValueError('hook "{}" already exists'.format(name))
+
+        self._hooks[name] = hook
+
+    def remove_hook(self, name):
+        """Removes the specified hook function.
+
+        Args:
+            name (str): Name of the hook function to be removed. The hook
+                function registered with this name will be removed.
+
+        """
+        del self._hooks[name]
+
+    def update(self, data, grad):
+        """Invokes hook functions and updates the parameter.
+
+        Args:
+            data (array): Parameter array to be updated.
+            grad (array): Gradient of the loss function w.r.t. the parameter.
+
+        """
+        if not self.enabled:
+            return
+
+        self._prepare(data)
+        for hook in six.itervalues(self._hooks):
+            hook(self, data, grad)
+        self._update_core(data, grad)
+
+    def _update_core(self, data, grad):
+        """Updates the parameter.
+
+        Implementation of UpdateRule should override this method or both of
+        :meth:`_update_core_cpu` and :meth:`_update_core_gpu`.
+
+        Args:
+            data (array): Parameter array to be updated.
+            grad (array): Gradient of the loss function w.r.t. the parameter.
+
+        """
+        with cuda.get_device(data) as dev:
+            if int(dev) == -1:
+                self._update_core_cpu(data, grad)
+            else:
+                self._update_core_gpu(data, grad)
+
+    def _update_core_cpu(self, data, grad):
+        """Updates the parameter on CPU.
+
+        See :meth:`_update_core` for details.
+
+        Args:
+            data (numpy.ndarray): Parameter array to be updated.
+            grad (numpy.ndarray): Gradient of the loss function w.r.t. the
+                parameter.
+
+        """
+        raise NotImplementedError
+
+    def _update_core_gpu(self, data, grad):
+        """Updates the parameter on GPU.
+
+        See :meth:`_update_core` for details.
+
+        Args:
+            data (cupy.ndarray): Parameter array to be updated.
+            grad (cupy.ndarray): Gradient of the loss function w.r.t. the
+                parameter.
+
+        """
+        raise NotImplementedError
+
+    def _init_state(self, data):
+        """Initializes the state.
+
+        Any implementations that use the state should override this mehtod.
+        This method is called at the first update.
+
+        Args:
+            data (array): Parameter array. It can be used to extract the shape
+                and the data type of the parameter.
+
+        """
+        pass
+
+    def _prepare(self, data):
+        with cuda.get_device(data) as device:
+            state = self.state
+            if state is None:
+                state = self._state = {}
+                self._init_state(data)
+
+            for name, value in six.iteritems(state):
+                if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
+                    continue
+                value_device = cuda.get_device(value)
+                if value_device.id != device.id:
+                    if device.id >= 0:
+                        state[name] = cuda.to_gpu(value)
+                    else:
+                        state[name] = cuda.to_cpu(value)
+
+
 class Optimizer(object):
 
     """Base class of all numerical optimizers.
