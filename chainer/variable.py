@@ -87,11 +87,15 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
+        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
+            updates this variable as a parameter.
         volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
             variable does not keep track of any function applications. See
             :class:`~chainer.Flag` for the detail of ternary flags.
         initializer: Initializer of the data array. It is used for initializing
             the data array of an uninitialized variable.
+        update_rule (~chainer.optimizer.UpdateRule): Update rule attached to
+            this variable.
 
     """
 
@@ -100,7 +104,7 @@ class Variable(object):
     _initial_device = -1
 
     def __init__(self, data=None, volatile=flag.OFF, name=None, grad=None,
-                 initializer=None):
+                 initializer=None, update_rule=None):
         if data is None:
             self.initializer = (
                 initializers.NaN() if initializer is None else initializer)
@@ -119,9 +123,11 @@ Actual: {0}'''.format(type(data))
         self.creator = None
 
         self.name = name
+        self.update_rule = update_rule
 
     def __reduce__(self):
-        return Variable, (self.data, self.volatile, self.name, self._grad)
+        return Variable, (self.data, self.volatile, self.name, self._grad,
+                          self.update_rule)
 
     def __repr__(self):
         if self.name:
@@ -535,6 +541,16 @@ Actual: {0}'''.format(type(data))
 
         self.data = data
         self.grad = grad
+
+    def update(self):
+        """Updates the data array using the gradient and the update rule.
+
+        This method updates the variable using the update rule attached to this
+        variable. If the gradient is ``None``, it does nothing.
+
+        """
+        if self.update_rule is not None and self._grad is not None:
+            self.update_rule.update(self.data, self._grad)
 
     def __lt__(self, other):
         raise NotImplementedError()
