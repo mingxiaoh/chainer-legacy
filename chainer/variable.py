@@ -550,7 +550,7 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.update_rule is not None and self._grad is not None:
-            self.update_rule.update(self.data, self._grad)
+            self.update_rule.update(self)
 
     def __lt__(self, other):
         raise NotImplementedError()

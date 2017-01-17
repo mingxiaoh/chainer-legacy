@@ -99,13 +99,13 @@ class UpdateRule(object):
     Hook functions can be set to any update rule instance. The hook function is
     called just before any updates.
 
-    An implementation of update rule should override :meth:`_update_core` or
-    its device-dependent variants (i.e., :meth:`_update_core_cpu` and
-    :meth:`_update_core_gpu`).
+    An implementation of update rule should override :meth:`update_core` or
+    its device-dependent variants (i.e., :meth:`update_core_cpu` and
+    :meth:`update_core_gpu`).
 
     The state (e.g. a moving average of the gradient) of the update rule is
     stored into the state dictionary. An implementation of update rule using
-    state should also override :meth:`_init_state` to initialize the state at
+    state should also override :meth:`init_state` to initialize the state at
     the first update. The values of the state dictionary are automatically
     copied to the appropriate device before the update based on the data and
     grad arrays.
@@ -114,15 +114,18 @@ class UpdateRule(object):
         enabled (bool): Flag to configure if this update rule is active. If the
             update rule is not active (i.e., ``enabled = False``), the
             :meth:`update` method does not update the parameter.
+        t (int): Number of updates made by this update rule.
 
     """
     def __init__(self):
         self._hooks = collections.OrderedDict()
         self._state = None
         self.enabled = True
+        self.t = 0
 
     @property
     def state(self):
+        """State dictionary."""
         return self._state
 
     def add_hook(self, hook, name=None):
@@ -131,9 +134,8 @@ class UpdateRule(object):
         The hook function is called before any updates.
 
         Args:
-            hook (callable): Hook function to be added. It takes three
-                arguments: the update rule object, the data array, and the
-                gradient array.
+            hook (callable): Hook function to be added. It takes two
+                arguments: the update rule object and the parameter variable.
             name (str): Name of the hook function. The name attribute of the
                 hook function is used by default.
 
@@ -161,84 +163,79 @@ class UpdateRule(object):
         """
         del self._hooks[name]
 
-    def update(self, data, grad):
+    def update(self, param):
         """Invokes hook functions and updates the parameter.
 
         Args:
-            data (array): Parameter array to be updated.
-            grad (array): Gradient of the loss function w.r.t. the parameter.
+            param (~chainer.Variable): Variable to be updated.
 
         """
         if not self.enabled:
             return
 
-        self._prepare(data)
+        self.t += 1
+        self._prepare(param)
         for hook in six.itervalues(self._hooks):
-            hook(self, data, grad)
-        self._update_core(data, grad)
+            hook(self, param)
+        self.update_core(param)
 
-    def _update_core(self, data, grad):
+    def update_core(self, param):
         """Updates the parameter.
 
         Implementation of UpdateRule should override this method or both of
         :meth:`_update_core_cpu` and :meth:`_update_core_gpu`.
 
         Args:
-            data (array): Parameter array to be updated.
-            grad (array): Gradient of the loss function w.r.t. the parameter.
+            param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device(data) as dev:
+        with cuda.get_device(param.data) as dev:
             if int(dev) == -1:
-                self._update_core_cpu(data, grad)
+                self.update_core_cpu(param)
             else:
-                self._update_core_gpu(data, grad)
+                self.update_core_gpu(param)
 
-    def _update_core_cpu(self, data, grad):
+    def update_core_cpu(self, param):
         """Updates the parameter on CPU.
 
-        See :meth:`_update_core` for details.
+        See :meth:`update_core` for details.
 
         Args:
-            data (numpy.ndarray): Parameter array to be updated.
-            grad (numpy.ndarray): Gradient of the loss function w.r.t. the
-                parameter.
+            param (~chainer.Variable): Variable to be updated.
 
         """
         raise NotImplementedError
 
-    def _update_core_gpu(self, data, grad):
+    def update_core_gpu(self, param):
         """Updates the parameter on GPU.
 
-        See :meth:`_update_core` for details.
+        See :meth:`update_core` for details.
 
         Args:
-            data (cupy.ndarray): Parameter array to be updated.
-            grad (cupy.ndarray): Gradient of the loss function w.r.t. the
-                parameter.
+            param (~chainer.Variable): Variable to be updated.
 
         """
         raise NotImplementedError
 
-    def _init_state(self, data):
+    def init_state(self, param):
         """Initializes the state.
 
         Any implementations that use the state should override this mehtod.
         This method is called at the first update.
 
         Args:
-            data (array): Parameter array. It can be used to extract the shape
-                and the data type of the parameter.
+            param (~chainer.Variable): Parameter variable. It can be used to
+                extract the shape and the data type of the parameter.
 
         """
         pass
 
-    def _prepare(self, data):
-        with cuda.get_device(data) as device:
+    def _prepare(self, param):
+        with cuda.get_device(param.data) as device:
             state = self.state
             if state is None:
                 state = self._state = {}
-                self._init_state(data)
+                self.init_state(param)
 
             for name, value in six.iteritems(state):
                 if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
