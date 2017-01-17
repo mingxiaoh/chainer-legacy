@@ -258,16 +258,12 @@ class Optimizer(object):
     parameters based on a given loss function.
 
     Each optimizer implementation must be defined as a child class of
-    Optimizer. It must override :meth:`update` method. An optimizer can use
-    *internal states* each of which is tied to one of the parameters. State is
-    a dictionary of serializable values (typically arrays of size same as
-    the corresponding parameters). In order to use state dictionaries, the
-    optimizer must override :meth:`init_state` method (or its CPU/GPU versions,
-    :meth:`init_state_cpu` and :meth:`init_state_gpu`).
+    Optimizer. It must override :meth:`update` method.
 
     If the optimizer is based on single gradient computation (like
     most first-order methods), then it should inherit :class:`GradientMethod`,
-    which adds some features dedicated for the first order methods.
+    which adds some features dedicated for the first order methods, including
+    the support of :class:`~chainer.optimizer.UpdateRule`.
 
     Optimizer instance also supports *hook functions*. Hook function is
     registered by the :meth:`add_hook` method. Each hook function is called
@@ -281,7 +277,6 @@ class Optimizer(object):
             method.
 
     """
-
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
 
@@ -298,104 +293,20 @@ class Optimizer(object):
         self.target = link
         self.t = 0
         self.epoch = 0
-        self._states = {}
         self._hooks = collections.OrderedDict()
 
-        self.prepare()
-
-    def prepare(self):
-        """Prepares for an update.
-
-        This method initializes missing optimizer states (e.g. for newly added
-        parameters after the set up), and copies arrays in each state
-        dictionary to CPU or GPU according to the corresponding parameter
-        array.
-
-        """
-        states = self._states
-        for name, param in self.target.namedparams():
-            if name not in states:
-                state = {}
-                self.init_state(param, state)
-                states[name] = state
-            else:
-                state = states[name]
-                with cuda.get_device(param.data) as dev:
-                    if int(dev) == -1:  # cpu
-                        for key, value in six.iteritems(state):
-                            if isinstance(value, cuda.ndarray):
-                                state[key] = value.get()
-                    else:  # gpu
-                        cupy = cuda.cupy
-                        for key, value in six.iteritems(state):
-                            if isinstance(value, numpy.ndarray):
-                                state[key] = cuda.to_gpu(value)
-                            elif (isinstance(value, cupy.ndarray) and
-                                  value.device != dev):
-                                state[key] = cupy.copy(value)
-
-    def init_state(self, param, state):
-        """Initializes the optimizer state corresponding to the parameter.
-
-        This method should add needed items to the ``state`` dictionary. Each
-        optimizer implementation that uses its own states should override this
-        method or CPU/GPU dedicated versions (:meth:`init_state_cpu` and
-        :meth:`init_state_gpu`).
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state_cpu`, :meth:`init_state_gpu`
-
-        """
-        with cuda.get_device(param.data) as dev:
-            if int(dev) == -1:
-                self.init_state_cpu(param, state)
-            else:
-                self.init_state_gpu(param, state)
-
-    def init_state_cpu(self, param, state):
-        """Initializes the optimizer state on CPU.
-
-        This method is called from :meth:`init_state` by default.
-
-        Args:
-            param (~chainer.Variable): Parameter variable. Its data array is
-                of type :class:`numpy.ndarray`.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state`
-
-        """
-        pass
-
-    def init_state_gpu(self, param, state):
-        """Initializes the optimizer state on GPU.
-
-        This method is called from :meth:`init_state` by default.
-
-        Args:
-            param (~chainer.Variable): Parameter variable. Its data array is
-                of type :class:`cupy.ndarray`.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state`
-
-        """
-        pass
-
     def update(self, lossfun=None, *args, **kwds):
-        """Updates the parameters and optimizer states.
+        """Updates the parameters.
 
-        This method updates the parameters of the target link and corresponding
-        optimizer states. The behavior of this method is different for the
-        cases either ``lossfun`` is given or not.
+        This method updates the parameters of the target link. The behavior of
+        this method is different for the cases either ``lossfun`` is given or
+        not.
 
-        If ``lossfun`` is given, then this method initializes the gradients by
-        zeros, calls it with given extra arguments, and calls the
+        If ``lossfun`` is given, this method typically clears the gradients,
+        calls the loss function with given extra arguments, and calls the
         :meth:`~chainer.Variable.backward` method of its output to compute the
-        gradients. The implementation might call ``lossfun`` more than once.
+        gradients. The actual implementation might call ``lossfun`` more than
+        once.
 
         If ``lossfun`` is not given, then this method assumes that the
         gradients of all parameters are already computed. An implementation
@@ -481,10 +392,6 @@ class Optimizer(object):
         """
         self.t = serializer('t', self.t)
         self.epoch = serializer('epoch', self.epoch)
-        for name, state in six.iteritems(self._states):
-            s = serializer[name]
-            for key, value in six.iteritems(state):
-                state[key] = s(key, value)
 
     def zero_grads(self):
         """Fills all gradient arrays by zeros.
@@ -579,33 +486,34 @@ class GradientMethod(Optimizer):
     methods that just require the gradient at the current parameter vector on
     an update can be implemented as its child class.
 
-    An implementation of a gradient method must override the following methods:
-
-    - :meth:`init_state` or both :meth:`init_state_cpu` and
-      :meth:`init_state_gpu`
-    - :meth:`update_one` or both :meth:`update_one_cpu` and
-      :meth:`update_one_gpu`
+    This class uses :class:`~chainer.optimizer.UpdateRule` to manage the update
+    rule of each parameter. A child class of GradientMethod should override
+    :meth:`setup_update_rule` to set up the default update rule to each
+    parameter.
 
     .. note::
        It is recommended to call :meth:`use_cleargrads` after creating a
        :class:`GradientMethod` object for efficiency.
 
     """
+    def setup(self, link):
+        super(GradientMethod, self).setup(link)
+        for param in link.params():
+            self.setup_update_rule(param)
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
         This method runs in two ways.
 
-        - If ``lossfun`` is given, then use it as a loss function to compute
-          gradients.
+        - If ``lossfun`` is given, then it is used as a loss function to
+          compute gradients.
         - Otherwise, this method assumes that the gradients are already
           computed.
 
         In both cases, the computed gradients are used to update parameters.
-        The actual update routines are defined by the :meth:`update_one`
-        method (or its CPU/GPU versions, :meth:`update_one_cpu` and
-        :meth:`update_one_gpu`).
+        The actual update routines are defined by the update rule of each
+        parameter.
 
         """
         if lossfun is not None:
@@ -627,49 +535,10 @@ class GradientMethod(Optimizer):
                     param.grad = xp.zeros_like(param.data)
 
         self.call_hooks()
-        self.prepare()
 
         self.t += 1
-        states = self._states
-        for name, param in self.target.namedparams():
-            with cuda.get_device(param.data):
-                self.update_one(param, states[name])
-
-    def update_one(self, param, state):
-        """Updates a parameter based on the corresponding gradient and state.
-
-        This method calls appropriate one from :meth:`update_param_cpu` or
-        :meth:`update_param_gpu`.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        if isinstance(param.data, numpy.ndarray):
-            self.update_one_cpu(param, state)
-        else:
-            self.update_one_gpu(param, state)
-
-    def update_one_cpu(self, param, state):
-        """Updates a parameter on CPU.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        raise NotImplementedError
-
-    def update_one_gpu(self, param, state):
-        """Updates a parameter on GPU.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        raise NotImplementedError
+        for param in self.target.params():
+            param.update()
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
@@ -687,6 +556,19 @@ class GradientMethod(Optimizer):
 
         """
         self._use_cleargrads = use
+
+    def setup_update_rule(self, param):
+        """Sets up an update rule object to a given parameter.
+
+        This method creates an update rule object and sets it to the parameter.
+        Each implementation of the gradient method should override this to
+        provide the default update rule implementation.
+
+        Args:
+            param (~chainer.Variable): Parameter variable object.
+
+        """
+        raise NotImplementedError
 
 
 class WeightDecay(object):

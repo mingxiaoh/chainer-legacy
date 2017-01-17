@@ -391,85 +391,73 @@ class TestGradientHardClipping(unittest.TestCase):
 
 class TestGradientMethod(unittest.TestCase):
 
-    def _suffix(self, gpu):
-        if gpu:
-            return 'gpu'
-        else:
-            return 'cpu'
-
-    def _get_method(self, prefix, gpu):
-        return getattr(self.optimizer, prefix + '_' + self._suffix(gpu))
-
     def setUp(self):
-        opt = chainer.GradientMethod()
-        opt.init_state_cpu = mock.MagicMock()
-        opt.init_state_gpu = mock.MagicMock()
-        opt.update_one_cpu = mock.MagicMock()
-        opt.update_one_gpu = mock.MagicMock()
-        self.optimizer = opt
+        self.optimizer = chainer.GradientMethod()
+        self.target = chainer.ChainList(
+            SimpleLink(np.arange(3).astype(np.float32),
+                       np.arange(3).astype(np.float32)),
+            SimpleLink(np.arange(3).astype(np.float32),
+                       np.arange(3).astype(np.float32)))
 
-        self.target = SimpleLink(
-            np.arange(3).astype(np.float32),
-            np.arange(3).astype(np.float32))
+        def setup_update_rule(param):
+            param.update_rule = mock.MagicMock()
+
+        self.optimizer.setup_update_rule = setup_update_rule
 
     def setup_cpu(self):
         self.optimizer.setup(self.target)
 
-    def setup_gpu(self, dst_id=None):
-        self.target.to_gpu(dst_id)
+    def setup_gpu(self, device=None):
+        self.target.to_gpu(device)
         self.optimizer.setup(self.target)
 
-    def check_init_state(self, gpu):
-        param = chainer.Variable(np.arange(3))
-        param.grad = np.arange(3)
-        if gpu:
-            param.to_gpu()
-        state = {}
-        self.optimizer.init_state(param, state)
+    def test_setup(self):
+        setup_update_rule = mock.MagicMock()
+        self.optimizer.setup_update_rule = setup_update_rule
+        self.optimizer.setup(self.target)
 
-        self._get_method('init_state', gpu).assert_called_once_with(
-            param, state)
-        self.assertEqual(self._get_method('init_state', not gpu).call_count, 0)
+        self.assertEqual(setup_update_rule.call_count, 2)
+        self.assertEqual(setup_update_rule.call_args_list[0][0],
+                         (self.target[0].param,))
+        self.assertEqual(setup_update_rule.call_args_list[0][1], {})
+        self.assertEqual(setup_update_rule.call_args_list[1][0],
+                         (self.target[1].param,))
+        self.assertEqual(setup_update_rule.call_args_list[1][1], {})
 
-    def test_init_state_cpu(self):
-        self.check_init_state(False)
-
-    @attr.gpu
-    def test_init_state_gpu(self):
-        self.check_init_state(True)
-
-    def check_update(self, gpu):
+    def check_update(self):
         self.assertEqual(self.optimizer.t, 0)
 
         self.optimizer.update()
         self.assertEqual(self.optimizer.t, 1)
 
-        self._get_method('update_one', gpu).assert_called_once_with(
-            self.target.param, {})
-        self.assertEqual(self._get_method('update_one', not gpu).call_count, 0)
+        self.target[0].param.update_rule.update.assert_called_once_with(
+            self.target[0].param)
+        self.target[1].param.update_rule.update.assert_called_once_with(
+            self.target[1].param)
 
         self.optimizer.zero_grads()
-        self.assertTrue((cuda.to_cpu(self.target.param.grad) == 0).all())
+        self.assertTrue((cuda.to_cpu(self.target[0].param.grad) == 0).all())
+        self.assertTrue((cuda.to_cpu(self.target[1].param.grad) == 0).all())
 
     def test_update_cpu(self):
         self.setup_cpu()
-        self.check_update(False)
+        self.check_update()
 
     @attr.gpu
     def test_update_gpu(self):
         self.setup_gpu()
-        self.check_update(True)
+        self.check_update()
 
     def check_accumulate_grads_from_cpu(self):
-        self.optimizer.accumulate_grads([np.arange(3)])
-        grad = self.target.param.grad
+        self.optimizer.accumulate_grads([np.arange(3)] * 2)
+        grad = self.target[0].param.grad
         self.assertTrue((cuda.to_cpu(grad) == np.arange(3) * 2).all())
 
     @attr.gpu
     def check_accumulate_grads_from_gpu(self, src_id):
         with cuda.Device(src_id):
-            self.optimizer.accumulate_grads([cuda.cupy.arange(3)])
-        grad = self.target.param.grad
+            self.optimizer.accumulate_grads([cuda.cupy.arange(3)] * 2)
+        grad = self.target[0].param.grad
         self.assertTrue((cuda.to_cpu(grad) == np.arange(3) * 2).all())
 
     def test_accumulate_grads_cpu_to_cpu(self):
@@ -499,7 +487,7 @@ class TestGradientMethod(unittest.TestCase):
 
     def check_compute_grads_norm(self):
         norm = self.optimizer.compute_grads_norm()
-        self.assertAlmostEqual(norm, np.sqrt(5))
+        self.assertAlmostEqual(norm, np.sqrt(10))
 
     def test_compute_grads_norm_cpu(self):
         self.setup_cpu()
@@ -512,7 +500,7 @@ class TestGradientMethod(unittest.TestCase):
 
     def check_weight_decay(self):
         self.optimizer.weight_decay(0.1)
-        g = cuda.to_cpu(self.target.param.grad)
+        g = cuda.to_cpu(self.target[0].param.grad)
         expect = np.array([0.0, 1.1, 2.2], dtype=np.float32)
         testing.assert_allclose(g, expect)
 
@@ -527,8 +515,9 @@ class TestGradientMethod(unittest.TestCase):
 
     def check_clip_grads(self):
         self.optimizer.clip_grads(1.0)
-        g = cuda.to_cpu(self.target.param.grad)
-        sqnorm = g.dot(g)
+        g0 = cuda.to_cpu(self.target[0].param.grad)
+        g1 = cuda.to_cpu(self.target[1].param.grad)
+        sqnorm = g0.dot(g0) + g1.dot(g1)
         self.assertAlmostEqual(sqnorm, 1.0, delta=1.0e-5)
 
     def test_clip_grads_cpu(self):
@@ -549,6 +538,43 @@ class DummyOptimizer(chainer.GradientMethod):
     def update_one(self, param, state):
         # Confirm all grads are not None
         self.test.assertIsNotNone(param.grad)
+
+
+class DummyHook(object):
+
+    name = 'Dummy'
+
+    def __init__(self, test):
+        self.test = test
+
+    def __call__(self, opt):
+        for param in opt.target.params():
+            # Confirm all grads are not None
+            self.test.assertIsNotNone(param.grad)
+
+
+class TestGradientMethodClearGrads(unittest.TestCase):
+
+    def setUp(self):
+        self.optimizer = DummyOptimizer(self)
+        self.target = SimpleLink(
+            np.arange(3).astype(np.float32),
+            np.arange(3).astype(np.float32))
+        self.optimizer.setup(self.target)
+        self.optimizer.add_hook(DummyHook(self))
+
+    def test_update(self):
+        self.target.cleargrads()
+        self.optimizer.update()
+
+
+class DummyOptimizer(chainer.GradientMethod):
+
+    def __init__(self, test):
+        self.test = test
+
+    def setup_update_rule(self, param):
+        param.update_rule = mock.MagicMock()
 
 
 class DummyHook(object):

@@ -111,8 +111,10 @@ class OptimizerTestBase(object):
             optimizer = self.model.optimizer
             model.to_gpu(1)
             optimizer.setup(model)
-        for name, param in optimizer.target.namedparams():
-            for v in six.itervalues(optimizer._states[name]):
+        for param in optimizer.target.params():
+            param.zerograd()
+            param.update()
+            for v in six.itervalues(param.update_rule.state):
                 self.assertEqual(int(param.data.device), int(v.device))
 
     def test_initialize(self):
