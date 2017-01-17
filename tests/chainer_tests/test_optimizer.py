@@ -11,6 +11,39 @@ from chainer import testing
 from chainer.testing import attr
 
 
+class TestHyperparameter(unittest.TestCase):
+
+    def setUp(self):
+        self.parent = optimizer.Hyperparameter()
+        self.parent.x = 1
+        self.parent.y = 2
+        self.child = optimizer.Hyperparameter(self.parent)
+        self.child.y = 3
+        self.child.z = 4
+
+    def test_getattr(self):
+        self.assertTrue(hasattr(self.parent, 'x'))
+        self.assertEqual(self.parent.x, 1)
+        self.assertTrue(hasattr(self.parent, 'y'))
+        self.assertEqual(self.parent.y, 2)
+        self.assertFalse(hasattr(self.parent, 'z'))
+
+        self.assertTrue(hasattr(self.child, 'x'))
+        self.assertEqual(self.child.x, 1)
+        self.assertTrue(hasattr(self.child, 'y'))
+        self.assertEqual(self.child.y, 3)
+        self.assertTrue(hasattr(self.child, 'z'))
+        self.assertEqual(self.child.z, 4)
+
+    def test_get_dict(self):
+        self.assertEqual(self.parent.get_dict(), {'x': 1, 'y': 2})
+        self.assertEqual(self.child.get_dict(), {'x': 1, 'y': 3, 'z': 4})
+
+    def test_repr(self):
+        self.assertEqual(repr(self.parent), 'Hyperparameter(x=1, y=2)')
+        self.assertEqual(repr(self.child), 'Hyperparameter(x=1, y=3, z=4)')
+
+
 class TestUpdateRule(unittest.TestCase):
 
     def setUp(self):

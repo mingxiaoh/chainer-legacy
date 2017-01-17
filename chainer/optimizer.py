@@ -27,6 +27,62 @@ def exponential_decay_noise(xp, shape, dtype, hook, opt):
     return xp.random.normal(0, std, shape).astype(dtype)
 
 
+class Hyperparameter(object):
+
+    """Set of hyperparameters of an optimizer.
+
+    This is a utility class to provide a set of hyperparameters for update
+    rules and an optimizer. It can be used as a usual object.
+
+    A hyperparameter object can hold a reference to its parent hyperparameter
+    object. When an attribute does not exist in the child hyperparameter, it
+    automatically refers to the parent. We typically set the hyperparameter of
+    the gradient method as the parent of the hyperparameter of each update
+    rule. It enables us to centralize the management of hyperparameters (e.g.
+    we can change the learning rate of all update rules just by modifying the
+    hyperparameter of the central optimizer object), while users can freely
+    customize the hyperparameter of each update rule if needed.
+
+    Args:
+        parent (Hyperparameter): Parent hyperparameter.
+
+    """
+    def __init__(self, parent=None):
+        self._parent = parent
+
+    def __getattr__(self, name):
+        return getattr(self._parent, name)
+
+    def __repr__(self):
+        d = self.get_dict()
+        keys = sorted(d.keys())
+        values_repr = ', '.join('%s=%s' % (k, d[k]) for k in keys)
+        return 'Hyperparameter(%s)' % values_repr
+
+    def get_dict(self):
+        """Converts the hyperparameter into a dictionary.
+
+        Returns:
+            Dictionary containing all entries that can be referred by this
+            hyperparameter object.
+
+        """
+        d = {} if self._parent is None else self._parent.get_dict()
+        for k, v in six.iteritems(self.__dict__):
+            if k != '_parent':
+                d[k] = v
+        return d
+
+    def set_parent(self, parent):
+        """Sets the parent hyperparameter.
+
+        Args:
+            parent (Hyperparameter): The parent hyperparameter to be set.
+
+        """
+        self._parent = parent
+
+
 class UpdateRule(object):
 
     """Base class of all update rules.
