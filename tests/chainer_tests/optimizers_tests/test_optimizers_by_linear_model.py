@@ -104,19 +104,6 @@ class OptimizerTestBase(object):
             self.assertGreater(
                 cuda.to_cpu(self.model.accuracy_gpu(1).data), 0.9)
 
-    @attr.multi_gpu(2)
-    def test_model_setup_multi_gpu(self):
-        with cuda.Device(0):
-            model = self.model.model
-            optimizer = self.model.optimizer
-            model.to_gpu(1)
-            optimizer.setup(model)
-        for param in optimizer.target.params():
-            param.zerograd()
-            param.update()
-            for v in six.itervalues(param.update_rule.state):
-                self.assertEqual(int(param.data.device), int(v.device))
-
     def test_initialize(self):
         model = self.model.model
         assert isinstance(model, chainer.Link)

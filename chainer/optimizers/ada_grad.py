@@ -68,7 +68,7 @@ class AdaGrad(optimizer.GradientMethod):
     def __init__(self, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
         super(AdaGrad, self).__init__()
         self.hyperparam = optimizer.Hyperparameter()
-        self.hyperparam.rho = rho
+        self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 
     def setup_update_rule(self, param):

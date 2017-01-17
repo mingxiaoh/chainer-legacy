@@ -47,7 +47,7 @@ class RMSpropGravesRule(optimizer.UpdateRule):
             self.state['delta'] = xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):
-        n, g, delta = self.state['n'], slef.state['g'], self.state['delta']
+        n, g, delta = self.state['n'], self.state['g'], self.state['delta']
         hp = self.hyperparam
         grad = param.grad
 

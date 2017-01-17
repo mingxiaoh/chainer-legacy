@@ -63,7 +63,7 @@ class MomentumSGD(optimizer.GradientMethod):
         super(MomentumSGD, self).__init__()
         self.hyperparam = optimizer.Hyperparameter()
         self.hyperparam.lr = lr
-        self.hyperparam.momentum = Momentum
+        self.hyperparam.momentum = momentum
 
     def setup_update_rule(self, param):
         param.update_rule = MomentumSGDRule()
