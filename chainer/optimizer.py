@@ -1,10 +1,13 @@
 import collections
+import copy
 
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 import chainer.link as link_module
+import chainer.serializer as serializer_module
 
 
 def _sum_sqnorm(arr):
@@ -230,6 +233,30 @@ class UpdateRule(object):
         """
         pass
 
+    def serialize(self, serializer):
+        """Serializes the update rule state.
+
+        Be careful that this method only saves/loads the state of the update
+        rule.
+
+        Args:
+            serializer (~chainer.AbstractSerializer): Serializer object.
+
+        """
+        if self.state is None:
+            if isinstance(serializer, serializer_module.Deserializer):
+                # try to initialize the state to retrieve state entries
+                self._state = {}
+                self_copy = copy.copy(self)
+                arr = numpy.empty(1, dtype=numpy.float32)
+                self_copy.init_state(chainer.Variable(arr, grad=arr))
+
+                for key in self._state:
+                    self._state[key] = serializer(key, None)
+        else:
+            for key in self._state:
+                self._state[key] = serializer(key, self._state[key])
+
     def _prepare(self, param):
         with cuda.get_device(param.data) as device:
             state = self.state
@@ -392,6 +419,10 @@ class Optimizer(object):
         """
         self.t = serializer('t', self.t)
         self.epoch = serializer('epoch', self.epoch)
+        for name, param in self.target.namedparams():
+            rule = getattr(param, 'update_rule', None)
+            if rule is not None:
+                rule.serialize(serializer[name])
 
     def zero_grads(self):
         """Fills all gradient arrays by zeros.
