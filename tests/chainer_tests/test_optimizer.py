@@ -222,10 +222,19 @@ class TestOptimizerHook(unittest.TestCase):
 
     def test_add_hook(self):
         h1 = mock.MagicMock()
+        h1.call_for_each_param = False
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
         self.optimizer.call_hooks()
         h1.assert_called_with(self.optimizer)
+
+    def test_add_hook_call_for_each_param(self):
+        h1 = mock.MagicMock()
+        h1.call_for_each_param = True
+        self.optimizer.setup(self.target)
+        self.optimizer.add_hook(h1, 'h1')
+        self.optimizer.call_hooks()
+        h1.assert_called_with(self.target.param.update_rule, self.target.param)
 
     def test_remove_hook(self):
         h1 = mock.MagicMock()
@@ -347,7 +356,8 @@ class TestOptimizerGradientNoise(unittest.TestCase):
         opt.update()
 
         testing.assert_allclose(expect, w, rtol=0.4)
-        noise.assert_called_once_with(xp, (2, 3), np.float32, hook, opt)
+        rule = self.target.param.update_rule
+        noise.assert_called_once_with(xp, (2, 3), np.float32, hook, rule)
 
     def test_gradient_noise_cpu(self):
         self.check_gradient_noise()

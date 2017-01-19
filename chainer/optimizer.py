@@ -290,11 +290,15 @@ class Optimizer(object):
     If the optimizer is based on single gradient computation (like
     most first-order methods), then it should inherit :class:`GradientMethod`,
     which adds some features dedicated for the first order methods, including
-    the support of :class:`~chainer.optimizer.UpdateRule`.
+    the support of :class:`~chainer.UpdateRule`.
 
     Optimizer instance also supports *hook functions*. Hook function is
     registered by the :meth:`add_hook` method. Each hook function is called
-    in registration order in advance of the actual parameter update.
+    in registration order in advance of the actual parameter update. If the
+    hook function has an attribute ``call_for_each_param`` of a truth value,
+    the hook function is used as a hook function of all update rules (i.e., it
+    is invoked for every parameter by passing the corresponding update rule and
+    the parameter).
 
     Attributes:
         target: Target link object. It is set by the :meth:`setup` method.
@@ -371,7 +375,11 @@ class Optimizer(object):
         though the timing depends on the optimization method.
 
         Args:
-            hook (function): Hook function. It accepts the optimizer object.
+            hook (function): Hook function. If ``hook.call_for_each_param`` is
+                true, this hook function is called for each parameter by
+                passing the update rule and the parameter. Otherwise, this hook
+                function is called only once each iteration by passing the
+                optimizer.
             name (str): Name of the registration. If omitted, ``hook.name`` is
                 used by default.
 
@@ -399,6 +407,13 @@ class Optimizer(object):
     def call_hooks(self):
         """Invokes hook functions in registration order."""
         for hook in six.itervalues(self._hooks):
+            self._call_hook(hook)
+
+    def _call_hook(self, hook):
+        if getattr(hook, 'call_for_each_param', False):
+            for param in self.target.params():
+                hook(param.update_rule, param)
+        else:
             hook(self)
 
     def serialize(self, serializer):
@@ -463,7 +478,7 @@ class Optimizer(object):
            instead.
 
         """
-        GradientClipping(maxnorm)(self)
+        self._call_hook(GradientClipping(maxnorm))
 
     def weight_decay(self, decay):
         """Applies weight decay to the parameter/gradient pairs.
@@ -476,7 +491,7 @@ class Optimizer(object):
            instead.
 
         """
-        WeightDecay(decay)(self)
+        self._call_hook(WeightDecay(decay))
 
     def accumulate_grads(self, grads):
         """Accumulates gradients from other source.
@@ -517,8 +532,8 @@ class GradientMethod(Optimizer):
     methods that just require the gradient at the current parameter vector on
     an update can be implemented as its child class.
 
-    This class uses :class:`~chainer.optimizer.UpdateRule` to manage the update
-    rule of each parameter. A child class of GradientMethod should override
+    This class uses :class:`~chainer.UpdateRule` to manage the update rule of
+    each parameter. A child class of GradientMethod should override
     :meth:`setup_update_rule` to set up the default update rule to each
     parameter.
 
@@ -604,7 +619,7 @@ class GradientMethod(Optimizer):
 
 class WeightDecay(object):
 
-    """Optimizer hook function for weight decay regularization.
+    """Optimizer/UpdateRule hook function for weight decay regularization.
 
     This hook function adds a scaled parameter to the corresponding gradient.
     It can be used as a regularization.
@@ -617,27 +632,26 @@ class WeightDecay(object):
 
     """
     name = 'WeightDecay'
+    call_for_each_param = True
 
     def __init__(self, rate):
         self.rate = rate
 
-    def __call__(self, opt):
+    def __call__(self, rule, param):
         if cuda.available:
             kernel = cuda.elementwise(
                 'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
 
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * p
-                else:
-                    kernel(p, rate, g)
+        p, g = param.data, param.grad
+        with cuda.get_device(p) as dev:
+            if int(dev) == -1:
+                g += self.rate * p
+            else:
+                kernel(p, self.rate, g)
 
 
 class Lasso(object):
-    """Optimizer hook function for Lasso regularization.
+    """Optimizer/UpdateRule hook function for Lasso regularization.
 
     This hook function adds a scaled parameter to the sign of each weight.
     It can be used as a regularization.
@@ -650,25 +664,24 @@ class Lasso(object):
 
     """
     name = 'Lasso'
+    call_for_each_param = True
 
     def __init__(self, rate):
         self.rate = rate
 
-    def __call__(self, opt):
+    def __call__(self, rule, param):
         if cuda.available:
             kernel = cuda.elementwise(
                 'T s, T decay', 'T g', 'g += decay * s', 'lasso')
 
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            xp = cuda.get_array_module(p)
-            sign = xp.sign(p)
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * sign
-                else:
-                    kernel(sign, rate, g)
+        p, g = param.data, param.grad
+        xp = cuda.get_array_module(p)
+        sign = xp.sign(p)
+        with cuda.get_device(p) as dev:
+            if int(dev) == -1:
+                g += self.rate * sign
+            else:
+                kernel(sign, self.rate, g)
 
 
 class GradientClipping(object):
@@ -701,7 +714,7 @@ class GradientClipping(object):
 
 
 class GradientNoise(object):
-    """Optimizer hook function for adding gradient noise.
+    """Optimizer/UpdateRule hook function for adding gradient noise.
 
     This hook function simply adds noise generated by the ``noise_func``
     to the gradient. By default it adds time-dependent annealed Gaussian
@@ -729,30 +742,30 @@ class GradientNoise(object):
             Networks <http://arxiv.org/pdf/1511.06807>`_.
     """
     name = 'GradientNoise'
+    call_for_each_param = True
 
     def __init__(self, eta, noise_func=exponential_decay_noise):
         self.eta = eta
         self.noise_func = noise_func
 
-    def __call__(self, opt):
+    def __call__(self, rule, param):
         if cuda.available:
             kernel = cuda.elementwise(
                 'T noise', 'T g', 'g += noise', 'gradient_noise')
 
-        for param in opt.target.params():
-            g = param.grad
-            xp = cuda.get_array_module(g)
-            with cuda.get_device(g) as dev:
-                noise = self.noise_func(xp, g.shape, g.dtype, self, opt)
-                if int(dev) == -1:
-                    g += noise
-                else:
-                    kernel(noise, g)
+        g = param.grad
+        xp = cuda.get_array_module(g)
+        with cuda.get_device(g) as dev:
+            noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
+            if int(dev) == -1:
+                g += noise
+            else:
+                kernel(noise, g)
 
 
 class GradientHardClipping(object):
 
-    """Optimizer hook function for gradient clipping.
+    """Optimizer/UpdateRule hook function for gradient clipping.
 
     This hook function clips all gradient arrays to be within a lower and upper
     bound.
@@ -767,14 +780,14 @@ class GradientHardClipping(object):
 
     """
     name = 'GradientHardClipping'
+    call_for_each_param = True
 
     def __init__(self, lower_bound, upper_bound):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
 
-    def __call__(self, opt):
-        xp = opt.target.xp
-        for param in opt.target.params():
-            grad = param.grad
-            with cuda.get_device(grad):
-                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+    def __call__(self, rule, param):
+        grad = param.grad
+        xp = cuda.get_array_module(grad)
+        with cuda.get_device(grad):
+            xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
