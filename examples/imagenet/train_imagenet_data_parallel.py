@@ -70,11 +70,12 @@ def main():
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-    gpu_num = 2
+    devices = (0, 2, 3, 4)
 
     train_iters = [chainer.iterators.MultiprocessIterator(
                         i, args.batchsize, n_processes=args.loaderjob)
-                   for i in chainer.datasets.split_dataset_n(train, gpu_num)]
+                   for i in chainer.datasets.split_dataset_n(train,
+                                                             len(devices))]
     val_iter = chainer.iterators.MultiprocessIterator(
         val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
 
@@ -84,7 +85,7 @@ def main():
 
     # Set up a trainer
     updater = training.MultiprocessParallelUpdater(train_iters, optimizer,
-                                                   devices=(2, 3))
+                                                   devices=devices)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (10 if args.test else 100000), 'iteration'

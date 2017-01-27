@@ -493,10 +493,8 @@ class Link(object):
         # print("ptrs:\n{}".format(ptrs))
         # print("info:\n{}".format(info))
 
-        var_ptrs = variable.Variable(ptrs)
-        var_info = variable.Variable(info)
-        var_ptrs.to_gpu()
-        var_info.to_gpu()
+        ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
+        info = cuda.to_gpu(info, stream=cuda.Stream.null)
 
         batch_memcpy = cuda.cupy.ElementwiseKernel(
             'raw T ptrs, raw X info',
@@ -526,8 +524,7 @@ class Link(object):
                 int id_pre = 0;
             ''')
 
-        self.grads_gathered = batch_memcpy(var_ptrs.data, var_info.data,
-                                           size=size)
+        self.grads_gathered = batch_memcpy(ptrs, info, size=size)
         return self.grads_gathered
 
     def scatter_grads(self, array):

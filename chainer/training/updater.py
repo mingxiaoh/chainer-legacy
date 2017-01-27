@@ -1,4 +1,6 @@
 import copy
+import multiprocessing
+
 import six
 
 from chainer.dataset import convert
@@ -204,7 +206,6 @@ class StandardUpdater(Updater):
 
         self.iteration = serializer('iteration', self.iteration)
 
-from multiprocessing import Process, Pipe
 
 class ParallelUpdater(StandardUpdater):
 
@@ -305,17 +306,7 @@ class ParallelUpdater(StandardUpdater):
         for model_key, model in six.iteritems(self._models):
             in_arrays = in_arrays_list[model_key]
             loss_func = self.loss_func or model
-
-            if isinstance(in_arrays, tuple):
-                in_vars = tuple(variable.Variable(x) for x in in_arrays)
-                losses.append(loss_func(*in_vars))
-            elif isinstance(in_arrays, dict):
-                in_vars = {key: variable.Variable(x)
-                           for key, x in six.iteritems(in_arrays)}
-                losses.append(loss_func(**in_vars))
-            else:
-                in_vars = variable.Variable(in_arrays)
-                losses.append(loss_func(in_vars))
+            losses.append(loss_func, in_arrays)
 
         # For _uninitialized_params
         for model in six.itervalues(self._models):
@@ -333,77 +324,90 @@ class ParallelUpdater(StandardUpdater):
             model.copyparams(model_main)
 
 
-class Worker(Process):
-    def __init__(self, pipe, device, iterator, optimizer,
-                 n_devices, proc_id, model, converter):
+def _calc_loss(model, in_arrays):
+    if isinstance(in_arrays, tuple):
+        in_vars = tuple(variable.Variable(x) for x in in_arrays)
+        return model(*in_vars)
+    elif isinstance(in_arrays, dict):
+        in_vars = {key: variable.Variable(x)
+                   for key, x in six.iteritems(in_arrays)}
+        return model(**in_vars)
+    else:
+        in_vars = variable.Variable(in_arrays)
+        return model(in_vars)
 
-        super(Worker, self).__init__()
-        self.pipe = pipe
-        self.device = device
-        self.converter = converter
-        self.model = model  # .copy()
 
-        self.iterator = iterator
-        self.optimizer = optimizer
+use_gather = True
+
+
+def _sync_grad(comm, model):
+    global streams
+    from cupy.cuda import nccl
+    null_stream = cuda.Stream.null
+    if use_gather:
+        gg = model.gather_grads()
+        # NCCL: allreduce
+        comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
+                       nccl.NCCL_FLOAT, nccl.NCCL_SUM, null_stream.ptr)
+        model.scatter_grads(gg)
+    else:
+        for param in enumerate(model.params()):
+            grad = param.grad
+            assert isinstance(grad, cuda.ndarray)
+            assert grad.flags.c_contiguous
+            comm.allReduce(grad.data.ptr, grad.data.ptr, grad.nbytes,
+                           nccl.NCCL_FLOAT, nccl.NCCL_SUM, null_stream.ptr)
+
+
+class _Worker(multiprocessing.Process):
+    def __init__(self, proc_id, pipe, master):
+        super(_Worker, self).__init__()
         self.proc_id = proc_id
-        self.n_devices = n_devices
+        self.pipe = pipe
+        self.converter = master.converter
+        self.model = master._master
+        self.device = master._devices[proc_id]
+        self.iterator = master._mpu_iterators[proc_id]
+        self.optimizer = master.get_optimizer('main')
+        self.n_devices = len(master._devices)
+        print(locals())
 
     def setup(self):
+        from cupy.cuda import nccl
         print("setup %d" % self.device)
         _, comm_id = self.pipe.recv()
-        with chainer.cuda.Device(self.device):
-            from cupy.cuda import nccl
-            self.comm = nccl.NcclCommunicator(
-                self.n_devices, comm_id, self.proc_id)
-            self.st = chainer.cuda.Stream()
+        self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
+                                          self.proc_id)
 
-            self.model.to_gpu(self.device)
-            self.model.zerograds()
-            self.reporter = chainer.reporter.Reporter()
-            self.reporter.add_observer('main', self.model)
-            print("%d setup done" % self.device)
+        self.model.to_gpu(self.device)
+        self.reporter = chainer.reporter.Reporter()
+        self.reporter.add_observer('main', self.model)
+        print("%d setup done" % self.device)
 
     def run(self):
-        from cupy.cuda import nccl
-
+        cuda.Device(self.device).use()
         self.setup()
-        with chainer.cuda.Device(self.device):
-            my_dev = chainer.cuda.get_device(self.device)
-            while True:
-                job, data = self.pipe.recv()
-                if job == 'finalize':
-                    self.comm.destroy()
-                    break
-                if job == 'update':
-                    batch = self.iterator.next()
-                    batch = self.converter(batch, self.device)
-                    observation = {}
-                    with self.reporter.scope(observation):
-                        if isinstance(batch, tuple):
-                            in_vars = tuple(variable.Variable(x) for x in batch)
-                            loss = self.model(*in_vars)
-                        elif isinstance(batch, dict):
-                            in_vars = {key: variable.Variable(x)
-                                       for key, x in six.iteritems(batch)}
-                            loss = self.model(**in_vars)
-                        else:
-                            in_vars = variable.Variable(batch)
-                            loss = self.model(in_vars)
-                    self.model.zerograds()
-                    loss.backward()
+        while True:
+            job, data = self.pipe.recv()
+            if job == 'finalize':
+                self.comm.destroy()
+                break
+            if job == 'update':
+                # For reducing memory
+                self.model.cleargrads()
 
-                    gg = self.model.gather_grads()
-                    my_dev.synchronize()
+                batch = self.converter(self.iterator.next(), self.device)
+                observation = {}
+                with self.reporter.scope(observation):
+                    loss = _calc_loss(self.model, batch)
 
-                    # NCCL: allreduce
-                    self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                        nccl.NCCL_FLOAT, nccl.NCCL_SUM,
-                                        self.st.ptr)
-                    self.st.synchronize()
-                    self.model.scatter_grads(gg)
-                    self.optimizer.update()
+                self.model.cleargrads()
+                loss.backward()
 
-                    self.pipe.send(observation)
+                _sync_grad(self.comm, self.model)
+                self.optimizer.update()
+
+                self.pipe.send(observation)
 
 
 class MultiprocessParallelUpdater(StandardUpdater):
@@ -473,6 +477,10 @@ class MultiprocessParallelUpdater(StandardUpdater):
         self._pipes = []
         self._workers = []
 
+    def _send_message(self, message):
+        for pipe in self._pipes:
+            pipe.send(message)
+
     def setup_workers(self):
         if self._initialized:
             return
@@ -480,77 +488,49 @@ class MultiprocessParallelUpdater(StandardUpdater):
 
         print("setup_workers()")
 
-        devices = self._devices[1:]
-        iterators = self._mpu_iterators[1:]
-        worker_ends = []
-        if len(devices) > 0:
-            self._pipes, worker_ends = zip(*[Pipe() for _ in devices])
         self._master.cleargrads()
-        for i, (pipe, device, iterator) in enumerate(zip(worker_ends, devices,
-                                                         iterators)):
-            worker = Worker(pipe, device,
-                            iterator=iterator,
-                            optimizer=self.get_optimizer('main'),
-                            n_devices=len(devices),
-                            proc_id=i,
-                            model=self._master,
-                            converter=self.converter)
+        for i in six.moves.range(1, len(self._devices)):
+            pipe, worker_end = multiprocessing.Pipe()
+            worker = _Worker(i, worker_end, self)
             worker.start()
             self._workers.append(worker)
+            self._pipes.append(pipe)
 
-        with chainer.cuda.Device(self._devices[0]):
+        with cuda.Device(self._devices[0]):
             from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
-            print("main nccl")
             comm_id = nccl.NcclCommunicatorId()
             self._send_message(("set comm_di", comm_id))
-            self.comm = nccl.NcclCommunicator(len(devices), comm_id, 0)
-            self.st = chainer.cuda.Stream()
-            print("main nccl done")
+            self.comm = nccl.NcclCommunicator(len(self._devices), comm_id, 0)
 
         print("setup_workers() done")
 
-    def _send_message(self, message):
-        for pipe in self._pipes:
-            pipe.send(message)
-
     def update_core(self):
-        from cupy.cuda import nccl
         self.setup_workers()
 
-        with chainer.cuda.Device(self._devices[0]) as dev:
-            self._send_message(('update', None))
+        self._send_message(('update', None))
+        with cuda.Device(self._devices[0]):
+            # For reducing memory
+            self._master.cleargrads()
+
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-
-            n = len(self._devices)
             batch = self.converter(batch, self._devices[0])
 
-            if isinstance(batch, tuple):
-                in_vars = tuple(variable.Variable(x) for x in batch)
-                loss = self._master(*in_vars)
-            elif isinstance(batch, dict):
-                in_vars = {key: variable.Variable(x)
-                           for key, x in six.iteritems(batch)}
-                loss = self._master(**in_vars)
-            else:
-                in_vars = variable.Variable(batch)
-                loss = self._master(in_vars)
+            loss = _calc_loss(self._master, batch)
 
             self._master.cleargrads()
             loss.backward()
 
-            gg = self._master.gather_grads()
-            dev.synchronize()
+            _sync_grad(self.comm, self._master)
 
-            # NCCL: allreduce
-            self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                nccl.NCCL_FLOAT, nccl.NCCL_SUM, self.st.ptr)
-            self.st.synchronize()
-            self._master.scatter_grads(gg)
             optimizer.update()
 
-            [chainer.reporter.report(pipe.recv()) for pipe in self._pipes]
+            for pipe in self._pipes:
+                chainer.reporter.report(pipe.recv())
 
     def finalize(self):
         self._send_message(('finalize', None))
+        for worker in self._workers:
+            worker.join()
+
