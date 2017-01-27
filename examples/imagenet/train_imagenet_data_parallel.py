@@ -10,7 +10,6 @@ ImageDataLayer).
 """
 from __future__ import print_function
 import argparse
-import random
 
 import numpy as np
 
@@ -18,71 +17,7 @@ import chainer
 from chainer import training
 from chainer.training import extensions
 
-import alex
-import googlenet
-import googlenetbn
-import nin
-
-
-class PreprocessedDataset(chainer.dataset.DatasetMixin):
-
-    def __init__(self, path, root, mean, crop_size, random=True):
-        self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
-        self.crop_size = crop_size
-        self.random = random
-
-    def __len__(self):
-        return len(self.base)
-
-    def get_example(self, i):
-        # It reads the i-th image/label pair and return a preprocessed image.
-        # It applies following preprocesses:
-        #     - Cropping (random or center rectangular)
-        #     - Random flip
-        #     - Scaling to [0, 1] value
-        crop_size = self.crop_size
-
-        image, label = self.base[i]
-        _, h, w = image.shape
-
-        if self.random:
-            # Randomly crop a region and flip the image
-            top = random.randint(0, h - crop_size - 1)
-            left = random.randint(0, w - crop_size - 1)
-            if random.randint(0, 1):
-                image = image[:, :, ::-1]
-        else:
-            # Crop the center
-            top = (h - crop_size) // 2
-            left = (w - crop_size) // 2
-        bottom = top + crop_size
-        right = left + crop_size
-
-        image = image[:, top:bottom, left:right]
-        image -= self.mean[:, top:bottom, left:right]
-        image *= (1.0 / 255.0)  # Scale to [0, 1]
-        return image, label
-
-
-class TestModeEvaluator(extensions.Evaluator):
-
-    def evaluate(self):
-        model = self.get_target('main')
-        model.train = False
-        ret = super(TestModeEvaluator, self).evaluate()
-        model.train = True
-        return ret
-
-
-archs = {
-    'alex': alex.Alex,
-    'alex_fp16': alex.AlexFp16,
-    'googlenet': googlenet.GoogLeNet,
-    'googlenetbn': googlenetbn.GoogLeNetBN,
-    'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
-    'nin': nin.NIN
-}
+import train_imagenet
 
 
 def main():
@@ -90,8 +25,8 @@ def main():
         description='Learning convnet from ILSVRC2012 dataset')
     parser.add_argument('train', help='Path to training image-label list file')
     parser.add_argument('val', help='Path to validation image-label list file')
-    parser.add_argument('--arch', '-a', choices=archs.keys(), default='nin',
-                        help='Convnet architecture')
+    parser.add_argument('--arch', '-a', choices=train_imagenet.archs.keys(),
+                        default='nin', help='Convnet architecture')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
@@ -117,22 +52,29 @@ def main():
     args = parser.parse_args()
 
     # Initialize the model to train
-    model = archs[args.arch]()
+    model = train_imagenet.archs[args.arch]()
     if args.initmodel:
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
+    """
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()  # Make the GPU current
         model.to_gpu()
+    """
 
     # Load the datasets and mean file
     mean = np.load(args.mean)
-    train = PreprocessedDataset(args.train, args.root, mean, model.insize)
-    val = PreprocessedDataset(args.val, args.root, mean, model.insize, False)
+    train = train_imagenet.PreprocessedDataset(
+        args.train, args.root, mean, model.insize)
+    val = train_imagenet.PreprocessedDataset(
+        args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-    train_iter = chainer.iterators.MultiprocessIterator(
-        train, args.batchsize, n_processes=args.loaderjob)
+    gpu_num = 2
+
+    train_iters = [chainer.iterators.MultiprocessIterator(
+                        i, args.batchsize, n_processes=args.loaderjob)
+                   for i in chainer.datasets.split_dataset_n(train, gpu_num)]
     val_iter = chainer.iterators.MultiprocessIterator(
         val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
 
@@ -141,13 +83,15 @@ def main():
     optimizer.setup(model)
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.MultiprocessParallelUpdater(train_iters, optimizer,
+                                                   devices=(2, 3))
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (10 if args.test else 100000), 'iteration'
     log_interval = (10 if args.test else 1000), 'iteration'
 
-    trainer.extend(TestModeEvaluator(val_iter, model, device=args.gpu),
+    trainer.extend(train_imagenet.TestModeEvaluator(val_iter, model,
+                                                    device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)

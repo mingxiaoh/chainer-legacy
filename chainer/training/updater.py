@@ -335,7 +335,7 @@ class ParallelUpdater(StandardUpdater):
 
 class Worker(Process):
     def __init__(self, pipe, device, iterator, optimizer,
-                 comm_id, n_devices, proc_id, model, converter):
+                 n_devices, proc_id, model, converter):
 
         super(Worker, self).__init__()
         self.pipe = pipe
@@ -345,21 +345,26 @@ class Worker(Process):
 
         self.iterator = iterator
         self.optimizer = optimizer
-        self.comm_args = (n_devices, comm_id, proc_id)
+        self.proc_id = proc_id
+        self.n_devices = n_devices
 
     def setup(self):
-        print "setup %d" % self.device
+        print("setup %d" % self.device)
+        _, comm_id = self.pipe.recv()
         with chainer.cuda.Device(self.device):
-            self.comm = nccl.NcclCommunicator(*self.comm_args)
-            self.st = stream.Stream()
+            from cupy.cuda import nccl
+            self.comm = nccl.NcclCommunicator(
+                self.n_devices, comm_id, self.proc_id)
+            self.st = chainer.cuda.Stream()
 
             self.model.to_gpu(self.device)
             self.model.zerograds()
             self.reporter = chainer.reporter.Reporter()
             self.reporter.add_observer('main', self.model)
-            print "%d setup done" % self.device
+            print("%d setup done" % self.device)
 
     def run(self):
+        from cupy.cuda import nccl
 
         self.setup()
         with chainer.cuda.Device(self.device):
@@ -369,7 +374,7 @@ class Worker(Process):
                 if job == 'finalize':
                     self.comm.destroy()
                     break
-                else:
+                if job == 'update':
                     batch = self.iterator.next()
                     batch = self.converter(batch, self.device)
                     observation = {}
@@ -392,17 +397,13 @@ class Worker(Process):
 
                     # NCCL: allreduce
                     self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                        nccl.NCCL_FLOAT, nccl.NCCL_SUM, self.st.ptr)
+                                        nccl.NCCL_FLOAT, nccl.NCCL_SUM,
+                                        self.st.ptr)
                     self.st.synchronize()
                     self.model.scatter_grads(gg)
                     self.optimizer.update()
 
                     self.pipe.send(observation)
-
-
-from cupy.cuda import nccl
-from cupy.cuda import profiler
-from cupy.cuda import stream
 
 
 class MultiprocessParallelUpdater(StandardUpdater):
@@ -469,26 +470,27 @@ class MultiprocessParallelUpdater(StandardUpdater):
         self._mpu_iterators = iterators
         self._initialized = False
 
+        self._pipes = []
+        self._workers = []
 
     def setup_workers(self):
         if self._initialized:
             return
+        self._initialized = True
 
-        print "setup_workers()"
-
-        comm_id = nccl.NcclCommunicatorId()
+        print("setup_workers()")
 
         devices = self._devices[1:]
         iterators = self._mpu_iterators[1:]
-        self._pipes, self._workers, worker_ends = [], [], []
+        worker_ends = []
         if len(devices) > 0:
             self._pipes, worker_ends = zip(*[Pipe() for _ in devices])
         self._master.cleargrads()
-        for i, (pipe, device, iterator) in enumerate(zip(worker_ends, devices, iterators)):
+        for i, (pipe, device, iterator) in enumerate(zip(worker_ends, devices,
+                                                         iterators)):
             worker = Worker(pipe, device,
                             iterator=iterator,
                             optimizer=self.get_optimizer('main'),
-                            comm_id=comm_id,
                             n_devices=len(devices),
                             proc_id=i,
                             model=self._master,
@@ -497,20 +499,27 @@ class MultiprocessParallelUpdater(StandardUpdater):
             self._workers.append(worker)
 
         with chainer.cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
-            print "main nccl"
+            print("main nccl")
+            comm_id = nccl.NcclCommunicatorId()
+            self._send_message(("set comm_di", comm_id))
             self.comm = nccl.NcclCommunicator(len(devices), comm_id, 0)
-            self.st = stream.Stream()
-            print "main nccl done"
+            self.st = chainer.cuda.Stream()
+            print("main nccl done")
 
-        print "setup_workers() done"
+        print("setup_workers() done")
+
+    def _send_message(self, message):
+        for pipe in self._pipes:
+            pipe.send(message)
 
     def update_core(self):
+        from cupy.cuda import nccl
         self.setup_workers()
 
-        with chainer.cuda.Device(self._devices[0]):
-            my_dev = chainer.cuda.get_device(self.device)
-
+        with chainer.cuda.Device(self._devices[0]) as dev:
+            self._send_message(('update', None))
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
 
@@ -532,7 +541,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
             loss.backward()
 
             gg = self._master.gather_grads()
-            my_dev.synchronize()
+            dev.synchronize()
 
             # NCCL: allreduce
             self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
@@ -544,5 +553,4 @@ class MultiprocessParallelUpdater(StandardUpdater):
             [chainer.reporter.report(pipe.recv()) for pipe in self._pipes]
 
     def finalize(self):
-        for pipe in self._pipes:
-            pipe.send(('finalize', None))
+        self._send_message(('finalize', None))
