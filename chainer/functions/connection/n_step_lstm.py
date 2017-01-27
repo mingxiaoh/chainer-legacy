@@ -6,6 +6,7 @@ import time
 import numpy
 import six
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.activation import lstm
@@ -368,8 +369,7 @@ def _stack_weight(ws):
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
-        use_cudnn=True):
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True):
     """Stacked Long Short-Term Memory function for sequence inputs.
 
     This function calculates stacked LSTM with sequences. This function gets
@@ -432,7 +432,6 @@ def n_step_lstm(
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
@@ -454,8 +453,8 @@ def n_step_lstm(
 
     xp = cuda.get_array_module(hx, hx.data)
 
-    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
-       _cudnn_version >= 5000:
+    if configuration.config.use_cudnn and xp is not numpy and \
+       cuda.cudnn_enabled and _cudnn_version >= 5000:
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(

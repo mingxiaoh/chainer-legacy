@@ -85,6 +85,7 @@ def get_function_hooks():
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.enable_backprop = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
+global_config.use_cudnn = bool(int(os.environ.get('CHAINER_USE_CUDNN', '1')))
 
 
 def is_debug():

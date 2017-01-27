@@ -70,9 +70,9 @@ class TestNStepLSTM(unittest.TestCase):
               for ws in ws_data]
         bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
               for bs in bs_data]
-        hy, cy, ys = functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            use_cudnn=self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = functions.n_step_lstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
 
         e_hy = self.hx.copy()
         e_cy = self.cx.copy()
@@ -224,25 +224,27 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
         bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
               for bs in self.bs]
         return functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+            self.n_layers, self.dropout, h, c, ws, bs, xs, train=train)
 
     def test_call_cudnn_forward_training(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
-            self.forward(True)
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+                self.forward(True)
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_forward_inference(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
-            self.forward(False)
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+                self.forward(False)
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        hy, cy, ys = self.forward(True)
-        hy.grad = self.dhy
-        with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
-            hy.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = self.forward(True)
+            hy.grad = self.dhy
+            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+                hy.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 testing.run_module(__name__, __file__)

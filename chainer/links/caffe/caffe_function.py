@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+from chainer import configuration
 from chainer import functions
 from chainer import link
 from chainer import links
@@ -423,9 +424,9 @@ class CaffeFunction(link.Chain):
         if layer.softmax_param.engine == 0:  # DEFAULT
             fw = functions.softmax
         elif layer.softmax_param.engine == 1:  # CAFFE
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=False)
+            fw = _SingleArgumentFunctionWithCudnn(False, functions.softmax)
         elif layer.softmax_param.engine == 2:  # CUDNN
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=True)
+            fw = _SingleArgumentFunctionWithCudnn(True, functions.softmax)
 
         self.forwards[layer.name] = fw
         self._add_layer(layer)
@@ -557,6 +558,18 @@ class _DropoutFunction(object):
     def __call__(self, x):
         return functions.dropout(
             x, ratio=self.ratio, train=self.caffe_func.train)
+
+
+class _SingleArgumentFunctionWithCudnn(_SingleArgumentFunction):
+
+    def __init__(self, use_cudnn, func, *args, **kwargs):
+        super(_SingleArgumentFunctionWithCudnn, self).__init__(
+            func, *args, **kwargs)
+        self.use_cudnn = use_cudnn
+
+    def __call__(self, x):
+        with configuration.using_config('use_cudnn', self.use_cudnn):
+            return  super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
 
 
 class _CallChildLink(object):
