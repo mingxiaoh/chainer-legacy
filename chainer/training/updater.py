@@ -370,7 +370,6 @@ class _Worker(multiprocessing.Process):
         self.iterator = master._mpu_iterators[proc_id]
         self.optimizer = master.get_optimizer('main')
         self.n_devices = len(master._devices)
-        print(locals())
 
     def setup(self):
         from cupy.cuda import nccl
@@ -385,12 +384,13 @@ class _Worker(multiprocessing.Process):
         print("%d setup done" % self.device)
 
     def run(self):
-        cuda.Device(self.device).use()
+        dev = cuda.Device(self.device)
+        dev.use()
         self.setup()
         while True:
             job, data = self.pipe.recv()
             if job == 'finalize':
-                self.comm.destroy()
+                dev.synchronize()
                 break
             if job == 'update':
                 # For reducing memory
@@ -407,7 +407,7 @@ class _Worker(multiprocessing.Process):
                 _sync_grad(self.comm, self.model)
                 self.optimizer.update()
 
-                self.pipe.send(observation)
+                # self.pipe.send(observation)
 
 
 class MultiprocessParallelUpdater(StandardUpdater):
@@ -476,6 +476,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
 
         self._pipes = []
         self._workers = []
+        self.comm = None
 
     def _send_message(self, message):
         for pipe in self._pipes:
@@ -499,7 +500,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
         with cuda.Device(self._devices[0]):
             from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
-            comm_id = nccl.NcclCommunicatorId()
+            comm_id = nccl.get_unique_id()
             self._send_message(("set comm_di", comm_id))
             self.comm = nccl.NcclCommunicator(len(self._devices), comm_id, 0)
 
@@ -526,11 +527,13 @@ class MultiprocessParallelUpdater(StandardUpdater):
 
             optimizer.update()
 
-            for pipe in self._pipes:
-                chainer.reporter.report(pipe.recv())
+            # for pipe in self._pipes:
+            #     chainer.reporter.report(pipe.recv())
 
     def finalize(self):
         self._send_message(('finalize', None))
+
         for worker in self._workers:
+            print("join", worker)
             worker.join()
 

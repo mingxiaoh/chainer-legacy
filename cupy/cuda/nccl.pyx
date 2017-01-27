@@ -4,8 +4,6 @@ Wrapper for NCCL: Optimized primiteive for collective multi-GPU communication
 cimport cython
 
 from cupy.cuda cimport driver
-from libc.stdlib cimport malloc
-from libc.stdlib cimport free
 
 cdef extern from "nccl.h":
     ctypedef struct ncclComm:
@@ -32,11 +30,11 @@ cdef extern from "nccl.h":
     ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, int count,
                                ncclDataType_t datatype, ncclRedOp_t op,
                                ncclComm_t comm, driver.Stream stream)
-    ncclResult_t  ncclReduce(const void* sendbuff, void* recvbuf, int count, ncclDataType_t datatype,
-                             ncclRedOp_t op, int root, ncclComm_t comm, driver.Stream stream)
-    ncclResult_t  ncclBcast(void* buff, int count, ncclDataType_t datatype, int root,
-                            ncclComm_t comm, driver.Stream stream);
-
+    ncclResult_t  ncclReduce(const void* sendbuff, void* recvbuf, int count,
+                             ncclDataType_t datatype, ncclRedOp_t op, int root,
+                             ncclComm_t comm, driver.Stream stream)
+    ncclResult_t  ncclBcast(void* buff, int count, ncclDataType_t datatype,
+                            int root, ncclComm_t comm, driver.Stream stream)
 
 
 cdef dict STATUS = {
@@ -62,8 +60,9 @@ class NcclError(RuntimeError):
 
     def __init__(self, int status):
         self.status = status
-        msg = ncclGetErrorString(<ncclResult_t>status)
-        super(NcclError, self).__init__('%s: %s' % (STATUS[status], msg))
+        cdef msg = ncclGetErrorString(<ncclResult_t>status)
+        super(NcclError, self).__init__(
+            '%s: %s' % (STATUS[status], msg.decode()))
 
 
 @cython.profile(False)
@@ -72,59 +71,48 @@ cpdef inline check_status(ncclResult_t status):
         raise NcclError(status)
 
 
-class NcclCommunicatorId(object):
-
-    def __init__(self):
-        cdef ncclUniqueId uniqueId
-        status = ncclGetUniqueId(&uniqueId)
-        check_status(status)
-        self.data = []
-        for i in range(NCCL_UNIQUE_ID_BYTES):
-            self.data.append(<char>uniqueId.internal[i])
+def get_unique_id():
+    cdef ncclUniqueId uniqueId
+    status = ncclGetUniqueId(&uniqueId)
+    check_status(status)
+    ret = tuple([<char>uniqueId.internal[i]
+                 for i in range(NCCL_UNIQUE_ID_BYTES)])
+    return ret
 
 
-cdef struct comm_info:
-    size_t ptr
+cdef class NcclCommunicator:
 
+    cdef:
+        ncclComm_t _comm
 
-class NcclCommunicator(object):
-
-    def __init__(self, int ndev, commId, int rank):
+    def __init__(self, int ndev, tuple commId, int rank):
         cdef ncclUniqueId _uniqueId
+        self._comm = <ncclComm_t>0
+        assert len(commId) == NCCL_UNIQUE_ID_BYTES
         for i in range(NCCL_UNIQUE_ID_BYTES):
-            _uniqueId.internal[i] = commId.data[i]
-        cdef ncclComm_t _comm
-        status = ncclCommInitRank(&_comm, ndev, _uniqueId, rank)
+            _uniqueId.internal[i] = commId[i]
+        status = ncclCommInitRank(&self._comm, ndev, _uniqueId, rank)
         check_status(status)
-        cdef comm_info _ci
-        _ci.ptr = <size_t>_comm
-        # print("[nccl.pyx, __init__()] _ci.ptr: {}".format(_ci.ptr))
-        self.ci = _ci
 
-    def destroy(self):
-        cdef comm_info _ci = self.ci
-        # print("[nccl.pyx, destroy()] _ci.ptr: {}".format(_ci.ptr))
-        ncclCommDestroy(<ncclComm_t>_ci.ptr)
+    def __dealloc__(self):
+        if self._comm:
+            ncclCommDestroy(self._comm)
 
     def device_id(self):
-        cdef comm_info _ci = self.ci
         cdef int device_id
-        status = ncclCommCuDevice(<ncclComm_t>_ci.ptr, &device_id)
+        status = ncclCommCuDevice(self._comm, &device_id)
         check_status(status)
         return device_id
 
     def rank_id(self):
-        cdef comm_info _ci = self.ci
         cdef int rank_id
-        status = ncclCommUserRank(<ncclComm_t>_ci.ptr, &rank_id)
+        status = ncclCommUserRank(self._comm, &rank_id)
         check_status(status)
         return rank_id
 
     def allReduce(self, size_t sendbuf, size_t recvbuf,
                   int count, int datatype, int op, size_t stream):
-        cdef comm_info _ci = self.ci
-        # print("[nccl.pyx, allReduce()] _ci.ptr: {}".format(_ci.ptr))
         status = ncclAllReduce(<void*>sendbuf, <void*>recvbuf, count,
                                <ncclDataType_t>datatype, <ncclRedOp_t>op,
-                               <ncclComm_t>_ci.ptr, <driver.Stream>stream)
+                               self._comm, <driver.Stream>stream)
         check_status(status)
