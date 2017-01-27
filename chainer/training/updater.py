@@ -5,6 +5,8 @@ from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import optimizer as optimizer_module
 from chainer import variable
+from chainer import cuda
+import chainer
 
 
 class Updater(object):
@@ -202,6 +204,7 @@ class StandardUpdater(Updater):
 
         self.iteration = serializer('iteration', self.iteration)
 
+from multiprocessing import Process, Pipe
 
 class ParallelUpdater(StandardUpdater):
 
@@ -213,6 +216,7 @@ class ParallelUpdater(StandardUpdater):
     GPUs in one machine. It is based on synchronous parallel SGD: it
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
+        sel
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
@@ -327,3 +331,218 @@ class ParallelUpdater(StandardUpdater):
 
         for model in six.itervalues(models_others):
             model.copyparams(model_main)
+
+
+class Worker(Process):
+    def __init__(self, pipe, device, iterator, optimizer,
+                 comm_id, n_devices, proc_id, model, converter):
+
+        super(Worker, self).__init__()
+        self.pipe = pipe
+        self.device = device
+        self.converter = converter
+        self.model = model  # .copy()
+
+        self.iterator = iterator
+        self.optimizer = optimizer
+        self.comm_args = (n_devices, comm_id, proc_id)
+
+    def setup(self):
+        print "setup %d" % self.device
+        with chainer.cuda.Device(self.device):
+            self.comm = nccl.NcclCommunicator(*self.comm_args)
+            self.st = stream.Stream()
+
+            self.model.to_gpu(self.device)
+            self.model.zerograds()
+            self.reporter = chainer.reporter.Reporter()
+            self.reporter.add_observer('main', self.model)
+            print "%d setup done" % self.device
+
+    def run(self):
+
+        self.setup()
+        with chainer.cuda.Device(self.device):
+            my_dev = chainer.cuda.get_device(self.device)
+            while True:
+                job, data = self.pipe.recv()
+                if job == 'finalize':
+                    self.comm.destroy()
+                    break
+                else:
+                    batch = self.iterator.next()
+                    batch = self.converter(batch, self.device)
+                    observation = {}
+                    with self.reporter.scope(observation):
+                        if isinstance(batch, tuple):
+                            in_vars = tuple(variable.Variable(x) for x in batch)
+                            loss = self.model(*in_vars)
+                        elif isinstance(batch, dict):
+                            in_vars = {key: variable.Variable(x)
+                                       for key, x in six.iteritems(batch)}
+                            loss = self.model(**in_vars)
+                        else:
+                            in_vars = variable.Variable(batch)
+                            loss = self.model(in_vars)
+                    self.model.zerograds()
+                    loss.backward()
+
+                    gg = self.model.gather_grads()
+                    my_dev.synchronize()
+
+                    # NCCL: allreduce
+                    self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
+                                        nccl.NCCL_FLOAT, nccl.NCCL_SUM, self.st.ptr)
+                    self.st.synchronize()
+                    self.model.scatter_grads(gg)
+                    self.optimizer.update()
+
+                    self.pipe.send(observation)
+
+
+from cupy.cuda import nccl
+from cupy.cuda import profiler
+from cupy.cuda import stream
+
+
+class MultiprocessParallelUpdater(StandardUpdater):
+    """Implementation of a multiprocess parallel GPU Updater.
+
+    This is an implementation of :class:`Updater` that uses multiple GPUs
+    with multi-process data parallelism. The GPUs provided are placed in
+    a tree structure of masters and workers, each with its own process.
+
+    It behaves similarly to :class:`~chainer.training.StandardUpdater`. The
+    update routine is modified to support data-parallel computation on multiple
+    GPUs in one machine. It is based on synchronous parallel SGD: it
+    parallelizes the gradient computation over a mini-batch, and updates the
+    parameters only in the main device.
+
+    Unlike other built-in Updater classes, the model (attached to the
+    optimizer) must be the loss function.
+
+    Args:
+        iterators: Lsit of dataset iterator for the training dataset.
+        optimizer: Optimizer to update parameters. The model should be attached
+            to the optimizer.
+        converter: Converter function to build input arrays. Each batch
+            extracted by the iterator is split equally between the devices and
+            then passed with corresponding ``device`` option to this function.
+            :func:`~chainer.dataset.concat_examples` is used by default.
+        devices: Dictionary or list of devices to which the training data is
+            sent. The master device will be the first one in the list or the
+            value attached to the key ``'main'``.
+
+    """
+
+    def __init__(self, iterators, optimizer, converter=convert.concat_examples,
+                 devices=None):
+
+        assert len(iterators) == len(devices)
+        for iterator in iterators[1:]:
+            assert len(iterator.dataset) == len(iterators[0].dataset)
+
+        # Correct optimizer parameters for new minibatch size
+        optim = optimizer.__class__.__name__
+        if optim in ('Adam', 'AdaGrad', 'RMSprop'):
+            optimizer.eps /= len(devices)
+        elif optim in ('RMSpropGraves', 'AdaDelta'):
+            optimizer.eps /= len(devices) ** 2
+        else:
+            optimizer.lr /= len(devices)
+
+        super(MultiprocessParallelUpdater, self).__init__(
+            iterator=iterators[0],
+            optimizer=optimizer,
+            converter=converter
+        )
+
+        if isinstance(devices, dict):
+            main = devices.pop('main')
+            devices = list(six.itervalues(devices))
+            devices = [main] + devices
+        if devices is None or any(device is None for device in devices):
+            raise ValueError('must specify GPU devices')
+
+        self._master = optimizer.target
+        self._devices = devices
+        self._mpu_iterators = iterators
+        self._initialized = False
+
+
+    def setup_workers(self):
+        if self._initialized:
+            return
+
+        print "setup_workers()"
+
+        comm_id = nccl.NcclCommunicatorId()
+
+        devices = self._devices[1:]
+        iterators = self._mpu_iterators[1:]
+        self._pipes, self._workers, worker_ends = [], [], []
+        if len(devices) > 0:
+            self._pipes, worker_ends = zip(*[Pipe() for _ in devices])
+        self._master.cleargrads()
+        for i, (pipe, device, iterator) in enumerate(zip(worker_ends, devices, iterators)):
+            worker = Worker(pipe, device,
+                            iterator=iterator,
+                            optimizer=self.get_optimizer('main'),
+                            comm_id=comm_id,
+                            n_devices=len(devices),
+                            proc_id=i,
+                            model=self._master,
+                            converter=self.converter)
+            worker.start()
+            self._workers.append(worker)
+
+        with chainer.cuda.Device(self._devices[0]):
+            self._master.to_gpu(self._devices[0])
+            print "main nccl"
+            self.comm = nccl.NcclCommunicator(len(devices), comm_id, 0)
+            self.st = stream.Stream()
+            print "main nccl done"
+
+        print "setup_workers() done"
+
+    def update_core(self):
+        self.setup_workers()
+
+        with chainer.cuda.Device(self._devices[0]):
+            my_dev = chainer.cuda.get_device(self.device)
+
+            optimizer = self.get_optimizer('main')
+            batch = self.get_iterator('main').next()
+
+            n = len(self._devices)
+            batch = self.converter(batch, self._devices[0])
+
+            if isinstance(batch, tuple):
+                in_vars = tuple(variable.Variable(x) for x in batch)
+                loss = self._master(*in_vars)
+            elif isinstance(batch, dict):
+                in_vars = {key: variable.Variable(x)
+                           for key, x in six.iteritems(batch)}
+                loss = self._master(**in_vars)
+            else:
+                in_vars = variable.Variable(batch)
+                loss = self._master(in_vars)
+
+            self._master.cleargrads()
+            loss.backward()
+
+            gg = self._master.gather_grads()
+            my_dev.synchronize()
+
+            # NCCL: allreduce
+            self.comm.allReduce(gg.data.ptr, gg.data.ptr, gg.size,
+                                nccl.NCCL_FLOAT, nccl.NCCL_SUM, self.st.ptr)
+            self.st.synchronize()
+            self._master.scatter_grads(gg)
+            optimizer.update()
+
+            [chainer.reporter.report(pipe.recv()) for pipe in self._pipes]
+
+    def finalize(self):
+        for pipe in self._pipes:
+            pipe.send(('finalize', None))

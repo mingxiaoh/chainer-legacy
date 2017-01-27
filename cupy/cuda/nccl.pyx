@@ -32,6 +32,11 @@ cdef extern from "nccl.h":
     ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, int count,
                                ncclDataType_t datatype, ncclRedOp_t op,
                                ncclComm_t comm, driver.Stream stream)
+    ncclResult_t  ncclReduce(const void* sendbuff, void* recvbuf, int count, ncclDataType_t datatype,
+                             ncclRedOp_t op, int root, ncclComm_t comm, driver.Stream stream)
+    ncclResult_t  ncclBcast(void* buff, int count, ncclDataType_t datatype, int root,
+                            ncclComm_t comm, driver.Stream stream);
+
 
 
 cdef dict STATUS = {

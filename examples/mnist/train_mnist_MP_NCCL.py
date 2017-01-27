@@ -29,10 +29,7 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu0', '-g', type=int, default=0,
-                        help='First GPU ID')
-    parser.add_argument('--gpu1', '-G', type=int, default=1,
-                        help='Second GPU ID')
+    parser.add_argument('--gpus', '-g', type=int, nargs="*", default=[0, 1])
     parser.add_argument('--out', '-o', default='result_parallel',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
@@ -41,7 +38,7 @@ def main():
                         help='Number of units')
     args = parser.parse_args()
 
-    print('GPU: {}, {}'.format(args.gpu0, args.gpu1))
+    print('GPU: {}'.format(args.gpus))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
@@ -52,9 +49,9 @@ def main():
     train, test = chainer.datasets.get_mnist()
 
     epoch = args.epoch
-    batchsize = args.batchsize
+    batchsize = args.batchsize# * len(args.gpus)
     datasize = len(train)
-    proc_num = 2
+    proc_num = len(args.gpus)
 
     conns = []
     procs = []
@@ -63,7 +60,7 @@ def main():
     for i in range(1, proc_num):
         conn, c_conn = Pipe()
         proc_id = i
-        gpu_id = i
+        gpu_id = args.gpus[i]
         proc = Process(target=run_training,
                        args=((c_conn,), proc_id, proc_num, gpu_id, model,
                              epoch, datasize, batchsize, train, test))
@@ -73,7 +70,7 @@ def main():
 
     # start master process
     proc_id = 0
-    gpu_id = 0
+    gpu_id = args.gpus[0]
     run_training(conns, proc_id, proc_num, gpu_id, model,
                  epoch, datasize, batchsize, train, test)
 
@@ -122,11 +119,10 @@ def run_training(conns, proc_id, proc_num, gpuid, model_ref,
 
             for i in range(0, datasize, batchsize):
 
-                x_batch = train[indexes[i:i+batchsize]][0]
-                y_batch = train[indexes[i:i+batchsize]][1]
+                x_batch, y_batch = train[indexes[i:i+batchsize][proc_id::proc_num]][:2]
 
-                x = chainer.Variable(x_batch[proc_id::proc_num])
-                y = chainer.Variable(y_batch[proc_id::proc_num])
+                x = chainer.Variable(x_batch)
+                y = chainer.Variable(y_batch)
                 x.to_gpu()
                 y.to_gpu()
 
@@ -146,6 +142,7 @@ def run_training(conns, proc_id, proc_num, gpuid, model_ref,
                 model.scatter_grads(gg)
 
                 optimizer.update()
+        print(loss.data)
 
         # NCCL: destroy communicator
         comm.destroy()
