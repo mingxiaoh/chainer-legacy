@@ -22,7 +22,6 @@ class _Worker(multiprocessing.Process):
         self.model = master._master
         self.device = master._devices[proc_id]
         self.iterator = master._mpu_iterators[proc_id]
-        self.optimizer = master.get_optimizer('main')
         self.n_devices = len(master._devices)
         self.root = root
 
@@ -158,7 +157,6 @@ class MultiprocessParallelUpdater(StandardUpdater):
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
-            from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
             comm_id = nccl.get_unique_id()
             self._send_message(("set comm_di", comm_id))
@@ -188,6 +186,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
             null_stream = cuda.Stream.null
             self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
                              nccl.NCCL_FLOAT, nccl.NCCL_SUM, self._devices[0], null_stream.ptr)
+            self._master.scatter_grads(gg)
             optimizer.update()
             pp = self._master.gather_params()
             self.comm.bcast(pp.data.ptr, pp.size, nccl.NCCL_FLOAT, self._devices[0], null_stream.ptr)
