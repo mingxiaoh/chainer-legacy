@@ -116,3 +116,17 @@ cdef class NcclCommunicator:
                                <ncclDataType_t>datatype, <ncclRedOp_t>op,
                                self._comm, <driver.Stream>stream)
         check_status(status)
+
+    def reduce(self, size_t sendbuf, size_t recvbuf,
+               int count, int datatype, int op, int root, size_t stream):
+        status = ncclReduce(<void*> sendbuf, <void*> recvbuf, count,
+                            <ncclDataType_t> datatype, <ncclRedOp_t> op, root,
+                            self._comm, <driver.Stream> stream)
+        check_status(status)
+
+    def bcast(self, size_t buff, int count, int datatype,
+              int root, size_t stream):
+        status = ncclBcast(<void*> buff, count,
+                           <ncclDataType_t> datatype, root,
+                           self._comm, <driver.Stream> stream)
+        check_status(status)

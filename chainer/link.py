@@ -133,6 +133,7 @@ class Link(object):
             self.add_param(name, shape, dtype=dtype)
 
         self.grads_gathered = None
+        self.params_gathered = None
 
     @property
     def xp(self):
@@ -468,35 +469,8 @@ class Link(object):
             num += 1
         return size, num
 
-    def gather_grads(self):
-        """Put together all gradient arrays and make a single array
-
-        Return:
-            cupy.ndarray
-        """
-        size, num = self.size_num_grads()
-        # print("size:{}, num:{}".format(size, num))
-
-        ptrs = numpy.empty(num, dtype=numpy.uint64)
-        info = numpy.empty(num+1, dtype=numpy.int32)
-        info[0] = 0
-        i = 0
-        for param in self.params():
-            if param.size == 0:
-                continue
-            ptrs[i] = 0    # NULL pointer
-            if param._grad is not None:
-                ptrs[i] = param._grad.data.ptr
-            info[i+1] = info[i] + param.size
-            i += 1
-        info[0] = num
-        # print("ptrs:\n{}".format(ptrs))
-        # print("info:\n{}".format(info))
-
-        ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-        info = cuda.to_gpu(info, stream=cuda.Stream.null)
-
-        batch_memcpy = cuda.cupy.ElementwiseKernel(
+    def _batch_memcpy(self):
+        return cuda.cupy.ElementwiseKernel(
             'raw T ptrs, raw X info',
             'raw float32 dst',
             '''
@@ -524,8 +498,71 @@ class Link(object):
                 int id_pre = 0;
             ''')
 
+    def gather_grads(self):
+        """Put together all gradient arrays and make a single array
+
+        Return:
+            cupy.ndarray
+        """
+        size, num = self.size_num_grads()
+        # print("size:{}, num:{}".format(size, num))
+
+        ptrs = numpy.empty(num, dtype=numpy.uint64)
+        info = numpy.empty(num + 1, dtype=numpy.int32)
+        info[0] = 0
+        i = 0
+        for param in self.params():
+            if param.size == 0:
+                continue
+            ptrs[i] = 0  # NULL pointer
+            if param._grad is not None:
+                ptrs[i] = param._grad.data.ptr
+            info[i + 1] = info[i] + param.size
+            i += 1
+        info[0] = num
+        # print("ptrs:\n{}".format(ptrs))
+        # print("info:\n{}".format(info))
+
+        ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
+        info = cuda.to_gpu(info, stream=cuda.Stream.null)
+
+        batch_memcpy = self._batch_memcpy()
+
         self.grads_gathered = batch_memcpy(ptrs, info, size=size)
         return self.grads_gathered
+
+    def gather_params(self):
+        """Put together all gradient arrays and make a single array
+
+        Return:
+            cupy.ndarray
+        """
+        size, num = self.size_num_grads()
+        # print("size:{}, num:{}".format(size, num))
+
+        ptrs = numpy.empty(num, dtype=numpy.uint64)
+        info = numpy.empty(num + 1, dtype=numpy.int32)
+        info[0] = 0
+        i = 0
+        for param in self.params():
+            if param.size == 0:
+                continue
+            ptrs[i] = 0  # NULL pointer
+            if param.data is not None:
+                ptrs[i] = param.data.data.ptr
+            info[i + 1] = info[i] + param.size
+            i += 1
+        info[0] = num
+        # print("ptrs:\n{}".format(ptrs))
+        # print("info:\n{}".format(info))
+
+        ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
+        info = cuda.to_gpu(info, stream=cuda.Stream.null)
+
+        batch_memcpy = self._batch_memcpy()
+
+        self.params_gathered = batch_memcpy(ptrs, info, size=size)
+        return self.params_gathered
 
     def scatter_grads(self, array):
         """Put back contents of the specified array to the related gradient arrays
@@ -536,6 +573,16 @@ class Link(object):
         offset = 0
         for param in self.params():
             offset = param.scatter_grad(array, offset)
+
+    def scatter_params(self, array):
+        """Put back contents of the specified array to the related gradient arrays
+
+        Args:
+            array (cupy.ndarray): gathered array created by gather_grads()
+        """
+        offset = 0
+        for param in self.params():
+            offset = param.scatter_param(array, offset)
 
     def cleargrads_gathered(self):
         self.grads_gathered = None

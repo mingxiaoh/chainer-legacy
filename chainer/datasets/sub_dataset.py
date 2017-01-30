@@ -153,6 +153,28 @@ def split_dataset_n(dataset, n, order=None):
             for i in six.moves.range(n)]
 
 
+def split_dataset_n_random(dataset, n, seed=None):
+    """Splits a dataset into ``n`` subsets.
+
+    Args:
+        dataset: Dataset to split.
+        n(int):
+        order (sequence of ints): Permutation of indexes in the base dataset.
+            See the document of :class:`SubDataset` for details.
+
+    Returns:
+        tuple: Two :class:`SubDataset` objects. The first subset represents the
+            examples of indexes ``order[:split_at]`` while the second subset
+            represents the examples of indexes ``order[split_at:]``.
+
+    """
+    n_examples = len(dataset)
+    sub_size = n_examples // n
+    order = numpy.random.RandomState(seed).permutation(len(dataset))
+    return [SubDataset(dataset, sub_size * i, sub_size * (i + 1), order)
+            for i in six.moves.range(n)]
+
+
 def get_cross_validation_datasets(dataset, n_fold, order=None):
     """Creates a set of training/test splits for cross validation.
 

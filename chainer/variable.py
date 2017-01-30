@@ -260,6 +260,17 @@ Actual: {0}'''.format(type(data))
         self._grad = array[offset:next_offset].reshape(self.data.shape)
         return next_offset
 
+    def scatter_param(self, array, offset):
+        """Copy back contents of the array to gradient array
+
+        Args:
+            array (cupy.ndarray): gathered array
+            offset (int): ...
+        """
+        next_offset = offset + self.size
+        self.data = array[offset:next_offset].reshape(self.data.shape)
+        return next_offset
+
     def copydata(self, var):
         """Copies the data array from given source variable.
 

@@ -16,6 +16,7 @@ import numpy as np
 import chainer
 from chainer import training
 from chainer.training import extensions
+from chainer.training import updaters
 
 import train_imagenet
 
@@ -31,8 +32,7 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU')
+    parser.add_argument('--gpus', '-g', type=int, nargs="*", default=[0, 1, 2, 3])
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')
     parser.add_argument('--loaderjob', '-j', type=int,
@@ -56,11 +56,6 @@ def main():
     if args.initmodel:
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
-    """
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make the GPU current
-        model.to_gpu()
-    """
 
     # Load the datasets and mean file
     mean = np.load(args.mean)
@@ -70,12 +65,12 @@ def main():
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-    devices = (0, 2, 3, 4)
+    devices = tuple(args.gpus)
 
     train_iters = [chainer.iterators.MultiprocessIterator(
                         i, args.batchsize, n_processes=args.loaderjob)
-                   for i in chainer.datasets.split_dataset_n(train,
-                                                             len(devices))]
+                   for i in chainer.datasets.split_dataset_n_random(train,
+                                                                    len(devices))]
     val_iter = chainer.iterators.MultiprocessIterator(
         val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
 
@@ -84,7 +79,7 @@ def main():
     optimizer.setup(model)
 
     # Set up a trainer
-    updater = training.MultiprocessParallelUpdater(train_iters, optimizer,
+    updater = updaters.MultiprocessParallelUpdater(train_iters, optimizer,
                                                    devices=devices)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
@@ -92,7 +87,7 @@ def main():
     log_interval = (10 if args.test else 1000), 'iteration'
 
     trainer.extend(train_imagenet.TestModeEvaluator(val_iter, model,
-                                                    device=args.gpu),
+                                                    device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
