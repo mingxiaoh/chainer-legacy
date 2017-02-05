@@ -117,6 +117,27 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 
+def _batch_assign(dests, sources):
+    src_ptrs = cuda.cupy.array([s.data for s in sources], 'l')
+    dst_ptrs = cuda.cupy.array([d.data for d in dests], 'l')
+    sizes = [s.size for s in sources]
+    n = max(sizes)
+    sizes = cuda.cupy.array(sizes, 'i')
+    cuda.elementwise(
+        'raw int32 sizes, raw P srcs, raw P dsts, int32 n', 'int32 y',
+        '''
+        int j = i / n;
+        int offset = i - j * n;
+        const float* src_ptrs = reinterpret_cast<const float*>(srcs[j]);
+        float* dst_ptrs = reinterpret_cast<float*>(dsts[j]);
+        if (offset < sizes[j]) {
+          dst_ptrs[offset] = src_ptrs[offset];
+        }
+        ''',
+        'batch_assign'
+    )(sizes, src_ptrs, dst_ptrs, n, size=n*len(sources))
+
+
 class NStepLSTM(function.Function):
 
     def __init__(self, n_layers, states, train=True):
@@ -215,18 +236,25 @@ class NStepLSTM(function.Function):
         w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
         w_desc = cudnn.create_filter_descriptor(w)
 
+        sources = []
+        dests = []
+
         for layer in six.moves.range(self.n_layers):
             for lin_layer_id in six.moves.range(8):
                 mat = cudnn.get_rnn_lin_layer_matrix_params(
                     handle, rnn_desc, layer, x_desc, w_desc, w,
                     lin_layer_id)
-                m = mat.reshape(mat.size)
-                m[...] = ws[layer * 8 + lin_layer_id].ravel()
+                dests.append(mat)
+                sources.append(ws[layer * 8 + lin_layer_id])
+
                 bias = cudnn.get_rnn_lin_layer_bias_params(
                     handle, rnn_desc, layer, x_desc, w_desc, w,
                     lin_layer_id)
-                b = bias.reshape(bias.size)
-                b[...] = bs[layer * 8 + lin_layer_id]
+                dests.append(bias)
+                sources.append(bs[layer * 8 + lin_layer_id])
+
+        _batch_assign(dests, sources)
+
         self.w = w
         self.w_desc = w_desc
 
