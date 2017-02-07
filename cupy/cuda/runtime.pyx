@@ -325,7 +325,7 @@ cdef _streamCallbackFunc(driver.Stream hStream, int status,
     cpython.Py_DECREF(obj)
 
 
-cpdef streamAddCallback(size_t stream, callback, size_t arg,
+cpdef streamAddCallback(size_t stream, callback, arg,
                         unsigned int flags=0):
     func_arg = (callback, arg)
     cpython.Py_INCREF(func_arg)

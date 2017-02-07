@@ -116,7 +116,7 @@ cpdef size_t streamCreate() except *
 cpdef size_t streamCreateWithFlags(unsigned int flags) except *
 cpdef streamDestroy(size_t stream)
 cpdef streamSynchronize(size_t stream)
-cpdef streamAddCallback(size_t stream, callback, size_t arg,
+cpdef streamAddCallback(size_t stream, callback, arg,
                         unsigned int flags=*)
 cpdef streamQuery(size_t stream)
 cpdef streamWaitEvent(size_t stream, size_t event, unsigned int flags=*)

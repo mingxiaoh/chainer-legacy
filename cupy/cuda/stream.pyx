@@ -1,7 +1,7 @@
 from cupy.cuda import runtime
 
 
-class Event(object):
+cdef class Event:
 
     """CUDA event, a synchronization point of CUDA streams.
 
@@ -32,7 +32,7 @@ class Event(object):
                 (interprocess and runtime.eventInterprocess))
         self.ptr = runtime.eventCreateWithFlags(flag)
 
-    def __del__(self):
+    def __dealloc__(self):
         if self.ptr:
             runtime.eventDestroy(self.ptr)
 
@@ -41,7 +41,7 @@ class Event(object):
         """True if the event is done."""
         return runtime.eventQuery(self.ptr) == 0  # cudaSuccess
 
-    def record(self, stream=None):
+    cpdef Event record(self, Stream stream=None):
         """Records the event to a stream.
 
         Args:
@@ -55,7 +55,7 @@ class Event(object):
             stream = Stream.null
         runtime.eventRecord(self.ptr, stream.ptr)
 
-    def synchronize(self):
+    cpdef synchronize(self):
         """Synchronizes all device work to the event.
 
         If the event is created as a blocking event, it also blocks the CPU
@@ -65,7 +65,7 @@ class Event(object):
         runtime.eventSynchronize(self.ptr)
 
 
-def get_elapsed_time(start_event, end_event):
+cpdef get_elapsed_time(Event start_event, Event end_event):
     """Gets the elapsed time between two events.
 
     Args:
@@ -79,7 +79,7 @@ def get_elapsed_time(start_event, end_event):
     return runtime.eventElapsedTime(start_event.ptr, end_event.ptr)
 
 
-class Stream(object):
+cdef class Stream:
 
     """CUDA stream.
 
@@ -99,7 +99,7 @@ class Stream(object):
 
     """
 
-    null = None
+    null = Stream(null=True)
 
     def __init__(self, null=False, non_blocking=False):
         if null:
@@ -109,7 +109,7 @@ class Stream(object):
         else:
             self.ptr = runtime.streamCreate()
 
-    def __del__(self):
+    def __dealloc__(self):
         if self.ptr:
             runtime.streamDestroy(self.ptr)
 
@@ -118,11 +118,11 @@ class Stream(object):
         """True if all work on this stream has been done."""
         return runtime.streamQuery(self.ptr) == 0  # cudaSuccess
 
-    def synchronize(self):
+    cpdef synchronize(self):
         """Waits for the stream completing all queued work."""
         runtime.streamSynchronize(self.ptr)
 
-    def add_callback(self, callback, arg):
+    cpdef add_callback(self, callback, arg):
         """Adds a callback that is called when all queued work is done.
 
         Args:
@@ -132,11 +132,9 @@ class Stream(object):
             arg (object): Argument to the callback.
 
         """
-        def f(stream, status, dummy):
-            callback(self, status, arg)
-        runtime.streamAddCallback(self.ptr, f, 0)
+        runtime.streamAddCallback(self.ptr, _stream_call_back, (callback, arg))
 
-    def record(self, event=None):
+    cpdef record(self, Event event=None):
         """Records an event on the stream.
 
         Args:
@@ -154,7 +152,7 @@ class Stream(object):
         runtime.eventRecord(event.ptr, self.ptr)
         return event
 
-    def wait_event(self, event):
+    cpdef wait_event(self, Event event):
         """Makes the stream wait for an event.
 
         The future work on this stream will be done after the event.
@@ -166,4 +164,6 @@ class Stream(object):
         runtime.streamWaitEvent(self.ptr, event.ptr)
 
 
-Stream.null = Stream(null=True)
+cpdef _stream_call_back(stream, status, obj):
+    func, arg = obj
+    func(arg)
