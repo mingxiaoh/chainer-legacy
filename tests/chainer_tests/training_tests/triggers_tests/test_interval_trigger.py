@@ -77,4 +77,17 @@ class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
         _test_trigger(self, updater, trigger, expected)
 
 
+class TestSerialization(unittest.TestCase):
+
+    def setUp(self):
+        self.trigger = training.trigger.IntervalTrigger(3, 'epoch')
+        self.updater = DummyUpdater(10)
+        self.trainer = training.Trainer(self.updater)
+    
+    def test_serialize(self):
+        for _ in range(45):
+            self.updater.update()
+            self.trigger(self.trainer)
+
+
 testing.run_module(__name__, __file__)
