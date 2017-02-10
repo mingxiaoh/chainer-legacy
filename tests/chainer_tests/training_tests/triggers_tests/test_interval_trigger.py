@@ -4,6 +4,10 @@ import unittest
 
 from chainer import testing
 from chainer import training
+from chainer import serializers
+from chainer.training import extensions
+
+import six
 
 
 class DummyUpdater(training.Updater):
@@ -77,7 +81,7 @@ class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
         _test_trigger(self, updater, trigger, expected)
 
 
-class TestSerialization(unittest.TestCase):
+class TestSerialize(unittest.TestCase):
 
     def setUp(self):
         self.trigger = training.trigger.IntervalTrigger(3, 'epoch')
@@ -85,9 +89,51 @@ class TestSerialization(unittest.TestCase):
         self.trainer = training.Trainer(self.updater)
     
     def test_serialize(self):
-        for _ in range(45):
+        for _ in six.moves.range(45):
             self.updater.update()
             self.trigger(self.trainer)
+
+        serializers.save_npz('hoge', self.trigger)
+        count = self.trigger.count
+
+        serializers.load_npz('hoge', self.trigger)
+        self.assertTrue(count, self.trigger.count)
+
+
+class DummyExtension(training.Extension):
+    pass
+
+
+class TestTrainerSerialize(unittest.TestCase):
+
+    def test_stop_trigger(self):
+        updater = DummyUpdater(10)
+        trainer = training.Trainer(updater)
+
+        extension = DummyExtension()
+        extension.trigger = training.trigger.IntervalTrigger(3, 'epoch')
+        trainer.extend(extension, name='extend')
+
+        trainer.run()
+        serializers.save_npz('hoge', trainer)
+        serializers.load_npz('hoge', trainer)
+        self.assertEqual(trainer.gen_extension('extend').count, 1)
+
+
+class TestTrainerSerialize2(unittest.TestCase):
+
+    def test_(self):
+        updater = DummyUpdater(10)
+        trainer = training.Trainer(updater, (30, 'epoch'))
+
+        trainer.extend(extensions.snapshot(filename='hoge'),
+                       trigger=(10, 'epoch'))
+
+        trainer.run()
+        serializers.load_npz('hoge', self.trainer)
+        self.assertEqual(trainer.stop_trigger.count, 10)
+        trainer.run()
+        self.assertEqual(trainer.stop_trigger.count, 30)
 
 
 testing.run_module(__name__, __file__)
