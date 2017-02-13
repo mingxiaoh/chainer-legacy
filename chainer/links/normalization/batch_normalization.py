@@ -66,15 +66,14 @@ class BatchNormalization(link.Link):
                  initial_gamma=None, initial_beta=None, use_cudnn=True):
         super(BatchNormalization, self).__init__()
         if use_gamma:
-            self.add_param('gamma', size, dtype=dtype)
             if initial_gamma is None:
                 initial_gamma = initializers.One()
-            initializers.init_weight(self.gamma.data, initial_gamma)
+            self.add_param('gamma', size, dtype=dtype,
+                           initializer=initial_gamma)
         if use_beta:
-            self.add_param('beta', size, dtype=dtype)
             if initial_beta is None:
                 initial_beta = initializers.Zero()
-            initializers.init_weight(self.beta.data, initial_beta)
+            self.add_param('beta', size, dtype=dtype, initializer=initial_beta)
         self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
         self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
         self.add_persistent('N', 0)

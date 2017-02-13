@@ -11,6 +11,18 @@ from chainer.links.connection import linear
 from chainer import variable
 
 
+def _init_weight(weights, initializer):
+    if initializer is None:
+        initializer = initializers.HeNormal(1 / numpy.sqrt(2))
+    elif numpy.isscalar(initializer):
+        initializer = initializers.Constant(initializer)
+    elif isinstance(initializer, numpy.ndarray):
+        initializer = initializers.Constant(initializer)
+
+    assert callable(initializer)
+    initializer(weights)
+
+
 class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size,
@@ -32,18 +44,18 @@ class LSTMBase(link.Chain):
 
     def _initialize_params(self):
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            initializers.init_weight(
+            _init_weight(
                 self.lateral.W.data[i:i + self.state_size, :],
                 self.lateral_init)
-            initializers.init_weight(
+            _init_weight(
                 self.upward.W.data[i:i + self.state_size, :], self.upward_init)
 
         a, i, f, o = lstm._extract_gates(
             self.upward.b.data.reshape(1, 4 * self.state_size, 1))
-        initializers.init_weight(a, self.bias_init)
-        initializers.init_weight(i, self.bias_init)
-        initializers.init_weight(f, self.forget_bias_init)
-        initializers.init_weight(o, self.bias_init)
+        _init_weight(a, self.bias_init)
+        _init_weight(i, self.bias_init)
+        _init_weight(f, self.forget_bias_init)
+        _init_weight(o, self.bias_init)
 
 
 class StatelessLSTM(LSTMBase):

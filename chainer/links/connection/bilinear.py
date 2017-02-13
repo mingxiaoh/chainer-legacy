@@ -51,7 +51,7 @@ class Bilinear(link.Link):
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
                  initialW=None, initial_bias=None):
-        super(Bilinear, self).__init__(W=(left_size, right_size, out_size))
+        super(Bilinear, self).__init__(W=)
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
 
@@ -62,13 +62,10 @@ class Bilinear(link.Link):
 
         if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
             assert initialW.shape == self.W.shape
-        initializers.init_weight(self.W.data, initialW)
+        self.add_param('W', (left_size, right_size, out_size),
+                       initializer=initialW)
 
         if not self.nobias:
-            self.add_param('V1', (left_size, out_size))
-            self.add_param('V2', (right_size, out_size))
-            self.add_param('b', out_size)
-
             if isinstance(initial_bias, tuple):
                 V1, V2, b = initial_bias
             elif initial_bias is None:
@@ -77,15 +74,9 @@ class Bilinear(link.Link):
             else:
                 raise ValueError('initial_bias must be tuple or None')
 
-            if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
-                assert V1.shape == self.V1.shape
-            if isinstance(V2, (numpy.ndarray, cuda.ndarray)):
-                assert V2.shape == self.V2.shape
-            if isinstance(b, (numpy.ndarray, cuda.ndarray)):
-                assert b.shape == self.b.shape
-            initializers.init_weight(self.V1.data, V1)
-            initializers.init_weight(self.V2.data, V2)
-            initializers.init_weight(self.b.data, b)
+            self.add_param('V1', (left_size, out_size), initializer=V1)
+            self.add_param('V2', (right_size, out_size), initializer=V2)
+            self.add_param('b', out_size, initializer=b)
 
     def __call__(self, e1, e2):
         """Applies the bilinear function to inputs and the internal parameters.
