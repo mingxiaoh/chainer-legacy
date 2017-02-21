@@ -39,6 +39,9 @@ class TestInitDocstring(unittest.TestCase):
             if 'chainer' not in modname:
                 # Skip tests
                 continue
+            if 'caffe_pb2' in modname:
+                # Skip protobuf generated file
+                continue
 
             loader = importer.find_module(modname)
             try:
