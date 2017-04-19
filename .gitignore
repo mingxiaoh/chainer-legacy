@@ -14,3 +14,7 @@ chainer.egg-info/
 dist/
 htmlcov/
 .idea/
+mkldnn/c_api.py
+mkldnn/mdarray.py
+mkldnn/support.py
+mkldnn/memory.py

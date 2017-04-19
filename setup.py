@@ -3,7 +3,7 @@
 import pkg_resources
 
 from setuptools import setup
-
+from setuptools.extension import Extension
 
 setup_requires = []
 install_requires = [
@@ -24,6 +24,18 @@ except pkg_resources.DistributionNotFound:
 if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
+
+swig_opts=['-c++', '-I/usr/local/include', '-relativeimport', '-builtin']
+ccxx_opts=['-std=c++11', '-O0', '-g']
+
+ext_modules=[Extension("mkldnn._c_api", sources=['mkldnn/c_api.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn']),
+    Extension("mkldnn._support", sources=['mkldnn/support.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn']),
+    Extension("mkldnn._memory", sources=['mkldnn/memory.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn']),
+    Extension("mkldnn._mdarray", sources=['mkldnn/mdarray.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn'])]
 
 setup(
     name='chainer',
@@ -68,7 +80,9 @@ setup(
               'chainer.training',
               'chainer.training.extensions',
               'chainer.training.triggers',
-              'chainer.utils'],
+              'chainer.utils',
+              'mkldnn'],
+    ext_modules=ext_modules,
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
