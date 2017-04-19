@@ -84,4 +84,79 @@ struct error: public std::exception {
             c_api::mkldnn_primitive_t *error_primitive = 0);
 };
 
+enum query {
+    undef = c_api::mkldnn_query_undef,
+
+    eengine = c_api::mkldnn_query_engine,
+    primitive_kind = c_api::mkldnn_query_primitive_kind,
+
+    num_of_inputs_s32 = c_api::mkldnn_query_num_of_inputs_s32,
+    num_of_outputs_s32 = c_api::mkldnn_query_num_of_outputs_s32,
+
+    time_estimate_f64 = c_api::mkldnn_query_time_estimate_f64,
+    memory_consumption_s64 = c_api::mkldnn_query_memory_consumption_s64,
+
+    memory_d = c_api::mkldnn_query_memory_d,
+    convolution_d = c_api::mkldnn_query_convolution_d,
+    relu_d = c_api::mkldnn_query_relu_d,
+    softmax_d = c_api::mkldnn_query_softmax_d,
+    pooling_d = c_api::mkldnn_query_pooling_d,
+    lrn_d = c_api::mkldnn_query_lrn_d,
+    batch_normalization_d = c_api::mkldnn_query_batch_normalization_d,
+    inner_product_d = c_api::mkldnn_query_inner_product_d,
+    convolution_relu_d = c_api::mkldnn_query_convolution_relu_d,
+
+    input_pd = c_api::mkldnn_query_input_pd,
+    output_pd = c_api::mkldnn_query_output_pd,
+    src_pd = c_api::mkldnn_query_src_pd,
+    diff_src_pd = c_api::mkldnn_query_diff_src_pd,
+    weights_pd = c_api::mkldnn_query_weights_pd,
+    diff_weights_pd = c_api::mkldnn_query_diff_weights_pd,
+    dst_pd = c_api::mkldnn_query_dst_pd,
+    diff_dst_pd = c_api::mkldnn_query_diff_dst_pd,
+    workspace_pd = c_api::mkldnn_query_workspace_pd,
+};
+inline c_api::mkldnn_query_t convert_to_c(query aquery) {
+    return static_cast<c_api::mkldnn_query_t>(aquery);
+}
+
+enum padding_kind {
+    zero = c_api::mkldnn_padding_zero
+};
+inline c_api::mkldnn_padding_kind_t convert_to_c(padding_kind kind) {
+    return static_cast<c_api::mkldnn_padding_kind_t>(kind);
+}
+
+enum prop_kind {
+    forward_training = c_api::mkldnn_forward_training,
+    forward_scoring = c_api::mkldnn_forward_scoring,
+    forward_inference = c_api::mkldnn_forward_inference,
+    forward = c_api::mkldnn_forward,
+    backward = c_api::mkldnn_backward,
+    backward_data = c_api::mkldnn_backward_data,
+    backward_weights = c_api::mkldnn_backward_weights,
+    backward_bias = c_api::mkldnn_backward_bias
+};
+inline c_api::mkldnn_prop_kind_t convert_to_c(prop_kind kind) {
+    return static_cast<c_api::mkldnn_prop_kind_t>(kind);
+}
+
+enum algorithm {
+    convolution_direct = c_api::mkldnn_convolution_direct,
+    lrn_across_channels = c_api::mkldnn_lrn_across_channels,
+    lrn_within_channel  = c_api::mkldnn_lrn_within_channel,
+    pooling_max = c_api::mkldnn_pooling_max,
+    pooling_avg = c_api::mkldnn_pooling_avg
+};
+
+enum batch_normalization_flag {
+    use_global_stats = c_api::mkldnn_use_global_stats,
+    use_scale_shift = c_api::mkldnn_use_scaleshift,
+    omit_stats = c_api::mkldnn_omit_stats
+};
+
+static c_api::mkldnn_alg_kind_t convert_to_c(algorithm aalgorithm) {
+    return static_cast<c_api::mkldnn_alg_kind_t>(aalgorithm);
+}
+
 }

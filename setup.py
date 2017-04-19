@@ -34,6 +34,8 @@ ext_modules=[Extension("mkldnn._c_api", sources=['mkldnn/c_api.i'], swig_opts=sw
     extra_compile_args=ccxx_opts, libraries=['mkldnn']),
     Extension("mkldnn._memory", sources=['mkldnn/memory.i'], swig_opts=swig_opts,
     extra_compile_args=ccxx_opts, libraries=['mkldnn']),
+    Extension("mkldnn._inner_product", sources=['mkldnn/inner_product.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn']),
     Extension("mkldnn._mdarray", sources=['mkldnn/mdarray.i'], swig_opts=swig_opts,
     extra_compile_args=ccxx_opts, libraries=['mkldnn'])]
 
