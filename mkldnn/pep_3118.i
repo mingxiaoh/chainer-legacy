@@ -21,10 +21,23 @@
   };
 %}
 
-%define %buffer_protocol_wrapper(type...)
+%define %buffer_protocol_producer(type...)
   %feature("python:bf_getbuffer") type "buffer_traits<" %str(type) ">::getbuffer";
   %feature("python:bf_getreadbuffer") type "buffer_traits<" %str(type) ">::getreadbuf";
   %feature("python:bf_getwritebuffer") type "buffer_traits<" %str(type) ">::getwritebuf";
   %feature("python:bf_getsegcount") type "buffer_traits<" %str(type) ">::getsegcount";
   %feature("python:bf_getcharbuffer") type "buffer_traits<" %str(type) ">::getcharbuf";
+%enddef
+
+%define %buffer_protocol_typemap(VIEW)
+%typemap(typecheck) (VIEW) {
+  $1 = PyObject_CheckBuffer($input);
+}
+
+%typemap(in) (VIEW) (int res, Py_buffer *view = nullptr
+  , int flags = PyBUF_C_CONTIGUOUS | PyBUF_RECORDS) {
+  view = new Py_buffer;
+  res = PyObject_GetBuffer($input, view, flags);
+  $1 = ($1_ltype) view;
+}
 %enddef
