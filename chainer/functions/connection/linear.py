@@ -1,6 +1,9 @@
 from chainer import function
 from chainer.utils import type_check
 
+import mkldnn
+from mkldnn.linear import *
+
 
 def _as_mat(x):
     if x.ndim == 2:
@@ -52,29 +55,6 @@ class LinearFunction(function.Function):
         else:
             return gx, gW
 
-class LinearFunctionMKLDNN(LinearFunction):
-    # def check_type_forward(self, in_types):
-    # TODO: Check what we need
-
-    def forward(self, inputs):
-        # XXX: MKLDNN begin
-        if len(inputs) == 3:
-            b = inputs[2]
-            y = mkldnn.linear_forward(x, W, b)
-        else:
-            y = mkldnn.lieanr_forward(x, W)
-        # XXX: MKLDNN end
-        return y,
-
-    def backward(sefl, inputs, grad_outputs):
-        x = _as_mat(inputs[0])
-        W = inputs[1]
-        gy = grad_outputs[0]
-
-        if len(inputs) == 3:
-            gx, gW, gb = mkldnn.linear_backward(x, W, b, gy)
-        else:
-            gx, gW = mkldnn.linear_backward(x, W, gy=gy)
 
 def linear(x, W, b=None):
     """Linear function, or affine transformation.
@@ -113,7 +93,11 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
-    if b is None:
-        return LinearFunctionMKLDNN()(x, W)
+    # XXX: switch the route
+    if (x.dtype.itemsize == 4 and W.dtype.itemsize == 4) or isinstance(x, mkldnn.mdarray):
+        return linearMKLDNN(x, W, b)
     else:
-        return LinearFunctionMKLDNN()(x, W, b)
+        if b is None:
+            return LinearFunction()(x, W)
+        else:
+            return LinearFunction()(x, W, b)

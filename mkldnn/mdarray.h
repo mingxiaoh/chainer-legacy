@@ -85,8 +85,10 @@ public:
     }
   }
 
-  mdarray(Py_buffer *view, mkldnn::engine &e): view_(view), desc_(nullptr) {
-    pd_ = mkldnn::memory::primitive_desc(d_from_view(view), e);
+  mdarray(Py_buffer *view
+      , mkldnn::memory::format format
+      , mkldnn::engine &e): view_(view), desc_(nullptr) {
+    pd_ = mkldnn::memory::primitive_desc(d_from_view(view, format), e);
     size_ = view->len/view->itemsize;
 
     // alignment check
@@ -99,6 +101,15 @@ public:
       view_.reset(nullptr);
     } else
       data_ = nullptr;
+  }
+
+  mkldnn::memory::primitive_desc pd() {
+    return pd_;
+  }
+  
+  mkldnn::memory memory() {
+    // XXX: Cause seperate life span of memory and buffer
+    return mkldnn::memory::memory(pd_, data());
   }
 
   void *data() { return view_ == nullptr ? data_.get(): view_->buf; }
@@ -172,7 +183,8 @@ private:
     }
   }
 
-  mkldnn::memory::desc d_from_view(Py_buffer *view) {
+  mkldnn::memory::desc d_from_view(Py_buffer *view
+      , mkldnn::memory::format order) {
     mkldnn::memory::dims dims (view->ndim);
 
     for( int i=0; i < view->ndim; i++)
@@ -193,19 +205,6 @@ private:
     } else
       throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
           , "MKLDNN does not support itemsize other than 4");
-
-    mkldnn::memory::format order;
-    switch (view->ndim) {
-      case 4:
-        order = mkldnn::memory::nc;
-        break;
-      case 2:
-        order = mkldnn::memory::nchw;
-        break;
-      default:
-        throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
-            , "MKLDNN does not support the dimension");
-    }
 
     return mkldnn::memory::desc(dims, dt, order);
   }
