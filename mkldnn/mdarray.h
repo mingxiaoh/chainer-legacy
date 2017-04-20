@@ -53,7 +53,7 @@ public:
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
-      , mkldnn::engine &engine) : desc_(nullptr) {
+      , mkldnn::engine &engine) : view_(nullptr), desc_(nullptr) {
 
     pd_ = mkldnn::memory::primitive_desc({dims, dt, format}, engine);
 
@@ -73,7 +73,7 @@ public:
     }
   }
 
-  mdarray(mkldnn::memory::primitive_desc pd): desc_(nullptr), pd_(pd)  {
+  mdarray(mkldnn::memory::primitive_desc pd): view_(nullptr), pd_(pd), desc_(nullptr)  {
     auto md = pd_.desc().data;
 
     if (md.data_type == mkldnn::memory::f32
@@ -85,7 +85,23 @@ public:
     }
   }
 
-  void *data() { return data_.get(); }
+  mdarray(Py_buffer *view, mkldnn::engine &e): view_(view), desc_(nullptr) {
+    pd_ = mkldnn::memory::primitive_desc(d_from_view(view), e);
+    size_ = view->len/view->itemsize;
+
+    // alignment check
+    unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
+    if ( adrs % 16 != 0 ) {
+      // TODO: Make new memory area and copy the contents
+      data_ = std::unique_ptr<avx::byte []>(new avx::byte [view->len]);
+      // XXX: OpenMP thing?
+      memcpy(data_.get(), view->buf, view->len);
+      view_.reset(nullptr);
+    } else
+      data_ = nullptr;
+  }
+
+  void *data() { return view_ == nullptr ? data_.get(): view_->buf; }
   size_type size() { return size_; }
 
   // PEP: 3118 Buffer Protocol Producer
@@ -105,14 +121,20 @@ public:
   }
 
 private:
-  // TODO: We might get buffer from numpy in near future
+  struct WeDontManageIt {
+    void operator() (Py_buffer *view_) {
+      PyBuffer_Release(view_);
+    }
+  };
+
   std::unique_ptr<avx::byte []> data_;
+  std::unique_ptr<Py_buffer, WeDontManageIt> view_;
+  mkldnn::memory::primitive_desc pd_;
   size_type size_;
 
-  std::unique_ptr<_data_desc> desc_;
-  mkldnn::memory::primitive_desc pd_;
-
 private:
+  std::unique_ptr<_data_desc> desc_;
+
   void _collect_buffer_info() {
     if (desc_ == nullptr)
       desc_ = std::unique_ptr<_data_desc>(new _data_desc);
@@ -149,6 +171,44 @@ private:
       sd *= desc_->shape[i];
     }
   }
+
+  mkldnn::memory::desc d_from_view(Py_buffer *view) {
+    mkldnn::memory::dims dims (view->ndim);
+
+    for( int i=0; i < view->ndim; i++)
+      dims[i] = view->shape[i];
+
+    std::string format(view->format);
+    mkldnn::memory::data_type dt; 
+
+    if (view->itemsize == 4) {
+      if (format.find_last_of('f')) {
+        dt = mkldnn::memory::f32;
+      } else if (format.find_last_of('i')) {
+        dt = mkldnn::memory::s32;
+      } else
+        throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+            , std::string("MKLDNN does not support data type: ")
+            + format);
+    } else
+      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+          , "MKLDNN does not support itemsize other than 4");
+
+    mkldnn::memory::format order;
+    switch (view->ndim) {
+      case 4:
+        order = mkldnn::memory::nc;
+        break;
+      case 2:
+        order = mkldnn::memory::nchw;
+        break;
+      default:
+        throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+            , "MKLDNN does not support the dimension");
+    }
+
+    return mkldnn::memory::desc(dims, dt, order);
+  }
 };
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
@@ -165,7 +225,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   /* Fill in buffer detail */
   _collect_buffer_info();
 
-  view->buf = data_.get();
+  view->buf = data();
   view->itemsize = desc_->itemsize;
   view->readonly = 0;
   view->internal = nullptr;

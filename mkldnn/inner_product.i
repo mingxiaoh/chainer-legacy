@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module api
+%module (package="mkldnn") inner_product
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>

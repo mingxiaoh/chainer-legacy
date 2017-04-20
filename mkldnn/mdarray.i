@@ -11,14 +11,22 @@
   #include "mdarray.h"
 %}
 
-%import memory.i
-%include stl.i
+%include exception.i
 %include pep_3118.i
+%import memory.i
 
-// Must before type declaration
-%buffer_protocol_wrapper(mdarray);
+%buffer_protocol_producer(mdarray)
+%buffer_protocol_typemap(Py_buffer *view)
 
-class mdarray{
+%exception mdarray::mdarray {
+  try {
+    $action
+  } catch (mkldnn::error &e) {
+    SWIG_exception(SWIG_ValueError, e.message.c_str());
+  }
+}
+
+class mdarray {
 public:
   static constexpr int MAX_NDIM = 12; //XXX: Same as MKLDNN
   typedef size_t size_type;
@@ -26,7 +34,11 @@ public:
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
-      , mkldnn::engine &engine);
+      , mkldnn::engine &e);
+
+  mdarray(mkldnn::memory::primitive_desc pd);
+
+  mdarray(Py_buffer *view, mkldnn::engine &e);
 
   void *data();
   size_type size();

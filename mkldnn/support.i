@@ -160,3 +160,5 @@ static c_api::mkldnn_alg_kind_t convert_to_c(algorithm aalgorithm) {
 }
 
 }
+
+%template (primitive_list) std::vector<mkldnn::primitive>;
