@@ -38,7 +38,13 @@ public:
 
   mdarray(mkldnn::memory::primitive_desc pd);
 
-  mdarray(Py_buffer *view, mkldnn::engine &e);
+  mdarray(Py_buffer *view
+      , mkldnn::memory::format, mkldnn::engine &);
+
+  mkldnn::memory::primitive_desc pd(); 
+
+  // XXX: Watch the life time of primitive
+  mkldnn::memory memory();
 
   void *data();
   size_type size();

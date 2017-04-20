@@ -159,6 +159,35 @@ static c_api::mkldnn_alg_kind_t convert_to_c(algorithm aalgorithm) {
     return static_cast<c_api::mkldnn_alg_kind_t>(aalgorithm);
 }
 
+%exception stream::submit {
+  try {
+    $action
+  }
+  catch (mkldnn::error &e){
+    SWIG_exception(SWIG_ValueError, e.message.c_str());
+  }
+}
+
+%template (stream_handle_t) handle< c_api::mkldnn_stream_t >;
+
+struct stream: public handle<c_api::mkldnn_stream_t> {
+    using handle::handle;
+
+    enum kind { any = c_api::mkldnn_stream_kind_t::mkldnn_any_stream,
+        eager = c_api::mkldnn_stream_kind_t::mkldnn_eager,
+        lazy = c_api::mkldnn_stream_kind_t::mkldnn_lazy };
+
+    static c_api::mkldnn_stream_kind_t convert_to_c(kind akind);
+
+    stream(kind akind);
+
+    stream &submit(std::vector<primitive> primitives);
+
+    bool wait(bool block = true);
+
+    stream &rerun();
+};
+
 }
 
 %template (primitive_list) std::vector<mkldnn::primitive>;
