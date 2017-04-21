@@ -1,8 +1,9 @@
-from mkldnn.support import primitive_list
-from mkldnn.support import at
+from mkldnn.support import *
 from mkldnn import reorder as r
 from mkldnn import memory as m
 from mkldnn.runtime import Stream
+
+import mkldnn
 
 def reorder_if_must(usr_m, expect, net_):
     if (usr_m.get_primitive_desc() != expect):
@@ -11,6 +12,13 @@ def reorder_if_must(usr_m, expect, net_):
         return reorded
     else:
         return usr_m
+
+# XXX: move this file to another location
+def array(obj, *args):
+    if isinstance(obj, mkldnn.mdarray):
+        return obj
+    else:
+        return mkldnn.mdarray(obj, *args)
 
 class ComputeComplex(object):
     """MKLDNN Compute Complex.
@@ -27,7 +35,7 @@ class ComputeComplex(object):
 
         s.submit(self.net_)
         s.wait()
-        return self.output
+        return self.outputs
 
     @property
     def hint(self):

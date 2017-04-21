@@ -37,12 +37,26 @@ namespace mkldnn {
 %rename (desc) inner_product_backward_weights::desc;
 %rename (primitive_desc) inner_product_backward_weights::primitive_desc;
 
+%exception inner_product_backward_weights::desc::desc {
+  try {
+    $action
+  }
+  catch (mkldnn::error &e){
+    SWIG_exception(SWIG_ValueError, e.message.c_str());
+  }
+}
+
 struct inner_product_backward_weights: public primitive {
     struct desc {
         c_api::mkldnn_inner_product_desc_t data;
+        
         desc(const memory::desc &src_desc,
                 const memory::desc &diff_weights_desc,
                 const memory::desc &diff_bias_desc,
+                const memory::desc &diff_dst_desc);
+
+        desc(const memory::desc &src_desc,
+                const memory::desc &diff_weights_desc,
                 const memory::desc &diff_dst_desc);
     };
 

@@ -37,6 +37,15 @@ namespace mkldnn {
 %rename (desc) inner_product_backward_data::desc;
 %rename (primitive_desc) inner_product_backward_data::primitive_desc;
 
+%exception inner_product_backward_data::desc::desc {
+  try {
+    $action
+  }
+  catch (mkldnn::error &e){
+    SWIG_exception(SWIG_ValueError, e.message.c_str());
+  }
+}
+
 struct inner_product_backward_data: public primitive {
     struct desc {
         c_api::mkldnn_inner_product_desc_t data;
