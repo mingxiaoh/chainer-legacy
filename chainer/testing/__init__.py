@@ -24,5 +24,5 @@ def run_module(name, file):
 
     if name == '__main__':
 
-        nose.runmodule(argv=[file, '-vvs', '-x', '--pdb', '--pdb-failure'],
+        nose.runmodule(argv=[file, '-vvs', '-x', '--ipdb', '--ipdb-failure'],
                        exit=False)
