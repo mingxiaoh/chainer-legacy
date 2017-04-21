@@ -20,8 +20,6 @@ namespace c_api {
   %import c_api.i
 }
 
-%template (memory_handle) handle<c_api::mkldnn_primitive_desc_t>;
-
 struct memory: public primitive {
 private:
     std::shared_ptr<char> _handle;
@@ -76,7 +74,7 @@ public:
         desc(const c_api::mkldnn_memory_desc_t &adata);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc {
         friend struct memory;
         primitive_desc() {}
 

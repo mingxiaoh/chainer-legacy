@@ -13,6 +13,8 @@ from chainer import cuda
 from chainer import initializers
 from chainer import utils
 
+from mkldnn.mdarray import mdarray
+
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -291,7 +293,7 @@ class Variable(object):
                 initializers.NaN() if initializer is None else initializer)
             dtype = getattr(self.initializer, 'dtype', numpy.float32)
             self._grad_initializer = initializers.NaN(dtype)
-        elif not isinstance(data, (numpy.ndarray, cuda.ndarray)):
+        elif not isinstance(data, (mdarray, numpy.ndarray, cuda.ndarray)):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)

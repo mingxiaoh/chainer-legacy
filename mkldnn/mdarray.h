@@ -38,6 +38,14 @@ namespace avx {
 }
 
 class mdarray {
+  struct InitPainInTheAss {
+    void operator() (mkldnn::memory::dims dims
+        , mkldnn::memory::data_type dt
+        , mkldnn::memory::format format
+        , mkldnn::engine &e) {
+    }
+  };
+
 public:
   static constexpr int MAX_NDIM = 12; //XXX: For now
   typedef size_t size_type;
@@ -53,67 +61,54 @@ public:
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
-      , mkldnn::engine &engine) : view_(nullptr), desc_(nullptr) {
+      , mkldnn::engine &engine) : 
+              size_(std::accumulate(dims.begin(), dims.end(), 1
+                    , std::multiplies<mkldnn::memory::dims::value_type>()))
+              , data_(new avx::byte [size_ * 4])
+              , m_({{dims, dt, format}, engine}, data_.get())
+              , desc_(nullptr), view_(nullptr) {}
 
-    pd_ = mkldnn::memory::primitive_desc({dims, dt, format}, engine);
-
-    // XXX: if MKL-DNN doesn't support this format, a exception would
-    // Throw above us.
-    if (dt == mkldnn::memory::f32
-        || dt == mkldnn::memory::s32) {
-
-      size_ = std::accumulate(dims.begin()
-          , dims.end()
-          , 1, std::multiplies<mkldnn::memory::dims::value_type>());
-
-      // Make sure we allocate in byte 
-      static_assert(sizeof(avx::byte[4]) == 4, "Error element size");
-
-      data_ = std::unique_ptr<avx::byte []>(new avx::byte [size_ * 4]);
-    }
-  }
-
-  mdarray(mkldnn::memory::primitive_desc pd): view_(nullptr), pd_(pd), desc_(nullptr)  {
-    auto md = pd_.desc().data;
-
-    if (md.data_type == mkldnn::memory::f32
-        || md.data_type == mkldnn::memory::s32) {
-      size_ = std::accumulate(&md.dims[0], &md.dims[md.ndims]
-          , 1, std::multiplies<int>());
-
-      data_ = std::unique_ptr<avx::byte []>(new avx::byte [size_ * 4]);
-    }
-  }
-
+  mdarray(mkldnn::memory::primitive_desc pd): 
+              size_([] (mkldnn::memory::primitive_desc &pd) {
+                    auto md = pd.desc().data;
+                    return std::accumulate(md.dims, md.dims + md.ndims, 1
+                        , std::multiplies<int>());
+                  }(pd))
+              , data_(new avx::byte [size_ * 4])
+              , m_(pd, data_.get())
+              , desc_(nullptr), view_(nullptr) {}
+  
+  // XXX: Sorry for the mess
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
-      , mkldnn::engine &e): view_(view), desc_(nullptr) {
-    pd_ = mkldnn::memory::primitive_desc(d_from_view(view, format), e);
-    size_ = view->len/view->itemsize;
-
-    // alignment check
-    unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
-    if ( adrs % 16 != 0 ) {
-      // TODO: Make new memory area and copy the contents
-      data_ = std::unique_ptr<avx::byte []>(new avx::byte [view->len]);
+      , mkldnn::engine &e): size_(view->len/view->itemsize)
+           , data_([](Py_buffer *view) {
+             unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
+             if (adrs % 16 != 0) {
+               return std::unique_ptr
+                 <avx::byte []>(new avx::byte [view->len]);
+             } else
+               return std::unique_ptr<avx::byte []>(nullptr);
+           }(view)), m_({d_from_view(view, format), e}, data_ == nullptr
+              ? view->buf : data_.get()), desc_(nullptr), view_(view) {
+    if (data_ != nullptr) {
       // XXX: OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
       view_.reset(nullptr);
-    } else
-      data_ = nullptr;
+    }
   }
 
-  mkldnn::memory::primitive_desc pd() {
-    return pd_;
-  }
-  
-  mkldnn::memory memory() {
-    // XXX: Cause seperate life span of memory and buffer
-    return mkldnn::memory::memory(pd_, data());
+  inline void *data() { return view_ == nullptr ? data_.get(): view_->buf; }
+  inline size_type size() { return size_; }
+
+  inline int ndims() {
+    auto md = m_.get_primitive_desc().desc();
+    return md.data.ndims;
   }
 
-  void *data() { return view_ == nullptr ? data_.get(): view_->buf; }
-  size_type size() { return size_; }
+  inline mkldnn::memory &memory() {
+    return m_;
+  }
 
   // PEP: 3118 Buffer Protocol Producer
   int getbuffer(PyObject *obj, Py_buffer *view, int flags);
@@ -133,18 +128,18 @@ public:
 
 private:
   struct WeDontManageIt {
-    void operator() (Py_buffer *view_) {
-      PyBuffer_Release(view_);
+    void operator() (Py_buffer *view) {
+      PyBuffer_Release(view);
     }
   };
 
-  std::unique_ptr<avx::byte []> data_;
-  std::unique_ptr<Py_buffer, WeDontManageIt> view_;
-  mkldnn::memory::primitive_desc pd_;
   size_type size_;
+  std::unique_ptr<avx::byte []> data_;
+  mkldnn::memory m_;
 
 private:
   std::unique_ptr<_data_desc> desc_;
+  std::unique_ptr<Py_buffer, WeDontManageIt> view_;
 
   void _collect_buffer_info() {
     if (desc_ == nullptr)
@@ -153,7 +148,7 @@ private:
     // XXX: Do we need collect information every time?
     // For safety we do now.
 
-    auto md = pd_.desc();
+    auto md = m_.get_primitive_desc().desc();
     int ndims = md.data.ndims;
 
     desc_->ndims = ndims;
@@ -194,9 +189,9 @@ private:
     mkldnn::memory::data_type dt; 
 
     if (view->itemsize == 4) {
-      if (format.find_last_of('f')) {
+      if (std::string::npos != format.find_last_of('f')) {
         dt = mkldnn::memory::f32;
-      } else if (format.find_last_of('i')) {
+      } else if (std::string::npos != format.find_last_of('i')) {
         dt = mkldnn::memory::s32;
       } else
         throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments

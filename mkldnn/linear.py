@@ -5,25 +5,50 @@ from mkldnn.runtime import Engine
 from mkldnn.compute_complex import *
 
 # Most important thing
+from mkldnn.support import *
 import mkldnn.memory as m
-import mkldnn.inner_product as ip
+import mkldnn.inner_product_forward as ip_forward
+import mkldnn.inner_product_backward_data as ip_backdata
+import mkldnn.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import *
 
 class LinearForward(ComputeComplex):
-    def __init__(self, x, W, b = None, engine=Engine()):
+    def __init__(self, x, W, b = None, e=Engine()):
         super(LinearForward, self).__init__()
 
-        y_expect = m.desc(m.dims((x.shape[0], W.shape[0])),
-                m.memory.f32, m.memory.any)
-
-        self.x = mdarray(x, m.memory.nc, engine)
-        self.W = mdarray(W, m.memory.io, engine)
-
+        y_expect = m.desc(m.dims((x.shape[0], W.shape[0])), m.memory.f32, m.memory.any)
+        x_expect = m.desc(m.dims(x.shape), m.memory.f32, m.memory.any)
+        W_expect = m.desc(m.dims(W.shape), m.memory.f32, m.memory.any)
         if b is not None:
-            self.b = mdarray(b, m.memory.x, engine)
-            cc_pd = ip.desc(y_expect, x.pd, W.pd, b.pd)
+            b_expect = m.desc(m.dims(b.shape), m.memory.f32, m.memory.any)
+            cc_d = ip_forward.desc(forward, x_expect, W_expect, b_expect, y_expect)
         else:
-            cc_pd = ip.desc(y_expect, x.pd, W.pd)
+            cc_d = ip_forward.desc(forward, x_expect, W_expect, y_expect)
+
+        cc_pd = ip_forward.primitive_desc(cc_d, e)
+
+        self.x = mdarray(x, m.memory.nc, e)
+        self.W = mdarray(W, m.memory.oi, e)
+        self.b = mdarray(b, m.memory.x, e) if b is not None else None
+        y = mdarray(cc_pd.dst_primitive_desc())
+
+        net = self.net_
+
+        x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), net)
+        W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), net)
+
+        if b is None:
+            net.push_back(ip_forward.inner_product_forward(cc_pd,
+                at(x_m), at(W_m), y.memory))
+        else:
+            net.push_back(ip_forward.inner_product_forward(cc_pd,
+                at(x_m), at(W_m), at(self.b.memory), y.memory))
+
+        self.x_m = x_m
+        self.W_m = W_m
+        self._hint = cc_pd
+        self.output = y,
+
 
 class LinearBackwardData(ComputeComplex):
     def __init__(self, x, W, gy, hint, engine=Engine()):

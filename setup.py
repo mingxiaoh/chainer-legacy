@@ -5,6 +5,8 @@ import pkg_resources
 from setuptools import setup
 from setuptools.extension import Extension
 
+from numpy import get_include
+
 setup_requires = []
 install_requires = [
     'filelock',
@@ -25,7 +27,7 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
-swig_opts=['-c++', '-Imkldnn', '-relativeimport', '-builtin']
+swig_opts=['-c++', '-Imkldnn', '-relativeimport', '-builtin', '-modern', '-modernargs']
 ccxx_opts=['-std=c++11', '-O0', '-g']
 
 ext_modules=[Extension("mkldnn._c_api", sources=['mkldnn/c_api.i'], swig_opts=swig_opts,
@@ -40,8 +42,10 @@ ext_modules=[Extension("mkldnn._c_api", sources=['mkldnn/c_api.i'], swig_opts=sw
     extra_compile_args=ccxx_opts, libraries=['mkldnn']),
     Extension("mkldnn._inner_product_backward_weights", sources=['mkldnn/inner_product_backward_weights.i'], swig_opts=swig_opts,
     extra_compile_args=ccxx_opts, libraries=['mkldnn']),
+    Extension("mkldnn._reorder", sources=['mkldnn/reorder.i'], swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, libraries=['mkldnn']),
     Extension("mkldnn._mdarray", sources=['mkldnn/mdarray.i'], swig_opts=swig_opts,
-    extra_compile_args=ccxx_opts, libraries=['mkldnn'])]
+    extra_compile_args=ccxx_opts, include_dirs=[get_include()], libraries=['mkldnn'])]
 
 setup(
     name='chainer',
