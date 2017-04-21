@@ -18,3 +18,5 @@ mkldnn/c_api.py
 mkldnn/mdarray.py
 mkldnn/support.py
 mkldnn/memory.py
+mkldnn/inner_product_*.py
+mkldnn/reorder.py

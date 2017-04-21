@@ -435,3 +435,14 @@ def set_max_workspace_size(size):
     """
     global _max_workspace_size
     _max_workspace_size = size
+
+def iscompatible(obj, class_or_tuple):
+    if isinstance(obj, class_or_tuple):
+        return True
+
+    if (isinstance(obj, numpy.ndarray) or isinstance(obj, mkldnn.mdarray)) \
+            and (class_or_tuple is mkldnn.mdarray or \
+            class_or_tuple is numpy.ndarray):
+        return True
+
+    return False
