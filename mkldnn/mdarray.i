@@ -24,14 +24,6 @@
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 
-%exception mdarray::mdarray {
-  try {
-    $action
-  } catch (mkldnn::error &e) {
-    SWIG_exception(SWIG_ValueError, e.message.c_str());
-  }
-}
-
 %immutable mdarray::memory;
 %immutable mdarray::shape;
 %immutable mdarray::dtype;
@@ -92,6 +84,14 @@
     return reinterpret_cast<PyObject *>(pd);
   }
 %}
+
+%exception mdarray::mdarray {
+  try {
+    $action
+  } catch (mkldnn::error &e) {
+    SWIG_exception(SWIG_ValueError, e.message.c_str());
+  }
+}
 
 class mdarray {
 public:
