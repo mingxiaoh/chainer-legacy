@@ -14,6 +14,7 @@
 %}
 
 %init %{
+  // XXX: Do lazy init?
   import_array();
 %}
 
@@ -27,11 +28,13 @@
 %immutable mdarray::memory;
 %immutable mdarray::shape;
 %immutable mdarray::dtype;
+%immutable mdarray::size;
 
 %extend mdarray {
   mkldnn::memory *memory;
   PyObject *shape;
   PyObject *dtype;
+  long size;
 }
 
 %{
@@ -83,6 +86,10 @@
     Py_INCREF(pd);
     return reinterpret_cast<PyObject *>(pd);
   }
+
+  long mdarray_size_get(mdarray *self) {
+    return self->size();
+  }
 %}
 
 %exception mdarray::mdarray {
@@ -107,7 +114,4 @@ public:
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format, mkldnn::engine &);
-
-  void *data();
-  size_type size();
 };

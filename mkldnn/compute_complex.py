@@ -20,7 +20,11 @@ class ComputeComplex(object):
         self.net_ = primitive_list()
         self._hint = None
 
-    def execute_on(self, s = Stream()):
+    def execute_on(self, s = None):
+        if s is None:
+            # XXX: Refresh everytime
+            s = Stream()
+
         s.submit(self.net_)
         s.wait()
         return self.output

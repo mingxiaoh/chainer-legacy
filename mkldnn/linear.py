@@ -49,7 +49,6 @@ class LinearForward(ComputeComplex):
         self._hint = cc_pd
         self.output = y,
 
-
 class LinearBackwardData(ComputeComplex):
     def __init__(self, x, W, gy, hint, engine=Engine()):
         super(LinearBackwardData, self).__init__()
@@ -101,7 +100,7 @@ class LinearFunctionMKLDNN(function.Function):
         self.hint = cc.hint
         return y,
 
-    def backward(sefl, inputs, grad_outputs):
+    def backward(self, inputs, grad_outputs):
         x = _as_mat(inputs[0])
         W = inputs[1]
         gy = grad_outputs[0]
@@ -111,8 +110,8 @@ class LinearFunctionMKLDNN(function.Function):
         else:
             b = None
 
-        cc_data = LinearBackwardData(w, W, gy, self.hint)
-        cc_weight = LinearBackwardWeighs(w, W, b, gy, self.hint)
+        cc_data = LinearBackwardData(x, W, gy, self.hint)
+        cc_weight = LinearBackwardWeighs(x, W, b, gy, self.hint)
 
         if len(inputs) == 3:
             gx, = cc_data.execute_on()

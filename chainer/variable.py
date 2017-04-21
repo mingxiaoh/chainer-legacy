@@ -44,9 +44,10 @@ https://github.com/pfnet/chainer/issues/new.
         # ``x.data is None`` implies that the data array is not retained
         return
     if not isinstance(gx, type(x.data)):
-        msg = ('Type of data and grad mismatch\n%s != %s' %
-               (type(x.data), type(gx)))
-        raise TypeError(make_message(msg))
+        if not (isinstance(gx, numpy.ndarray) and isinstance(x.data, mdarray)):
+            msg = ('Type of data and grad mismatch\n%s != %s' %
+                   (type(x.data), type(gx)))
+            raise TypeError(make_message(msg))
     if gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\n%s != %s' %
                (x.data.dtype, gx.dtype))

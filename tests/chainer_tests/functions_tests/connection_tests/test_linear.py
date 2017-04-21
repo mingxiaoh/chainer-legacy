@@ -11,6 +11,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+import mkldnn
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -77,9 +78,16 @@ class TestNonparameterizedLinear(unittest.TestCase):
         if b_data is not None:
             args = args + (b_data,)
 
-        gradient_check.check_backward(
-            linear.LinearFunction(), args, y_grad,
-            eps=1e-2, **self.check_backward_options)
+        if x_data.dtype == numpy.dtype('float32') \
+                and W_data.dtype == numpy.dtype('float32') \
+                or isinstance(x_data, mkldnn.mdarray):
+            gradient_check.check_backward(
+                linear.LinearFunctionMKLDNN(), args, y_grad,
+                eps=1e-2, **self.check_backward_options)
+        else:
+            gradient_check.check_backward(
+                linear.LinearFunction(), args, y_grad,
+                eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):

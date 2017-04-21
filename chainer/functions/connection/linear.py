@@ -1,6 +1,7 @@
 from chainer import function
 from chainer.utils import type_check
 
+import numpy
 import mkldnn
 from mkldnn.linear import *
 
@@ -93,8 +94,10 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
-    # XXX: switch the route
-    if (x.dtype.itemsize == 4 and W.dtype.itemsize == 4) or isinstance(x, mkldnn.mdarray):
+    # XXX: switch the route, work on the critera
+    if (x.dtype == numpy.dtype('float32') \
+            and W.dtype == numpy.dtype('float32')) \
+            or isinstance(x, mkldnn.mdarray):
         return linearMKLDNN(x, W, b)
     else:
         if b is None:

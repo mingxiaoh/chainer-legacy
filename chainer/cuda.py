@@ -30,6 +30,7 @@ import numpy
 import six
 
 import chainer
+import mkldnn
 
 available = False
 cudnn_enabled = False
@@ -257,6 +258,8 @@ def to_cpu(array, stream=None):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
+    elif isinstance(array, mkldnn.mdarray):
+        return numpy.array(array)
     else:
         raise TypeError(
             'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'
