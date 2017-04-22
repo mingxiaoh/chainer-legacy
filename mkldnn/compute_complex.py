@@ -25,7 +25,7 @@ class ComputeComplex(object):
 
     """
     def __init__(self):
-        self.net_ = primitive_list()
+        self.dag_ = primitive_list()
         self._hint = None
 
     def execute_on(self, s = None):
@@ -33,7 +33,7 @@ class ComputeComplex(object):
             # XXX: Refresh everytime
             s = Stream()
 
-        s.submit(self.net_)
+        s.submit(self.dag_)
         s.wait()
         return self.outputs
 

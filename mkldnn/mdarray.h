@@ -1,6 +1,7 @@
 #ifndef _MDARRAY_H_
 #define _MDARRAY_H_
 #include <Python.h>
+#include <numpy/arrayobject.h>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -38,14 +39,6 @@ namespace avx {
 }
 
 class mdarray {
-  struct InitPainInTheAss {
-    void operator() (mkldnn::memory::dims dims
-        , mkldnn::memory::data_type dt
-        , mkldnn::memory::format format
-        , mkldnn::engine &e) {
-    }
-  };
-
 public:
   static constexpr int MAX_NDIM = 12; //XXX: For now
   typedef size_t size_type;
@@ -78,19 +71,20 @@ public:
               , m_(pd, data_.get())
               , desc_(nullptr), view_(nullptr) {}
   
-  // XXX: Sorry for the mess
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
       , mkldnn::engine &e): size_(view->len/view->itemsize)
-           , data_([](Py_buffer *view) {
+          , data_ ([](Py_buffer *view) {
              unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
              if (adrs % 16 != 0) {
                return std::unique_ptr
                  <avx::byte []>(new avx::byte [view->len]);
              } else
                return std::unique_ptr<avx::byte []>(nullptr);
-           }(view)), m_({d_from_view(view, format), e}, data_ == nullptr
-              ? view->buf : data_.get()), desc_(nullptr), view_(view) {
+           } (view))
+          , m_({d_from_view(view, format), e}
+              , data_ == nullptr? view->buf : data_.get())
+          , desc_(nullptr), view_(view) {
     if (data_ != nullptr) {
       // XXX: OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -113,6 +107,7 @@ public:
   // PEP: 3118 Buffer Protocol Producer
   int getbuffer(PyObject *obj, Py_buffer *view, int flags);
 
+  // Do not support old Buffer Protocol
   Py_ssize_t getsegcount(PyObject *self, Py_ssize_t *lenp) {
     return 0;
   }
@@ -133,14 +128,14 @@ private:
     }
   };
 
+  // Attributes
   size_type size_;
   std::unique_ptr<avx::byte []> data_;
   mkldnn::memory m_;
-
-private:
   std::unique_ptr<_data_desc> desc_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
 
+  // Private helpers
   void _collect_buffer_info() {
     if (desc_ == nullptr)
       desc_ = std::unique_ptr<_data_desc>(new _data_desc);
@@ -255,6 +250,64 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
 
 fail:
   return -1;
+}
+
+// functions go setget
+static PyObject *mdarray_shape_get(mdarray *self) {
+  int ndim = self->ndims();
+  PyObject *intTuple = PyTuple_New(ndim);
+  auto m = self->memory();
+  auto data = m.get_primitive_desc().desc().data;
+
+  if (!intTuple)
+    goto fail;
+
+  for (int i = 0; i<ndim; i++) {
+    PyObject *o = PyLong_FromLong(data.dims[i]); 
+
+    if (!o) {
+      Py_DECREF(intTuple);
+      intTuple = NULL;
+      goto fail;
+    }
+
+    PyTuple_SET_ITEM(intTuple, i, o);
+  }
+
+fail:
+  return intTuple;
+}
+
+static mkldnn::memory *mdarray_memory_get(mdarray *self) {
+  return &self->memory();
+}
+
+static PyObject *mdarray_dtype_get(mdarray *self) {
+  auto m = self->memory();
+
+  PyArray_Descr *pd;
+  // Translate our data_type to numpy one
+  switch (m.get_primitive_desc().desc().data.data_type) {
+    case mkldnn::memory::f32:
+      pd = PyArray_DescrFromType(NPY_FLOAT);
+      break;
+    case mkldnn::memory::s32:
+      pd= PyArray_DescrFromType(NPY_INT);
+      break;
+    default:
+      return nullptr;
+  }
+
+  Py_INCREF(pd);
+  return reinterpret_cast<PyObject *>(pd);
+}
+
+static long mdarray_size_get(mdarray *self) {
+  return self->size();
+}
+
+static long mdarray_ndim_get(mdarray *self) {
+  return self->memory().get_primitive_desc().desc().data.ndims;
 }
 
 #endif

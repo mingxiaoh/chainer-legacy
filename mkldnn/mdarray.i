@@ -29,68 +29,15 @@
 %immutable mdarray::shape;
 %immutable mdarray::dtype;
 %immutable mdarray::size;
+%immutable mdarray::ndim;
 
 %extend mdarray {
   mkldnn::memory *memory;
   PyObject *shape;
   PyObject *dtype;
   long size;
+  long ndim;
 }
-
-%{
-  static PyObject *mdarray_shape_get(mdarray *self) {
-    int ndim = self->ndims();
-    PyObject *intTuple = PyTuple_New(ndim);
-    auto m = self->memory();
-    auto data = m.get_primitive_desc().desc().data;
-
-    if (!intTuple)
-      goto fail;
-
-    for (int i = 0; i<ndim; i++) {
-      PyObject *o = PyInt_FromLong((long)data.dims[i]); 
-
-      if (!o) {
-        Py_DECREF(intTuple);
-        intTuple = NULL;
-        goto fail;
-      }
-
-      PyTuple_SET_ITEM(intTuple, i, o);
-    }
-
-  fail:
-    return intTuple;
-  }
-
-  mkldnn::memory *mdarray_memory_get(mdarray *self) {
-    return &self->memory();
-  }
-
-  PyObject *mdarray_dtype_get(mdarray *self) {
-    auto m = self->memory();
-
-    PyArray_Descr *pd;
-    // Translate our data_type to numpy one
-    switch (m.get_primitive_desc().desc().data.data_type) {
-      case mkldnn::memory::f32:
-        pd = PyArray_DescrFromType(NPY_FLOAT);
-        break;
-      case mkldnn::memory::s32:
-        pd= PyArray_DescrFromType(NPY_INT);
-        break;
-      default:
-        return nullptr;
-    }
-
-    Py_INCREF(pd);
-    return reinterpret_cast<PyObject *>(pd);
-  }
-
-  long mdarray_size_get(mdarray *self) {
-    return self->size();
-  }
-%}
 
 %exception mdarray::mdarray {
   try {
