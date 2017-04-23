@@ -254,21 +254,23 @@ fail:
 }
 
 PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
-  PyTypeObject *tp = Py_TYPE(self);
-
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
 
-  // XXX: Watch the reference count of surrogate if more compicated
+  if (surrogate == nullptr)
+    return nullptr;
+
+  // Watch the reference count of surrogate if more compicated
   // looking up method involved
   PyObject * attr = PyObject_GetAttr(surrogate, name);
 
-  // XXX: The surrogate will be destroyed after attribute is done
+  // The surrogate will be destroyed after attribute is done
   Py_DECREF(surrogate);
 
   if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
     PyErr_Clear();
     // Switch to our message if things gone wrong
+    PyTypeObject *tp = Py_TYPE(self);
     PyErr_Format(PyExc_AttributeError
         , "'%.50s' object has no attribute '%U'", tp->tp_name, name);
   }
