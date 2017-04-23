@@ -106,6 +106,7 @@ public:
 
   // PEP: 3118 Buffer Protocol Producer
   int getbuffer(PyObject *obj, Py_buffer *view, int flags);
+  PyObject *getattro(PyObject *self, PyObject *name);
 
   // Do not support old Buffer Protocol
   Py_ssize_t getsegcount(PyObject *self, Py_ssize_t *lenp) {
@@ -252,6 +253,29 @@ fail:
   return -1;
 }
 
+PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
+  PyTypeObject *tp = Py_TYPE(self);
+
+  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+  // XXX: Watch the reference count of surrogate if more compicated
+  // looking up method involved
+  PyObject * attr = PyObject_GetAttr(surrogate, name);
+
+  // XXX: The surrogate will be destroyed after attribute is done
+  Py_DECREF(surrogate);
+
+  if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
+    PyErr_Clear();
+    // Switch to our message if things gone wrong
+    PyErr_Format(PyExc_AttributeError
+        , "'%.50s' object has no attribute '%U'", tp->tp_name, name);
+  }
+
+  return attr;
+}
+
 // functions go setget
 static PyObject *mdarray_shape_get(mdarray *self) {
   int ndim = self->ndims();
@@ -298,7 +322,6 @@ static PyObject *mdarray_dtype_get(mdarray *self) {
       return nullptr;
   }
 
-  Py_INCREF(pd);
   return reinterpret_cast<PyObject *>(pd);
 }
 
