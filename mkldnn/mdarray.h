@@ -38,6 +38,39 @@ namespace avx {
   };
 }
 
+#define nb_unary_map(method) \
+  PyObject * m_ ## method (PyObject *self) {    \
+    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
+        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+                                \
+    if (surrogate == nullptr)   \
+      return nullptr;           \
+                                \
+    return PyNumber_ ## method(surrogate); \
+  }
+
+#define nb_binary_map(method) \
+  PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
+    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
+        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+                                \
+    if (surrogate == nullptr)   \
+      return nullptr;           \
+                                \
+    return PyNumber_ ## method(surrogate, o); \
+  }
+
+#define nb_ternary_map(method) \
+  PyObject * m_ ## method (PyObject *self, PyObject *o1, PyObject *o2) {    \
+    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
+        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+                                \
+    if (surrogate == nullptr)   \
+      return nullptr;           \
+                                \
+    return PyNumber_ ## method(surrogate, o1, o2); \
+  }
+
 class mdarray {
 public:
   static constexpr int MAX_NDIM = 12; //XXX: For now
@@ -122,6 +155,37 @@ public:
     return 0;
   }
 
+  nb_binary_map(Add);
+  nb_binary_map(Subtract);
+  nb_binary_map(Multiply);
+  nb_binary_map(Remainder);
+  nb_binary_map(Divmod);
+  nb_unary_map(Negative);
+  nb_unary_map(Positive);
+  nb_unary_map(Absolute);
+  nb_unary_map(Invert);
+  nb_binary_map(Lshift);
+  nb_binary_map(Rshift);
+  nb_binary_map(And);
+  nb_binary_map(Xor);
+  nb_binary_map(Or);
+  nb_binary_map(InPlaceAdd);
+  nb_binary_map(InPlaceSubtract);
+  nb_binary_map(InPlaceMultiply);
+  nb_binary_map(InPlaceRemainder);
+  nb_ternary_map(InPlacePower);
+  nb_binary_map(InPlaceLshift);
+  nb_binary_map(InPlaceRshift);
+  nb_binary_map(InPlaceAnd);
+  nb_binary_map(InPlaceXor);
+  nb_binary_map(InPlaceOr);
+  nb_binary_map(FloorDivide);
+  nb_binary_map(TrueDivide);
+  nb_binary_map(InPlaceFloorDivide);
+  nb_binary_map(InPlaceTrueDivide);
+  nb_binary_map(MatrixMultiply);
+  nb_binary_map(InPlaceMatrixMultiply);
+
 private:
   struct WeDontManageIt {
     void operator() (Py_buffer *view) {
@@ -136,6 +200,7 @@ private:
   std::unique_ptr<_data_desc> desc_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
 
+private:
   // Private helpers
   void _collect_buffer_info() {
     if (desc_ == nullptr)
@@ -269,6 +334,7 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
 
   if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
     PyErr_Clear();
+
     // Switch to our message if things gone wrong
     PyTypeObject *tp = Py_TYPE(self);
     PyErr_Format(PyExc_AttributeError

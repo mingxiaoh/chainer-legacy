@@ -18,6 +18,7 @@
           res = nullptr;
         }
 
+        // XXX: should we bump up reference counter?
         res = reinterpret_cast<T *>(that)->getattro(self, name);
       }
 

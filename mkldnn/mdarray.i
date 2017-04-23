@@ -21,11 +21,13 @@
 %include exception.i
 %include pep_3118.i
 %include getattro.i
+%include asnumber.i
 %import memory.i
 
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
+%number_protocol(mdarray)
 
 %immutable mdarray::memory;
 %immutable mdarray::shape;
