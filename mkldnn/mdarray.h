@@ -46,7 +46,9 @@ namespace avx {
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
-    return PyNumber_ ## method(surrogate); \
+    PyObject *res = PyNumber_ ## method(surrogate); \
+    Py_DECREF(surrogate);   \
+    return res;   \
   }
 
 #define nb_binary_map(method) \
@@ -57,7 +59,9 @@ namespace avx {
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
-    return PyNumber_ ## method(surrogate, o); \
+    PyObject *res = PyNumber_ ## method(surrogate, o); \
+    Py_DECREF(surrogate);   \
+    return res;   \
   }
 
 #define nb_ternary_map(method) \
@@ -68,7 +72,9 @@ namespace avx {
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
-    return PyNumber_ ## method(surrogate, o1, o2); \
+    PyObject *res = PyNumber_ ## method(surrogate, o1, o2); \
+    Py_DECREF(surrogate); \
+    return res;   \
   }
 
 class mdarray {
