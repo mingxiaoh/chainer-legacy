@@ -18,13 +18,13 @@ def _as_mat(x):
     return x.reshape(len(x), -1)
 
 def create_forward_desc(d_creator, o_expect, *inputs):
-    inputs_d = [m.desc(m.dims(v.shape), m.memory.f32, m.memory.any)
+    inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
             for v in inputs if v is not None]
 
     return d_creator(forward, *inputs_d, o_expect)
 
 def create_backward_desc(d_creator, *inputs):
-    inputs_d = [m.desc(m.dims(v.shape), m.memory.f32, m.memory.any)
+    inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
             for v in inputs if v is not None]
 
     return d_creator(*inputs_d)
@@ -34,7 +34,7 @@ class LinearForward(ComputeComplex):
         super(LinearForward, self).__init__()
         x = _as_mat(x)
 
-        y_d = m.desc(m.dims((x.shape[0], W.shape[0])), m.memory.f32, m.memory.any)
+        y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
 
         # Create primitive_desc from any
         cc_d = create_forward_desc(ip_forward.desc, y_d, x, W, b)
