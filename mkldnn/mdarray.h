@@ -407,4 +407,39 @@ static long mdarray_ndim_get(mdarray *self) {
   return self->memory().get_primitive_desc().desc().data.ndims;
 }
 
+class computation: public mdarray {
+public:
+  using mdarray::mdarray;
+
+  enum computation_kind {
+    forward, backward_data, backward_weight
+  };
+
+  static computation *create_convolution_forward(computation_kind aprop_link
+      , mkldnn::algorithm aalgorithm
+      , const mdarray &src_desc, const mdarray &weights_desc
+      , const mdarray &bias_desc, const mkldnn::memory::dims strides
+      , const mkldnn::memory::dims paddling_l, const mkldnn::memory::dims padding_r
+      , const mkldnn::padding_kind appding_kind
+      , std::vector<mkldnn::primitive> *dag_) {
+
+    return nullptr;
+  }
+
+  static computation *create_convolution_backward(computation_kind aprop_link
+      , mkldnn::algorithm aalgorithm, mkldnn::primitive hint
+      , const mdarray &src_desc, const mdarray &weights_desc
+      , const mdarray &bias_desc, const mkldnn::memory::dims strides
+      , const mkldnn::memory::dims paddling_l, const mkldnn::memory::dims padding_r
+      , const mkldnn::padding_kind appding_kind
+      , std::vector<mkldnn::primitive> *dag_) {
+
+    return nullptr;
+  }
+
+private:
+  mkldnn::primitive primitive_;
+  std::vector<mkldnn::primitive> *dag_;
+};
+
 #endif
