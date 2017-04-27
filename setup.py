@@ -45,7 +45,7 @@ ext_modules=[Extension("mkldnn._c_api", sources=['mkldnn/c_api.i'], swig_opts=sw
     Extension("mkldnn._reorder", sources=['mkldnn/reorder.i'], swig_opts=swig_opts,
     extra_compile_args=ccxx_opts, libraries=['mkldnn']),
     Extension("mkldnn._mdarray", sources=['mkldnn/mdarray.i'], swig_opts=swig_opts,
-    extra_compile_args=ccxx_opts, include_dirs=[get_include()], libraries=['mkldnn'])]
+    extra_compile_args=ccxx_opts, include_dirs=[get_include(), "/usr/local/include/"], libraries=['mkldnn'])]
 
 setup(
     name='chainer',
@@ -91,6 +91,7 @@ setup(
               'chainer.training.extensions',
               'chainer.training.triggers',
               'chainer.utils',
+              'chainer.static_graph',
               'mkldnn'],
     ext_modules=ext_modules,
     zip_safe=False,

@@ -1,0 +1,2 @@
+from chainer.static_graph.static_graph import static_forward
+from chainer.static_graph.static_graph import static_backward

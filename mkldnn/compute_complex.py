@@ -25,7 +25,7 @@ class ComputeComplex(object):
 
     """
     def __init__(self):
-        self.dag_ = primitive_list()
+        # self.dag_ = primitive_list()
         self._hint = None
 
     def execute_on(self, s = None):

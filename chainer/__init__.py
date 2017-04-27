@@ -23,6 +23,7 @@ from chainer import serializer  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
+from chainer import static_graph  # NOQA
 
 
 # import class and function

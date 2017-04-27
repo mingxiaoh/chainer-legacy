@@ -1,4 +1,5 @@
 from chainer import function
+from chainer import static_graph
 from chainer.utils import type_check
 
 from mkldnn.runtime import Engine
@@ -11,6 +12,7 @@ import mkldnn.inner_product_forward as ip_forward
 import mkldnn.inner_product_backward_data as ip_backdata
 import mkldnn.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import *
+
 
 def _as_mat(x):
     if x.ndim == 2:
@@ -40,16 +42,26 @@ class LinearForward(ComputeComplex):
         cc_d = create_forward_desc(ip_forward.desc, y_d, x, W, b)
         cc_pd = ip_forward.primitive_desc(cc_d, e)
 
+        # Prepare output
+        y = mdarray(cc_pd.dst_primitive_desc())
+
+        # self.x_m = x_m
+        # self.W_m = W_m
+        self._hint = cc_pd
+        self.outputs = y,
+
+    def __call__(self, x, W, b = None, e = Engine()):
+        # FIXME:
+        self.dag_ = primitive_list()
+        dag = self.dag_
+        cc_pd = self._hint
+        y, = self.outputs
+
         # Transform inputs
         self.x = array(x, m.memory.nc, e)
         self.W = array(W, m.memory.oi, e)
         if b is not None:
             self.b = array(b, m.memory.x, e)
-
-        # Prepare output
-        y = mdarray(cc_pd.dst_primitive_desc())
-
-        dag = self.dag_
 
         # Reorder if must
         x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
@@ -62,10 +74,8 @@ class LinearForward(ComputeComplex):
             dag.push_back(ip_forward.inner_product_forward(cc_pd,
                 at(x_m), at(W_m), at(self.b.memory), y.memory))
 
-        self.x_m = x_m
-        self.W_m = W_m
-        self._hint = cc_pd
-        self.outputs = y,
+        self.execute_on()
+
 
 class LinearBackwardData(ComputeComplex):
     def __init__(self, x, W, dummy, gy, hint, e=Engine()):
@@ -158,11 +168,17 @@ class LinearFunctionMKLDNN(function.Function):
 
     def forward(self, inputs):
         cc = LinearForward(*inputs)
+        self.cc = cc
         self.hint = cc.hint
 
-        y, = cc.execute_on()
+        self.static_linear(*inputs)
 
-        return y,
+        return self.cc.outputs
+
+    @static_graph.static_forward
+    def static_linear(self, x, W, bias = None):
+        self.cc(x, W, bias)
+        print('LinearForward outputs: ', self.cc.outputs[0].shape)
 
     def backward(self, inputs, grad_outputs):
         if len(inputs) == 2:
@@ -204,7 +220,6 @@ def linearMKLDNN(x, W, b=None):
     .. seealso:: :class:`~chainer.links.Linear`
 
     .. admonition:: Example
-
         >>> x = np.random.uniform(0, 1, (3, 4)).astype('f')
         >>> W = np.random.uniform(0, 1, (5, 4)).astype('f')
         >>> b = np.random.uniform(0, 1, (5,)).astype('f')
