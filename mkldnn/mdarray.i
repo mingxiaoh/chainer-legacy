@@ -66,3 +66,55 @@ public:
   mdarray(Py_buffer *view
       , mkldnn::memory::format, mkldnn::engine &);
 };
+
+using namespace mkldnn;
+
+class weights: public mdarray {};
+class extra: public mdarray {};
+
+class s_op: public mdarray {
+public:
+  s_op (mkldnn::memory::primitive_desc dst
+      , std::vector<mkldnn::primitive> *dag);
+};
+
+class d_op: public weights, public extra {
+public:
+  d_op(mkldnn::memory::primitive_desc gW
+      , mkldnn::memory::primitive_desc gb
+      , std::vector<mkldnn::primitive> *dag);
+};
+
+template <class p_t
+, typename pd_t = typename p_t::primitive_desc>
+class f_s_op: public s_op {
+public:
+  f_s_op(pd_t &op, mdarray &x, weights &W, extra &b
+    , std::vector<primitive> *dag);
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class bd_op: public s_op {
+public:
+  bd_op(pd_t &op
+      , mdarray &gy, weights &W, std::vector<primitive> *dag);
+};
+
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class bwb_op: public d_op {
+public:
+  bwb_op(pd_t &op
+      , mdarray &x, mdarray &gy, std::vector<primitive> *dag);
+};
+
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class bw_op: public s_op {
+public:
+  bw_op(pd_t &op
+      , mdarray &x, mdarray &gy, std::vector<primitive> *dag);
+};
+
+%template (conv_f_op) f_s_op<convolution_forward>;
+%template (conv_bd_op) bd_op<convolution_backward_data>;
+%template (conv_bwb_op) bwb_op<convolution_backward_weights>;
+%template (conv_bw_op) bw_op<convolution_backward_weights>;

@@ -142,6 +142,10 @@ public:
   inline mkldnn::memory &memory() {
     return m_;
   }
+  
+  inline mkldnn::memory::desc desc() const {
+    return m_.get_primitive_desc().desc();
+  }
 
   // PEP: 3118 Buffer Protocol Producer
   int getbuffer(PyObject *obj, Py_buffer *view, int flags);
@@ -196,6 +200,7 @@ private:
   struct WeDontManageIt {
     void operator() (Py_buffer *view) {
       PyBuffer_Release(view);
+      delete view;
     }
   };
 
@@ -354,8 +359,7 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
 static PyObject *mdarray_shape_get(mdarray *self) {
   int ndim = self->ndims();
   PyObject *intTuple = PyTuple_New(ndim);
-  auto m = self->memory();
-  auto data = m.get_primitive_desc().desc().data;
+  auto data = self->desc().data;
 
   if (!intTuple)
     goto fail;
@@ -381,11 +385,9 @@ static mkldnn::memory *mdarray_memory_get(mdarray *self) {
 }
 
 static PyObject *mdarray_dtype_get(mdarray *self) {
-  auto m = self->memory();
-
   PyArray_Descr *pd;
   // Translate our data_type to numpy one
-  switch (m.get_primitive_desc().desc().data.data_type) {
+  switch (self->desc().data.data_type) {
     case mkldnn::memory::f32:
       pd = PyArray_DescrFromType(NPY_FLOAT);
       break;
@@ -404,42 +406,160 @@ static long mdarray_size_get(mdarray *self) {
 }
 
 static long mdarray_ndim_get(mdarray *self) {
-  return self->memory().get_primitive_desc().desc().data.ndims;
+  return self->desc().data.ndims;
 }
 
-class computation: public mdarray {
+// XXX: solve dual outputs problem
+class weights: public mdarray {
 public:
   using mdarray::mdarray;
+};
 
-  enum computation_kind {
-    forward, backward_data, backward_weight
-  };
+class extra: public mdarray {
+public:
+  using mdarray::mdarray;
+};
 
-  static computation *create_convolution_forward(computation_kind aprop_link
-      , mkldnn::algorithm aalgorithm
-      , const mdarray &src_desc, const mdarray &weights_desc
-      , const mdarray &bias_desc, const mkldnn::memory::dims strides
-      , const mkldnn::memory::dims paddling_l, const mkldnn::memory::dims padding_r
-      , const mkldnn::padding_kind appding_kind
-      , std::vector<mkldnn::primitive> *dag_) {
+class s_op: public mdarray {
+public:
 
-    return nullptr;
-  }
+  s_op(mkldnn::memory::primitive_desc dst
+      , std::vector<mkldnn::primitive> *dag):
+    mdarray(dst), dag_(dag), interms_(2) {}
 
-  static computation *create_convolution_backward(computation_kind aprop_link
-      , mkldnn::algorithm aalgorithm, mkldnn::primitive hint
-      , const mdarray &src_desc, const mdarray &weights_desc
-      , const mdarray &bias_desc, const mkldnn::memory::dims strides
-      , const mkldnn::memory::dims paddling_l, const mkldnn::memory::dims padding_r
-      , const mkldnn::padding_kind appding_kind
-      , std::vector<mkldnn::primitive> *dag_) {
-
-    return nullptr;
-  }
-
-private:
-  mkldnn::primitive primitive_;
+protected:
   std::vector<mkldnn::primitive> *dag_;
+  std::vector<mkldnn::primitive> interms_;
+};
+
+class d_op : public weights, public extra {
+public:
+
+  d_op(mkldnn::memory::primitive_desc gW
+      , mkldnn::memory::primitive_desc gb
+      , std::vector<mkldnn::primitive> *dag):
+    weights(gW), extra(gb), dag_(dag), interms_(2) {}
+
+protected:
+  std::vector<mkldnn::primitive> *dag_;
+  std::vector<mkldnn::primitive> interms_;
+};
+
+using namespace mkldnn;
+
+static memory reorder_if_must(mkldnn::memory user
+    , mkldnn::memory::primitive_desc expect
+    , std::vector<primitive> *dag) {
+
+  if (user.get_primitive_desc() != expect) {
+    mkldnn::memory tmp(expect);
+    dag->push_back(reorder(user, tmp));
+
+    return tmp;
+  }
+
+  return user;
+}
+
+template <class p_t
+, typename pd_t = typename p_t::primitive_desc>
+class f_s_op: public s_op {
+public:
+  f_s_op(pd_t &op, mdarray &x, weights &W, extra &b
+      , std::vector<primitive> *dag)
+    : s_op(op.dst_primitive_desc(), dag) {
+
+    mkldnn::memory x_interm = reorder_if_must(x.memory()
+        , op.src_primitive_desc(), dag_);
+    mkldnn::memory W_interm = reorder_if_must(W.memory()
+        , op.weights_primitive_desc(), dag_);
+
+    dag_->push_back(p_t(op, x_interm, W_interm
+          , b.memory(), this->memory()));
+
+    interms_.push_back(x_interm);
+    interms_.push_back(W_interm);
+  }
+
+  f_s_op(pd_t &op, mdarray &x, weights &W, memory::primitive_desc dst
+      , std::vector<primitive> *dag)
+    : s_op(dst, dag) {
+
+    mkldnn::memory x_interm (reorder_if_must(x.memory()
+          , op.src_primitive_desc(), dag_));
+    mkldnn::memory W_interm (reorder_if_must(W.memory()
+          , op.weights_primitive_desc(), dag_));
+
+    dag_->push_back(p_t(op, x_interm, W_interm, this->memory()));
+
+    interms_.push_back(x_interm);
+    interms_.push_back(W_interm);
+  }
+};
+
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class bd_op: public s_op {
+public:
+  bd_op(pd_t &op
+      , mdarray &gy, weights &W, std::vector<primitive> *dag)
+    : s_op(op.diff_src_primitive_desc(), dag) {
+
+    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+          , op.diff_dst_primitive_desc(), dag_));
+
+    mkldnn::memory W_interm (reorder_if_must(W.memory()
+          , op.weights_primitive_desc(), dag_));
+
+    dag_->push_back(p_t(op, gy_interm, W_interm
+          , this->memory()));
+
+    interms_.push_back(gy_interm);
+    interms_.push_back(W_interm);
+  }
+};
+
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class bwb_op: public d_op {
+public:
+  bwb_op(pd_t &op
+      , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
+    : d_op(op.diff_weights_primitive_desc()
+        , op.diff_bias_primitive_desc(), dag) {
+
+    mkldnn::memory x_interm (reorder_if_must(x.memory()
+          , op.src_primitive_desc(), dag_));
+
+    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+          , op.diff_dst_primitive_desc(), dag_));
+
+    dag_->push_back(p_t(op, x_interm, gy_interm
+          , weights::memory(), extra::memory()));
+
+    interms_.push_back(x_interm);
+    interms_.push_back(gy_interm);
+  }
+};
+
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class bw_op: public s_op {
+public:
+  bw_op(pd_t &op
+      , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
+    : s_op(op.diff_weights_primitive_desc(), dag) {
+
+    mkldnn::memory x_interm (reorder_if_must(x.memory()
+          , op.src_primitive_desc(), dag_));
+
+    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+          , op.diff_dst_primitive_desc(), dag_));
+
+    dag_ ->push_back(p_t(op, x_interm, gy_interm
+          , memory()));
+
+    interms_.push_back(x_interm);
+    interms_.push_back(gy_interm);
+  }
 };
 
 #endif
