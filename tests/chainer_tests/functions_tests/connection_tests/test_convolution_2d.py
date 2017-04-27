@@ -155,6 +155,7 @@ class TestConvolution2DFunction(unittest.TestCase):
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
+@attr.mkldnn
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     def setUp(self):
@@ -163,7 +164,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = 1
-        self.use_cudnn = 'always'
+        self.use_mkldnn = 'always'
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
             (out_channels, in_channels, kh, kw)).astype(self.W_dtype)
@@ -189,20 +190,21 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if nobias else chainer.Variable(self.b)
-        y_cpu = functions.convolution_2d(
-            x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            cover_all=self.cover_all)
+        with chainer.using_config('use_mkldnn', 'never'):
+            y_cpu = functions.convolution_2d(
+                x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
 
         x_mkl = chainer.Variable(self.x)
         W_mkl = chainer.Variable(self.W)
         b_mkl = None if nobias else chainer.Variable(self.b)
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+        with chainer.using_config('use_mkldnn', self.use_mkldnn):
             y_mkl = functions.convolution_2d(
-                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                x_mkl, W_mkl, b_mkl, stride=self.stride, pad=self.pad,
                 cover_all=self.cover_all)
 
         testing.assert_allclose(
-            y_cpu.data, y_gpu.data.get(), **self.check_forward_options)
+            y_mkl.data, y_mkl.data.get(), **self.check_forward_options)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
         xp = cuda.get_array_module(x_data)
@@ -236,33 +238,6 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
     @condition.retry(3)
     def test_backward_cpu_nobias(self):
         self.check_backward(self.x, self.W, None, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_nobias(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            None, cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_im2col(self):
-        self.use_cudnn = 'never'
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_im2col_nobias(self):
-        self.use_cudnn = 'never'
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            None, cuda.to_gpu(self.gy))
-
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],

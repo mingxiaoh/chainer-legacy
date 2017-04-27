@@ -3,6 +3,7 @@ from nose.plugins import attrib
 gpu = attrib.attr('gpu')
 cudnn = attrib.attr('gpu', 'cudnn')
 slow = attrib.attr('slow')
+mkldnn = attrib.attr('mkldnn')
 
 
 def multi_gpu(gpu_num):

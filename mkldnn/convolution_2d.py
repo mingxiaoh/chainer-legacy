@@ -26,7 +26,7 @@ def create_backward_desc(d_creator, *inputs):
 
 class ConvolutionForward(ComputeComplex):
     def __init__(self, x, W, b = None, e=Engine()):
-        super(LinearForward, self).__init__()
+        super(ConvolutionForward, self).__init__()
         x = _as_mat(x)
 
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
@@ -64,7 +64,7 @@ class ConvolutionForward(ComputeComplex):
 
 class ConvolutionBackwardData(ComputeComplex):
     def __init__(self, x, W, dummy, gy, hint, e=Engine()):
-        super(LinearBackwardData, self).__init__()
+        super(ConvolutionBackwardData, self).__init__()
         x = _as_mat(x)
 
         # Create primitive descriptor
@@ -94,7 +94,7 @@ class ConvolutionBackwardData(ComputeComplex):
 
 class ConvolutionBackwardWeighs(ComputeComplex):
     def __init__(self, x, W, b, gy, hint, e=Engine()):
-        super(LinearBackwardWeighs, self).__init__()
+        super(ConvolutionBackwardWeighs, self).__init__()
         x = _as_mat(x)
 
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)

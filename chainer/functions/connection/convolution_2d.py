@@ -319,9 +319,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
 
     """
     # XXX: Switch the route, work on the critera
-    if (x.dtype == numpy.dtype('float32') \
+    if ((x.dtype == numpy.dtype('float32') \
             and W.dtype == numpy.dtype('float32')) \
-            or isinstance(x, mkldnn.mdarry):
+            or isinstance(x, mkldnn.mdarry)) and chainer.should_use_mkldnn('>=auto'):
         func = Convolution2DFunctionMKLDNN(
             stride, pad, cover_all, deterministic)
     else:
