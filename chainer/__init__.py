@@ -82,11 +82,17 @@ global_config.enable_backprop = True
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
+global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
 
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
     '>=auto':   {'always': True, 'auto': True,  'never': False},
+}
+
+_SHOULD_USE_MKLDNN = {
+    '==always': {'always': True, 'auto': False, 'never': False},
+    '>=auto': {'always': True, 'auto': True, 'never': False},
 }
 
 
@@ -126,6 +132,36 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(config.use_cudnn))
     return flags[config.use_cudnn]
 
+def should_use_mkldnn(level):
+    """Determines if we should use cuDNN.
+
+    This function checks ``chainer.config.use_cudnn``,
+    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
+
+    Args:
+        level (str): cuDNN use level. It must be either ``'==always'`` or
+            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
+            config must be ``'always'`` to use cuDNN.
+        lowest_version (int): Required lowest cuDNN version. It must be
+            non-negative.
+
+    Returns:
+        bool: ``True`` if the caller should use cuDNN.
+
+    """
+
+    if level not in _SHOULD_USE_MKLDNN:
+        raise ValueError('invalid cuDNN use level: %s '
+                         '(must be either of "==always" or ">=auto")' %
+                         repr(level))
+    flags = _SHOULD_USE_MKLDNN[level]
+
+    if config.use_mkldnn not in flags:
+        raise ValueError('invalid use_cudnn configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(config.mkldnn))
+    return flags[config.use_mkldnn]
 
 def is_debug():
     """Get the debug mode.
