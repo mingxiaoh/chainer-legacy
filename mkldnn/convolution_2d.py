@@ -1,4 +1,5 @@
 from chainer import function
+from chainer.utils import conv
 from chainer.utils import type_check
 
 from mkldnn.runtime import Engine
@@ -27,9 +28,18 @@ def create_backward_desc(d_creator, *inputs):
 class ConvolutionForward(ComputeComplex):
     def __init__(self, x, W, b = None, e=Engine()):
         super(ConvolutionForward, self).__init__()
-        x = _as_mat(x)
 
-        y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
+        out_c, _, kh, kw = W.shape
+        n, c, h, w = x.shape
+
+        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph
+                conver_all = self.cover_all)
+        assert out_h > 0, 'Height in the output should be positive.'
+        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw,
+                                      cover_all=self.cover_all)
+        assert out_w > 0, 'Width in the output should be positive.'
+
+        y_d = m.desc((n, out_c, out_h, out_w), m.memory.f32, m.memory.any)
 
         # Create primitive_desc from any
         cc_d = create_forward_desc(ip_forward.desc, y_d, x, W, b)
@@ -41,31 +51,18 @@ class ConvolutionForward(ComputeComplex):
         if b is not None:
             self.b = array(b, m.memory.x, e)
 
-        # Prepare output
-        y = mdarray(cc_pd.dst_primitive_desc())
-
         dag = self.dag_
 
-        # Reorder if must
-        x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
-        W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), dag)
-
         if b is None:
-            dag.push_back(ip_forward.inner_product_forward(cc_pd,
-                at(x_m), at(W_m), y.memory))
+            y = conv_f_op(cc_pd, self.x, self.W, self.dag_)
         else:
-            dag.push_back(ip_forward.inner_product_forward(cc_pd,
-                at(x_m), at(W_m), at(self.b.memory), y.memory))
+            y = conv_f_op(cc_pd, self.x, self.W, self.b, self.dag_)
 
-        self.x_m = x_m
-        self.W_m = W_m
         self._hint = cc_pd
         self.outputs = y,
 
 class ConvolutionBackwardData(ComputeComplex):
     def __init__(self, x, W, dummy, gy, hint, e=Engine()):
-        super(ConvolutionBackwardData, self).__init__()
-        x = _as_mat(x)
 
         # Create primitive descriptor
         cc_d = create_backward_desc(ip_backdata.desc, x, W, gy)
@@ -75,32 +72,17 @@ class ConvolutionBackwardData(ComputeComplex):
         self.gy = array(gy, m.memory.nc, e)
         self.W = array(W, m.memory.oi, e)
 
-        # Prepare output mdarray
-        gx = mdarray(cc_pd.diff_src_primitive_desc())
-
-        dag = self.dag_
-
-        # Reorder if must
-        gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
-        W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), dag)
-
-        dag.push_back(ip_backdata.inner_product_backward_data(cc_pd,
-            at(gy_m), at(W_m), gx.memory))
-
-        self.gy_m = gy_m
-        self.W_m = W_m
+        gx = conv_bd_op(cc_pd, self.gy, self.W, self.dag_)
 
         self.outputs = gx,
 
 class ConvolutionBackwardWeighs(ComputeComplex):
     def __init__(self, x, W, b, gy, hint, e=Engine()):
         super(ConvolutionBackwardWeighs, self).__init__()
-        x = _as_mat(x)
 
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
 
-        # Transfer inputs to mdarray
         self.gy = array(gy, m.memory.nc, e)
         self.x = array(x, m.memory.nc, e)
 
@@ -109,20 +91,10 @@ class ConvolutionBackwardWeighs(ComputeComplex):
         if b is not None:
             gb = mdarray(cc_pd.diff_bias_primitive_desc())
 
-        dag = self.dag_
-
-        # Reorder if must
-        gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
-        x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
-
         if b is not None:
-            dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
-                at(x_m), at(self.gy.memory), gW.memory, gb.memory))
+            gW, gb = conv_bwb_op(cc_pd, self.x, self.gy, self.dag_)
         else:
-            dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
-                at(x_m), at(self.gy.memory), gW.memory))
-
-        self.x_m = x_m
+            gW = conv_bw_op(cc_pd, self.x, self.gy)
 
         if b is not None:
             self.outputs = gW, gb

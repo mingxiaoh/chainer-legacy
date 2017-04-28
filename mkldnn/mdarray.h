@@ -98,7 +98,7 @@ public:
                     , std::multiplies<mkldnn::memory::dims::value_type>()))
               , data_(new avx::byte [size_ * 4])
               , m_({{dims, dt, format}, engine}, data_.get())
-              , desc_(nullptr), view_(nullptr) {}
+              , desc_(nullptr), view_(nullptr), rtti(raw) {}
 
   mdarray(mkldnn::memory::primitive_desc pd): 
               size_([] (mkldnn::memory::primitive_desc &pd) {
@@ -108,7 +108,7 @@ public:
                   }(pd))
               , data_(new avx::byte [size_ * 4])
               , m_(pd, data_.get())
-              , desc_(nullptr), view_(nullptr) {}
+              , desc_(nullptr), view_(nullptr), rtti(raw) {}
   
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
@@ -123,7 +123,7 @@ public:
            } (view))
           , m_({d_from_view(view, format), e}
               , data_ == nullptr? view->buf : data_.get())
-          , desc_(nullptr), view_(view) {
+          , desc_(nullptr), view_(view), rtti(raw) {
     if (data_ != nullptr) {
       // XXX: OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -211,6 +211,11 @@ private:
   std::unique_ptr<_data_desc> desc_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
 
+protected:
+  enum mdarray_ty{
+    raw, s_op, d_op
+  };
+  mdarray_ty rtti;
 private:
   // Private helpers
   void _collect_buffer_info() {
@@ -410,6 +415,7 @@ static long mdarray_ndim_get(mdarray *self) {
 }
 
 // XXX: solve dual outputs problem
+// Type system should be rework
 class weights: public mdarray {
 public:
   using mdarray::mdarray;
@@ -422,10 +428,11 @@ public:
 
 class s_op: public mdarray {
 public:
-
   s_op(mkldnn::memory::primitive_desc dst
       , std::vector<mkldnn::primitive> *dag):
-    mdarray(dst), dag_(dag), interms_(2) {}
+    mdarray(dst), dag_(dag), interms_(2) {
+      rtti = mdarray_ty::s_op;
+  }
 
 protected:
   std::vector<mkldnn::primitive> *dag_;
@@ -438,7 +445,10 @@ public:
   d_op(mkldnn::memory::primitive_desc gW
       , mkldnn::memory::primitive_desc gb
       , std::vector<mkldnn::primitive> *dag):
-    weights(gW), extra(gb), dag_(dag), interms_(2) {}
+    weights(gW), extra(gb), dag_(dag), interms_(2) {
+      weights::rtti = mdarray_ty::d_op;
+      extra::rtti = mdarray_ty::d_op;
+  }
 
 protected:
   std::vector<mkldnn::primitive> *dag_;
@@ -481,9 +491,9 @@ public:
     interms_.push_back(W_interm);
   }
 
-  f_s_op(pd_t &op, mdarray &x, weights &W, memory::primitive_desc dst
+  f_s_op(pd_t &op, mdarray &x, weights &W
       , std::vector<primitive> *dag)
-    : s_op(dst, dag) {
+    : s_op(op.dst_primitive_desc(), dag) {
 
     mkldnn::memory x_interm (reorder_if_must(x.memory()
           , op.src_primitive_desc(), dag_));

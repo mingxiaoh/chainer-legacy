@@ -69,8 +69,14 @@ public:
 
 using namespace mkldnn;
 
-class weights: public mdarray {};
-class extra: public mdarray {};
+class weights: public mdarray {
+public:
+  weights(mkldnn::memory::primitive_desc pd);
+};
+class extra: public mdarray {
+public:
+  extra(mkldnn::memory::primitive_desc pd);
+};
 
 class s_op: public mdarray {
 public:
@@ -91,6 +97,8 @@ class f_s_op: public s_op {
 public:
   f_s_op(pd_t &op, mdarray &x, weights &W, extra &b
     , std::vector<primitive> *dag);
+  f_s_op(pd_t &op, mdarray &x, weights &W
+      , std::vector<primitive> *dag);
 };
 
 template <class p_t, typename pd_t = typename p_t::primitive_desc>
