@@ -31,8 +31,10 @@ def create_backward_desc(d_creator, *inputs):
 
     return d_creator(*inputs_d)
 
+
 class LinearForward(ComputeComplex):
-    def __init__(self, x, W, b = None, e=Engine()):
+
+    def __init__(self, x, W, b = None, e = Engine()):
         super(LinearForward, self).__init__()
         x = _as_mat(x)
 
@@ -78,7 +80,8 @@ class LinearForward(ComputeComplex):
 
 
 class LinearBackwardData(ComputeComplex):
-    def __init__(self, x, W, dummy, gy, hint, e=Engine()):
+
+    def __init__(self, x, W, dummy, gy, hint, e = Engine()):
         super(LinearBackwardData, self).__init__()
         x = _as_mat(x)
 
@@ -86,14 +89,22 @@ class LinearBackwardData(ComputeComplex):
         cc_d = create_backward_desc(ip_backdata.desc, x, W, gy)
         cc_pd = ip_backdata.primitive_desc(cc_d, e, hint)
 
-        # Transform inputs
-        self.gy = array(gy, m.memory.nc, e)
-        self.W = array(W, m.memory.oi, e)
-
         # Prepare output mdarray
         gx = mdarray(cc_pd.diff_src_primitive_desc())
 
+        self._hint = cc_pd
+        self.outputs = gx,
+
+    def __call__(self, x, W, dummy, gy, e = Engine()):
+        # FIXME:
+        self.dag_ = primitive_list()
         dag = self.dag_
+        cc_pd = self._hint
+        gx, = self.outputs
+
+        # Transform inputs
+        self.gy = array(gy, m.memory.nc, e)
+        self.W = array(W, m.memory.oi, e)
 
         # Reorder if must
         gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
@@ -102,29 +113,42 @@ class LinearBackwardData(ComputeComplex):
         dag.push_back(ip_backdata.inner_product_backward_data(cc_pd,
             at(gy_m), at(W_m), gx.memory))
 
-        self.gy_m = gy_m
-        self.W_m = W_m
+        self.execute_on()
 
-        self.outputs = gx,
 
 class LinearBackwardWeighs(ComputeComplex):
-    def __init__(self, x, W, b, gy, hint, e=Engine()):
+
+    def __init__(self, x, W, b, gy, hint, e = Engine()):
         super(LinearBackwardWeighs, self).__init__()
         x = _as_mat(x)
 
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
 
-        # Transfer inputs to mdarray
-        self.gy = array(gy, m.memory.nc, e)
-        self.x = array(x, m.memory.nc, e)
-
         # Prepare outputs mdarray
         gW = mdarray(cc_pd.diff_weights_primitive_desc())
         if b is not None:
             gb = mdarray(cc_pd.diff_bias_primitive_desc())
 
+        self._hint = cc_pd
+        if b is not None:
+            self.outputs = gW, gb
+        else:
+            self.outputs = gW,
+
+    def __call__(self, x, W, b, gy, e = Engine()):
+        # FIXME:
+        self.dag_ = primitive_list()
         dag = self.dag_
+        cc_pd = self._hint
+        if b is not None:
+            gW, gb = self.outputs
+        else:
+            gW = self.outputs
+
+        # Transfer inputs to mdarray
+        self.gy = array(gy, m.memory.nc, e)
+        self.x = array(x, m.memory.nc, e)
 
         # Reorder if must
         gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
@@ -137,12 +161,8 @@ class LinearBackwardWeighs(ComputeComplex):
             dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
                 at(x_m), at(self.gy.memory), gW.memory))
 
-        self.x_m = x_m
+        self.execute_on()
 
-        if b is not None:
-            self.outputs = gW, gb
-        else:
-            self.outputs = gW,
 
 class LinearFunctionMKLDNN(function.Function):
 
@@ -166,31 +186,38 @@ class LinearFunctionMKLDNN(function.Function):
                 b_type.shape[0] == w_type.shape[0],
             )
 
-    def forward(self, inputs):
-        cc = LinearForward(*inputs)
-        self.cc = cc
-        self.hint = cc.hint
-
-        self.static_linear(*inputs)
-
-        return self.cc.outputs
-
     @static_graph.static_forward
-    def static_linear(self, x, W, bias = None):
-        self.cc(x, W, bias)
-        print('LinearForward outputs: ', self.cc.outputs[0].shape)
+    def static_linear_forward(self, x, W, bias = None):
+        self.cc_fwd(x, W, bias)
+        print('LinearForward outputs: ', self.cc_fwd.outputs[0].shape)
+
+    @static_graph.static_backward
+    def static_linear_backward(self, x, W, bias, gy):
+        self.cc_bwd_data(x, W, bias, gy)
+        self.cc_bwd_weight(x, W, bias, gy)
+        print('LinearBackward gx outputs: ', self.cc_bwd_data.outputs[0].shape)
+        print('LinearBackward gw_b outputs: ', self.cc_bwd_weight.outputs[0].shape)
+
+    def forward(self, inputs):
+        cc_fwd = LinearForward(*inputs)
+        self.cc_fwd = cc_fwd
+        self.hint = cc_fwd.hint
+
+        self.static_linear_forward(*inputs)
+
+        return self.cc_fwd.outputs
 
     def backward(self, inputs, grad_outputs):
         if len(inputs) == 2:
             inputs += None,
 
-        cc_data = LinearBackwardData(*inputs, *grad_outputs, self.hint)
-        cc_weight = LinearBackwardWeighs(*inputs, *grad_outputs, self.hint)
+        self.cc_bwd_data = LinearBackwardData(*inputs, *grad_outputs, self.hint)
+        self.cc_bwd_weight = LinearBackwardWeighs(*inputs, *grad_outputs, self.hint)
 
-        gx = cc_data.execute_on()
-        gW_b = cc_weight.execute_on()
+        self.static_linear_backward(*inputs, *grad_outputs)
 
-        return gx + gW_b
+        return self.cc_bwd_data.outputs + self.cc_bwd_weight.outputs
+
 
 def linearMKLDNN(x, W, b=None):
     """Linear function, or affine transformation.
