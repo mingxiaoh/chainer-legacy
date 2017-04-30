@@ -92,7 +92,10 @@ class ConvolutionBackwardWeighs(ComputeComplex):
             gb = mdarray(cc_pd.diff_bias_primitive_desc())
 
         if b is not None:
-            gW, gb = conv_bwb_op(cc_pd, self.x, self.gy, self.dag_)
+            # XXX: This is ugly, will use swig to do something about it
+            # ideal: gW, gb = conv_bwb_op(cc_pd, self.x, self.gy, self.dag_)
+            gW = conv_bwb_op(cc_pd, self.x, self.gy, self.dag_)
+            gb = gW.extra
         else:
             gW = conv_bw_op(cc_pd, self.x, self.gy)
 

@@ -213,7 +213,7 @@ private:
 
 protected:
   enum mdarray_ty{
-    raw, s_op, d_op
+    raw, dual_out
   };
   mdarray_ty rtti;
 private:
@@ -279,6 +279,34 @@ private:
           , "MKLDNN does not support itemsize other than 4");
 
     return mkldnn::memory::desc(dims, dt, order);
+  }
+public:
+  static mkldnn::memory *memory_get(mdarray *self) {
+    return &self->memory();
+  }
+
+  static PyObject *shape_get(mdarray *self) {
+    int ndim = self->ndims();
+    PyObject *intTuple = PyTuple_New(ndim);
+    auto data = self->desc().data;
+
+    if (!intTuple)
+      goto fail;
+
+    for (int i = 0; i<ndim; i++) {
+      PyObject *o = PyLong_FromLong(data.dims[i]);
+
+      if (!o) {
+        Py_DECREF(intTuple);
+        intTuple = NULL;
+        goto fail;
+      }
+
+      PyTuple_SET_ITEM(intTuple, i, o);
+    }
+
+  fail:
+    return intTuple;
   }
 };
 
@@ -360,34 +388,6 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
   return attr;
 }
 
-// functions go setget
-static PyObject *mdarray_shape_get(mdarray *self) {
-  int ndim = self->ndims();
-  PyObject *intTuple = PyTuple_New(ndim);
-  auto data = self->desc().data;
-
-  if (!intTuple)
-    goto fail;
-
-  for (int i = 0; i<ndim; i++) {
-    PyObject *o = PyLong_FromLong(data.dims[i]); 
-
-    if (!o) {
-      Py_DECREF(intTuple);
-      intTuple = NULL;
-      goto fail;
-    }
-
-    PyTuple_SET_ITEM(intTuple, i, o);
-  }
-
-fail:
-  return intTuple;
-}
-
-static mkldnn::memory *mdarray_memory_get(mdarray *self) {
-  return &self->memory();
-}
 
 static PyObject *mdarray_dtype_get(mdarray *self) {
   PyArray_Descr *pd;
@@ -416,43 +416,35 @@ static long mdarray_ndim_get(mdarray *self) {
 
 // XXX: solve dual outputs problem
 // Type system should be rework
-class weights: public mdarray {
-public:
-  using mdarray::mdarray;
-};
-
-class extra: public mdarray {
-public:
-  using mdarray::mdarray;
-};
 
 class s_op: public mdarray {
 public:
   s_op(mkldnn::memory::primitive_desc dst
       , std::vector<mkldnn::primitive> *dag):
-    mdarray(dst), dag_(dag), interms_(2) {
-      rtti = mdarray_ty::s_op;
+    mdarray(dst), dag_(dag) {
   }
 
 protected:
   std::vector<mkldnn::primitive> *dag_;
-  std::vector<mkldnn::primitive> interms_;
 };
 
-class d_op : public weights, public extra {
+class d_op : public mdarray {
 public:
-
-  d_op(mkldnn::memory::primitive_desc gW
-      , mkldnn::memory::primitive_desc gb
+  // XXX: Tricky part, how extra managed
+  d_op(mkldnn::memory::primitive_desc major
+      , mkldnn::memory::primitive_desc extra
       , std::vector<mkldnn::primitive> *dag):
-    weights(gW), extra(gb), dag_(dag), interms_(2) {
-      weights::rtti = mdarray_ty::d_op;
-      extra::rtti = mdarray_ty::d_op;
+    mdarray(major), extra(new s_op(extra, dag)), dag_(dag) {
   }
 
+  static s_op *extra_get(d_op *that) {
+    return that->extra.get();
+  }
 protected:
+  // This seems unique, but it will share in python
+  // Ugly. XXX
+  std::unique_ptr<s_op> extra;
   std::vector<mkldnn::primitive> *dag_;
-  std::vector<mkldnn::primitive> interms_;
 };
 
 using namespace mkldnn;
@@ -462,10 +454,10 @@ static memory reorder_if_must(mkldnn::memory user
     , std::vector<primitive> *dag) {
 
   if (user.get_primitive_desc() != expect) {
-    mkldnn::memory tmp(expect);
-    dag->push_back(reorder(user, tmp));
+    mkldnn::memory interm(expect);
 
-    return tmp;
+    dag->push_back(reorder(user, interm));
+    return interm;
   }
 
   return user;
@@ -475,9 +467,9 @@ template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
 class f_s_op: public s_op {
 public:
-  f_s_op(pd_t &op, mdarray &x, weights &W, extra &b
+  f_s_op(pd_t &op, mdarray &x, mdarray &W, mdarray &b
       , std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag) {
+    : s_op(op.dst_primitive_desc(), dag), interms_(2) {
 
     mkldnn::memory x_interm = reorder_if_must(x.memory()
         , op.src_primitive_desc(), dag_);
@@ -491,7 +483,7 @@ public:
     interms_.push_back(W_interm);
   }
 
-  f_s_op(pd_t &op, mdarray &x, weights &W
+  f_s_op(pd_t &op, mdarray &x, mdarray &W
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag) {
 
@@ -505,6 +497,8 @@ public:
     interms_.push_back(x_interm);
     interms_.push_back(W_interm);
   }
+private:
+  std::vector<mkldnn::primitive> interms_;
 };
 
 
@@ -512,8 +506,8 @@ template <class p_t, typename pd_t = typename p_t::primitive_desc>
 class bd_op: public s_op {
 public:
   bd_op(pd_t &op
-      , mdarray &gy, weights &W, std::vector<primitive> *dag)
-    : s_op(op.diff_src_primitive_desc(), dag) {
+      , mdarray &gy, mdarray &W, std::vector<primitive> *dag)
+    : s_op(op.diff_src_primitive_desc(), dag), interms_(2) {
 
     mkldnn::memory gy_interm (reorder_if_must(gy.memory()
           , op.diff_dst_primitive_desc(), dag_));
@@ -527,6 +521,8 @@ public:
     interms_.push_back(gy_interm);
     interms_.push_back(W_interm);
   }
+private:
+  std::vector<mkldnn::primitive> interms_;
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
@@ -535,7 +531,7 @@ public:
   bwb_op(pd_t &op
       , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
     : d_op(op.diff_weights_primitive_desc()
-        , op.diff_bias_primitive_desc(), dag) {
+        , op.diff_bias_primitive_desc(), dag), interms_(2) {
 
     mkldnn::memory x_interm (reorder_if_must(x.memory()
           , op.src_primitive_desc(), dag_));
@@ -544,11 +540,13 @@ public:
           , op.diff_dst_primitive_desc(), dag_));
 
     dag_->push_back(p_t(op, x_interm, gy_interm
-          , weights::memory(), extra::memory()));
+          , memory(), extra->memory()));
 
     interms_.push_back(x_interm);
     interms_.push_back(gy_interm);
   }
+private:
+  std::vector<mkldnn::primitive> interms_;
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
@@ -556,7 +554,7 @@ class bw_op: public s_op {
 public:
   bw_op(pd_t &op
       , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
-    : s_op(op.diff_weights_primitive_desc(), dag) {
+    : s_op(op.diff_weights_primitive_desc(), dag), interms_(2) {
 
     mkldnn::memory x_interm (reorder_if_must(x.memory()
           , op.src_primitive_desc(), dag_));
@@ -570,6 +568,8 @@ public:
     interms_.push_back(x_interm);
     interms_.push_back(gy_interm);
   }
+private:
+  std::vector<mkldnn::primitive> interms_;
 };
 
 #endif
