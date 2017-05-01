@@ -46,6 +46,7 @@ extensions = [
                 "mkldnn/softmax.cc",
                 "mkldnn/softmax_cross_entropy.cc",
                 "mkldnn/sum.cc",
+                "mkldnn/batch_normalization.cc",
                 "mkldnn/utils.cc",
                 "mkldnn/mkldnn.i"
                 ],
