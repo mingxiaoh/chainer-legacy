@@ -261,7 +261,9 @@ public:
                                             int       W_d2,
                                             int       mean_d1,
                                             double    eps,
-                                            bool      is_training);
+                                            bool      is_training,
+                                            bool      has_weights,
+                                            bool      fixed_mean_var);
     void      set_batch_normalization_layer(int       x_d1,
                                             int       x_d2,
                                             int       x_d3,
@@ -271,6 +273,8 @@ public:
                                             int       mean_d1,
                                             double    eps,
                                             bool      is_training,
+                                            bool      has_weights,
+                                            bool      fixed_mean_var,
                                             Layer<T>* layer);
 
     LayerFactory(LayerFactory const&)  = delete;

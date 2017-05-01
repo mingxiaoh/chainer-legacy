@@ -14,6 +14,7 @@
     #include "relu.h"
     #include "softmax.h"
     #include "lrn.h"
+    #include "batch_normalization.h"
     #include "softmax_cross_entropy.h"
     #include "concat.h"
     #include "sum.h"
@@ -81,6 +82,11 @@
     {( float* gy, int gy_d1, int gy_d2 )}
 %apply ( float* IN_ARRAY1, int DIM1)
     {( float* ws, int ws_d)}
+%apply ( float* INPLACE_ARRAY1, int DIM1)
+    {( float* mean, int mean_d1)}
+%apply ( float* INPLACE_ARRAY1, int DIM1)
+    {( float* var, int var_d1)}
+
 
 %include "common.h"
 %include "layer_factory.h"
@@ -94,6 +100,7 @@
 %include "relu.h"
 %include "softmax.h"
 %include "lrn.h"
+%include "batch_normalization.h"
 %include "softmax_cross_entropy.h"
 %include "concat.h"
 %include "sum.h"
@@ -182,6 +189,7 @@
 %template(AvgPooling_F32) AvgPooling<float>;
 %template(Softmax_F32) Softmax<float>;
 %template(LocalResponseNormalization_F32) LocalResponseNormalization<float>;
+%template(BatchNormalization_F32) BatchNormalization<float>;
 %template(Linear_F32) MKLDNNLinear<float>;
 %template(SoftmaxCrossEntropy_F32) SoftmaxCrossEntropy<float>;
 %template(Concat_F32) Concat<float>;
