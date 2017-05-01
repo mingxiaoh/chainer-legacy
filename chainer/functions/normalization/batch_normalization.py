@@ -47,6 +47,7 @@ class BatchNormalizationFunction(function.Function):
         self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
+        self.weights_cache = None
 
     def check_type_forward(self, in_types):
         n_in = in_types.size().eval()
@@ -155,26 +156,31 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
-        else if switch.enable_batch_normalizationF((x,)):
-            self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
+        elif switch.enable_batch_normalizationF((x,)):
+            y = numpy.empty(x.shape, dtype=x[0].dtype)
             if configuration.config.train:
                 if self.mean_cache is None:
                     # Output cache to speed up backward pass.
-                    self.mean_cache = numpy.empty_like(gamma)
-                    self.var_cache = numpy.empty_like(gamma)
+                    self.mean_cache = numpy.empty_like(self.running_mean)
+                    self.var_cache = numpy.empty_like(self.running_var)
                 if self.weights_cache is None:
-                    self.weights_cache = np.concatenate((gamma, beta), axis=0)
-                            .reshape((2, gamma.shape[1]))
+                    # scale_shift
+                    self.weights_cache = numpy.concatenate(
+                        (gamma, beta), axis=0).reshape((2, gamma.shape[1]))
 
+                # is_training=True, has_weithts=True, fixed_mean_var=False
                 mkldnn.BatchNormalization_F32.do_forward(
-                    x[0], self.y, self.weights_cache,
-                    self.mean_cache, self.var_cache, self.eps, True)
+                    x, y, self.weights_cache, self.mean_cache, self.var_cache,
+                    self.eps, True, True, False)
+                mean = self.mean_cache
+                var = self.var_cache
             else:
-                weights = np.concatenate((gamma, beta), axis=0)
-                            .reshape((2, gamma.shape[1]))
+                weights = numpy.concatenate(
+                    (gamma, beta), axis=0).reshape((2, gamma.shape[1]))
+                # is_training=False, has_weights=True, fixed_mean_var=True)
                 mkldnn.BatchNormalization_F32.do_forward(
-                    x[0], self.y, weights,
-                    self.fixed_mean, self.fixed_var, self.eps, False)
+                    x, y, weights, self.fixed_mean, self.fixed_var, self.eps,
+                    False, True, True)
         else:
             if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
