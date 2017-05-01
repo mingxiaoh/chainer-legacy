@@ -25,6 +25,10 @@
 %include attribute.i
 %import memory.i
 
+// %import inner_product_forward.i
+// %import inner_product_backward_data.i
+// %import inner_product_backward_weights.i
+
 %import convolution_forward.i
 %import convolution_backward_data.i
 %import convolution_backward_weights.i
