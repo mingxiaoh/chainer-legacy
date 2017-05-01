@@ -614,35 +614,32 @@ public:
       , mkldnn::engine &e)
     : py_handle(new implementation::mdarray(view, format, e)) {}
 
-  static mkldnn::memory *memory_get(mdarray *self) {
-    return &self->get()->memory();
-  }
+};
 
-  static PyObject *shape_get(mdarray *arg) {
-    implementation::mdarray *self = arg->get();
-    int ndim = self->ndims();
-    PyObject *intTuple = PyTuple_New(ndim);
-    auto data = self->desc().data;
+static PyObject *mdarray_shape_get(mdarray *arg) {
+  implementation::mdarray *self = arg->get();
+  int ndim = self->ndims();
+  PyObject *intTuple = PyTuple_New(ndim);
+  auto data = self->desc().data;
 
-    if (!intTuple)
+  if (!intTuple)
+    goto fail;
+
+  for (int i = 0; i<ndim; i++) {
+    PyObject *o = PyLong_FromLong(data.dims[i]);
+
+    if (!o) {
+      Py_DECREF(intTuple);
+      intTuple = NULL;
       goto fail;
-
-    for (int i = 0; i<ndim; i++) {
-      PyObject *o = PyLong_FromLong(data.dims[i]);
-
-      if (!o) {
-        Py_DECREF(intTuple);
-        intTuple = NULL;
-        goto fail;
-      }
-
-      PyTuple_SET_ITEM(intTuple, i, o);
     }
 
-  fail:
-    return intTuple;
+    PyTuple_SET_ITEM(intTuple, i, o);
   }
-};
+
+fail:
+  return intTuple;
+}
 
 static PyObject *mdarray_dtype_get(mdarray *self) {
   implementation::mdarray *m = self->get();
@@ -670,6 +667,9 @@ static long mdarray_ndim_get(mdarray *self) {
   return self->get()->desc().data.ndims;
 }
 
+static mkldnn::memory *mdarray_memory_get(mdarray *self) {
+  return new mkldnn::memory((*self)->memory());
+}
 
 using namespace mkldnn;
 

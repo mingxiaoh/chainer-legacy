@@ -23,20 +23,13 @@
 %include getattro.i
 %include asnumber.i
 %include attribute.i
-%import memory.i
 
-// %import inner_product_forward.i
-// %import inner_product_backward_data.i
-// %import inner_product_backward_weights.i
+%import support.i
+%import memory.i
 
 %import convolution_forward.i
 %import convolution_backward_data.i
 %import convolution_backward_weights.i
-
-class py_handle {
-protected:
-  std::shared_ptr<implementation::mdarray> pImpl_;
-};
 
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
@@ -46,9 +39,14 @@ protected:
 %immutable mdarray::dtype;
 %immutable mdarray::size;
 %immutable mdarray::ndim;
+%immutable mdarray::shape;
+%immutable mdarray::memory;
+%newobject mdarray::memory;
 
 %extend mdarray {
   PyObject *dtype;
+  PyObject *shape;
+  mkldnn::memory memory;
   long size;
   long ndim;
 }
@@ -73,9 +71,6 @@ public:
   mdarray(Py_buffer *view
       , mkldnn::memory::format, mkldnn::engine &);
 };
-
-%attribute_readonly(mdarray, mkldnn::memory *, memory, memory_get, mdarray::memory_get);
-%attribute_readonly(mdarray, PyObject *, shape, shape_get, mdarray::shape_get);
 
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
@@ -115,7 +110,7 @@ public:
 };
 
 %attribute_readonly(bwb_op<mkldnn::convolution_backward_weights>
-  , py_handle, extra, extra_get
+  , mdarray, extra, extra_get
   , bwb_op<mkldnn::convolution_backward_weights>::extra_get);
 
 %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
