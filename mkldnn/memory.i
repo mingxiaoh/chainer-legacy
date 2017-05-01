@@ -69,40 +69,29 @@ public:
     };
 
     struct desc {
-        friend struct memory;
         c_api::mkldnn_memory_desc_t data;
-
         desc(dims adims, data_type adata_type,
                 format aformat);
         desc(const c_api::mkldnn_memory_desc_t &adata);
     };
 
     struct primitive_desc {
-        friend struct memory;
         primitive_desc() {}
-
         primitive_desc(const desc &adesc, const engine &aengine);
-
         memory::desc desc();
-
         size_t get_size() const;
-
         bool operator==(const primitive_desc &other) const;
-
         bool operator!=(const primitive_desc &other) const;
     };
 
     memory(const primitive &aprimitive);
-    memory(const primitive_desc &adesc);
+    // XXX: This is not what we want
+    // memory(const primitive_desc &adesc);
     memory(const primitive_desc &adesc, void *ahandle);
 
     primitive_desc get_primitive_desc() const;
     inline void *get_data_handle() const;
     inline void set_data_handle(void *handle) const;
-
-    // XXX: Trivial, can delete them?
-    static c_api::mkldnn_data_type_t convert_to_c(data_type adata_type);
-    static c_api::mkldnn_memory_format_t convert_to_c(format aformat);
 
 };
 

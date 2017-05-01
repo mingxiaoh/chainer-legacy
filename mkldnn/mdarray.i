@@ -89,12 +89,6 @@ public:
   , std::vector<mkldnn::primitive> *dag);
 };
 
-// No need of it
-// %typemap(out) s_op *extra %{
-//   $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, 0 );
-//   PyObject_SetAttrString($result, "_ref", $self);
-// %}
-
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
 class bwb_op: public py_handle {
 public:
@@ -109,9 +103,23 @@ public:
   , std::vector<mkldnn::primitive> *dag);
 };
 
-%attribute_readonly(bwb_op<mkldnn::convolution_backward_weights>
-  , mdarray, extra, extra_get
-  , bwb_op<mkldnn::convolution_backward_weights>::extra_get);
+// TODO: Make it a reusable macro
+%immutable bwb_op<mkldnn::convolution_backward_weights>::extra;
+%newobject bwb_op<mkldnn::convolution_backward_weights>::extra;
+
+%extend bwb_op<mkldnn::convolution_backward_weights> {
+  mdarray extra;
+}
+
+%define %codegen(Class, ret_type, getter)
+%{
+  ret_type %mangle(Class) ##_## extra ## _get(Class *self_) {
+    return (ret_type) Class::getter(*self_);
+  }
+%}
+%enddef
+
+%codegen(bwb_op<mkldnn::convolution_backward_weights>, mdarray *, extra_get);
 
 %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
 %template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;

@@ -159,15 +159,15 @@ public:
     }
   }
 
-  inline void *data() { return view_ == nullptr ? data_.get(): view_->buf; }
-  inline size_type size() { return size_; }
+  inline void *data() const { return view_ == nullptr ? data_.get(): view_->buf; }
+  inline size_type size() const { return size_; }
 
-  inline int ndims() {
+  inline int ndims() const {
     auto md = m_.get_primitive_desc().desc();
     return md.data.ndims;
   }
 
-  inline mkldnn::memory &memory() {
+  inline mkldnn::memory memory() const {
     return m_;
   }
   
@@ -250,6 +250,7 @@ public:
   }
 
   mdarray_ty get_kind() const { return rtti; }
+
 private:
   // Private helpers
   void _collect_buffer_info() {
@@ -318,7 +319,7 @@ public:
 
 };
 
-int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
+int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags){
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
     goto fail;
@@ -704,10 +705,10 @@ public:
     : py_handle (new implementation::bwb_op<p_t, pd_t>
         (op, x, gy, dag)) {}
 
-  static py_handle extra_get(py_handle &in) {
+  static py_handle *extra_get(const py_handle &in) {
     if (isa<implementation::d_op>(in)){
-        return implementation::d_op::extra_get
-        (reinterpret_cast<implementation::d_op *>(in.get()));
+        return new py_handle(implementation::d_op::extra_get
+        (reinterpret_cast<implementation::d_op *>(in.get())));
     }
     // Raise exception?
     return nullptr;
