@@ -72,7 +72,22 @@ using namespace mkldnn;
 
 
 template<typename T>
-BatchNormalization<T>::BatchNormalization() {
+BatchNormalization<T>::BatchNormalization(double eps,
+                                          bool is_training,
+                                          bool has_weights,
+                                          bool fixed_mean_var) {
+    eps_ = eps;
+    if (has_weights)
+        flags_ |= use_scale_shift;
+    if (fixed_mean_var)
+        flags_ |= use_global_stats;
+    fwd_prop_kind_ = is_training ? prop_kind::forward_training : prop_kind::forward_scoring;
+
+    printf("is_training=%d\n", is_training);
+    printf("has_weights=%d\n", has_weights);
+    printf("fixed_mean_var=%d\n", fixed_mean_var);
+    printf("flags=0x%x\n", flags_);
+
     eng_.reset(new engine(engine::kind::cpu, 0));
 }
 
@@ -80,25 +95,18 @@ template<typename T>
 void BatchNormalization<T>::forward_setup(
     int x_d1, int x_d2, int x_d3, int x_d4,
     int y_d1, int y_d2, int y_d3, int y_d4,
-    int W_d1, int W_d2,
-    int mean_d1, int var_d1,
-    double eps, bool is_training)
+    int W_d1, int W_d2, int mean_d1, int var_d1)
 {
-    eps_ = eps;
-    flags_ = use_scale_shift | use_global_stats;
-    prop_kind aprop_kind = is_training ? prop_kind::forward_training :
-        prop_kind::forward_inference;
-
-    memory::format format;
-    // we check AVX512 first then AVX2
+    /* check AVX512 first then AVX2 */
+    memory::format fmt_desired;
     if (cpu_support_avx512_p() && (x_d2%16) == 0) {
-        format = memory::format::nChw16c;
+        fmt_desired = memory::format::nChw16c;
         LOG(INFO) << "forward_setup nChw16c";
     } else if (cpu_support_avx2_p() && (x_d2%8) == 0) {
-        format = memory::format::nChw8c;
+        fmt_desired = memory::format::nChw8c;
         LOG(INFO) << "forward_setup nChw8c";
     } else {
-        format = memory::format::nchw;
+        fmt_desired = memory::format::nchw;
     }
 
     memory::dims src_tz = {x_d1, x_d2, x_d3, x_d4};
@@ -108,7 +116,7 @@ void BatchNormalization<T>::forward_setup(
     LOG(INFO) << "create memory for user data";
     user_x_mem_.reset(new memory({{{src_tz}, memory_data_type<T>(),
                                  memory::format::nchw}, *eng_}, dummy));
-    x_md_.reset(new memory::desc({src_tz}, memory_data_type<T>(), format));
+    x_md_.reset(new memory::desc({src_tz}, memory_data_type<T>(), fmt_desired));
 
     user_y_mem_.reset(new memory({{{dst_tz}, memory_data_type<T>(),
                                  memory::format::nchw }, *eng_}, dummy));
@@ -118,7 +126,7 @@ void BatchNormalization<T>::forward_setup(
     {
         LOG(INFO) << "batch_normalization_fwd_desc_";
         batch_normalization_fwd_desc_.reset(new batch_normalization_forward::desc(
-                aprop_kind, *x_md_, eps_, flags_));
+                fwd_prop_kind_, *x_md_, eps_, flags_));
         batch_normalization_fwd_pd_.reset(new batch_normalization_forward::primitive_desc(
                 *batch_normalization_fwd_desc_, *eng_));
     }
@@ -128,8 +136,8 @@ void BatchNormalization<T>::forward_setup(
     bool reorder_x_p = false;
     bool reorder_y_p = false;
 
-    if (format != memory::format::nchw) {
-        x_mem_.reset(new memory({{{src_tz}, memory_data_type<T>(), format}, *eng_}));
+    if (fmt_desired != memory::format::nchw) {
+        x_mem_.reset(new memory({{{src_tz}, memory_data_type<T>(), fmt_desired}, *eng_}));
         reorder_x_ = reorder(*user_x_mem_, *x_mem_);
         reorder_x_p = true;
     }
@@ -141,13 +149,45 @@ void BatchNormalization<T>::forward_setup(
         reorder_y_p = true;
     }
 
-    W_mem_.reset(new memory(batch_normalization_fwd_pd_->weights_primitive_desc(), dummy));
-    mean_mem_.reset(new memory(batch_normalization_fwd_pd_->mean_primitive_desc(), dummy));
-    var_mem_.reset(new memory(batch_normalization_fwd_pd_->variance_primitive_desc(), dummy));
+    bool scale_shift = flags_ & use_scale_shift;
+    bool global_stats = flags_ & use_global_stats;
+    bool is_training = fwd_prop_kind_ == prop_kind::forward_training;
 
-    batch_normalization_fwd_.reset(new batch_normalization_forward(
-            *batch_normalization_fwd_pd_, *x_mem_, ((const primitive::at)*mean_mem_, 
-            (const primitive::at)*var_mem_, *W_mem_, *y_mem_)));
+    if (scale_shift)
+        W_mem_.reset(new memory(batch_normalization_fwd_pd_->weights_primitive_desc(), dummy));
+
+    if (is_training || global_stats) {
+        mean_mem_.reset(new memory(batch_normalization_fwd_pd_->mean_primitive_desc(), dummy));
+        var_mem_.reset(new memory(batch_normalization_fwd_pd_->variance_primitive_desc(), dummy));
+    }
+
+    if (!is_training && !global_stats) {
+        if (scale_shift)
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, *W_mem_, *y_mem_));
+        else
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, *y_mem_));
+
+    } else if (global_stats) {
+        if (scale_shift)
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, (const primitive::at)*mean_mem_,
+                    (const primitive::at)*var_mem_, *W_mem_, *y_mem_));
+        else
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, (const primitive::at)*mean_mem_,
+                    (const primitive::at)*var_mem_, *y_mem_));
+    } else {
+        if (scale_shift) {
+            printf("xxxxxxxxxxx\n");
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, *W_mem_, *y_mem_, *mean_mem_, *var_mem_));
+        } else
+            batch_normalization_fwd_.reset(new batch_normalization_forward(
+                    *batch_normalization_fwd_pd_, *x_mem_, *y_mem_, *mean_mem_, *var_mem_));
+
+    }
 
     LOG(INFO) << "    reorder_src: " << reorder_x_p;
     LOG(INFO) << "    reorder_dst: " << reorder_y_p;
@@ -163,19 +203,18 @@ void BatchNormalization<T>::fwd_reset_mem(T* x, T* y, T* W, T* mean, T* var)
 {
     user_x_mem_->set_data_handle(x);
     user_y_mem_->set_data_handle(y);
-    W_mem_->set_data_handle(W);
     mean_mem_->set_data_handle(mean);
     var_mem_->set_data_handle(var);
+    if (flags_ & use_scale_shift)
+        W_mem_->set_data_handle(W);
 }
 
 template<typename T>
 void BatchNormalization<T>::forward(
-    T*   x,  int x_d1,  int x_d2,  int x_d3,  int x_d4,
-    T*   y,  int y_d1,  int y_d2,  int y_d3,  int y_d4,
-    T*   W, int W_d1, int W_d2,
-    T*   mean, int mean_d1,
-    T*   var,  int var_d1,
-    double eps, bool is_training)
+    T* x,  int x_d1,  int x_d2,  int x_d3,  int x_d4,
+    T* y,  int y_d1,  int y_d2,  int y_d3,  int y_d4,
+    T* W, int W_d1, int W_d2,
+    T* mean, int mean_d1, T* var,  int var_d1)
 {
     if (forward_first_use_) {
         LOG(INFO) << "forward forward_first_use_";
@@ -183,8 +222,7 @@ void BatchNormalization<T>::forward(
         if (!fwd_stream_){
             forward_setup(x_d1, x_d2, x_d3, x_d4,
                           y_d1, y_d2, y_d3, y_d4,
-                          W_d1, W_d2, mean_d1, var_d1,
-                          eps, is_training);
+                          W_d1, W_d2, mean_d1, var_d1);
         }
         fwd_reset_mem(x, y, W, mean, var);
         fwd_stream_->submit(fwd_primitives_).wait();
@@ -313,17 +351,20 @@ int BatchNormalization<T>::backward(
 template<typename T>
 BatchNormalization<T>* BatchNormalization<T>::get_forward_object(
     int x_d1, int x_d2, int x_d3, int x_d4,
-    int W_d1, int W_d2, int mean_d1, double eps, bool is_training)
+    int W_d1, int W_d2, int mean_d1, double eps,
+    bool is_training, bool has_weights, bool fixed_mean_var)
 {
     auto batch_normalization_forward = dynamic_cast<BatchNormalization<T>*>(
         LayerFactory<T>::get_instance().get_batch_normalization_layer(
-            x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1, eps, is_training));
+            x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1, eps,
+            is_training, has_weights, fixed_mean_var));
 
     if (batch_normalization_forward == NULL) {
-        batch_normalization_forward = new BatchNormalization<T>();
+        batch_normalization_forward = new BatchNormalization<T>(
+            eps, is_training, has_weights, fixed_mean_var);
         LayerFactory<T>::get_instance().set_batch_normalization_layer(
             x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1, eps,
-            is_training, batch_normalization_forward);
+            is_training, has_weights, fixed_mean_var, batch_normalization_forward);
     }
     return batch_normalization_forward;
 }
