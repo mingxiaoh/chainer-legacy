@@ -19,7 +19,8 @@
         }
 
         // XXX: should we bump up reference counter?
-        res = reinterpret_cast<T *>(that)->getattro(self, name);
+        // TODO: Support both raw and smart pointer
+        res = reinterpret_cast<T *>(that)->get()->getattro(self, name);
       }
 
       return res;

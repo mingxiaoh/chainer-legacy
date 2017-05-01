@@ -38,6 +38,33 @@ namespace avx {
   };
 }
 
+namespace implementation {
+  class mdarray;
+}
+
+// template<class Impl> 
+// class py_interf {
+// public:
+//   py_interf(): pImpl_(nullptr) {}
+//   py_interf(const py_interf &orig): pImpl_(orig.pImpl_) {}
+//   py_interf(Impl *impl): pImpl_(impl) {}
+//   py_interf(std::shared_ptr<Impl> impl): pImpl_(impl) {}
+//   Impl *get() {
+//     return pImpl_.get();
+//   }
+// protected:
+//   std::shared_ptr<Impl> pImpl_;
+// };
+
+using py_handle = std::shared_ptr<implementation::mdarray>;
+
+template <class to>
+static bool isa(const py_handle &t) {
+  return to::classof(t.get());
+}
+
+namespace implementation {
+
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
     PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
@@ -100,8 +127,8 @@ public:
               , m_({{dims, dt, format}, engine}, data_.get())
               , desc_(nullptr), view_(nullptr), rtti(raw) {}
 
-  mdarray(mkldnn::memory::primitive_desc pd): 
-              size_([] (mkldnn::memory::primitive_desc &pd) {
+  mdarray(mkldnn::memory::primitive_desc pd)
+    : size_([] (mkldnn::memory::primitive_desc &pd) {
                     auto md = pd.desc().data;
                     return std::accumulate(md.dims, md.dims + md.ndims, 1
                         , std::multiplies<int>());
@@ -112,7 +139,8 @@ public:
   
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
-      , mkldnn::engine &e): size_(view->len/view->itemsize)
+      , mkldnn::engine &e)
+    : size_(view->len/view->itemsize)
           , data_ ([](Py_buffer *view) {
              unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
              if (adrs % 16 != 0) {
@@ -216,6 +244,12 @@ protected:
     raw, dual_out
   };
   mdarray_ty rtti;
+public:
+  static bool classof(const mdarray *p) {
+    return p->get_kind() == raw;
+  }
+
+  mdarray_ty get_kind() const { return rtti; }
 private:
   // Private helpers
   void _collect_buffer_info() {
@@ -281,33 +315,7 @@ private:
     return mkldnn::memory::desc(dims, dt, order);
   }
 public:
-  static mkldnn::memory *memory_get(mdarray *self) {
-    return &self->memory();
-  }
 
-  static PyObject *shape_get(mdarray *self) {
-    int ndim = self->ndims();
-    PyObject *intTuple = PyTuple_New(ndim);
-    auto data = self->desc().data;
-
-    if (!intTuple)
-      goto fail;
-
-    for (int i = 0; i<ndim; i++) {
-      PyObject *o = PyLong_FromLong(data.dims[i]);
-
-      if (!o) {
-        Py_DECREF(intTuple);
-        intTuple = NULL;
-        goto fail;
-      }
-
-      PyTuple_SET_ITEM(intTuple, i, o);
-    }
-
-  fail:
-    return intTuple;
-  }
 };
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
@@ -388,40 +396,14 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
   return attr;
 }
 
-
-static PyObject *mdarray_dtype_get(mdarray *self) {
-  PyArray_Descr *pd;
-  // Translate our data_type to numpy one
-  switch (self->desc().data.data_type) {
-    case mkldnn::memory::f32:
-      pd = PyArray_DescrFromType(NPY_FLOAT);
-      break;
-    case mkldnn::memory::s32:
-      pd= PyArray_DescrFromType(NPY_INT);
-      break;
-    default:
-      return nullptr;
-  }
-
-  return reinterpret_cast<PyObject *>(pd);
-}
-
-static long mdarray_size_get(mdarray *self) {
-  return self->size();
-}
-
-static long mdarray_ndim_get(mdarray *self) {
-  return self->desc().data.ndims;
-}
-
 // XXX: solve dual outputs problem
 // Type system should be rework
 
 class s_op: public mdarray {
 public:
   s_op(mkldnn::memory::primitive_desc dst
-      , std::vector<mkldnn::primitive> *dag):
-    mdarray(dst), dag_(dag) {
+      , std::vector<mkldnn::primitive> *dag)
+    : mdarray(dst), dag_(dag) {
   }
 
 protected:
@@ -437,13 +419,17 @@ public:
     mdarray(major), extra(new s_op(extra, dag)), dag_(dag) {
   }
 
-  static s_op *extra_get(d_op *that) {
-    return that->extra.get();
+  static py_handle extra_get(const d_op *that) {
+    return that->extra;
+  }
+
+  static bool classof(const mdarray *p) {
+    return p->get_kind() == dual_out;
   }
 protected:
   // This seems unique, but it will share in python
   // Ugly. XXX
-  std::unique_ptr<s_op> extra;
+  std::shared_ptr<mdarray> extra;
   std::vector<mkldnn::primitive> *dag_;
 };
 
@@ -466,30 +452,30 @@ static memory reorder_if_must(mkldnn::memory user
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
 class f_s_op: public s_op {
-public:
-  f_s_op(pd_t &op, mdarray &x, mdarray &W, mdarray &b
+private:
+  f_s_op(pd_t &op, mdarray *x, mdarray *W, mdarray *b
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag), interms_(2) {
 
-    mkldnn::memory x_interm = reorder_if_must(x.memory()
+    mkldnn::memory x_interm = reorder_if_must(x->memory()
         , op.src_primitive_desc(), dag_);
-    mkldnn::memory W_interm = reorder_if_must(W.memory()
+    mkldnn::memory W_interm = reorder_if_must(W->memory()
         , op.weights_primitive_desc(), dag_);
 
     dag_->push_back(p_t(op, x_interm, W_interm
-          , b.memory(), this->memory()));
+          , b->memory(), this->memory()));
 
     interms_.push_back(x_interm);
     interms_.push_back(W_interm);
   }
 
-  f_s_op(pd_t &op, mdarray &x, mdarray &W
+  f_s_op(pd_t &op, mdarray *x, mdarray *W
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag) {
 
-    mkldnn::memory x_interm (reorder_if_must(x.memory()
+    mkldnn::memory x_interm (reorder_if_must(x->memory()
           , op.src_primitive_desc(), dag_));
-    mkldnn::memory W_interm (reorder_if_must(W.memory()
+    mkldnn::memory W_interm (reorder_if_must(W->memory()
           , op.weights_primitive_desc(), dag_));
 
     dag_->push_back(p_t(op, x_interm, W_interm, this->memory()));
@@ -497,22 +483,36 @@ public:
     interms_.push_back(x_interm);
     interms_.push_back(W_interm);
   }
+
+public:
+  f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
+      , std::vector<primitive> *dag)
+    : f_s_op(op, x.get(), W.get(), b.get(), dag){
+      deps_ = {x, W, b};
+    }
+
+  f_s_op(pd_t &op, py_handle x, py_handle W
+      , std::vector<primitive> *dag)
+    : f_s_op(op, x.get(), W.get(), dag){
+      deps_= {x, W};
+    }
+
 private:
   std::vector<mkldnn::primitive> interms_;
+  std::vector<py_handle> deps_;
 };
-
 
 template <class p_t, typename pd_t = typename p_t::primitive_desc>
 class bd_op: public s_op {
-public:
+private:
   bd_op(pd_t &op
-      , mdarray &gy, mdarray &W, std::vector<primitive> *dag)
+      , mdarray *gy, mdarray *W, std::vector<primitive> *dag)
     : s_op(op.diff_src_primitive_desc(), dag), interms_(2) {
 
-    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_));
 
-    mkldnn::memory W_interm (reorder_if_must(W.memory()
+    mkldnn::memory W_interm (reorder_if_must(W->memory()
           , op.weights_primitive_desc(), dag_));
 
     dag_->push_back(p_t(op, gy_interm, W_interm
@@ -521,22 +521,31 @@ public:
     interms_.push_back(gy_interm);
     interms_.push_back(W_interm);
   }
+
+public:
+  bd_op(pd_t &op, py_handle gy, py_handle W
+      , std::vector<primitive> *dag)
+    : bd_op(op, gy.get(), W.get(), dag) {
+      deps_={gy, W};
+    }
+
 private:
   std::vector<mkldnn::primitive> interms_;
+  std::vector<py_handle> deps_;
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
 class bwb_op: public d_op {
 public:
   bwb_op(pd_t &op
-      , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
+      , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
     : d_op(op.diff_weights_primitive_desc()
         , op.diff_bias_primitive_desc(), dag), interms_(2) {
 
-    mkldnn::memory x_interm (reorder_if_must(x.memory()
+    mkldnn::memory x_interm (reorder_if_must(x->memory()
           , op.src_primitive_desc(), dag_));
 
-    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_));
 
     dag_->push_back(p_t(op, x_interm, gy_interm
@@ -545,21 +554,27 @@ public:
     interms_.push_back(x_interm);
     interms_.push_back(gy_interm);
   }
+public:
+  bwb_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : bwb_op(op, x.get(), gy.get(), dag) { deps_ = {x, gy}; }
+
 private:
   std::vector<mkldnn::primitive> interms_;
+  std::vector<py_handle> deps_;
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
 class bw_op: public s_op {
 public:
   bw_op(pd_t &op
-      , mdarray &x, mdarray &gy, std::vector<primitive> *dag)
+      , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
     : s_op(op.diff_weights_primitive_desc(), dag), interms_(2) {
 
-    mkldnn::memory x_interm (reorder_if_must(x.memory()
+    mkldnn::memory x_interm (reorder_if_must(x->memory()
           , op.src_primitive_desc(), dag_));
 
-    mkldnn::memory gy_interm (reorder_if_must(gy.memory()
+    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_));
 
     dag_ ->push_back(p_t(op, x_interm, gy_interm
@@ -568,8 +583,144 @@ public:
     interms_.push_back(x_interm);
     interms_.push_back(gy_interm);
   }
+public:
+  bw_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : bw_op(op, x.get(), gy.get(), dag) { deps_ = {x, gy}; }
 private:
   std::vector<mkldnn::primitive> interms_;
+  std::vector<py_handle> deps_;
+};
+
+}
+
+// Actual interface for python
+// DO NOT add field beyond py_handle
+//
+class mdarray : public py_handle {
+public:
+  mdarray(mkldnn::memory::dims dims
+      , mkldnn::memory::data_type dt
+      , mkldnn::memory::format format
+      , mkldnn::engine &engine)
+    : py_handle(new implementation::mdarray(dims
+          , dt, format, engine)) {}
+
+  mdarray(mkldnn::memory::primitive_desc pd)
+    : py_handle(new implementation::mdarray(pd)) {}
+
+  mdarray(Py_buffer *view
+      , mkldnn::memory::format format
+      , mkldnn::engine &e)
+    : py_handle(new implementation::mdarray(view, format, e)) {}
+
+  static mkldnn::memory *memory_get(mdarray *self) {
+    return &self->get()->memory();
+  }
+
+  static PyObject *shape_get(mdarray *arg) {
+    implementation::mdarray *self = arg->get();
+    int ndim = self->ndims();
+    PyObject *intTuple = PyTuple_New(ndim);
+    auto data = self->desc().data;
+
+    if (!intTuple)
+      goto fail;
+
+    for (int i = 0; i<ndim; i++) {
+      PyObject *o = PyLong_FromLong(data.dims[i]);
+
+      if (!o) {
+        Py_DECREF(intTuple);
+        intTuple = NULL;
+        goto fail;
+      }
+
+      PyTuple_SET_ITEM(intTuple, i, o);
+    }
+
+  fail:
+    return intTuple;
+  }
+};
+
+static PyObject *mdarray_dtype_get(mdarray *self) {
+  implementation::mdarray *m = self->get();
+  PyArray_Descr *pd;
+  // Translate our data_type to numpy one
+  switch (m->desc().data.data_type) {
+    case mkldnn::memory::f32:
+      pd = PyArray_DescrFromType(NPY_FLOAT);
+      break;
+    case mkldnn::memory::s32:
+      pd= PyArray_DescrFromType(NPY_INT);
+      break;
+    default:
+      return nullptr;
+  }
+
+  return reinterpret_cast<PyObject *>(pd);
+}
+
+static long mdarray_size_get(mdarray *self) {
+  return self->get()->size();
+}
+
+static long mdarray_ndim_get(mdarray *self) {
+  return self->get()->desc().data.ndims;
+}
+
+
+using namespace mkldnn;
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class f_s_op : public py_handle {
+public:
+  f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
+      , std::vector<primitive> *dag)
+    : py_handle(new implementation::f_s_op<p_t, pd_t>
+       (op, x, W, b, dag)){}
+
+  f_s_op(pd_t &op, py_handle x, py_handle W
+      , std::vector<primitive> *dag)
+    : py_handle(new implementation::f_s_op<p_t, pd_t>
+       (op, x, W, dag)) {}
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class bd_op : public py_handle {
+public:
+  bd_op(pd_t &op, py_handle gy, py_handle W
+      , std::vector<primitive> *dag)
+    : py_handle (new implementation::bd_op<p_t, pd_t>
+        (op, gy, W, dag)) {}
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class bwb_op: public py_handle {
+public:
+  bwb_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : py_handle (new implementation::bwb_op<p_t, pd_t>
+        (op, x, gy, dag)) {}
+
+  static py_handle extra_get(py_handle &in) {
+    if (isa<implementation::d_op>(in)){
+        return implementation::d_op::extra_get
+        (reinterpret_cast<implementation::d_op *>(in.get()));
+    }
+    // Raise exception?
+    return nullptr;
+  }
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class bw_op: public py_handle {
+public:
+  bw_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : py_handle (new implementation::bw_op<p_t, pd_t>
+        (op, x, gy, dag)) {}
 };
 
 #endif

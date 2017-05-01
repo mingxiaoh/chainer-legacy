@@ -25,6 +25,15 @@
 %include attribute.i
 %import memory.i
 
+%import convolution_forward.i
+%import convolution_backward_data.i
+%import convolution_backward_weights.i
+
+class py_handle {
+protected:
+  std::shared_ptr<implementation::mdarray> pImpl_;
+};
+
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
@@ -48,11 +57,8 @@
   }
 }
 
-class mdarray {
+class mdarray: public py_handle {
 public:
-  static constexpr int MAX_NDIM = 12; //XXX: Same as MKLDNN
-  typedef size_t size_type;
-
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
@@ -67,62 +73,48 @@ public:
 %attribute_readonly(mdarray, mkldnn::memory *, memory, memory_get, mdarray::memory_get);
 %attribute_readonly(mdarray, PyObject *, shape, shape_get, mdarray::shape_get);
 
-using namespace mkldnn;
-
-class s_op: public mdarray {
-public:
-  s_op (mkldnn::memory::primitive_desc dst
-      , std::vector<mkldnn::primitive> *dag);
-};
-
-class d_op: public mdarray {
-public:
-  d_op(mkldnn::memory::primitive_desc gW
-      , mkldnn::memory::primitive_desc gb
-      , std::vector<mkldnn::primitive> *dag);
-};
-
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
-class f_s_op: public s_op {
+class f_s_op: public py_handle {
 public:
-  f_s_op(pd_t &op, mdarray &x, mdarray &W, mdarray &b
-    , std::vector<primitive> *dag);
-  f_s_op(pd_t &op, mdarray &x, mdarray &W
-      , std::vector<primitive> *dag);
+  f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
+    , std::vector<mkldnn::primitive> *dag);
+  f_s_op(pd_t &op, py_handle x, py_handle W
+      , std::vector<mkldnn::primitive> *dag);
 };
 
 template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bd_op: public s_op {
+class bd_op: public py_handle {
 public:
-  bd_op(pd_t &op
-      , mdarray &gy, mdarray &W, std::vector<primitive> *dag);
+  bd_op(pd_t &op, py_handle gy, py_handle W
+  , std::vector<mkldnn::primitive> *dag);
 };
 
-%typemap(out) s_op *extra %{
-  $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, 0 );
-  PyObject_SetAttrString($result, "_ref", $self);
-%}
+// No need of it
+// %typemap(out) s_op *extra %{
+//   $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, 0 );
+//   PyObject_SetAttrString($result, "_ref", $self);
+// %}
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bwb_op: public d_op {
+class bwb_op: public py_handle {
 public:
-  bwb_op(pd_t &op
-      , mdarray &x, mdarray &gy, std::vector<primitive> *dag);
+  bwb_op(pd_t &op, py_handle x, py_handle gy
+  , std::vector<mkldnn::primitive> *dag);
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bw_op: public s_op {
+class bw_op: public py_handle {
 public:
-  bw_op(pd_t &op
-      , mdarray &x, mdarray &gy, std::vector<primitive> *dag);
+  bw_op(pd_t &op, py_handle x, py_handle gy
+  , std::vector<mkldnn::primitive> *dag);
 };
 
-%attribute_readonly(bwb_op<convolution_backward_weights>
-  , s_op *, extra, extra_get
-  , bwb_op<convolution_backward_weights>::extra_get);
+%attribute_readonly(bwb_op<mkldnn::convolution_backward_weights>
+  , py_handle, extra, extra_get
+  , bwb_op<mkldnn::convolution_backward_weights>::extra_get);
 
-%template (conv_f_op) f_s_op<convolution_forward>;
-%template (conv_bd_op) bd_op<convolution_backward_data>;
-%template (conv_bwb_op) bwb_op<convolution_backward_weights>;
-%template (conv_bw_op) bw_op<convolution_backward_weights>;
+%template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
+%template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;
+%template (conv_bwb_op) bwb_op<mkldnn::convolution_backward_weights>;
+%template (conv_bw_op) bw_op<mkldnn::convolution_backward_weights>;

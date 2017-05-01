@@ -11,7 +11,8 @@
         return -1;
       }
 
-      return reinterpret_cast<T *>(that)->getbuffer(self, view, flags);
+      // TODO: support smart pointer and raw at same time
+      return (*reinterpret_cast<T *>(that))->getbuffer(self, view, flags);
     }
 
     static Py_ssize_t getreadbuf (PyObject *self, Py_ssize_t segment, void **ptrptr) { return 0; }

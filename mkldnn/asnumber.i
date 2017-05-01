@@ -1,4 +1,5 @@
 %{
+  // TODO: Support both raw or smart pointer type
   #define nb_unary(op, m) \
     static PyObject * nb_ ## op (PyObject *self) {    \
       void *that;                                                 \
@@ -7,7 +8,7 @@
         PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
         return nullptr;                                                \
       }                                                           \
-      return reinterpret_cast<T *>(that)->m_ ## m(self);  \
+      return (*reinterpret_cast<T *>(that))->m_ ## m(self);  \
     }
 
   #define nb_binary(op, m) \
@@ -18,7 +19,7 @@
         PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
         return nullptr;                                                \
       }                                                           \
-      return reinterpret_cast<T *>(that)->m_ ## m(self, o);  \
+      return (*reinterpret_cast<T *>(that))->m_ ## m(self, o);  \
     }
 
   #define nb_ternary(op, m) \
@@ -29,7 +30,7 @@
         PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
         return nullptr;                                                \
       }                                                           \
-      return reinterpret_cast<T *>(that)->m_ ## m(self, o1, o2);  \
+      return (*reinterpret_cast<T *>(that))->m_ ## m(self, o1, o2);  \
     }
 
 
