@@ -62,8 +62,8 @@
 
 
 #pragma once
-#ifndef _LRN_H_
-#define _LRN_H_
+#ifndef _BATCH_NORMALIZATION_H_
+#define _BATCH_NORMALIZATION_H_
 
 
 #include <mkldnn.hpp>
@@ -76,7 +76,7 @@ template <typename T>
 class BatchNormalization : public Layer<T>
 {
 public:
-    BatchNormalization();
+    BatchNormalization(double eps, bool is_training, bool has_weights, bool fixed_mean_var);
     ~BatchNormalization() {}
     int forward() { return 0; }
 
@@ -85,19 +85,17 @@ public:
         T* y, int y_d1, int y_d2, int y_d3, int y_d4,
         T* W, int W_d1, int W_d2,
         T* mean, int mean_d1, T* var,  int var_d1,
-        double eps, bool is_training)
+        double eps, bool is_training, bool has_weights, bool fixed_mean_var)
     {
-        assert(W_d1 == 2);
-
         // LOG(INFO) << "do forward";
-        auto forward_object = get_forward_object(x_d1, x_d2, x_d3, x_d4, W_d1, W_d2,
-                                                 mean_d1, eps, is_training);
+        auto forward_object = get_forward_object(x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1,
+                                                 eps, is_training, has_weights, fixed_mean_var);
 
         // LOG(INFO) << "forward";
         forward_object->forward(x, x_d1, x_d2, x_d3, x_d4,
                                 y, y_d1, y_d2, y_d3, y_d4,
                                 W, W_d1, W_d2,
-                                mean, mean_d1, var, var_d1, eps, is_training);
+                                mean, mean_d1, var, var_d1);
     }
 #if 0
     static void do_backward(
@@ -136,14 +134,12 @@ private:
         T* x, int x_d1, int x_d2, int x_d3, int x_d4,
         T* y, int y_d1, int y_d2, int y_d3, int y_d4,
         T* W, int W_d1, int W_d2,
-        T* mean, int mean_d1, T* var, int var_d1,
-        double eps, bool is_training);
+        T* mean, int mean_d1, T* var, int var_d1);
 
     void forward_setup(
         int x_d1, int x_d2, int x_d3, int x_d4,
         int y_d1, int y_d2, int y_d3, int y_d4,
-        int W_d1, int W_d2, int mean_d1, int var_d1,
-        double eps, bool is_training);
+        int W_d1, int W_d2, int mean_d1, int var_d1);
 
     void fwd_reset_mem(T* x, T* y, T* W, T* mean, T* var);
 
@@ -151,7 +147,7 @@ protected:
     static BatchNormalization<T>* get_forward_object(
         int x_d1, int x_d2, int x_d3, int x_d4,
         int W_d1, int W_d2,
-        int mean_d1, double eps, bool is_training);
+        int mean_d1, double eps, bool is_training, bool has_weights, bool fixed_mean_var);
 
 #if 0
     static BatchNormalization<T>* get_backward_object(
@@ -161,7 +157,9 @@ protected:
 private:
     double                                                    eps_ = 0.0;
     unsigned                                                  flags_ = 0;
-    bool                                                      forward_first_use_;
+    bool                                                      forward_first_use_ = true;
+    mkldnn::prop_kind                                         fwd_prop_kind_;
+
     //forward
     std::shared_ptr<mkldnn::memory>                           user_x_mem_;
     std::shared_ptr<mkldnn::memory>                           user_y_mem_;
@@ -204,7 +202,7 @@ private:
 
 };
 
-#endif // _LRN_H_
+#endif // _BATCH_NORMALIZATION_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
