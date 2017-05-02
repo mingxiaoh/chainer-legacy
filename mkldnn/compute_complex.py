@@ -4,6 +4,7 @@ from mkldnn import memory as m
 from mkldnn.runtime import Stream
 
 import mkldnn
+import numpy
 
 def reorder_if_must(usr_m, expect, net_):
     if (usr_m.get_primitive_desc() != expect):
@@ -17,8 +18,13 @@ def reorder_if_must(usr_m, expect, net_):
 def array(obj, *args):
     if isinstance(obj, mkldnn.mdarray):
         return obj
-    else:
+    elif isinstance(obj, numpy.ndarray):
+        # TODO: Do we automatically transfer?
+
+        obj = numpy.ascontiguousarray(obj)
         return mkldnn.mdarray(obj, *args)
+    else:
+        raise NotImplementedError
 
 class ComputeComplex(object):
     """MKLDNN Compute Complex.

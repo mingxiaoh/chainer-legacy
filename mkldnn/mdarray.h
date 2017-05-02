@@ -315,8 +315,6 @@ private:
 
     return mkldnn::memory::desc(dims, dt, order);
   }
-public:
-
 };
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags){
@@ -418,6 +416,7 @@ public:
       , mkldnn::memory::primitive_desc extra
       , std::vector<mkldnn::primitive> *dag):
     mdarray(major), extra(new s_op(extra, dag)), dag_(dag) {
+    rtti = dual_out;
   }
 
   static py_handle extra_get(const d_op *that) {
@@ -614,7 +613,6 @@ public:
       , mkldnn::memory::format format
       , mkldnn::engine &e)
     : py_handle(new implementation::mdarray(view, format, e)) {}
-
 };
 
 static PyObject *mdarray_shape_get(mdarray *arg) {
@@ -710,6 +708,7 @@ public:
         return new py_handle(implementation::d_op::extra_get
         (reinterpret_cast<implementation::d_op *>(in.get())));
     }
+
     // Raise exception?
     return nullptr;
   }
