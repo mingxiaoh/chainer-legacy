@@ -96,10 +96,8 @@ void BatchNormalization<T>::forward_setup(
     memory::format fmt_desired;
     if (cpu_support_avx512_p() && (x_d2%16) == 0) {
         fmt_desired = memory::format::nChw16c;
-        LOG(INFO) << "forward_setup nChw16c";
     } else if (cpu_support_avx2_p() && (x_d2%8) == 0) {
         fmt_desired = memory::format::nChw8c;
-        LOG(INFO) << "forward_setup nChw8c";
     } else {
         fmt_desired = memory::format::nchw;
     }
@@ -111,7 +109,6 @@ void BatchNormalization<T>::forward_setup(
     assert(x_d2 == y_d2 == W_d2 == mean_d1 == var_d1);
 
     /* create memory for user data */
-    LOG(INFO) << "create memory for user data";
     user_src_mem_.reset(new memory({{{src_tz}, memory_data_type<T>(),
                                    memory::format::nchw}, *eng_}, dummy));
     auto src_md =  memory::desc({src_tz}, memory_data_type<T>(), fmt_desired);
@@ -121,7 +118,6 @@ void BatchNormalization<T>::forward_setup(
 
     if (!fwd_pd_)
     {
-        LOG(INFO) << "fwd_desc_";
         fwd_desc_.reset(new batch_normalization_forward::desc(
                 fwd_prop_kind_, src_md, eps_, flags_));
         fwd_pd_.reset(new batch_normalization_forward::primitive_desc(
@@ -214,7 +210,6 @@ void BatchNormalization<T>::forward(
     T* mean, int mean_d1, T* var,  int var_d1)
 {
     if (forward_first_use_) {
-        LOG(INFO) << "forward forward_first_use_";
         forward_first_use_ = false;
         if (!fwd_stream_){
             forward_setup(x_d1, x_d2, x_d3, x_d4,
@@ -231,21 +226,19 @@ void BatchNormalization<T>::forward(
 
 template<typename T>
 int BatchNormalization<T>::backward_setup(
-        T* x, int x_d1, int x_d2, int x_d3, int x_d4,
-        T* W, int W_d1, int W_d2,
-        T* mean, int mean_d1, T* var, int var_d1,
-        T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
-        T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
-        T* gW, int gW_d1, int gW_d2)
+        int x_d1, int x_d2, int x_d3, int x_d4,
+        int W_d1, int W_d2,
+        int mean_d1, T* var, int var_d1,
+        int gy_d1, int gy_d2, int gy_d3, int gy_d4,
+        int gx_d1, int gx_d2, int gx_d3, int gx_d4,
+        int gW_d1, int gW_d2)
 {
-    memory::format fmt_desired;
     // we check AVX512 first then AVX2
+    memory::format fmt_desired;
     if (cpu_support_avx512_p() && (x_d2%16)==0) {
-        LOG(INFO) << "backward_setup nChw16c";
         fmt_desired = memory::format::nChw16c;
     } else if (cpu_support_avx2_p() && (x_d2%8)==0) {
         fmt_desired = memory::format::nChw8c;
-        LOG(INFO) << "backward_setup nChw8c";
     } else {
         fmt_desired = memory::format::nchw;
     }
@@ -341,12 +334,12 @@ int BatchNormalization<T>::backward(
 {
     if (!bwd_stream_) {
         backward_setup(
-            x, x_d1, x_d2, x_d3, x_d4,
-            W, W_d1, W_d2,
-            mean, mean_d1, var, var_d1,
-            gy, gy_d1, gy_d2, gy_d3, gy_d4,
-            gx, gx_d1, gx_d2, gx_d3, gx_d4,
-            gW, gW_d1, gW_d2);
+            x_d1, x_d2, x_d3, x_d4,
+            W_d1, W_d2,
+            mean_d1, var, var_d1,
+            gy_d1, gy_d2, gy_d3, gy_d4,
+            gx_d1, gx_d2, gx_d3, gx_d4,
+            gW_d1, gW_d2);
         bwd_reset_mem(x, W, mean, var, gy, gx, gW);
         bwd_stream_->submit(bwd_primitives_).wait();
     }
