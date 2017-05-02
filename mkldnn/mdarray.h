@@ -706,7 +706,7 @@ public:
   static py_handle *extra_get(const py_handle &in) {
     if (isa<implementation::d_op>(in)){
         return new py_handle(implementation::d_op::extra_get
-        (reinterpret_cast<implementation::d_op *>(in.get())));
+        (static_cast<implementation::d_op *>(in.get())));
     }
 
     // Raise exception?
