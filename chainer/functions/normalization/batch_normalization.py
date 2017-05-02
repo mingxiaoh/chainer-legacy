@@ -274,6 +274,15 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
+        elif switch.enable_batch_normalizationF((x,)):
+            gW = numpy.empty(shape=(self.weights_cache.shape),
+                             dtype=self.weights_cache.dtype)
+            gx = numpy.empty(shape=(x.shape), dtype=x.dtype)
+            mkldnn.BatchNormalization_F32.do_backward(
+                x, self.weights_cache, self.mean_cache, self.var_cache, gy, gx, gW,
+                self.eps, True, True, False)
+            ggamma = gW[0]
+            gbeta = gW[1]
         else:
             gbeta = gy.sum(axis=axis)
             ggamma = (gy * self.x_hat).sum(axis=axis)

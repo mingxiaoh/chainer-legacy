@@ -88,8 +88,9 @@ public:
         double eps, bool is_training, bool has_weights, bool fixed_mean_var)
     {
         // LOG(INFO) << "do forward";
-        auto forward_object = get_forward_object(x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1,
-                                                 eps, is_training, has_weights, fixed_mean_var);
+        auto forward_object = get_forward_object(
+            x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1,
+            eps, is_training, has_weights, fixed_mean_var);
 
         // LOG(INFO) << "forward";
         forward_object->forward(x, x_d1, x_d2, x_d3, x_d4,
@@ -97,39 +98,29 @@ public:
                                 W, W_d1, W_d2,
                                 mean, mean_d1, var, var_d1);
     }
-#if 0
     static void do_backward(
-        T*   x,  int x_d1,  int x_d2,  int x_d3,  int x_d4,
-        T*   gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
-        T*   gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
-        T*   ws, int ws_d,
-        // T*   ws, int ws_d1, int ws_d2, int ws_d3, int ws_d4,
-        int n, double k, double alpha, double beta,
-        mkldnn::algorithm alg_kind = mkldnn::algorithm::batch_normalization_across_channels)
-    {
-        auto backward_object = get_backward_object(
-            x_d1, x_d2, x_d3, x_d4, n, k, alpha, beta, alg_kind);
-
-        backward_object->backward(x,  x_d1,  x_d2,  x_d3,  x_d4,
-                                  gy, gy_d1, gy_d2, gy_d3, gy_d4,
-                                  gx, gx_d1, gx_d2, gx_d3, gx_d4,
-                                  ws, ws_d);
-    }
-#endif
-private:
-#if 0
-    int backward(
-        T* x,  int x_d1,  int x_d2,  int x_d3,  int x_d4,
+        T* x, int x_d1, int x_d2, int x_d3, int x_d4,
+        T* W, int W_d1, int W_d2,
+        T* mean, int mean_d1, T* var, int var_d1,
         T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
         T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
-        T* ws, int ws_d);
-    int backward_setup(
-        T* x,  int x_d1,  int x_d2,  int x_d3,  int x_d4,
-        T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
-        T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4);
-    void bwd_reset_mem(T* x,T* gy,T* gx, T* ws);
-#endif
+        T* gW, int gW_d1, int gW_d2,
+        double eps, bool is_training, bool has_weights, bool fixed_mean_var)
+    {
+        auto backward_object = get_backward_object(
+            x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1,
+            eps, is_training, has_weights, fixed_mean_var);
 
+        backward_object->backward(x,  x_d1,  x_d2,  x_d3,  x_d4,
+                                  W, W_d1, W_d2,
+                                  mean, mean_d1,
+                                  var, var_d1,
+                                  gy, gy_d1, gy_d2, gy_d3, gy_d4,
+                                  gx, gx_d1, gx_d2, gx_d3, gx_d4,
+                                  gW, gW_d1, gW_d2);
+    }
+
+private:
     void forward(
         T* x, int x_d1, int x_d2, int x_d3, int x_d4,
         T* y, int y_d1, int y_d2, int y_d3, int y_d4,
@@ -143,60 +134,62 @@ private:
 
     void fwd_reset_mem(T* x, T* y, T* W, T* mean, T* var);
 
+    int backward(
+        T* x, int x_d1, int x_d2, int x_d3, int x_d4,
+        T* W, int W_d1, int W_d2,
+        T* mean, int mean_d1, T* var, int var_d1,
+        T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
+        T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
+        T* gW, int gW_d1, int gW_d2);
+
+    int backward_setup(
+        T* x, int x_d1, int x_d2, int x_d3, int x_d4,
+        T* W, int W_d1, int W_d2,
+        T* mean, int mean_d1, T* var, int var_d1,
+        T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
+        T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
+        T* gW, int gW_d1, int gW_d2);
+
+    void bwd_reset_mem(T* x, T* W, T* mean, T* var, T* gy, T* gx, T* gW);
+
+
 protected:
     static BatchNormalization<T>* get_forward_object(
         int x_d1, int x_d2, int x_d3, int x_d4,
         int W_d1, int W_d2,
         int mean_d1, double eps, bool is_training, bool has_weights, bool fixed_mean_var);
 
-#if 0
     static BatchNormalization<T>* get_backward_object(
         int x_d1, int x_d2, int x_d3, int x_d4,
-        int n, double k, double alpha, double beta, mkldnn::algorithm alg_kind);
-#endif
+        int W_d1, int W_d2, int mean_d1, double eps,
+        bool is_training, bool has_weights, bool fixed_mean_var);
+
 private:
-    double                                                    eps_ = 0.0;
-    unsigned                                                  flags_ = 0;
-    bool                                                      forward_first_use_ = true;
-    mkldnn::prop_kind                                         fwd_prop_kind_;
+    double eps_ = 0.0;
+    unsigned flags_ = 0;
+    bool forward_first_use_ = true;
+    mkldnn::prop_kind fwd_prop_kind_;
 
     //forward
-    std::shared_ptr<mkldnn::memory>                           user_x_mem_;
-    std::shared_ptr<mkldnn::memory>                           user_y_mem_;
-    std::shared_ptr<mkldnn::memory>                           x_mem_;
-    std::shared_ptr<mkldnn::memory>                           y_mem_;
-    std::shared_ptr<mkldnn::memory>                           W_mem_;
-    std::shared_ptr<mkldnn::memory>                           mean_mem_;
-    std::shared_ptr<mkldnn::memory>                           var_mem_;
-    std::shared_ptr<mkldnn::memory::desc>                     x_md_;
-    std::shared_ptr<mkldnn::memory::desc>                     y_md_;
+    std::shared_ptr<mkldnn::memory> user_src_mem_, user_dst_mem_, src_mem_,
+        dst_mem_, weights_mem_, mean_mem_, var_mem_;
 
-    std::shared_ptr<mkldnn::memory>                           bw_x_mem_;
-    std::shared_ptr<mkldnn::memory>                           gx_mem_;
-    std::shared_ptr<mkldnn::memory>                           gy_mem_;
-
-    std::shared_ptr<mkldnn::batch_normalization_forward::desc> batch_normalization_fwd_desc_;
-    std::shared_ptr<mkldnn::batch_normalization_forward::primitive_desc> batch_normalization_fwd_pd_;
+    std::shared_ptr<mkldnn::batch_normalization_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::batch_normalization_forward::primitive_desc> fwd_pd_;
     std::shared_ptr<mkldnn::batch_normalization_forward> batch_normalization_fwd_;
-    std::shared_ptr<mkldnn::stream> fwd_stream_;
-    std::vector<mkldnn::primitive> fwd_primitives_;
 
     //backward
-    std::shared_ptr<mkldnn::memory> batch_normalization_bwd_user_src_mem_, batch_normalization_diff_src_mem_, batch_normalization_diff_dst_mem_;
-    std::shared_ptr<mkldnn::memory::desc> batch_normalization_bwd_src_desc_, batch_normalization_diff_src_desc_, batch_normalization_diff_dst_desc_;
+    std::shared_ptr<mkldnn::memory> bwd_user_src_mem_, bwd_src_mem_, diff_src_mem_,
+        user_diff_src_mem_, diff_dst_mem_, user_diff_dst_mem_, diff_weights_mem_;
 
-    std::shared_ptr<mkldnn::batch_normalization_backward::desc> batch_normalization_bwd_desc_;
-    std::shared_ptr<mkldnn::batch_normalization_backward::primitive_desc> batch_normalization_bwd_pd_;
+    std::shared_ptr<mkldnn::batch_normalization_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::batch_normalization_backward::primitive_desc> bwd_pd_;
     std::shared_ptr<mkldnn::batch_normalization_backward> batch_normalization_bwd_;
-    std::shared_ptr<mkldnn::stream> bwd_stream_;
-    std::vector<mkldnn::primitive> bwd_primitives_;
 
-
-    mkldnn::primitive                         reorder_x_;
-    mkldnn::primitive                         reorder_y_;
-    // primitive                                 reorder_bwd_x_;
-    mkldnn::primitive                         reorder_gx_;
-    mkldnn::primitive                         reorder_gy_;
+    std::unique_ptr<mkldnn::primitive> reorder_src_, reorder_dst_, reorder_diff_src_,
+        reorder_bwd_src_, reorder_diff_dst_;
+    std::shared_ptr<mkldnn::stream> fwd_stream_, bwd_stream_;
+    std::vector<mkldnn::primitive> fwd_primitives_, bwd_primitives_;
 
     std::shared_ptr<mkldnn::engine> eng_;
 
