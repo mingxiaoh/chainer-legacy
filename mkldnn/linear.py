@@ -189,14 +189,14 @@ class LinearFunctionMKLDNN(function.Function):
     @static_graph.static_forward
     def static_linear_forward(self, x, W, bias = None):
         self.cc_fwd(x, W, bias)
-        print('LinearForward outputs: ', self.cc_fwd.outputs[0].shape)
+        # print('LinearForward outputs: ', self.cc_fwd.outputs[0].shape)
 
     @static_graph.static_backward
     def static_linear_backward(self, x, W, bias, gy):
         self.cc_bwd_data(x, W, bias, gy)
         self.cc_bwd_weight(x, W, bias, gy)
-        print('LinearBackward gx outputs: ', self.cc_bwd_data.outputs[0].shape)
-        print('LinearBackward gw_b outputs: ', self.cc_bwd_weight.outputs[0].shape)
+        # print('LinearBackward gx outputs: ', self.cc_bwd_data.outputs[0].shape)
+        # print('LinearBackward gw_b outputs: ', self.cc_bwd_weight.outputs[0].shape)
 
     def forward(self, inputs):
         cc_fwd = LinearForward(*inputs)
