@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-import chainer.functions as F
+from chainer.functions.normalization import batch_normalization
 import chainer.testing as testing
 import chainer.testing.condition as condition
 import time
@@ -20,92 +20,62 @@ class TestBatchNormalizationValidation(unittest.TestCase):
         self.var = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
         self.gamma = np.random.uniform(-1, 1, (self.channel )).astype(self.dtype)
         self.beta = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
-        self.gy = np.random.uniform(-1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
+        self.gy = np.random.uniform(-1, 1, (32, self.channel, 224, 224)).astype(self.dtype)
 
         self.check_forward_optionss = {}
         self.check_backward_optionss = {}
-        if self.channel >= 8:
-            self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
+        self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-4}
+        self.check_backward_optionss = {'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, x):
-        # !use_global_stats
         switch.enable_batch_normalization = True
-        y1 = F.batch_normalization(
-            x, self.gamma, self.beta, self.eps, self.mean,
-            self.var, self.decay, False)
+        self.func1 = batch_normalization.BatchNormalizationFunction(
+            self.eps, self.mean, self.var, self.decay, False);
         start = time.time()
-        y1 = F.batch_normalization(
-            x, self.gamma, self.beta, self.eps, self.mean,
-            self.var, self.decay, False)
+        y = self.func1.forward((x, self.gamma, self.beta))
         end = time.time()
-        mkldnn_timing = end - start
-        self.assertEqual(y1[0].dtype, self.dtype)
+        self.assertEqual(y[0].dtype, self.dtype)
+        print("mkldnn timing:", end - start)
+
         switch.enable_batch_normalization = False
+        self.func2 = batch_normalization.BatchNormalizationFunction(
+            self.eps, self.mean, self.var, self.decay, False);
         start = time.time()
-        y1_expect = F.batch_normalization(
-            x, self.gamma, self.beta, self.eps, self.mean,
-            self.var, self.decay, False)
+        y_expect = self.func2.forward((x, self.gamma, self.beta))
         end = time.time()
-        cpu_timing = end - start
-        print("mkldnn timing:", mkldnn_timing)
-        print("cpu timing:", cpu_timing)
+        print("numpy timing:", end - start)
 
-        testing.assert_allclose(y1_expect[0].data, y1[0].data,
+        testing.assert_allclose(self.func1.running_mean, self.func2.running_mean,
                                 **self.check_forward_optionss)
-
-        ## use_global_stats
-        #switch.enable_batch_normalization = True
-        ## dry run
-        #y2 = F.fixed_batch_normalization(
-        #    x, self.gamma, self.beta, self.mean,
-        #    self.var, self.eps, False)
-        #start = time.time()
-        #y2 = F.fixed_batch_normalization(
-        #    x, self.gamma, self.beta, self.mean,
-        #    self.var, self.eps, False)
-        #end = time.time()
-        #mkldnn_timing = end - start
-        #self.assertEqual(y2[0].dtype, self.dtype)
-        #switch.enable_batch_normalization = False
-        #start = time.time()
-        #y2_expect = F.fixed_batch_normalization(
-        #    x, self.gamma, self.beta, self.mean,
-        #    self.var, self.eps, False)
-        #end = time.time()
-        #cpu_timing = end - start
-
-        #print("mkldnn timing:", mkldnn_timing)
-        #print("cpu timing:", cpu_timing)
-
-        #testing.assert_allclose(y2_expect[0].data, y2[0].data,
-        #                        **self.check_forward_optionss)
+        testing.assert_allclose(self.func1.running_var, self.func2.running_var,
+                                **self.check_forward_optionss)
+        testing.assert_allclose(y_expect[0], y[0],
+                                **self.check_forward_optionss)
 
 
     def check_backward(self, x_data, y_grad):
-        return
-        #switch.enable_batch_normalization = True
-        #gx = self.batch_normalization.backward((x_data,), (y_grad,))
-        #switch.enable_batch_normalization = False
-        #gx_expect = self.batch_normalization.backward((x_data,), (y_grad,))
-        #testing.assert_allclose(gx_expect[0], gx[0], **self.check_backward_optionss)
+        switch.enable_batch_normalization = True
+        start = time.time()
+        (gx, ggamma, gbeta) = self.func1.backward(
+            (x_data, self.gamma, self.beta), (y_grad,))
+        end = time.time()
+        print("mkldnn timing:", end - start)
+
+        switch.enable_batch_normalization = False
+        start = time.time()
+        (gx_expect, ggamma_expect, gbeta_expect) = self.func2.backward(
+            (x_data, self.gamma, self.beta), (y_grad,))
+        end = time.time()
+        print("numpy timing:", end - start)
+
+        testing.assert_allclose(gx_expect, gx, **self.check_backward_optionss)
+        testing.assert_allclose(ggamma_expect, ggamma, **self.check_backward_optionss)
+        testing.assert_allclose(gbeta_expect, gbeta, **self.check_backward_optionss)
 
     @condition.retry(3)
     def test_cpu(self):
         self.check_forward(self.x)
         self.check_backward(self.x, self.gy)
-
-    @testing.attr.xeon
-    @condition.retry(3)
-    def test_xeon_cpu(self):
-        print("test xeon")
-        pass
-
-    @testing.attr.xeon_phi
-    @condition.retry(3)
-    def test_xeon_phi_cpu(self):
-        print("test xeon phi")
-        pass
 
 
 testing.run_module(__name__, __file__)
