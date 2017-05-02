@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.command.build import build
+from distutils.command.build_py import build_py
 from setuptools.command.install import install
 from setuptools import setup
 from setuptools.extension import Extension
@@ -16,13 +16,14 @@ install_requires = [
     'glog',
 ]
 
-class _build(build):
+class _build_py(build_py):
     def run(self):
         self.run_command('build_ext')
-        build.run(self)
+        build_py.run(self)
 
 class _install(install):
     def install(self):
+        print("run home made")
         self.run_command('build_ext')
         install.run(self)
 
@@ -103,7 +104,7 @@ setup(
               'mkldnn',
               ],
     ext_modules=extensions,
-    cmdclass={'build':_build, 'install':_install},
+    cmdclass={'build_py':_build_py, 'install':_install},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
