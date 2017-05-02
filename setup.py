@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from distutils.command.build import build
+from setuptools.command.install import install
 from setuptools import setup
 from setuptools.extension import Extension
 import numpy
@@ -13,6 +15,16 @@ install_requires = [
     'six>=1.9.0',
     'glog',
 ]
+
+class _build(build):
+    def run(self):
+        self.run_command('build_ext')
+        build.run(self)
+
+class _install(install):
+    def install(self):
+        self.run_command('build_ext')
+        install.run(self)
 
 extensions = [
     Extension(
@@ -91,6 +103,7 @@ setup(
               'mkldnn',
               ],
     ext_modules=extensions,
+    cmdclass={'build':_build, 'install':_install},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
