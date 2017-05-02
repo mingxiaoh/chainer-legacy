@@ -40,5 +40,6 @@
   view = new Py_buffer;
   res = PyObject_GetBuffer($input, view, flags);
   $1 = ($1_ltype) view;
+  // TODO: IF WE CONFRONT A F_CONTINGUOUS ONE???
 }
 %enddef
