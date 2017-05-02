@@ -87,12 +87,10 @@ public:
         T* mean, int mean_d1, T* var,  int var_d1,
         double eps, bool is_training, bool has_weights, bool fixed_mean_var)
     {
-        // LOG(INFO) << "do forward";
         auto forward_object = get_forward_object(
             x_d1, x_d2, x_d3, x_d4, W_d1, W_d2, mean_d1,
             eps, is_training, has_weights, fixed_mean_var);
 
-        // LOG(INFO) << "forward";
         forward_object->forward(x, x_d1, x_d2, x_d3, x_d4,
                                 y, y_d1, y_d2, y_d3, y_d4,
                                 W, W_d1, W_d2,
@@ -143,12 +141,12 @@ private:
         T* gW, int gW_d1, int gW_d2);
 
     int backward_setup(
-        T* x, int x_d1, int x_d2, int x_d3, int x_d4,
-        T* W, int W_d1, int W_d2,
-        T* mean, int mean_d1, T* var, int var_d1,
-        T* gy, int gy_d1, int gy_d2, int gy_d3, int gy_d4,
-        T* gx, int gx_d1, int gx_d2, int gx_d3, int gx_d4,
-        T* gW, int gW_d1, int gW_d2);
+        int x_d1, int x_d2, int x_d3, int x_d4,
+        int W_d1, int W_d2,
+        int mean_d1, T* var, int var_d1,
+        int gy_d1, int gy_d2, int gy_d3, int gy_d4,
+        int gx_d1, int gx_d2, int gx_d3, int gx_d4,
+        int gW_d1, int gW_d2);
 
     void bwd_reset_mem(T* x, T* W, T* mean, T* var, T* gy, T* gx, T* gW);
 
@@ -170,7 +168,7 @@ private:
     bool forward_first_use_ = true;
     mkldnn::prop_kind fwd_prop_kind_;
 
-    //forward
+    // forward
     std::shared_ptr<mkldnn::memory> user_src_mem_, user_dst_mem_, src_mem_,
         dst_mem_, weights_mem_, mean_mem_, var_mem_;
 
@@ -178,7 +176,7 @@ private:
     std::shared_ptr<mkldnn::batch_normalization_forward::primitive_desc> fwd_pd_;
     std::shared_ptr<mkldnn::batch_normalization_forward> batch_normalization_fwd_;
 
-    //backward
+    // backward
     std::shared_ptr<mkldnn::memory> bwd_user_src_mem_, bwd_src_mem_, diff_src_mem_,
         user_diff_src_mem_, diff_dst_mem_, user_diff_dst_mem_, diff_weights_mem_;
 
@@ -186,10 +184,11 @@ private:
     std::shared_ptr<mkldnn::batch_normalization_backward::primitive_desc> bwd_pd_;
     std::shared_ptr<mkldnn::batch_normalization_backward> batch_normalization_bwd_;
 
+    // primitives and stream
     std::unique_ptr<mkldnn::primitive> reorder_src_, reorder_dst_, reorder_diff_src_,
         reorder_bwd_src_, reorder_diff_dst_;
-    std::shared_ptr<mkldnn::stream> fwd_stream_, bwd_stream_;
     std::vector<mkldnn::primitive> fwd_primitives_, bwd_primitives_;
+    std::shared_ptr<mkldnn::stream> fwd_stream_, bwd_stream_;
 
     std::shared_ptr<mkldnn::engine> eng_;
 
