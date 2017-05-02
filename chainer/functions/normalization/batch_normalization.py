@@ -157,6 +157,7 @@ class BatchNormalizationFunction(function.Function):
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
         elif switch.enable_batch_normalizationF((x,)):
+            self.expand_dim = False
             if x.ndim == 2:
                 self.expand_dim = True
                 x = x[:, :, None, None]
