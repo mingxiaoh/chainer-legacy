@@ -32,22 +32,24 @@ def _pair(x):
     return x, x
 
 class ConvolutionForward(ComputeComplex):
-    def __init__(self, x, W, b = None, stride=1, pad=0, e=Engine()):
+    def __init__(self, x, W, b = None, stride=1, pad=0, cover_all=False, e=Engine()):
         super(ConvolutionForward, self).__init__()
-        self.sy, self.sx = _pair(stride)
-        self.ph, self.pw = _pair(pad)
+        sy, sx = _pair(stride)
+        p_upper, p_left = _pair(pad)
 
         out_c, _, kh, kw = W.shape
         n, c, h, w = x.shape
 
-        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph)
+        out_h = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all = cover_all)
         assert out_h > 0, 'Height in the output should be positive.'
-        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw)
+        out_w = conv.get_conv_outsize(w, kw, sx, p_left, cover_all = cover_all)
         assert out_w > 0, 'Width in the output should be positive.'
 
-        y_d = m.desc((n, out_c, out_h, out_w), m.memory.f32, m.memory.any)
+        p_down = sy * (out_h -1) + kh - h - p_upper
+        p_right = sx * (out_w -1) + kw - w - p_left
+        geometry = (_pair(stride), (p_upper, p_left), (p_down, p_right))
 
-        geometry = (_pair(stride), _pair(pad), _pair(pad))
+        y_d = m.desc((n, out_c, out_h, out_w), m.memory.f32, m.memory.any)
 
         # Create primitive_desc from any
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), geometry)
@@ -69,7 +71,6 @@ class ConvolutionForward(ComputeComplex):
 
 class ConvolutionBackwardData(ComputeComplex):
     def __init__(self, x, W, dummy, gy, hint, e=Engine()):
-
         # Create primitive descriptor
         cc_d = create_backward_desc(conv_backdata.desc, x, W, gy)
         cc_pd = conv_backdata.primitive_desc(cc_d, e, hint)
@@ -143,7 +144,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
 
     def forward_cpu(self, inputs):
         cc = ConvolutionForward(*inputs, stride = (self.sy, self.sx),
-                pad = (self.ph, self.pw))
+                pad = (self.ph, self.pw), cover_all = self.cover_all)
         self.hint = cc.hint
 
         y, = cc.execute_on()

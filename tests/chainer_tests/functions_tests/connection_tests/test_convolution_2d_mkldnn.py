@@ -20,8 +20,8 @@ from chainer.testing import condition
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
-    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'x_dtype': [numpy.float32],
+    'W_dtype': [numpy.float32],
 })))
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
@@ -71,7 +71,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
                 cover_all=self.cover_all)
 
         testing.assert_allclose(
-            y_mkl.data, y_mkl.data.get(), **self.check_forward_options)
+            y_cpu.data, y_mkl.data, **self.check_forward_options)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
         xp = cuda.get_array_module(x_data)
@@ -92,9 +92,9 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         if b_data is not None:
             args = args + (b_data,)
 
-        with chainer.using_config('use_mkldnn', self.use_cudnn):
+        with chainer.using_config('use_mkldnn', self.use_mkldnn):
             gradient_check.check_backward(
-                convolution_2d.Convolution2DFunction(
+                convolution_2d.Convolution2DFunctionMKLDNN(
                     self.stride, self.pad, self.cover_all),
                 args, y_grad, **self.check_backward_options)
 

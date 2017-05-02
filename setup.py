@@ -2,6 +2,8 @@
 
 import pkg_resources
 
+from setuptools.command.build_py import build_py
+from setuptools.command.install import install
 from setuptools import setup
 from setuptools.extension import Extension
 
@@ -26,6 +28,16 @@ except pkg_resources.DistributionNotFound:
 if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
+
+class _build_py(build_py):
+    def run(self):
+        self.run_command('build_ext')
+        build_py.run(self)
+
+class _install(install):
+    def run(self):
+        self.run_command('build_ext')
+        install.run(self)
 
 swig_opts=['-c++', '-Imkldnn', '-relativeimport', '-builtin', '-modern', '-modernargs']
 ccxx_opts=['-std=c++11', '-O0', '-g']
@@ -99,6 +111,7 @@ setup(
               'chainer.utils',
               'mkldnn'],
     ext_modules=ext_modules,
+    cmdclass={'install':_install, 'build_py':_build_py},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

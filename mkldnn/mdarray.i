@@ -74,7 +74,7 @@ public:
 
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
-class f_s_op: public py_handle {
+class f_s_op: public mdarray {
 public:
   f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
     , std::vector<mkldnn::primitive> *dag);
@@ -83,21 +83,21 @@ public:
 };
 
 template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bd_op: public py_handle {
+class bd_op: public mdarray {
 public:
   bd_op(pd_t &op, py_handle gy, py_handle W
   , std::vector<mkldnn::primitive> *dag);
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bwb_op: public py_handle {
+class bwb_op: public mdarray {
 public:
   bwb_op(pd_t &op, py_handle x, py_handle gy
   , std::vector<mkldnn::primitive> *dag);
 };
 
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bw_op: public py_handle {
+class bw_op: public mdarray {
 public:
   bw_op(pd_t &op, py_handle x, py_handle gy
   , std::vector<mkldnn::primitive> *dag);
