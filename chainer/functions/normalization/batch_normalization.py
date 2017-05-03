@@ -157,6 +157,9 @@ class BatchNormalizationFunction(function.Function):
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
         elif switch.enable_batch_normalizationF((x,)):
+            if x.ndim == 2:
+                self.expand_dim = True
+                x = x[:, :, None, None]
             y = numpy.empty(x.shape, dtype=x[0].dtype)
             if configuration.config.train:
                 if self.mean_cache is None:
@@ -181,6 +184,11 @@ class BatchNormalizationFunction(function.Function):
                 mkldnn.BatchNormalization_F32.do_forward(
                     x, y, weights, self.fixed_mean, self.fixed_var, self.eps,
                     False, True, True)
+
+            if self.expand_dim:
+                assert y.ndim == 4
+                y = numpy.squeeze(y, axis=(2,3))
+
         else:
             if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
@@ -275,6 +283,12 @@ class BatchNormalizationFunction(function.Function):
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
         elif switch.enable_batch_normalizationF((x,)):
+            if self.expand_dim:
+                assert x.ndim == 2
+                x = x[:, :, None, None]
+                assert gy.ndim == 2
+                gy = gy[:, :, None, None]
+
             gW = numpy.empty(shape=(self.weights_cache.shape),
                              dtype=self.weights_cache.dtype)
             gx = numpy.empty(shape=(x.shape), dtype=x.dtype)
@@ -283,6 +297,10 @@ class BatchNormalizationFunction(function.Function):
                 self.eps, True, True, False)
             ggamma = gW[0]
             gbeta = gW[1]
+            if self.expand_dim:
+                assert gx.ndim == 4
+                gx = numpy.squeeze(gx, axis=(2,3))
+
         else:
             gbeta = gy.sum(axis=axis)
             ggamma = (gy * self.x_hat).sum(axis=axis)
