@@ -253,6 +253,30 @@ public:
                                int            b_d1,
                                Layer<T>*      layer);
 
+    Layer<T>* get_batch_normalization_layer(int       x_d1,
+                                            int       x_d2,
+                                            int       x_d3,
+                                            int       x_d4,
+                                            int       W_d1,
+                                            int       W_d2,
+                                            int       mean_d1,
+                                            double    eps,
+                                            bool      is_training,
+                                            bool      has_weights,
+                                            bool      fixed_mean_var);
+    void      set_batch_normalization_layer(int       x_d1,
+                                            int       x_d2,
+                                            int       x_d3,
+                                            int       x_d4,
+                                            int       W_d1,
+                                            int       W_d2,
+                                            int       mean_d1,
+                                            double    eps,
+                                            bool      is_training,
+                                            bool      has_weights,
+                                            bool      fixed_mean_var,
+                                            Layer<T>* layer);
+
     LayerFactory(LayerFactory const&)  = delete;
     void operator=(LayerFactory const&) = delete;
 
