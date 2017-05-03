@@ -4,6 +4,8 @@ from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from mkldnn import mkldnn
+from mkldnn import switch
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -45,6 +47,7 @@ class BatchNormalizationFunction(function.Function):
         self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
+        self.weights_cache = None
 
     def check_type_forward(self, in_types):
         n_in = in_types.size().eval()
@@ -153,6 +156,40 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
+        elif switch.enable_batch_normalizationF((x,)):
+            self.expand_dim = False
+            if x.ndim == 2:
+                self.expand_dim = True
+                x = x[:, :, None, None]
+            y = numpy.empty(x.shape, dtype=x[0].dtype)
+            if configuration.config.train:
+                if self.mean_cache is None:
+                    # Output cache to speed up backward pass.
+                    self.mean_cache = numpy.empty_like(self.running_mean)
+                    self.var_cache = numpy.empty_like(self.running_var)
+                if self.weights_cache is None:
+                    # scale_shift
+                    self.weights_cache = numpy.concatenate(
+                        (gamma, beta), axis=0).reshape((2, gamma.shape[1]))
+
+                # is_training=True, has_weithts=True, fixed_mean_var=False
+                mkldnn.BatchNormalization_F32.do_forward(
+                    x, y, self.weights_cache, self.mean_cache, self.var_cache,
+                    self.eps, True, True, False)
+                mean = self.mean_cache
+                var = self.var_cache
+            else:
+                weights = numpy.concatenate(
+                    (gamma, beta), axis=0).reshape((2, gamma.shape[1]))
+                # is_training=False, has_weights=True, fixed_mean_var=True)
+                mkldnn.BatchNormalization_F32.do_forward(
+                    x, y, weights, self.fixed_mean, self.fixed_var, self.eps,
+                    False, True, True)
+
+            if self.expand_dim:
+                assert y.ndim == 4
+                y = numpy.squeeze(y, axis=(2,3))
+
         else:
             if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
@@ -246,6 +283,25 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
+        elif switch.enable_batch_normalizationF((x,)):
+            if self.expand_dim:
+                assert x.ndim == 2
+                x = x[:, :, None, None]
+                assert gy.ndim == 2
+                gy = gy[:, :, None, None]
+
+            gW = numpy.empty(shape=(self.weights_cache.shape),
+                             dtype=self.weights_cache.dtype)
+            gx = numpy.empty(shape=(x.shape), dtype=x.dtype)
+            mkldnn.BatchNormalization_F32.do_backward(
+                x, self.weights_cache, self.mean_cache, self.var_cache, gy, gx, gW,
+                self.eps, True, True, False)
+            ggamma = gW[0]
+            gbeta = gW[1]
+            if self.expand_dim:
+                assert gx.ndim == 4
+                gx = numpy.squeeze(gx, axis=(2,3))
+
         else:
             gbeta = gy.sum(axis=axis)
             ggamma = (gy * self.x_hat).sum(axis=axis)
