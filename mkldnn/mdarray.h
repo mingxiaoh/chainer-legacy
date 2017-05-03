@@ -120,12 +120,8 @@ public:
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
-      , mkldnn::engine &engine) : 
-              size_(std::accumulate(dims.begin(), dims.end(), 1
-                    , std::multiplies<mkldnn::memory::dims::value_type>()))
-              , data_(new avx::byte [size_ * 4])
-              , m_({{dims, dt, format}, engine}, data_.get())
-              , desc_(nullptr), view_(nullptr), rtti(raw) {}
+      , mkldnn::engine &engine)
+    : mdarray({{dims, dt, format}, engine}) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
     : size_([] (mkldnn::memory::primitive_desc &pd) {
@@ -133,7 +129,7 @@ public:
                     return std::accumulate(md.dims, md.dims + md.ndims, 1
                         , std::multiplies<int>());
                   }(pd))
-              , data_(new avx::byte [size_ * 4])
+              , data_(new avx::byte [size_ * _itemsize_from_pd(pd)])
               , m_(pd, data_.get())
               , desc_(nullptr), view_(nullptr), rtti(raw) {}
   
@@ -149,7 +145,7 @@ public:
              } else
                return std::unique_ptr<avx::byte []>(nullptr);
            } (view))
-          , m_({d_from_view(view, format), e}
+          , m_({_d_from_view(view, format), e}
               , data_ == nullptr? view->buf : data_.get())
           , desc_(nullptr), view_(view), rtti(raw) {
     if (data_ != nullptr) {
@@ -254,43 +250,42 @@ public:
 private:
   // Private helpers
   void _collect_buffer_info() {
-    if (desc_ == nullptr)
+    // XXX: Do we need collect information every time?
+    if (desc_ == nullptr) {
       desc_ = std::unique_ptr<_data_desc>(new _data_desc);
 
-    // XXX: Do we need collect information every time?
-    // For safety we do now.
+      auto md = m_.get_primitive_desc().desc();
+      int ndims = md.data.ndims;
 
-    auto md = m_.get_primitive_desc().desc();
-    int ndims = md.data.ndims;
+      desc_->ndims = ndims;
+      switch(md.data.data_type) {
+        case mkldnn::memory::f32:
+          strcpy(desc_->format, "f");
+          desc_->itemsize = 4;
+          break;
+        case mkldnn::memory::s32:
+          strcpy(desc_->format, "i");
+          desc_->itemsize = 4;
+          break;
+        default:
+          break;
+      }
 
-    desc_->ndims = ndims;
-    switch(md.data.data_type) {
-      case mkldnn::memory::f32:
-        strcpy(desc_->format, "f");
-        desc_->itemsize = 4;
-        break;
-      case mkldnn::memory::s32:
-        strcpy(desc_->format, "i");
-        desc_->itemsize = 4;
-        break;
-      default:
-        break;
-    }
+      // XXX: figure this out
+      for (int i = 0; i < ndims; i ++) {
+        desc_->shape[i] = md.data.dims[i];
+      }
 
-    // XXX: figure this out
-    for (int i = 0; i < ndims; i ++) {
-      desc_->shape[i] = md.data.dims[i];
-    }
+      Py_ssize_t sd = desc_->itemsize;
 
-    Py_ssize_t sd = desc_->itemsize;
-
-    for (int i = ndims -1; i >= 0; --i) {
-      desc_->strides[i] = sd;
-      sd *= desc_->shape[i];
+      for (int i = ndims -1; i >= 0; --i) {
+        desc_->strides[i] = sd;
+        sd *= desc_->shape[i];
+      }
     }
   }
 
-  mkldnn::memory::desc d_from_view(Py_buffer *view
+  static mkldnn::memory::desc _d_from_view(Py_buffer *view
       , mkldnn::memory::format order) {
     mkldnn::memory::dims dims (view->ndim);
 
@@ -314,6 +309,21 @@ private:
           , "MKLDNN does not support itemsize other than 4");
 
     return mkldnn::memory::desc(dims, dt, order);
+  }
+
+  static int _itemsize_from_pd(mkldnn::memory::primitive_desc &pd) {
+    int ret;
+    switch(pd.desc().data.data_type) {
+    case mkldnn::memory::f32:
+    case mkldnn::memory::s32:
+      ret = 4;
+      break;
+    default:
+      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+        , std::string("MKLDNN does not support data type: undef"));
+      break;
+    }
+    return ret;
   }
 };
 
