@@ -33,9 +33,9 @@ class Pooling2D(function.Function):
         if stride is None:
             stride = ksize
 
-        self.kh, self.kw = _pair(int(ksize))
-        self.sy, self.sx = _pair(int(stride))
-        self.ph, self.pw = _pair(int(pad))
+        self.kh, self.kw = _pair(ksize)
+        self.sy, self.sx = _pair(stride)
+        self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
         self.use_cudnn = use_cudnn
