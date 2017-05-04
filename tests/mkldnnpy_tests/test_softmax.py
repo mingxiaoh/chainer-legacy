@@ -5,22 +5,19 @@ import chainer.testing.condition as condition
 from chainer import functions as F
 from chainer import mkld
 
+@testing.parameterize(*testing.product({
+    'dims': [(2, 3), (1, 6), (3, 2), (3, 4), (4, 3), (2, 6), (6, 2)]
+}))
+
 class TestSoftmax(unittest.TestCase):
-    def setUp(self):
-        self.dims = [(2, 3), (1, 6)]
-
-    def tearDown(self):
-        self.dims = None
-
     def check_softmax(self):
-        for dim1, dim2 in self.dims:
-            x_2d = np.random.rand(dim1, dim2).astype('f')
-            mkld.enable_softmax = True
-            y_2d = F.softmax(x_2d, use_cudnn=False)
-            mkld.enable_softmax = False
-            y_2d_expect = F.softmax(x_2d, use_cudnn=False)
-            testing.assert_allclose(y_2d.data, y_2d_expect.data)
-
+        x_2d = np.random.rand(self.dims[0], self.dims[1]).astype('f')
+        mkld.enable_softmax = True
+        y_2d = F.softmax(x_2d, use_cudnn=False)
+        mkld.enable_softmax = False
+        y_2d_expect = F.softmax(x_2d, use_cudnn=False)
+        testing.assert_allclose(y_2d.data, y_2d_expect.data)
+        
     @condition.retry(3)
     def test_cpu(self):
         self.check_softmax()

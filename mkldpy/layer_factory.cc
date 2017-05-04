@@ -96,6 +96,14 @@ static std::string double_to_string(double value)
     os << "D" << value << "_";
     return os.str();
 }
+
+static std::string bool_to_string(bool value)
+{
+    std::ostringstream os;
+    os << "D" << value << "_";
+    return os.str();
+}
+
 // end of helper functions
 
 using namespace mkldnn;
@@ -503,6 +511,72 @@ void LayerFactory<T>::set_linear_layer(
     key += int_to_string(b_d1);
     return set_layer(key, layer);
 }
+
+#define BATCH_NORMALIZATION_PREFIX "bn_"
+template<typename T>
+Layer<T>* LayerFactory<T>::get_batch_normalization_layer(
+    int       x_d1,
+    int       x_d2,
+    int       x_d3,
+    int       x_d4,
+    int       W_d1,
+    int       W_d2,
+    int       mean_d1,
+    double    eps,
+    bool      is_training,
+    bool      has_weights,
+    bool      fixed_mean_var)
+{
+    std::string key = BATCH_NORMALIZATION_PREFIX;
+
+    key += int_to_string(x_d1);
+    key += int_to_string(x_d2);
+    key += int_to_string(x_d3);
+    key += int_to_string(x_d4);
+    key += int_to_string(W_d1);
+    key += int_to_string(W_d2);
+    key += int_to_string(mean_d1);
+    key += double_to_string(eps);
+    key += bool_to_string(is_training);
+    key += bool_to_string(has_weights);
+    key += bool_to_string(fixed_mean_var);
+
+    return get_layer(key);
+}
+
+template<typename T>
+void LayerFactory<T>::set_batch_normalization_layer(
+    int       x_d1,
+    int       x_d2,
+    int       x_d3,
+    int       x_d4,
+    int       W_d1,
+    int       W_d2,
+    int       mean_d1,
+    double    eps,
+    bool      is_training,
+    bool      has_weights,
+    bool      fixed_mean_var,
+    Layer<T>* layer)
+{
+    std::string key = BATCH_NORMALIZATION_PREFIX;
+
+    key += int_to_string(x_d1);
+    key += int_to_string(x_d2);
+    key += int_to_string(x_d3);
+    key += int_to_string(x_d4);
+    key += int_to_string(W_d1);
+    key += int_to_string(W_d2);
+    key += int_to_string(mean_d1);
+    key += double_to_string(eps);
+    key += bool_to_string(is_training);
+    key += bool_to_string(has_weights);
+    key += bool_to_string(fixed_mean_var);
+
+    return set_layer(key, layer);
+}
+
+
 
 template class LayerFactory<float>;
 
