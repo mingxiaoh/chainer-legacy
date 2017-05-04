@@ -77,7 +77,7 @@ unsigned char dummy[PAGE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 
 int global_init()
 {
-    google::SetStderrLogging(0);
+    google::SetStderrLogging(1);
     google::InitGoogleLogging("mkldnnpy");
 
     LOG(INFO) << "Global Init";
