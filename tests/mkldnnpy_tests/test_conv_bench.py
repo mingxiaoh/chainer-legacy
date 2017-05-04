@@ -12,9 +12,9 @@ count = 0
 niter = 13
 n_dry = 3
 
-data = np.ndarray((batch, 3, 2240, 2240), dtype=np.float32)
+data = np.ndarray((batch, 3, 224, 224), dtype=np.float32)
 data.fill(333.33)
-y_grad = np.ones((batch, 64, 1120, 1120), dtype=np.float32)
+y_grad = np.ones((batch, 64, 112, 112), dtype=np.float32)
 
 conv = L.Convolution2D(3, 64, 7, stride=2, pad=3)
 x = Variable(data)

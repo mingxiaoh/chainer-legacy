@@ -4,9 +4,10 @@ import six
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-from mkldnn import mkldnn
-from mkldnn import switch
+from chainer import mkld
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 class Concat(function.Function):
 
@@ -42,7 +43,7 @@ class Concat(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        if switch.enable_concatF((xs,)) and self.axis == 1 and xs[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in xs):
+        if mkld.enable_concatF((xs,)) and self.axis == 1 and xs[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in xs):
             out_c = 0
             xs_new = ()
 
@@ -79,7 +80,7 @@ class Concat(function.Function):
     def backward(self, xs, gy):
         if len(xs) == 1:
             return gy
-        if switch.enable_concatF((xs, gy)) and self.axis == 1 and xs[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in xs):
+        if mkld.enable_concatF((xs, gy)) and self.axis == 1 and xs[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in xs):
             # x should have same shape as xs
             xs_new = ()
             for xi in xs:

@@ -3,8 +3,7 @@ import unittest
 import chainer.functions as F
 import chainer.testing as testing
 import chainer.testing.condition as condition
-from mkldnn import switch
-
+from chainer import mkld
 
 @testing.parameterize(*testing.product({
     'dtype': [np.float32],
@@ -26,17 +25,17 @@ class TestLocalResponseNormalizationValidation(unittest.TestCase):
         self.lrn = F.LocalResponseNormalization(n, k, alpha, beta)
 
     def check_forward(self, x_data):
-        switch.enable_lrn = True
+        mkld.enable_lrn = True
         y = self.lrn.forward_cpu((x_data,))
         self.assertEqual(y[0].dtype, self.dtype)
-        switch.enable_lrn = False
+        mkld.enable_lrn = False
         y_expect = self.lrn.forward_cpu((x_data,))
         testing.assert_allclose(y_expect[0], y[0], **self.check_forward_optionss)
 
     def check_backward(self, x_data, y_grad):
-        switch.enable_lrn = True
+        mkld.enable_lrn = True
         gx = self.lrn.backward_cpu((x_data,), (y_grad,))
-        switch.enable_lrn = False
+        mkld.enable_lrn = False
         gx_expect = self.lrn.backward_cpu((x_data,), (y_grad,))
         testing.assert_allclose(gx_expect[0], gx[0], **self.check_backward_optionss)
 

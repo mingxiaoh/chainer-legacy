@@ -1,12 +1,11 @@
 import numpy
+import chainer
 
 from chainer import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
-from mkldnn import mkldnn as mkl
-from mkldnn import switch
-import chainer
+from chainer import mkld
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -14,6 +13,8 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
     _mode = libcudnn.CUDNN_ACTIVATION_RELU
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 class ReLU(function.Function):
 
@@ -30,18 +31,17 @@ class ReLU(function.Function):
         )
 
     def forward_cpu(self, x):
-        # if switch.enable_relu:
-        if switch.enable_reluF((x,)):
+        if mkld.enable_reluF((x,)):
             y = numpy.empty(x[0].shape, dtype=numpy.float32)
             if x[0].ndim == 4:
-                mkl.Relu4D_F32.do_forward(x[0], y)
+                mkldnn.Relu4D_F32.do_forward(x[0], y)
             else:
                 if chainer.is_debug():
                     print(x[0].flags)
                     print(x[0].shape)
                 in_x = x[0].ravel()
                 out_y = y.ravel()
-                mkl.Relu_F32.do_forward(in_x, out_y)
+                mkldnn.Relu_F32.do_forward(in_x, out_y)
             return utils.force_array(y),
         else:
             return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
@@ -57,11 +57,10 @@ class ReLU(function.Function):
         return y,
 
     def backward_cpu(self, x, gy):
-        # if switch.enable_relu:
-        if switch.enable_reluF((x, gy)):
+        if mkld.enable_reluF((x, gy)):
             gx = numpy.empty(x[0].shape, dtype=numpy.float32)
             if x[0].ndim == 4:
-                mkl.Relu4D_F32.do_backward(x[0], gy[0], gx)
+                mkldnn.Relu4D_F32.do_backward(x[0], gy[0], gx)
             else:
                 if chainer.is_debug():
                     print(x[0].flags)
@@ -69,7 +68,7 @@ class ReLU(function.Function):
                 in_x = x[0].ravel()
                 in_gy = gy[0].ravel()
                 out_gx = gx.ravel()
-                mkl.Relu_F32.do_backward(in_x, in_gy, out_gx)
+                mkldnn.Relu_F32.do_backward(in_x, in_gy, out_gx)
             return utils.force_array(gx),
         else:
             return utils.force_array(gy[0] * (x[0] > 0)),

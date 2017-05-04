@@ -3,8 +3,7 @@ import unittest
 import chainer.testing as testing
 import chainer.testing.condition as condition
 from chainer import functions as F
-from mkldnn import switch
-
+from chainer import mkld
 
 class TestRelu(unittest.TestCase):
     def setUp(self):
@@ -20,12 +19,12 @@ class TestRelu(unittest.TestCase):
         self.b = None
 
     def check_relu(self):
-        switch.enable_relu = True
+        mkld.enable_relu = True
         f_relu = F.ReLU(False)
         res = f_relu.forward_cpu(self.x)
         gy = self.x
         res_b = f_relu.backward_cpu(self.x, gy)
-        switch.enable_relu = False
+        mkld.enable_relu = False
         f_relu = F.ReLU(False)
         gy = self.x
         res_expect = f_relu.forward_cpu(self.x)
