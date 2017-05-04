@@ -3,8 +3,7 @@ import unittest
 import chainer.functions as F
 import chainer.testing as testing
 import chainer.testing.condition as condition
-from mkldnn import switch
-
+from chainer import mkld
 
 class TestMaxpool3(unittest.TestCase):
     def setUp(self):
@@ -19,16 +18,16 @@ class TestMaxpool3(unittest.TestCase):
         self.x = None
 
     def check_maxpool3(self):
-        switch.enable_max_pooling = True
+        mkld.enable_max_pooling = True
         y1 = F.max_pooling_2d(self.x, 3, stride=2, pad=1, cover_all=False)
-        switch.enable_max_pooling = False
+        mkld.enable_max_pooling = False
         y2 = F.max_pooling_2d(self.x, 3, stride=2, pad=1, cover_all=False)
         # self.assertTrue(np.array_equal(y1.data, y2.data))
         testing.assert_allclose(y1.data, y2.data)
 
-        switch.enable_max_pooling = True
+        mkld.enable_max_pooling = True
         y1 = F.max_pooling_2d(self.x, 3, stride=2, pad=1, cover_all=True)
-        switch.enable_max_pooling = False
+        mkld.enable_max_pooling = False
         y2 = F.max_pooling_2d(self.x, 3, stride=2, pad=1, cover_all=True)
         # self.assertTrue(np.array_equal(y1.data, y2.data))
         testing.assert_allclose(y1.data, y2.data)

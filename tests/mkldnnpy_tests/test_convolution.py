@@ -3,8 +3,7 @@ import unittest
 import chainer.links as L
 import chainer.testing as testing
 import chainer.testing.condition as condition
-from mkldnn import switch
-
+from chainer import mkld
 
 class TestConvolution(unittest.TestCase):
     def setUp(self):
@@ -27,9 +26,9 @@ class TestConvolution(unittest.TestCase):
         self.W = None
 
     def check_convolution(self):
-        switch.enable_conv = True
+        mkld.enable_conv = True
         result = self.chainer_conv(self.x)
-        switch.enable_conv = False
+        mkld.enable_conv = False
         result_expect = self.chainer_conv(self.x)
         testing.assert_allclose(result.data, result_expect.data)
 

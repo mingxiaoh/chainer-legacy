@@ -1,10 +1,12 @@
 import chainer.functions as F
 import numpy as np
 import time
-from mkldnn import mkldnn
-from mkldnn import switch
 
-switch.enable_softmax_cross_entropy = True
+from chainer import mkld
+
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
+mkld.enable_softmax_cross_entropy = True
 
 # Accuracy Test
 mkldnn.set_mkldnn_enable(True)

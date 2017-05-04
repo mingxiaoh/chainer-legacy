@@ -4,9 +4,7 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
-from mkldnn import mkldnn
-from mkldnn import switch
-
+from chainer import mkld
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -19,6 +17,8 @@ if cuda.cudnn_enabled:
         _bwd_data_pref = \
             libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 def _check_cudnn_acceptable_type(x_dtype, W_dtype):
     return x_dtype == W_dtype and (
@@ -74,7 +74,7 @@ class Convolution2DFunction(function.Function):
         """
         For mkldnn backend, only support float32 for x and W
         """
-        if switch.enable_convF(inputs):
+        if mkld.enable_convF(inputs):
             out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph, cover_all=self.cover_all)
             assert out_h > 0, 'Height in the output should be positive.'
             out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw, cover_all=self.cover_all)
@@ -180,7 +180,7 @@ class Convolution2DFunction(function.Function):
         """
         For MKLDNN backward, only support float32
         """
-        if switch.enable_convF(inputs):
+        if mkld.enable_convF(inputs):
             gW = numpy.empty(shape=(out_c, input_c, kh, kw), dtype=W.dtype)
             gx = numpy.empty(shape=(n, c, h, w), dtype=W.dtype)
             if b is None:

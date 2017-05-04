@@ -2,9 +2,10 @@ import numpy
 
 from chainer import function
 from chainer.utils import type_check
-from mkldnn import mkldnn
-from mkldnn import switch
+from chainer import mkld
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 def _as_mat(x):
     if x.ndim == 2:
@@ -13,11 +14,6 @@ def _as_mat(x):
 
 
 class LinearFunction(function.Function):
-    def __init__(self, linear_link=None):
-        if switch.enable_linear and linear_link is None:
-            assert "linear_link can not be None in mkldnn enabled mode"
-        self.linear_link = linear_link
-
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -42,7 +38,7 @@ class LinearFunction(function.Function):
         x = _as_mat(inputs[0])
         W = inputs[1]
         b = inputs[2] if len(inputs) == 3 else None
-        if switch.enable_linearF(inputs) and isinstance(x, numpy.ndarray):
+        if mkld.enable_linearF(inputs) and isinstance(x, numpy.ndarray):
             y = numpy.empty(shape=(x.shape[0], W.shape[0]), dtype=W.dtype)
             if b is not None:
                 mkldnn.Linear_F32.do_forward(x, W, b, y)
@@ -63,7 +59,7 @@ class LinearFunction(function.Function):
         """
         For MKLDNN backward, only support float32
         """
-        if switch.enable_linearF(inputs) and isinstance(x, numpy.ndarray):
+        if mkld.enable_linearF(inputs) and isinstance(x, numpy.ndarray):
             gW = numpy.empty(shape=W.shape, dtype=W.dtype)
             gx = numpy.empty(shape=x.shape, dtype=W.dtype)
             if b is not None:
@@ -121,6 +117,6 @@ def linear(x, W, b=None, linear_link=None):
 
     """
     if b is None:
-        return LinearFunction(linear_link)(x, W)
+        return LinearFunction()(x, W)
     else:
-        return LinearFunction(linear_link)(x, W, b)
+        return LinearFunction()(x, W, b)

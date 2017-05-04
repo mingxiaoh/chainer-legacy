@@ -3,13 +3,14 @@ import numpy
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-from mkldnn import mkldnn as mkl
-from mkldnn import switch
+from chainer import mkld
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 class MaxPooling2D(pooling_2d.Pooling2D):
 
@@ -18,7 +19,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     def forward_cpu(self, x):
         # if switch.enable_max_pooling:
         # we can only handle none cover_all situation
-        if switch.enable_max_poolingF((x,)):
+        if mkld.enable_max_poolingF((x,)):
             n, c, h, w = x[0].shape
             y_h = conv.get_conv_outsize(
                 h, self.kh, self.sy, self.ph, self.cover_all)
@@ -29,7 +30,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
             y = numpy.empty((n, c, y_h, y_w), dtype=x[0].dtype)
             self.indexes = numpy.empty((n, c, y_h, y_w), dtype=numpy.int32)
 
-            mkl.MaxPooling_F32.do_forward(
+            mkldnn.MaxPooling_F32.do_forward(
                                     x[0], y, self.indexes,
                                     self.sy, self.sx,
                                     self.ph, self.pd, self.pw, self.pr,
@@ -100,11 +101,11 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward_cpu(self, x, gy):
-        if switch.enable_max_poolingF((x, gy)):
+        if mkld.enable_max_poolingF((x, gy)):
             n, c, h, w = x[0].shape
             gx = numpy.empty((n, c, h, w), dtype=x[0].dtype)
 
-            mkl.MaxPooling_F32.do_backward(
+            mkldnn.MaxPooling_F32.do_backward(
                                     gy[0], x[0], gx, self.indexes,
                                     self.sy, self.sx,
                                     self.ph, self.pd, self.pw, self.pr,
