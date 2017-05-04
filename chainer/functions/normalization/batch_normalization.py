@@ -106,6 +106,7 @@ class BatchNormalizationFunction(function.Function):
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
         self.cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
+        self.mkldnn_dim_ok = x.ndim == 2 or x.ndim == 4
 
         cudnn_updated_running_stats = False
         if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
@@ -156,7 +157,7 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
-        elif switch.enable_batch_normalizationF((x,)):
+        elif switch.enable_batch_normalizationF((x,)) and self.mkldnn_dim_ok:
             self.expand_dim = False
             if x.ndim == 2:
                 self.expand_dim = True
@@ -283,7 +284,7 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
-        elif switch.enable_batch_normalizationF((x,)):
+        elif switch.enable_batch_normalizationF((x,)) and self.mkldnn_dim_ok:
             if self.expand_dim:
                 assert x.ndim == 2
                 x = x[:, :, None, None]
