@@ -34,6 +34,8 @@ enable_linear = True
 enable_softmax_cross_entropy = False
 enable_concat = True
 enable_acc_grad = True
+enable_batch_normalization = True
+
 supportTypes = (numpy.float32,)
 
 def SupportedInput(tul):
@@ -87,3 +89,7 @@ def enable_concatF(tul):
 
 def enable_acc_gradF(tul):
         return mkldnn_enabled and SupportedInput(tul) and enable_acc_grad
+
+
+def enable_batch_normalizationF(tul):
+        return mkldnn_enabled and SupportedInput(tul) and enable_batch_normalization

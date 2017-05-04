@@ -390,6 +390,36 @@ def LocalResponseNormalization_F32_do_backward(*args):
   return _mkldnn.LocalResponseNormalization_F32_do_backward(*args)
 LocalResponseNormalization_F32_do_backward = _mkldnn.LocalResponseNormalization_F32_do_backward
 
+class BatchNormalization_F32(Layer_F32):
+    __swig_setmethods__ = {}
+    for _s in [Layer_F32]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, BatchNormalization_F32, name, value)
+    __swig_getmethods__ = {}
+    for _s in [Layer_F32]: __swig_getmethods__.update(getattr(_s,'__swig_getmethods__',{}))
+    __getattr__ = lambda self, name: _swig_getattr(self, BatchNormalization_F32, name)
+    __repr__ = _swig_repr
+    def __init__(self, *args): 
+        this = _mkldnn.new_BatchNormalization_F32(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _mkldnn.delete_BatchNormalization_F32
+    __del__ = lambda self : None;
+    def forward(self): return _mkldnn.BatchNormalization_F32_forward(self)
+    __swig_getmethods__["do_forward"] = lambda x: _mkldnn.BatchNormalization_F32_do_forward
+    if _newclass:do_forward = staticmethod(_mkldnn.BatchNormalization_F32_do_forward)
+    __swig_getmethods__["do_backward"] = lambda x: _mkldnn.BatchNormalization_F32_do_backward
+    if _newclass:do_backward = staticmethod(_mkldnn.BatchNormalization_F32_do_backward)
+BatchNormalization_F32_swigregister = _mkldnn.BatchNormalization_F32_swigregister
+BatchNormalization_F32_swigregister(BatchNormalization_F32)
+
+def BatchNormalization_F32_do_forward(*args):
+  return _mkldnn.BatchNormalization_F32_do_forward(*args)
+BatchNormalization_F32_do_forward = _mkldnn.BatchNormalization_F32_do_forward
+
+def BatchNormalization_F32_do_backward(*args):
+  return _mkldnn.BatchNormalization_F32_do_backward(*args)
+BatchNormalization_F32_do_backward = _mkldnn.BatchNormalization_F32_do_backward
+
 class Linear_F32(Layer_F32):
     __swig_setmethods__ = {}
     for _s in [Layer_F32]: __swig_setmethods__.update(getattr(_s,'__swig_setmethods__',{}))

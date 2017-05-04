@@ -2935,30 +2935,31 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 /* -------- TYPES TABLE (BEGIN) -------- */
 
 #define SWIGTYPE_p_AvgPoolingT_float_t swig_types[0]
-#define SWIGTYPE_p_ConcatT_float_t swig_types[1]
-#define SWIGTYPE_p_ConcatT_float_t__concat_data swig_types[2]
-#define SWIGTYPE_p_Convolution2DT_float_t swig_types[3]
-#define SWIGTYPE_p_LayerT_float_t swig_types[4]
-#define SWIGTYPE_p_LocalResponseNormalizationT_float_t swig_types[5]
-#define SWIGTYPE_p_MKLDNNLinearT_float_t swig_types[6]
-#define SWIGTYPE_p_MaxPoolingT_float_t swig_types[7]
-#define SWIGTYPE_p_PoolingT_float_t swig_types[8]
-#define SWIGTYPE_p_Relu4DT_float_t swig_types[9]
-#define SWIGTYPE_p_ReluT_float_t swig_types[10]
-#define SWIGTYPE_p_SoftmaxCrossEntropyT_float_t swig_types[11]
-#define SWIGTYPE_p_SoftmaxT_float_t swig_types[12]
-#define SWIGTYPE_p_SumT_float_t swig_types[13]
-#define SWIGTYPE_p_SumT_float_t__sum_data swig_types[14]
-#define SWIGTYPE_p_T swig_types[15]
-#define SWIGTYPE_p_char swig_types[16]
-#define SWIGTYPE_p_float swig_types[17]
-#define SWIGTYPE_p_int swig_types[18]
-#define SWIGTYPE_p_mkldnn__algorithm swig_types[19]
-#define SWIGTYPE_p_p_char swig_types[20]
-#define SWIGTYPE_p_std__shared_ptrT_mkldnn__memory_t swig_types[21]
-#define SWIGTYPE_p_unsigned_char swig_types[22]
-static swig_type_info *swig_types[24];
-static swig_module_info swig_module = {swig_types, 23, 0, 0, 0, 0};
+#define SWIGTYPE_p_BatchNormalizationT_float_t swig_types[1]
+#define SWIGTYPE_p_ConcatT_float_t swig_types[2]
+#define SWIGTYPE_p_ConcatT_float_t__concat_data swig_types[3]
+#define SWIGTYPE_p_Convolution2DT_float_t swig_types[4]
+#define SWIGTYPE_p_LayerT_float_t swig_types[5]
+#define SWIGTYPE_p_LocalResponseNormalizationT_float_t swig_types[6]
+#define SWIGTYPE_p_MKLDNNLinearT_float_t swig_types[7]
+#define SWIGTYPE_p_MaxPoolingT_float_t swig_types[8]
+#define SWIGTYPE_p_PoolingT_float_t swig_types[9]
+#define SWIGTYPE_p_Relu4DT_float_t swig_types[10]
+#define SWIGTYPE_p_ReluT_float_t swig_types[11]
+#define SWIGTYPE_p_SoftmaxCrossEntropyT_float_t swig_types[12]
+#define SWIGTYPE_p_SoftmaxT_float_t swig_types[13]
+#define SWIGTYPE_p_SumT_float_t swig_types[14]
+#define SWIGTYPE_p_SumT_float_t__sum_data swig_types[15]
+#define SWIGTYPE_p_T swig_types[16]
+#define SWIGTYPE_p_char swig_types[17]
+#define SWIGTYPE_p_float swig_types[18]
+#define SWIGTYPE_p_int swig_types[19]
+#define SWIGTYPE_p_mkldnn__algorithm swig_types[20]
+#define SWIGTYPE_p_p_char swig_types[21]
+#define SWIGTYPE_p_std__shared_ptrT_mkldnn__memory_t swig_types[22]
+#define SWIGTYPE_p_unsigned_char swig_types[23]
+static swig_type_info *swig_types[25];
+static swig_module_info swig_module = {swig_types, 24, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -3068,6 +3069,7 @@ namespace swig {
     #include "relu.h"
     #include "softmax.h"
     #include "lrn.h"
+    #include "batch_normalization.h"
     #include "softmax_cross_entropy.h"
     #include "concat.h"
     #include "sum.h"
@@ -11812,6 +11814,479 @@ SWIGINTERN PyObject *LocalResponseNormalization_F32_swigregister(PyObject *SWIGU
   return SWIG_Py_Void();
 }
 
+SWIGINTERN PyObject *_wrap_new_BatchNormalization_F32(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  bool arg2 ;
+  bool arg3 ;
+  bool arg4 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  bool val2 ;
+  int ecode2 = 0 ;
+  bool val3 ;
+  int ecode3 = 0 ;
+  bool val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  BatchNormalization< float > *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:new_BatchNormalization_F32",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "new_BatchNormalization_F32" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = static_cast< double >(val1);
+  ecode2 = SWIG_AsVal_bool(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "new_BatchNormalization_F32" "', argument " "2"" of type '" "bool""'");
+  } 
+  arg2 = static_cast< bool >(val2);
+  ecode3 = SWIG_AsVal_bool(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "new_BatchNormalization_F32" "', argument " "3"" of type '" "bool""'");
+  } 
+  arg3 = static_cast< bool >(val3);
+  ecode4 = SWIG_AsVal_bool(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "new_BatchNormalization_F32" "', argument " "4"" of type '" "bool""'");
+  } 
+  arg4 = static_cast< bool >(val4);
+  result = (BatchNormalization< float > *)new BatchNormalization< float >(arg1,arg2,arg3,arg4);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_BatchNormalizationT_float_t, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_BatchNormalization_F32(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  BatchNormalization< float > *arg1 = (BatchNormalization< float > *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_BatchNormalization_F32",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_BatchNormalizationT_float_t, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_BatchNormalization_F32" "', argument " "1"" of type '" "BatchNormalization< float > *""'"); 
+  }
+  arg1 = reinterpret_cast< BatchNormalization< float > * >(argp1);
+  delete arg1;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_BatchNormalization_F32_forward(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  BatchNormalization< float > *arg1 = (BatchNormalization< float > *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:BatchNormalization_F32_forward",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_BatchNormalizationT_float_t, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "BatchNormalization_F32_forward" "', argument " "1"" of type '" "BatchNormalization< float > *""'"); 
+  }
+  arg1 = reinterpret_cast< BatchNormalization< float > * >(argp1);
+  result = (int)(arg1)->forward();
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_BatchNormalization_F32_do_forward(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  float *arg1 = (float *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  int arg4 ;
+  int arg5 ;
+  float *arg6 = (float *) 0 ;
+  int arg7 ;
+  int arg8 ;
+  int arg9 ;
+  int arg10 ;
+  float *arg11 = (float *) 0 ;
+  int arg12 ;
+  int arg13 ;
+  float *arg14 = (float *) 0 ;
+  int arg15 ;
+  float *arg16 = (float *) 0 ;
+  int arg17 ;
+  double arg18 ;
+  bool arg19 ;
+  bool arg20 ;
+  bool arg21 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
+  PyArrayObject *array6 = NULL ;
+  PyArrayObject *array11 = NULL ;
+  int is_new_object11 = 0 ;
+  PyArrayObject *array14 = NULL ;
+  int i14 = 1 ;
+  PyArrayObject *array16 = NULL ;
+  int i16 = 1 ;
+  double val18 ;
+  int ecode18 = 0 ;
+  bool val19 ;
+  int ecode19 = 0 ;
+  bool val20 ;
+  int ecode20 = 0 ;
+  bool val21 ;
+  int ecode21 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  PyObject * obj7 = 0 ;
+  PyObject * obj8 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOO:BatchNormalization_F32_do_forward",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8)) SWIG_fail;
+  {
+    npy_intp size[4] = {
+      -1, -1, -1, -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0, NPY_FLOAT,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 4) ||
+      !require_size(array1, size, 4)) SWIG_fail;
+    arg1 = (float*) array_data(array1);
+    arg2 = (int) array_size(array1,0);
+    arg3 = (int) array_size(array1,1);
+    arg4 = (int) array_size(array1,2);
+    arg5 = (int) array_size(array1,3);
+  }
+  {
+    array6 = obj_to_array_no_conversion(obj1, NPY_FLOAT);
+    if (!array6 || !require_dimensions(array6,4) || !require_contiguous(array6) ||
+      !require_native(array6)) SWIG_fail;
+    arg6 = (float*) array_data(array6);
+    arg7 = (int) array_size(array6,0);
+    arg8 = (int) array_size(array6,1);
+    arg9 = (int) array_size(array6,2);
+    arg10 = (int) array_size(array6,3);
+  }
+  {
+    npy_intp size[2] = {
+      -1, -1 
+    };
+    array11 = obj_to_array_contiguous_allow_conversion(obj2, NPY_FLOAT,
+      &is_new_object11);
+    if (!array11 || !require_dimensions(array11, 2) ||
+      !require_size(array11, size, 2)) SWIG_fail;
+    arg11 = (float*) array_data(array11);
+    arg12 = (int) array_size(array11,0);
+    arg13 = (int) array_size(array11,1);
+  }
+  {
+    array14 = obj_to_array_no_conversion(obj3, NPY_FLOAT);
+    if (!array14 || !require_dimensions(array14,1) || !require_contiguous(array14)
+      || !require_native(array14)) SWIG_fail;
+    arg14 = (float*) array_data(array14);
+    arg15 = 1;
+    for (i14=0; i14 < array_numdims(array14); ++i14) arg15 *= array_size(array14,i14);
+  }
+  {
+    array16 = obj_to_array_no_conversion(obj4, NPY_FLOAT);
+    if (!array16 || !require_dimensions(array16,1) || !require_contiguous(array16)
+      || !require_native(array16)) SWIG_fail;
+    arg16 = (float*) array_data(array16);
+    arg17 = 1;
+    for (i16=0; i16 < array_numdims(array16); ++i16) arg17 *= array_size(array16,i16);
+  }
+  ecode18 = SWIG_AsVal_double(obj5, &val18);
+  if (!SWIG_IsOK(ecode18)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode18), "in method '" "BatchNormalization_F32_do_forward" "', argument " "18"" of type '" "double""'");
+  } 
+  arg18 = static_cast< double >(val18);
+  ecode19 = SWIG_AsVal_bool(obj6, &val19);
+  if (!SWIG_IsOK(ecode19)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode19), "in method '" "BatchNormalization_F32_do_forward" "', argument " "19"" of type '" "bool""'");
+  } 
+  arg19 = static_cast< bool >(val19);
+  ecode20 = SWIG_AsVal_bool(obj7, &val20);
+  if (!SWIG_IsOK(ecode20)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode20), "in method '" "BatchNormalization_F32_do_forward" "', argument " "20"" of type '" "bool""'");
+  } 
+  arg20 = static_cast< bool >(val20);
+  ecode21 = SWIG_AsVal_bool(obj8, &val21);
+  if (!SWIG_IsOK(ecode21)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode21), "in method '" "BatchNormalization_F32_do_forward" "', argument " "21"" of type '" "bool""'");
+  } 
+  arg21 = static_cast< bool >(val21);
+  BatchNormalization< float >::SWIGTEMPLATEDISAMBIGUATOR do_forward(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15,arg16,arg17,arg18,arg19,arg20,arg21);
+  resultobj = SWIG_Py_Void();
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object11 && array11)
+    {
+      Py_DECREF(array11); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object11 && array11)
+    {
+      Py_DECREF(array11); 
+    }
+  }
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_BatchNormalization_F32_do_backward(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  float *arg1 = (float *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  int arg4 ;
+  int arg5 ;
+  float *arg6 = (float *) 0 ;
+  int arg7 ;
+  int arg8 ;
+  float *arg9 = (float *) 0 ;
+  int arg10 ;
+  float *arg11 = (float *) 0 ;
+  int arg12 ;
+  float *arg13 = (float *) 0 ;
+  int arg14 ;
+  int arg15 ;
+  int arg16 ;
+  int arg17 ;
+  float *arg18 = (float *) 0 ;
+  int arg19 ;
+  int arg20 ;
+  int arg21 ;
+  int arg22 ;
+  float *arg23 = (float *) 0 ;
+  int arg24 ;
+  int arg25 ;
+  double arg26 ;
+  bool arg27 ;
+  bool arg28 ;
+  bool arg29 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
+  PyArrayObject *array6 = NULL ;
+  int is_new_object6 = 0 ;
+  PyArrayObject *array9 = NULL ;
+  int i9 = 1 ;
+  PyArrayObject *array11 = NULL ;
+  int i11 = 1 ;
+  PyArrayObject *array13 = NULL ;
+  int is_new_object13 = 0 ;
+  PyArrayObject *array18 = NULL ;
+  PyArrayObject *array23 = NULL ;
+  int is_new_object23 = 0 ;
+  double val26 ;
+  int ecode26 = 0 ;
+  bool val27 ;
+  int ecode27 = 0 ;
+  bool val28 ;
+  int ecode28 = 0 ;
+  bool val29 ;
+  int ecode29 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  PyObject * obj7 = 0 ;
+  PyObject * obj8 = 0 ;
+  PyObject * obj9 = 0 ;
+  PyObject * obj10 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOOOO:BatchNormalization_F32_do_backward",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8,&obj9,&obj10)) SWIG_fail;
+  {
+    npy_intp size[4] = {
+      -1, -1, -1, -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0, NPY_FLOAT,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 4) ||
+      !require_size(array1, size, 4)) SWIG_fail;
+    arg1 = (float*) array_data(array1);
+    arg2 = (int) array_size(array1,0);
+    arg3 = (int) array_size(array1,1);
+    arg4 = (int) array_size(array1,2);
+    arg5 = (int) array_size(array1,3);
+  }
+  {
+    npy_intp size[2] = {
+      -1, -1 
+    };
+    array6 = obj_to_array_contiguous_allow_conversion(obj1, NPY_FLOAT,
+      &is_new_object6);
+    if (!array6 || !require_dimensions(array6, 2) ||
+      !require_size(array6, size, 2)) SWIG_fail;
+    arg6 = (float*) array_data(array6);
+    arg7 = (int) array_size(array6,0);
+    arg8 = (int) array_size(array6,1);
+  }
+  {
+    array9 = obj_to_array_no_conversion(obj2, NPY_FLOAT);
+    if (!array9 || !require_dimensions(array9,1) || !require_contiguous(array9)
+      || !require_native(array9)) SWIG_fail;
+    arg9 = (float*) array_data(array9);
+    arg10 = 1;
+    for (i9=0; i9 < array_numdims(array9); ++i9) arg10 *= array_size(array9,i9);
+  }
+  {
+    array11 = obj_to_array_no_conversion(obj3, NPY_FLOAT);
+    if (!array11 || !require_dimensions(array11,1) || !require_contiguous(array11)
+      || !require_native(array11)) SWIG_fail;
+    arg11 = (float*) array_data(array11);
+    arg12 = 1;
+    for (i11=0; i11 < array_numdims(array11); ++i11) arg12 *= array_size(array11,i11);
+  }
+  {
+    npy_intp size[4] = {
+      -1, -1, -1, -1 
+    };
+    array13 = obj_to_array_contiguous_allow_conversion(obj4, NPY_FLOAT,
+      &is_new_object13);
+    if (!array13 || !require_dimensions(array13, 4) ||
+      !require_size(array13, size, 4)) SWIG_fail;
+    arg13 = (float*) array_data(array13);
+    arg14 = (int) array_size(array13,0);
+    arg15 = (int) array_size(array13,1);
+    arg16 = (int) array_size(array13,2);
+    arg17 = (int) array_size(array13,3);
+  }
+  {
+    array18 = obj_to_array_no_conversion(obj5, NPY_FLOAT);
+    if (!array18 || !require_dimensions(array18,4) || !require_contiguous(array18) ||
+      !require_native(array18)) SWIG_fail;
+    arg18 = (float*) array_data(array18);
+    arg19 = (int) array_size(array18,0);
+    arg20 = (int) array_size(array18,1);
+    arg21 = (int) array_size(array18,2);
+    arg22 = (int) array_size(array18,3);
+  }
+  {
+    npy_intp size[2] = {
+      -1, -1 
+    };
+    array23 = obj_to_array_contiguous_allow_conversion(obj6, NPY_FLOAT,
+      &is_new_object23);
+    if (!array23 || !require_dimensions(array23, 2) ||
+      !require_size(array23, size, 2)) SWIG_fail;
+    arg23 = (float*) array_data(array23);
+    arg24 = (int) array_size(array23,0);
+    arg25 = (int) array_size(array23,1);
+  }
+  ecode26 = SWIG_AsVal_double(obj7, &val26);
+  if (!SWIG_IsOK(ecode26)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode26), "in method '" "BatchNormalization_F32_do_backward" "', argument " "26"" of type '" "double""'");
+  } 
+  arg26 = static_cast< double >(val26);
+  ecode27 = SWIG_AsVal_bool(obj8, &val27);
+  if (!SWIG_IsOK(ecode27)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode27), "in method '" "BatchNormalization_F32_do_backward" "', argument " "27"" of type '" "bool""'");
+  } 
+  arg27 = static_cast< bool >(val27);
+  ecode28 = SWIG_AsVal_bool(obj9, &val28);
+  if (!SWIG_IsOK(ecode28)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode28), "in method '" "BatchNormalization_F32_do_backward" "', argument " "28"" of type '" "bool""'");
+  } 
+  arg28 = static_cast< bool >(val28);
+  ecode29 = SWIG_AsVal_bool(obj10, &val29);
+  if (!SWIG_IsOK(ecode29)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode29), "in method '" "BatchNormalization_F32_do_backward" "', argument " "29"" of type '" "bool""'");
+  } 
+  arg29 = static_cast< bool >(val29);
+  BatchNormalization< float >::SWIGTEMPLATEDISAMBIGUATOR do_backward(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15,arg16,arg17,arg18,arg19,arg20,arg21,arg22,arg23,arg24,arg25,arg26,arg27,arg28,arg29);
+  resultobj = SWIG_Py_Void();
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object6 && array6)
+    {
+      Py_DECREF(array6); 
+    }
+  }
+  {
+    if (is_new_object13 && array13)
+    {
+      Py_DECREF(array13); 
+    }
+  }
+  {
+    if (is_new_object23 && array23)
+    {
+      Py_DECREF(array23); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object6 && array6)
+    {
+      Py_DECREF(array6); 
+    }
+  }
+  {
+    if (is_new_object13 && array13)
+    {
+      Py_DECREF(array13); 
+    }
+  }
+  {
+    if (is_new_object23 && array23)
+    {
+      Py_DECREF(array23); 
+    }
+  }
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *BatchNormalization_F32_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_BatchNormalizationT_float_t, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
 SWIGINTERN PyObject *_wrap_Linear_F32_do_forward__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   float *arg1 = (float *) 0 ;
@@ -14754,6 +15229,12 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"LocalResponseNormalization_F32_do_forward", _wrap_LocalResponseNormalization_F32_do_forward, METH_VARARGS, NULL},
 	 { (char *)"LocalResponseNormalization_F32_do_backward", _wrap_LocalResponseNormalization_F32_do_backward, METH_VARARGS, NULL},
 	 { (char *)"LocalResponseNormalization_F32_swigregister", LocalResponseNormalization_F32_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_BatchNormalization_F32", _wrap_new_BatchNormalization_F32, METH_VARARGS, NULL},
+	 { (char *)"delete_BatchNormalization_F32", _wrap_delete_BatchNormalization_F32, METH_VARARGS, NULL},
+	 { (char *)"BatchNormalization_F32_forward", _wrap_BatchNormalization_F32_forward, METH_VARARGS, NULL},
+	 { (char *)"BatchNormalization_F32_do_forward", _wrap_BatchNormalization_F32_do_forward, METH_VARARGS, NULL},
+	 { (char *)"BatchNormalization_F32_do_backward", _wrap_BatchNormalization_F32_do_backward, METH_VARARGS, NULL},
+	 { (char *)"BatchNormalization_F32_swigregister", BatchNormalization_F32_swigregister, METH_VARARGS, NULL},
 	 { (char *)"Linear_F32_do_forward", _wrap_Linear_F32_do_forward, METH_VARARGS, NULL},
 	 { (char *)"Linear_F32_do_backward", _wrap_Linear_F32_do_backward, METH_VARARGS, NULL},
 	 { (char *)"new_Linear_F32", _wrap_new_Linear_F32, METH_VARARGS, NULL},
@@ -14818,6 +15299,9 @@ static void *_p_SoftmaxT_float_tTo_p_LayerT_float_t(void *x, int *SWIGUNUSEDPARM
 static void *_p_LocalResponseNormalizationT_float_tTo_p_LayerT_float_t(void *x, int *SWIGUNUSEDPARM(newmemory)) {
     return (void *)((Layer< float > *)  ((LocalResponseNormalization< float > *) x));
 }
+static void *_p_BatchNormalizationT_float_tTo_p_LayerT_float_t(void *x, int *SWIGUNUSEDPARM(newmemory)) {
+    return (void *)((Layer< float > *)  ((BatchNormalization< float > *) x));
+}
 static void *_p_MKLDNNLinearT_float_tTo_p_LayerT_float_t(void *x, int *SWIGUNUSEDPARM(newmemory)) {
     return (void *)((Layer< float > *)  ((MKLDNNLinear< float > *) x));
 }
@@ -14831,6 +15315,7 @@ static void *_p_SumT_float_tTo_p_LayerT_float_t(void *x, int *SWIGUNUSEDPARM(new
     return (void *)((Layer< float > *)  ((Sum< float > *) x));
 }
 static swig_type_info _swigt__p_AvgPoolingT_float_t = {"_p_AvgPoolingT_float_t", "AvgPooling< float > *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_BatchNormalizationT_float_t = {"_p_BatchNormalizationT_float_t", "BatchNormalization< float > *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ConcatT_float_t = {"_p_ConcatT_float_t", "Concat< float > *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ConcatT_float_t__concat_data = {"_p_ConcatT_float_t__concat_data", "Concat< float >::concat_data *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_Convolution2DT_float_t = {"_p_Convolution2DT_float_t", "Convolution2D< float > *", 0, 0, (void*)0, 0};
@@ -14856,6 +15341,7 @@ static swig_type_info _swigt__p_unsigned_char = {"_p_unsigned_char", "unsigned c
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_AvgPoolingT_float_t,
+  &_swigt__p_BatchNormalizationT_float_t,
   &_swigt__p_ConcatT_float_t,
   &_swigt__p_ConcatT_float_t__concat_data,
   &_swigt__p_Convolution2DT_float_t,
@@ -14881,10 +15367,11 @@ static swig_type_info *swig_type_initial[] = {
 };
 
 static swig_cast_info _swigc__p_AvgPoolingT_float_t[] = {  {&_swigt__p_AvgPoolingT_float_t, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_BatchNormalizationT_float_t[] = {  {&_swigt__p_BatchNormalizationT_float_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ConcatT_float_t[] = {  {&_swigt__p_ConcatT_float_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ConcatT_float_t__concat_data[] = {  {&_swigt__p_ConcatT_float_t__concat_data, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_Convolution2DT_float_t[] = {  {&_swigt__p_Convolution2DT_float_t, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_LayerT_float_t[] = {  {&_swigt__p_LayerT_float_t, 0, 0, 0},  {&_swigt__p_Convolution2DT_float_t, _p_Convolution2DT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_PoolingT_float_t, _p_PoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_MaxPoolingT_float_t, _p_MaxPoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_AvgPoolingT_float_t, _p_AvgPoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_Relu4DT_float_t, _p_Relu4DT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_ReluT_float_t, _p_ReluT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SoftmaxT_float_t, _p_SoftmaxT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_LocalResponseNormalizationT_float_t, _p_LocalResponseNormalizationT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_MKLDNNLinearT_float_t, _p_MKLDNNLinearT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SoftmaxCrossEntropyT_float_t, _p_SoftmaxCrossEntropyT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_ConcatT_float_t, _p_ConcatT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SumT_float_t, _p_SumT_float_tTo_p_LayerT_float_t, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_LayerT_float_t[] = {  {&_swigt__p_Convolution2DT_float_t, _p_Convolution2DT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_PoolingT_float_t, _p_PoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_MaxPoolingT_float_t, _p_MaxPoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_Relu4DT_float_t, _p_Relu4DT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_ReluT_float_t, _p_ReluT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_AvgPoolingT_float_t, _p_AvgPoolingT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SoftmaxT_float_t, _p_SoftmaxT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_LocalResponseNormalizationT_float_t, _p_LocalResponseNormalizationT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_BatchNormalizationT_float_t, _p_BatchNormalizationT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_MKLDNNLinearT_float_t, _p_MKLDNNLinearT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SoftmaxCrossEntropyT_float_t, _p_SoftmaxCrossEntropyT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_ConcatT_float_t, _p_ConcatT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_SumT_float_t, _p_SumT_float_tTo_p_LayerT_float_t, 0, 0},  {&_swigt__p_LayerT_float_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_LocalResponseNormalizationT_float_t[] = {  {&_swigt__p_LocalResponseNormalizationT_float_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_MKLDNNLinearT_float_t[] = {  {&_swigt__p_MKLDNNLinearT_float_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_MaxPoolingT_float_t[] = {  {&_swigt__p_MaxPoolingT_float_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -14906,6 +15393,7 @@ static swig_cast_info _swigc__p_unsigned_char[] = {  {&_swigt__p_unsigned_char, 
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_AvgPoolingT_float_t,
+  _swigc__p_BatchNormalizationT_float_t,
   _swigc__p_ConcatT_float_t,
   _swigc__p_ConcatT_float_t__concat_data,
   _swigc__p_Convolution2DT_float_t,

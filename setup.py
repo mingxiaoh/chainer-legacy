@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from distutils.command.build_py import build_py
+from setuptools.command.install import install
 from setuptools import setup
 from setuptools.extension import Extension
 import numpy
@@ -13,6 +15,17 @@ install_requires = [
     'six>=1.9.0',
     'glog',
 ]
+
+class _build_py(build_py):
+    def run(self):
+        self.run_command('build_ext')
+        build_py.run(self)
+
+class _install(install):
+    def install(self):
+        print("run home made")
+        self.run_command('build_ext')
+        install.run(self)
 
 extensions = [
     Extension(
@@ -34,6 +47,7 @@ extensions = [
                 "mkldpy/softmax_cross_entropy.cc",
                 "mkldpy/sum.cc",
                 "mkldpy/utils.cc",
+                "mkldpy/batch_normalization.cc",
                 "mkldpy/mkldnn.i"
                 ],
         swig_opts=["-c++"],
@@ -91,6 +105,7 @@ setup(
               'mkldpy',
               ],
     ext_modules=extensions,
+    cmdclass={'build_py':_build_py, 'install':_install},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
