@@ -4,8 +4,7 @@ from chainer.functions.normalization import batch_normalization
 import chainer.testing as testing
 import chainer.testing.condition as condition
 import time
-from mkldnn import switch
-
+from chainer import mkld
 
 @testing.parameterize(*testing.product({
     'dtype': [np.float32],
@@ -28,7 +27,7 @@ class TestBatchNormalizationValidation(unittest.TestCase):
         self.check_backward_optionss = {'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, x):
-        switch.enable_batch_normalization = True
+        mkld.enable_batch_normalization = True
         self.func1 = batch_normalization.BatchNormalizationFunction(
             self.eps, self.mean, self.var, self.decay, False);
         start = time.time()
@@ -37,7 +36,7 @@ class TestBatchNormalizationValidation(unittest.TestCase):
         self.assertEqual(y[0].dtype, self.dtype)
         print("mkldnn timing:", end - start)
 
-        switch.enable_batch_normalization = False
+        mkld.enable_batch_normalization = False
         self.func2 = batch_normalization.BatchNormalizationFunction(
             self.eps, self.mean, self.var, self.decay, False);
         start = time.time()
@@ -54,14 +53,14 @@ class TestBatchNormalizationValidation(unittest.TestCase):
 
 
     def check_backward(self, x_data, y_grad):
-        switch.enable_batch_normalization = True
+        mkld.enable_batch_normalization = True
         start = time.time()
         (gx, ggamma, gbeta) = self.func1.backward(
             (x_data, self.gamma, self.beta), (y_grad,))
         end = time.time()
         print("mkldnn timing:", end - start)
 
-        switch.enable_batch_normalization = False
+        mkld.enable_batch_normalization = False
         start = time.time()
         (gx_expect, ggamma_expect, gbeta_expect) = self.func2.backward(
             (x_data, self.gamma, self.beta), (y_grad,))

@@ -4,8 +4,7 @@ import chainer.functions as F
 import chainer.testing as testing
 import chainer.testing.condition as condition
 import time
-from mkldnn import switch
-
+from chainer import mkld
 
 @testing.parameterize(*testing.product({
     'dtype': [np.float32],
@@ -29,7 +28,7 @@ class TestBatchNormalizationValidation(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
 
     def check_forward(self, x):
-        switch.enable_batch_normalization = True
+        mkld.enable_batch_normalization = True
         start = time.time()
         y = F.fixed_batch_normalization(
             x, self.gamma, self.beta, self.mean,
@@ -37,7 +36,7 @@ class TestBatchNormalizationValidation(unittest.TestCase):
         end = time.time()
         mkldnn_timing = end - start
         self.assertEqual(y[0].dtype, self.dtype)
-        switch.enable_batch_normalization = False
+        mkld.enable_batch_normalization = False
         start = time.time()
         y_expect = F.fixed_batch_normalization(
             x, self.gamma, self.beta, self.mean,
