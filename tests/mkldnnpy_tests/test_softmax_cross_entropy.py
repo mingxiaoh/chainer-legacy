@@ -3,8 +3,7 @@ import unittest
 import chainer.testing as testing
 import chainer.testing.condition as condition
 from chainer import functions as F
-from mkldnn import switch
-
+from chainer import mkld
 
 @testing.parameterize(*testing.product({
     'dims': [(2, 3), (1, 6), (3, 2), (3, 4), (4, 3), (2, 6), (6, 2)]
@@ -19,9 +18,9 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         self.label = None
     
     def check_softmax_cross_entropy(self):
-        switch.enable_softmax_cross_entropy = True
+        mkld.enable_softmax_cross_entropy = True
         y_2d = F.softmax_cross_entropy(self.x_2d, self.label, use_cudnn=False)
-        switch.enable_softmax_cross_entropy = False
+        mkld.enable_softmax_cross_entropy = False
         y_2d_expect = F.softmax_cross_entropy(self.x_2d, self.label, use_cudnn=False)
         testing.assert_allclose(y_2d.data, y_2d_expect.data)
     
