@@ -1,1 +1,1 @@
-from mkldnn import *
+from mkldpy import *
