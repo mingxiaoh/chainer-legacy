@@ -19,7 +19,7 @@ if avaiable:
     mkldnn_enabled = not _mkldnn_disabled_by_user
 
 if avaiable and not mkldnn_enabled:
-    warnings.warn("WARNING: mkldnn module is installed succefully, but mkldnn acceleration is disabled!!")
+    warnings.warn("WARNING: mkldnn acceleration is disabled!!")
 
 """
 MKLDNN backend switch
