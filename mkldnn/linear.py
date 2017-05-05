@@ -30,6 +30,8 @@ def create_backward_desc(d_creator, *inputs):
     return d_creator(*inputs_d)
 
 class LinearForward(ComputeComplex):
+    saved = {}
+
     def __init__(self, x, W, b = None, e=Engine()):
         super(LinearForward, self).__init__()
         x = _as_mat(x)
@@ -157,7 +159,7 @@ class LinearFunctionMKLDNN(function.Function):
             )
 
     def forward(self, inputs):
-        cc = LinearForward(*inputs)
+        cc = LinearForward(*inputs, rank=self.rank)
         self.hint = cc.hint
 
         y, = cc.execute_on()

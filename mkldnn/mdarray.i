@@ -49,6 +49,7 @@
   mkldnn::memory memory;
   long size;
   long ndim;
+  int setbuffer(Py_buffer *view);
 }
 
 %exception mdarray::mdarray {

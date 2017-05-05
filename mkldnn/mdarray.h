@@ -155,6 +155,28 @@ public:
     }
   }
 
+  int setbuffer(Py_buffer *view) {
+    if (desc_ != nullptr)
+      // TODO: not support by provided buffer to numpy
+      goto fail;
+    else {
+      view_.reset(view);
+
+      unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
+
+      if (adrs % 16 != 0) {
+        data_.reset(new avx::byte [view->len]);
+        memcpy(data_.get(), view->buf, view->len);
+        view_.reset(nullptr);
+      } else
+        data_.reset(nullptr);
+    }
+
+    return 0;
+  fail:
+    return -1;
+  }
+
   inline void *data() const { return view_ == nullptr ? data_.get(): view_->buf; }
   inline size_type size() const { return size_; }
 
@@ -678,6 +700,10 @@ static long mdarray_ndim_get(mdarray *self) {
 
 static mkldnn::memory *mdarray_memory_get(mdarray *self) {
   return new mkldnn::memory((*self)->memory());
+}
+
+static int mdarray_setbuffer(mdarray *self, Py_buffer *view) {
+  return (*self)->setbuffer(view);
 }
 
 using namespace mkldnn;

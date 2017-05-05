@@ -30,9 +30,23 @@ class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
     """
+    def __new__(self, *args, rank=0):
+        if hasattr(cls, saved):
+            ret = cls.saved.get(rank)
+
+        if ret:
+            ret.new = False
+        else:
+            ret = super(ComputeComplex, cls).__new__(cls)
+            ret.new = True
+            cls.saved[rank] = ret
+
+        return ret
+
     def __init__(self):
-        self.dag_ = primitive_list()
-        self._hint = None
+        if self.new:
+            self.dag_ = primitive_list()
+            self._hint = None
 
     def execute_on(self, s = None):
         if s is None:
