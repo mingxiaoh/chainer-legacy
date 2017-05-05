@@ -79,7 +79,7 @@ class ConvolutionForward(ComputeComplex):
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
         cc_pd = conv_forward.primitive_desc(cc_d, e)
 
-        # Transform inputs
+        # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
         self.W = array(W, m.memory.oihw, e)
         if b is not None:
