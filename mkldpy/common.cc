@@ -104,7 +104,9 @@ bool enabled()
 {
     const char *env = std::getenv(CHAINER_MKLDNN);
 
-    if (!strcmp(env,"0")) {
+    if (env == NULL) {
+        s_enable_mkldnn = true;
+    } else if (!strcmp(env,"0")) {
         s_enable_mkldnn = false;
     } else {
         s_enable_mkldnn = true;
