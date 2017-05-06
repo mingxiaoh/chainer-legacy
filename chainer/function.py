@@ -190,6 +190,10 @@ class Function(object):
         for hook in six.itervalues(hooks):
             hook.forward_preprocess(self, in_data)
 
+        # Bring this forward for compute complex reuse
+        # Topological ordering
+        self.rank = max([x.rank for x in inputs]) if inputs else 0
+
         # Forward prop
         with cuda.get_device(*in_data):
             self._input_indexes_to_retain = None
@@ -209,8 +213,6 @@ class Function(object):
         ret = tuple([variable.Variable(y) for y in outputs])
 
         if configuration.config.enable_backprop:
-            # Topological ordering
-            self.rank = max([x.rank for x in inputs]) if inputs else 0
             # Backward edges
             for y in ret:
                 y.set_creator(self)

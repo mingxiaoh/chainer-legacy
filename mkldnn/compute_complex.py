@@ -30,16 +30,16 @@ class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
     """
-    def __new__(self, *args, rank=0):
-        if hasattr(cls, saved):
-            ret = cls.saved.get(rank)
+    def __new__(cls, *args, rank=0):
+        if hasattr(cls, 'cache'):
+            ret = cls.cache.get(rank)
 
-        if ret:
+        if ret and ret.matching(*args):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
             ret.new = True
-            cls.saved[rank] = ret
+            cls.cache[rank] = ret
 
         return ret
 

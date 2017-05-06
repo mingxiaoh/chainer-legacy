@@ -30,12 +30,9 @@ def create_backward_desc(d_creator, *inputs):
     return d_creator(*inputs_d)
 
 class LinearForward(ComputeComplex):
-    saved = {}
+    cache = {}
 
-    def __init__(self, x, W, b = None, e=Engine()):
-        super(LinearForward, self).__init__()
-        x = _as_mat(x)
-
+    def _create_cc(self, x, W, b=None, e=Engine()):
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
 
         # Create primitive_desc from any
@@ -69,18 +66,42 @@ class LinearForward(ComputeComplex):
         self._hint = cc_pd
         self.outputs = y,
 
+    def _reuse_cc(self, x, W, b=None, e = Engine()):
+        self.x.setbuffer(x) if not isinstance(x, mdarray) else None
+        self.W.setbuffer(W) if not isinstance(W, mdarray) else None
+
+        if b is not None and not isinstance(b, mdarray):
+            self.b.setbuffer(b)
+
+    def __init__(self, x, W, b = None, rank = 0, e=Engine()):
+        super(LinearForward, self).__init__()
+        x = _as_mat(x)
+
+        if self.new:
+            self._create_cc(x, W, b, e)
+        else:
+            self._reuse_cc(x, W, b, e)
+
 class LinearBackwardData(ComputeComplex):
-    def __init__(self, x, W, dummy, gy, hint, e=Engine()):
+    cache = {}
+
+    def __init__(self, x, W, dummy, gy, hint, rank, e=Engine()):
         super(LinearBackwardData, self).__init__()
         x = _as_mat(x)
 
+        if self.new:
+            self._create_cc(x, W, gy, hint, e)
+        else:
+            self._reuse_cc(W, gy)
+
+    def _create_cc(self, x, W, gy, hint, e = Engine()):
         # Create primitive descriptor
         cc_d = create_backward_desc(ip_backdata.desc, x, W, gy)
         cc_pd = ip_backdata.primitive_desc(cc_d, e, hint)
 
         # Transform inputs
-        self.gy = array(gy, m.memory.nc, e)
         self.W = array(W, m.memory.oi, e)
+        self.gy = array(gy, m.memory.nc, e)
 
         # Prepare output mdarray
         gx = mdarray(cc_pd.diff_src_primitive_desc())
@@ -99,11 +120,14 @@ class LinearBackwardData(ComputeComplex):
 
         self.outputs = gx,
 
-class LinearBackwardWeighs(ComputeComplex):
-    def __init__(self, x, W, b, gy, hint, e=Engine()):
-        super(LinearBackwardWeighs, self).__init__()
-        x = _as_mat(x)
+    def _reuse_cc(self, W, gy):
+        self.W.setbuffer(W) if not isinstance(W, mdarray) else None
+        self.gy.setbuffer(gy) if not isinstance(gy, mdarray) else None
 
+class LinearBackwardWeighs(ComputeComplex):
+    cache = {}
+
+    def _create_cc(self, x, W, b, gy, hint, e):
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
 
@@ -135,6 +159,22 @@ class LinearBackwardWeighs(ComputeComplex):
             self.outputs = gW, gb
         else:
             self.outputs = gW,
+
+    def _reuse_cc(self, x, gy, b):
+        self.x.setbuffer(x) if not isinstance(x, mdarray) else None
+        self.gy.setbuffer(gy) if not isinstance(gy, mdarray) else None
+
+        if b is not None and not isinstance(b, mdarray):
+            self.b.setbuffer(b)
+
+    def __init__(self, x, W, b, gy, hint, rank, e=Engine()):
+        super(LinearBackwardWeighs, self).__init__()
+        x = _as_mat(x)
+
+        if self.new:
+            self._create_cc(x, W, b, gy, hint, e)
+        else:
+            self._reuse_cc(x, gy, b)
 
 class LinearFunctionMKLDNN(function.Function):
 
@@ -170,8 +210,8 @@ class LinearFunctionMKLDNN(function.Function):
         if len(inputs) == 2:
             inputs += None,
 
-        cc_data = LinearBackwardData(*inputs, *grad_outputs, self.hint)
-        cc_weight = LinearBackwardWeighs(*inputs, *grad_outputs, self.hint)
+        cc_data = LinearBackwardData(*inputs, *grad_outputs, self.hint, self.rank)
+        cc_weight = LinearBackwardWeighs(*inputs, *grad_outputs, self.hint, self.rank)
 
         gx = cc_data.execute_on()
         gW_b = cc_weight.execute_on()

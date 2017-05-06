@@ -160,6 +160,7 @@ public:
       // TODO: not support by provided buffer to numpy
       goto fail;
     else {
+      // TODO: Guard this section with asserts
       view_.reset(view);
 
       unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
