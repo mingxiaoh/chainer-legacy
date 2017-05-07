@@ -146,6 +146,7 @@ class VariableNode(object):
         self._creator = None
         self._data = None
         self._rank = 0
+        self.fanout = 0
         self.name = variable.name
 
         vdata = variable.data
@@ -208,6 +209,7 @@ class VariableNode(object):
         """
         self._creator = creator
         self._rank = creator.rank + 1
+        self.fanout = creator.fanout
 
     def unchain(self):
         """Deletes the reference to the creator of this variable node."""

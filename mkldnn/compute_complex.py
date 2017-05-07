@@ -57,6 +57,9 @@ class ComputeComplex(object):
         s.wait()
         return self.outputs
 
+    def matching(self, *args):
+        raise NotImplementedError
+
     @property
     def hint(self):
         return self._hint

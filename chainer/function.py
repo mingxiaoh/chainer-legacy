@@ -193,6 +193,11 @@ class Function(object):
         # Bring this forward for compute complex reuse
         # Topological ordering
         self.rank = max([x.rank for x in inputs]) if inputs else 0
+        self.fanout = max([x.fanout for x in inputs]) if inputs else 0
+
+        # Bump up fanout for next function inputs
+        if inputs:
+            for x in inputs: x.fanout += 1
 
         # Forward prop
         with cuda.get_device(*in_data):
