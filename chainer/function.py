@@ -171,7 +171,7 @@ class Function(object):
             :class:`Variable` objects.
 
         """
-
+        type(inputs)
         inputs = [x if isinstance(x, variable.Variable)
                   else variable.Variable(x)
                   for x in inputs]
@@ -190,15 +190,14 @@ class Function(object):
         for hook in six.itervalues(hooks):
             hook.forward_preprocess(self, in_data)
 
-        if configuration.config.enable_backprop:
-            # Bring this forward for compute complex reuse
-            # Topological ordering
-            self.rank = max([x.rank for x in inputs]) if inputs else 0
-            self.fanout = max([x.fanout for x in inputs]) if inputs else 0
+        # if configuration.config.enable_backprop:
+        # Bring this forward for compute complex reuse
+        # Topological ordering
+        self.rank = max([x.rank for x in inputs]) if inputs else 0
+        self.fanout = max([x.fanout for x in inputs]) if inputs else 0
 
-            # Bump up fanout for next function inputs
-            if inputs:
-                for x in inputs: x.fanout += 1
+        # Bump up fanout for next function inputs
+        inputs[0].fanout += 1
 
         # Forward prop
         with cuda.get_device(*in_data):
