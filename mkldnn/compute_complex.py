@@ -30,16 +30,17 @@ class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
     """
-    def __new__(cls, *args, rank=0):
+    def __new__(cls, *args, pos = None):
+        assert isinstance(pos, tuple)
         if hasattr(cls, 'cache'):
-            ret = cls.cache.get(rank)
+            ret = cls.cache.get(pos)
 
-        if ret and ret.matching(*args):
+        if ret and ret.match(*args):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
             ret.new = True
-            cls.cache[rank] = ret
+            cls.cache[pos] = ret
 
         return ret
 
@@ -57,7 +58,7 @@ class ComputeComplex(object):
         s.wait()
         return self.outputs
 
-    def matching(self, *args):
+    def matching(self, inputs):
         raise NotImplementedError
 
     @property

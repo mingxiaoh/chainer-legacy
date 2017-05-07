@@ -190,14 +190,15 @@ class Function(object):
         for hook in six.itervalues(hooks):
             hook.forward_preprocess(self, in_data)
 
-        # Bring this forward for compute complex reuse
-        # Topological ordering
-        self.rank = max([x.rank for x in inputs]) if inputs else 0
-        self.fanout = max([x.fanout for x in inputs]) if inputs else 0
+        if configuration.config.enable_backprop:
+            # Bring this forward for compute complex reuse
+            # Topological ordering
+            self.rank = max([x.rank for x in inputs]) if inputs else 0
+            self.fanout = max([x.fanout for x in inputs]) if inputs else 0
 
-        # Bump up fanout for next function inputs
-        if inputs:
-            for x in inputs: x.fanout += 1
+            # Bump up fanout for next function inputs
+            if inputs:
+                for x in inputs: x.fanout += 1
 
         # Forward prop
         with cuda.get_device(*in_data):
@@ -219,8 +220,12 @@ class Function(object):
 
         if configuration.config.enable_backprop:
             # Backward edges
+            base_fanout = self.fanout
             for y in ret:
                 y.set_creator(self)
+                y.fanout  = base_fanout
+                base_fanout += 1
+
             self.inputs = tuple([x.node for x in inputs])
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y.node) for y in ret])

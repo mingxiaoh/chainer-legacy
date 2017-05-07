@@ -146,7 +146,7 @@ class VariableNode(object):
         self._creator = None
         self._data = None
         self._rank = 0
-        self.fanout = 0
+        self._fanout = 0
         self.name = variable.name
 
         vdata = variable.data
@@ -209,7 +209,6 @@ class VariableNode(object):
         """
         self._creator = creator
         self._rank = creator.rank + 1
-        self.fanout = creator.fanout
 
     def unchain(self):
         """Deletes the reference to the creator of this variable node."""
@@ -426,6 +425,14 @@ Actual: {0}'''.format(type(data))
     @property
     def rank(self):
         return self._node.rank
+
+    @property
+    def fanout(self):
+        return self._node._fanout
+
+    @fanout.setter
+    def fanout(self, value):
+        self._node._fanout = value
 
     @property
     def node(self):
