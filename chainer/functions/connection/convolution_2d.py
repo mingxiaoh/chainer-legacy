@@ -6,6 +6,7 @@ from chainer.utils import conv
 from chainer.utils import type_check
 from chainer import mkld
 
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
@@ -19,6 +20,7 @@ if cuda.cudnn_enabled:
 
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
+
 
 def _check_cudnn_acceptable_type(x_dtype, W_dtype):
     return x_dtype == W_dtype and (

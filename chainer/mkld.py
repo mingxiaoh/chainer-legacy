@@ -38,6 +38,7 @@ enable_batch_normalization = True
 
 supportTypes = (numpy.float32,)
 
+
 def SupportedInput(tul):
     isSupportType = True
     for x in tul:

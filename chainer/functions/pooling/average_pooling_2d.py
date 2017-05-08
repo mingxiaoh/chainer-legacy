@@ -5,12 +5,14 @@ from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer import mkld
 
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
 
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
+
 
 class AveragePooling2D(pooling_2d.Pooling2D):
 

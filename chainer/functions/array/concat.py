@@ -6,8 +6,10 @@ from chainer import function
 from chainer.utils import type_check
 from chainer import mkld
 
+
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
+
 
 class Concat(function.Function):
 
