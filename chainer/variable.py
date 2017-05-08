@@ -15,6 +15,7 @@ from chainer import utils
 
 from mkldnn.mdarray import mdarray
 from chainer.cuda import iscompatible
+from mkldnn.fanout import *
 
 
 def _check_grad_type(func, x, gx):
@@ -146,7 +147,6 @@ class VariableNode(object):
         self._creator = None
         self._data = None
         self._rank = 0
-        self._fanout = 0
         self.name = variable.name
 
         vdata = variable.data
@@ -427,14 +427,6 @@ Actual: {0}'''.format(type(data))
         return self._node.rank
 
     @property
-    def fanout(self):
-        return self._node._fanout
-
-    @fanout.setter
-    def fanout(self, value):
-        self._node._fanout = value
-
-    @property
     def node(self):
         return self._node
 
@@ -652,6 +644,8 @@ Actual: {0}'''.format(type(data))
                 seen_set.add(cand)
 
         add_cand(self.creator)
+
+        fanout.clear()
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)

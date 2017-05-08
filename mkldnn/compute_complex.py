@@ -30,10 +30,16 @@ class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
     """
+    cache_f = {}
+    cache_bd = {}
+    cache_bw = {}
+
+    cache = { 'f':cache_f, 'bd':cache_bd, 'bw':cache_bw }
+
     def __new__(cls, *args, pos = None):
         assert isinstance(pos, tuple)
-        if hasattr(cls, 'cache'):
-            ret = cls.cache.get(pos)
+        cache = cls.cache[cls.cc_type]
+        ret = cache.get(pos)
 
         if ret and ret.match(*args):
             ret.new = False
@@ -41,7 +47,7 @@ class ComputeComplex(object):
             ret = super(ComputeComplex, cls).__new__(cls)
             print("Create new CC: ", ret)
             ret.new = True
-            cls.cache[pos] = ret
+            cache[pos] = ret
 
         return ret
 

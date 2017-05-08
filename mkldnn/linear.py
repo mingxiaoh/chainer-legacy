@@ -30,7 +30,7 @@ def create_backward_desc(d_creator, *inputs):
     return d_creator(*inputs_d)
 
 class LinearForward(ComputeComplex):
-    cache = {}
+    cc_type = 'f'
 
     def _create_cc(self, x, W, b, e=Engine()):
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
@@ -89,7 +89,7 @@ class LinearForward(ComputeComplex):
             self._reuse_cc(x, W, b, e)
 
 class LinearBackwardData(ComputeComplex):
-    cache = {}
+    cc_type = 'bd'
 
     def __init__(self, inputs, grad_outputs, hint, pos = (0, 0), e=Engine()):
         super(LinearBackwardData, self).__init__()
@@ -137,7 +137,7 @@ class LinearBackwardData(ComputeComplex):
         self.gy.setbuffer(gy) if not isinstance(gy, mdarray) else None
 
 class LinearBackwardWeighs(ComputeComplex):
-    cache = {}
+    cc_type = 'bw'
 
     def _create_cc(self, x, W, b, gy, hint, e):
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
