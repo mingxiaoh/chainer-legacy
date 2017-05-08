@@ -6,6 +6,8 @@ from chainer import function
 from chainer import utils
 from chainer.utils import type_check
 
+from mkldnn.relu import ReLUMKLDNN
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -85,4 +87,7 @@ def relu(x):
         (3, 2)
 
     """
-    return ReLU()(x)
+    if isinstance(x, mdarray)
+        return ReLUMKLDNN()(x)
+    else:
+        return ReLU()(x)

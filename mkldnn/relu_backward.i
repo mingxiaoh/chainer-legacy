@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn") relu_backward_data
+%module (package="mkldnn") relu_backward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
