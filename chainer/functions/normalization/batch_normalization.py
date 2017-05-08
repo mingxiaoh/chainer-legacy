@@ -14,6 +14,7 @@ if cuda.cudnn_enabled:
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
 
+
 def _as4darray(arr):
     if arr.ndim == 0:
         return arr.reshape(1, 1, 1, 1)
@@ -190,7 +191,7 @@ class BatchNormalizationFunction(function.Function):
 
             if self.expand_dim:
                 assert y.ndim == 4
-                y = numpy.squeeze(y, axis=(2,3))
+                y = numpy.squeeze(y, axis=(2, 3))
 
         else:
             if configuration.config.train:
@@ -302,7 +303,7 @@ class BatchNormalizationFunction(function.Function):
             gbeta = gW[1]
             if self.expand_dim:
                 assert gx.ndim == 4
-                gx = numpy.squeeze(gx, axis=(2,3))
+                gx = numpy.squeeze(gx, axis=(2, 3))
 
         else:
             gbeta = gy.sum(axis=axis)

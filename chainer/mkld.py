@@ -39,6 +39,7 @@ cosim_enabled = False
 
 supportTypes = (numpy.float32,)
 
+
 def SupportedInput(tul):
     isSupportType = True
     for x in tul:

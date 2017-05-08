@@ -6,18 +6,19 @@ import chainer.testing.condition as condition
 import time
 from chainer import mkld
 
+
 @testing.parameterize(*testing.product({
     'dtype': [np.float32],
     'channel': [2, 4, 8, 16, 24]
 }))
 class TestBatchNormalizationValidation(unittest.TestCase):
     def setUp(self):
-        self.eps = 2e-5;
-        self.decay = 0.9;
+        self.eps = 2e-5
+        self.decay = 0.9
         self.x = np.random.uniform(-1, 1, (32, self.channel, 224, 224)).astype(self.dtype)
         self.mean = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
         self.var = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
-        self.gamma = np.random.uniform(-1, 1, (self.channel )).astype(self.dtype)
+        self.gamma = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
         self.beta = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
         self.gy = np.random.uniform(-1, 1, (32, self.channel, 224, 224)).astype(self.dtype)
 
@@ -49,7 +50,6 @@ class TestBatchNormalizationValidation(unittest.TestCase):
 
         testing.assert_allclose(y_expect.data, y.data,
                                 **self.check_forward_optionss)
-
 
     def check_backward(self, x_data, y_grad):
         pass

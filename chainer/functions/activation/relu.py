@@ -7,6 +7,7 @@ from chainer import utils
 from chainer.utils import type_check
 from chainer import mkld
 
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
@@ -15,6 +16,7 @@ if cuda.cudnn_enabled:
 
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
+
 
 class ReLU(function.Function):
 

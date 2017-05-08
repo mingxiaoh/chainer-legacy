@@ -3,6 +3,7 @@ import numpy as np
 import time
 from chainer import mkld
 
+
 def test_lrn(caculate, switchOn=True):
     total_forward = 0
     total_backward = 0

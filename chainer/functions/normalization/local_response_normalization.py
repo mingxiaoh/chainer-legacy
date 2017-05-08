@@ -9,6 +9,7 @@ from chainer import mkld
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
 
+
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
     # TODO(beam2d): Use scan computation
