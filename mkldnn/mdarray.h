@@ -171,6 +171,8 @@ public:
         view_.reset(nullptr);
       } else
         data_.reset(nullptr);
+
+      m_.set_data_handle(data());
     }
 
     return 0;
