@@ -12,6 +12,7 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 import mkldnn
+from mkldnn.fanout import *
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float32],
@@ -39,6 +40,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, W_data, b_data, y_expect):
+        fanout.clear()
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:
