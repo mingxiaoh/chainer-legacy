@@ -3,14 +3,16 @@ import traceback
 import weakref
 
 import six
-
+import numpy as np
 import chainer
+
 from chainer import configuration
 from chainer import cuda
 from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
-
+from chainer import mkld
+from chainer import testing
 
 def no_backprop_mode():
     """Disable back-propagation for Variable whose volatile is auto.
@@ -291,7 +293,10 @@ class Function(object):
         if any(isinstance(x, cuda.ndarray) for x in inputs):
             return self.forward_gpu(inputs)
         else:
-            return self.forward_cpu(inputs)
+            cosim_result = self.forward_cpu_cosim(inputs)
+            result = self.forward_cpu(inputs)
+            self.cpu_cosim_verify_result(result, cosim_result)
+            return result
 
     def forward_cpu(self, inputs):
         """Applies forward propagation to input arrays on CPU.
@@ -310,6 +315,16 @@ class Function(object):
         """
         raise NotImplementedError()
 
+    def forward_cpu_cosim(self, inputs):
+        """forward cosim  between numpy and MKLDNN
+        """
+        if not mkld.enable_cosim():
+            return None
+        mkld.set_mkldnn_disabled()
+        outputs_cosim = self.forward_cpu(inputs)
+        mkld.set_mkldnn_enabled()
+        return outputs_cosim
+        
     def forward_gpu(self, inputs):
         """Applies forward propagation to input arrays on GPU.
 
@@ -354,8 +369,30 @@ class Function(object):
         if any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs):
             return self.backward_gpu(inputs, grad_outputs)
         else:
-            return self.backward_cpu(inputs, grad_outputs)
+            result = self.backward_cpu(inputs, grad_outputs)
+            cosim_result = self.backward_cpu_cosim(inputs, grad_outputs)
+            self.cpu_cosim_verify_result(result, cosim_result)
+            return result
 
+    def backward_cpu_cosim(self, inputs, grad_outputs):
+        """backward cosim between numpy and MKLDNN
+        """
+        if not mkld.enable_cosim():
+            return None
+        mkld.set_mkldnn_disabled()
+        self.forward_cpu(inputs)
+        outputs_cosim = self.backward_cpu(inputs, grad_outputs)
+        mkld.set_mkldnn_enabled()
+        return outputs_cosim
+        
+    def cpu_cosim_verify_result(self, mkl_result, numpy_result):
+        """cosim verify result between MKLDNN and numpy
+        """
+        if not mkld.enable_cosim():
+            return None
+        check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
+        testing.assert_allclose(np.asarray(mkl_result), np.asarray(numpy_result), **check_options)
+        
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.
 

@@ -26,17 +26,17 @@ class TestLocalResponseNormalizationValidation(unittest.TestCase):
     
     def check_forward(self, x_data):
         mkld.enable_lrn = True
-        y = self.lrn.forward_cpu((x_data,))
+        y = self.lrn.forward((x_data,))
         self.assertEqual(y[0].dtype, self.dtype)
         mkld.enable_lrn = False
-        y_expect = self.lrn.forward_cpu((x_data,))
+        y_expect = self.lrn.forward((x_data,))
         testing.assert_allclose(y_expect[0], y[0], **self.check_forward_optionss)
     
     def check_backward(self, x_data, y_grad):
         mkld.enable_lrn = True
-        gx = self.lrn.backward_cpu((x_data,), (y_grad,))
+        gx = self.lrn.backward((x_data,), (y_grad,))
         mkld.enable_lrn = False
-        gx_expect = self.lrn.backward_cpu((x_data,), (y_grad,))
+        gx_expect = self.lrn.backward((x_data,), (y_grad,))
         testing.assert_allclose(gx_expect[0], gx[0], **self.check_backward_optionss)
     
     @condition.retry(3)

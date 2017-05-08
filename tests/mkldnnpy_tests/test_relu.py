@@ -24,14 +24,14 @@ class TestRelu(unittest.TestCase):
     def check_relu(self):
         mkld.enable_relu = True
         f_relu = F.ReLU(False)
-        res = f_relu.forward_cpu(self.x)
+        res = f_relu.forward(self.x)
         gy = self.x
-        res_b = f_relu.backward_cpu(self.x, gy)
+        res_b = f_relu.backward(self.x, gy)
         mkld.enable_relu = False
         f_relu = F.ReLU(False)
         gy = self.x
-        res_expect = f_relu.forward_cpu(self.x)
-        res_b_expect = f_relu.backward_cpu(self.x, gy)
+        res_expect = f_relu.forward(self.x)
+        res_b_expect = f_relu.backward(self.x, gy)
         testing.assert_allclose(np.asarray(res), np.asarray(res_expect))
         testing.assert_allclose(np.asarray(res_b), np.asarray(res_b_expect))
     

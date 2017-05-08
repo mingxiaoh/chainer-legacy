@@ -25,8 +25,8 @@ class TestMaxpool2(unittest.TestCase):
             gx = f.backward(self.x, self.gy)
             mkld.enable_max_pooling = False
             f = F.MaxPooling2D(3, stride=1, pad=1, use_cudnn=False)
-            y_expect = f.forward_cpu(self.x)
-            gx_expect = f.backward_cpu(self.x, self.gy)
+            y_expect = f.forward(self.x)
+            gx_expect = f.backward(self.x, self.gy)
             testing.assert_allclose(np.asarray(y), np.asarray(y_expect))
             testing.assert_allclose(np.asarray(gx), np.asarray(gx_expect))
     
