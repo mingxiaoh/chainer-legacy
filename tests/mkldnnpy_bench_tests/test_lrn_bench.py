@@ -1,8 +1,7 @@
 import chainer.functions as F
 import numpy as np
 import time
-from mkldnn import switch
-
+from chainer import mkld
 
 def test_lrn(caculate, switchOn=True):
     total_forward = 0
@@ -24,7 +23,7 @@ def test_lrn(caculate, switchOn=True):
     alpha = 1e-4
     beta = .75
 
-    switch.enable_lrn = switchOn
+    mkld.enable_lrn = switchOn
     for i in range(niter):
         x = np.asarray(data),
         gy = np.asarray(datay),

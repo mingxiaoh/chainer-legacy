@@ -62,6 +62,7 @@
 
 
 #include <cstddef>
+#include <cstring>
 #include <glog/logging.h>
 #include <iostream>
 #include "mkldnn.hpp"
@@ -72,6 +73,7 @@ using namespace mkldnn;
 
 engine cpu_engine(engine::cpu, 0);
 static bool s_enable_mkldnn = true;
+const char *CHAINER_MKLDNN = "CHAINER_MKLDNN";
 unsigned char dummy[PAGE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 #define DUMMY_VAL 0xcc
 
@@ -100,6 +102,16 @@ int global_init()
 
 bool enabled()
 {
+    const char *env = std::getenv(CHAINER_MKLDNN);
+
+    if (env == NULL) {
+        s_enable_mkldnn = true;
+    } else if (!strcmp(env,"0")) {
+        s_enable_mkldnn = false;
+    } else {
+        s_enable_mkldnn = true;
+    }
+
     return s_enable_mkldnn;
 }
 
