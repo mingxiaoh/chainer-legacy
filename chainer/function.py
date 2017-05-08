@@ -174,7 +174,6 @@ class Function(object):
             :class:`Variable` objects.
 
         """
-        type(inputs)
         inputs = [x if isinstance(x, variable.Variable)
                   else variable.Variable(x)
                   for x in inputs]
