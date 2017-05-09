@@ -1,57 +1,80 @@
 import numpy as np
 import unittest
-import chainer.functions as F
+from chainer.functions.normalization import batch_normalization
 import chainer.testing as testing
 import chainer.testing.condition as condition
-from mkldnn import switch
-
+import time
+from chainer import mkld
 
 @testing.parameterize(*testing.product({
     'dtype': [np.float32],
-    'chanel': [2, 4, 8, 16, 24]
+    'channel': [2, 4, 8, 16, 24]
 }))
 class TestBatchNormalizationValidation(unittest.TestCase):
     def setUp(self):
-        self.x = np.random.uniform(-1, 1, (2, self.chanel, 3, 2)).astype(self.dtype)
-        self.gy = np.random.uniform(-1, 1, (2, self.chanel, 3, 2)).astype(self.dtype)
+        self.eps = 2e-5;
+        self.decay = 0.9;
+        self.x = np.random.uniform(-1, 1, (32, self.channel, 224, 224)).astype(self.dtype)
+        self.mean = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
+        self.var = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
+        self.gamma = np.random.uniform(-1, 1, (self.channel )).astype(self.dtype)
+        self.beta = np.random.uniform(-1, 1, (self.channel)).astype(self.dtype)
+        self.gy = np.random.uniform(-1, 1, (32, self.channel, 224, 224)).astype(self.dtype)
+
         self.check_forward_optionss = {}
         self.check_backward_optionss = {}
-        if self.chanel >= 8:
-            self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
-        self.batch_normalization = F.BatchNormalization(self.chanel)
+        self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-4}
+        self.check_backward_optionss = {'atol': 1e-3, 'rtol': 1e-3}
 
-    def check_forward(self, x_data):
-        switch.enable_batch_normalization = True
-        y = self.batch_normalization.forward_cpu((x_data,))
+    def check_forward(self, x):
+        mkld.enable_batch_normalization = True
+        self.func1 = batch_normalization.BatchNormalizationFunction(
+            self.eps, self.mean, self.var, self.decay, False);
+        start = time.time()
+        y = self.func1.forward((x, self.gamma, self.beta))
+        end = time.time()
         self.assertEqual(y[0].dtype, self.dtype)
-        switch.enable_batch_normalization = False
-        y_expect = self.batch_normalization.forward_cpu((x_data,))
-        testing.assert_allclose(y_expect[0], y[0], **self.check_forward_optionss)
+        print("mkldnn timing:", end - start)
+
+        mkld.enable_batch_normalization = False
+        self.func2 = batch_normalization.BatchNormalizationFunction(
+            self.eps, self.mean, self.var, self.decay, False);
+        start = time.time()
+        y_expect = self.func2.forward((x, self.gamma, self.beta))
+        end = time.time()
+        print("numpy timing:", end - start)
+
+        testing.assert_allclose(self.func1.running_mean, self.func2.running_mean,
+                                **self.check_forward_optionss)
+        testing.assert_allclose(self.func1.running_var, self.func2.running_var,
+                                **self.check_forward_optionss)
+        testing.assert_allclose(y_expect[0], y[0],
+                                **self.check_forward_optionss)
+
 
     def check_backward(self, x_data, y_grad):
-        switch.enable_batch_normalization = True
-        gx = self.batch_normalization.backward_cpu((x_data,), (y_grad,))
-        switch.enable_batch_normalization = False
-        gx_expect = self.batch_normalization.backward_cpu((x_data,), (y_grad,))
-        testing.assert_allclose(gx_expect[0], gx[0], **self.check_backward_optionss)
+        mkld.enable_batch_normalization = True
+        start = time.time()
+        (gx, ggamma, gbeta) = self.func1.backward(
+            (x_data, self.gamma, self.beta), (y_grad,))
+        end = time.time()
+        print("mkldnn timing:", end - start)
+
+        mkld.enable_batch_normalization = False
+        start = time.time()
+        (gx_expect, ggamma_expect, gbeta_expect) = self.func2.backward(
+            (x_data, self.gamma, self.beta), (y_grad,))
+        end = time.time()
+        print("numpy timing:", end - start)
+
+        testing.assert_allclose(gx_expect, gx, **self.check_backward_optionss)
+        testing.assert_allclose(ggamma_expect, ggamma, **self.check_backward_optionss)
+        testing.assert_allclose(gbeta_expect, gbeta, **self.check_backward_optionss)
 
     @condition.retry(3)
     def test_cpu(self):
         self.check_forward(self.x)
         self.check_backward(self.x, self.gy)
-
-    @testing.attr.xeon
-    @condition.retry(3)
-    def test_xeon_cpu(self):
-        print("test xeon")
-        pass
-
-    @testing.attr.xeon_phi
-    @condition.retry(3)
-    def test_xeon_phi_cpu(self):
-        print("test xeon phi")
-        pass
 
 
 testing.run_module(__name__, __file__)

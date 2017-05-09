@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from distutils.command.build_py import build_py
+from setuptools.command.install import install
 from setuptools import setup
 from setuptools.extension import Extension
 import numpy
@@ -14,31 +16,43 @@ install_requires = [
     'glog',
 ]
 
+class _build_py(build_py):
+    def run(self):
+        self.run_command('build_ext')
+        build_py.run(self)
+
+class _install(install):
+    def install(self):
+        print("run home made")
+        self.run_command('build_ext')
+        install.run(self)
+
 extensions = [
     Extension(
-        "mkldnn._mkldnn",
+        "mkldpy._mkldnn",
         sources=[
-                "mkldnn/relu4d.cc",
-                "mkldnn/relu.cc",
-                "mkldnn/conv.cc",
-                "mkldnn/concat.cc",
-                "mkldnn/common.cc",
-                "mkldnn/cpu_info.cc",
-                "mkldnn/layer_factory.cc",
-                "mkldnn/linear.cc",
-                "mkldnn/lrn.cc",
-                "mkldnn/pooling.cc",
-                "mkldnn/max_pooling.cc",
-                "mkldnn/avg_pooling.cc",
-                "mkldnn/softmax.cc",
-                "mkldnn/softmax_cross_entropy.cc",
-                "mkldnn/sum.cc",
-                "mkldnn/utils.cc",
-                "mkldnn/mkldnn.i"
+                "mkldpy/relu4d.cc",
+                "mkldpy/relu.cc",
+                "mkldpy/conv.cc",
+                "mkldpy/concat.cc",
+                "mkldpy/common.cc",
+                "mkldpy/cpu_info.cc",
+                "mkldpy/layer_factory.cc",
+                "mkldpy/linear.cc",
+                "mkldpy/lrn.cc",
+                "mkldpy/pooling.cc",
+                "mkldpy/max_pooling.cc",
+                "mkldpy/avg_pooling.cc",
+                "mkldpy/softmax.cc",
+                "mkldpy/softmax_cross_entropy.cc",
+                "mkldpy/sum.cc",
+                "mkldpy/utils.cc",
+                "mkldpy/batch_normalization.cc",
+                "mkldpy/mkldnn.i"
                 ],
         swig_opts=["-c++"],
         extra_compile_args=["-std=c++11", "-fopenmp"],
-        include_dirs=["mkldnn/incl/", numpy.get_include()],
+        include_dirs=["mkldpy/incl/", numpy.get_include()],
         libraries=['glog', 'stdc++', 'boost_system', 'mkldnn', 'm'],
     )
 ]
@@ -88,9 +102,10 @@ setup(
               'chainer.training.extensions',
               'chainer.training.triggers',
               'chainer.utils',
-              'mkldnn',
+              'mkldpy',
               ],
     ext_modules=extensions,
+    cmdclass={'build_py':_build_py, 'install':_install},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

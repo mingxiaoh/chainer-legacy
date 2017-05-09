@@ -4,9 +4,10 @@ import six
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-from mkldnn import mkldnn
-from mkldnn import switch
+from chainer import mkld
 
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
@@ -55,7 +56,7 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_cpu(self, x):
-        if switch.enable_lrnF((x,)):
+        if mkld.enable_lrnF((x,)):
             self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
             in_alpha = self.n*self.alpha
             ws_size = mkldnn.LocalResponseNormalization_F32.get_workspace_size(
@@ -77,7 +78,7 @@ class LocalResponseNormalization(function.Function):
             return self.y,
 
     def backward_cpu(self, x, gy):
-        if switch.enable_lrnF((x, gy)):
+        if mkld.enable_lrnF((x, gy)):
             gx = numpy.empty(x[0].shape, dtype=x[0].dtype)
             in_alpha = self.n*self.alpha
             mkldnn.LocalResponseNormalization_F32.do_backward(
