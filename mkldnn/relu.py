@@ -8,7 +8,7 @@ from mkldnn.compute_complex import *
 from mkldnn.support import *
 import mkldnn.memory as m
 import mkldnn.relu_forward as relu_forward
-import mkldnn.relu_backward as relu_backdata
+import mkldnn.relu_backward as relu_backward
 from mkldnn.mdarray import *
 
 def create_backward_desc(d_creator, *inputs):
@@ -28,16 +28,20 @@ class ReLUForward(ComputeComplex):
 
         y = mdarray(cc_pd.dst_primitive_desc())
 
+        self.x = x
         self.dag_.push_back(relu_forward.relu_forward(cc_pd,
                 at(x.memory), y.memory))
 
         self._hint = cc_pd
         self.outputs = y,
 
-    def match(self, *args):
-        return True
+    def match(self, inputs, *args):
+        # TODO: refine it
+        x = inputs[0]
+        return self.x is x
 
-    def __init__(self, x, pos = (0, 0), e=Engine()):
+    def __init__(self, inputs, pos = (0, 0), e=Engine()):
+        x = inputs[0]
         assert isinstance(x, mdarray)
         super(ReLUForward, self).__init__()
 
@@ -47,26 +51,34 @@ class ReLUForward(ComputeComplex):
 class ReLUBackward(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, x, gy, hint, pos = (0, 0), e=Engine()):
+    def __init__(self, inputs, grad_outputs, hint, pos = (0, 0), e=Engine()):
+        x = inputs[0]
+        gy = grad_outputs[0]
+
+        assert isinstance(x, mdarray)
         assert isinstance(gy, mdarray)
+
         super(ReLUBackward, self).__init__()
 
         if self.new:
             self._create_cc(x, gy, hint, e)
 
-    def match(self, *args):
-        return True
+    def match(self, inputs, grad_outpus, *args):
+        # TODO: refine it
+        x = inputs[0]
+        gy = grad_outpus[0]
+        return self.x is x and self.gy is gy
 
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
         mem_pd = x.memory.get_primitive_desc()
 
-        cc_d = relu_backdata.desc(diff_pd, mem_pd, 0.0)
-        cc_pd = relu_backdata.primitive_desc(cc_d, e, hint)
+        cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
+        cc_pd = relu_backward.primitive_desc(cc_d, e, hint)
 
         gx = mdarray(cc_pd.diff_src_primitive_desc())
 
-        self.dag_.push_back(relu_backdata.relu_backward(cc_pd,
+        self.dag_.push_back(relu_backward.relu_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
 
         self.outputs = gx,
@@ -93,6 +105,6 @@ class ReLUMKLDNN(function.Function):
         cc = ReLUBackward(x, gy, self.hint,
                 pos=(self.rank, self.fanout))
 
-        gx = cc_data.execute_on()
+        gx, = cc.execute_on()
 
         return gx,

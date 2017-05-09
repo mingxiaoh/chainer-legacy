@@ -88,7 +88,7 @@ def relu(x):
         (3, 2)
 
     """
-    if isinstance(x, mdarray):
+    if isinstance(x, mdarray) or isinstance(x.data, mdarray):
         return ReLUMKLDNN()(x)
     else:
         return ReLU()(x)

@@ -668,7 +668,7 @@ private:
 }
 
 // Actual interface for python
-// DO NOT add field beyond py_handle
+// DO NOT add any field
 //
 class mdarray : public py_handle {
 public:
