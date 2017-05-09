@@ -81,6 +81,8 @@ class ReLUBackward(ComputeComplex):
         self.dag_.push_back(relu_backward.relu_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
 
+        self.x = x
+        self.gy = gy
         self.outputs = gx,
 
 class ReLUMKLDNN(function.Function):
