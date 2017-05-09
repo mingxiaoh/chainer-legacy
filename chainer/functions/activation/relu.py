@@ -6,6 +6,7 @@ from chainer import function
 from chainer import utils
 from chainer.utils import type_check
 
+from mkldnn.mdarray import *
 from mkldnn.relu import ReLUMKLDNN
 
 
@@ -87,7 +88,7 @@ def relu(x):
         (3, 2)
 
     """
-    if isinstance(x, mdarray)
+    if isinstance(x, mdarray):
         return ReLUMKLDNN()(x)
     else:
         return ReLU()(x)

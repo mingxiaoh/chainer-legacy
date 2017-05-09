@@ -42,20 +42,6 @@ namespace implementation {
   class mdarray;
 }
 
-// template<class Impl> 
-// class py_interf {
-// public:
-//   py_interf(): pImpl_(nullptr) {}
-//   py_interf(const py_interf &orig): pImpl_(orig.pImpl_) {}
-//   py_interf(Impl *impl): pImpl_(impl) {}
-//   py_interf(std::shared_ptr<Impl> impl): pImpl_(impl) {}
-//   Impl *get() {
-//     return pImpl_.get();
-//   }
-// protected:
-//   std::shared_ptr<Impl> pImpl_;
-// };
-
 using py_handle = std::shared_ptr<implementation::mdarray>;
 
 template <class to>
@@ -245,6 +231,10 @@ public:
   nb_binary_map(MatrixMultiply);
   nb_binary_map(InPlaceMatrixMultiply);
 
+  Py_ssize_t mp_length(PyObject *self);
+  PyObject *mp_subscript(PyObject *self, PyObject *op);
+  int mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op);
+
 private:
   struct WeDontManageIt {
     void operator() (Py_buffer *view) {
@@ -421,13 +411,61 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
   if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
     PyErr_Clear();
 
-    // Switch to our message if things gone wrong
+    // Switch to our exception message if things gone wrong
     PyTypeObject *tp = Py_TYPE(self);
     PyErr_Format(PyExc_AttributeError
         , "'%.50s' object has no attribute '%U'", tp->tp_name, name);
   }
 
   return attr;
+}
+
+Py_ssize_t mdarray::mp_length(PyObject *self) {
+  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+  if (surrogate == nullptr)
+    return -1;
+
+  Py_ssize_t len = PyMapping_Length(surrogate);
+  Py_DECREF(surrogate);
+
+  // TODO: Exception localize
+  return len;
+}
+
+PyObject *mdarray::mp_subscript(PyObject *self, PyObject *op) {
+  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+  if (surrogate == nullptr)
+    return nullptr;
+
+  PyObject *ret = PyObject_GetItem(surrogate, op);
+  Py_DECREF(surrogate);
+
+  // TODO: Exception localize
+  return ret;
+}
+
+int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
+  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+  int ret;
+
+  if (surrogate == nullptr)
+    ret = -1;
+
+  if (op == nullptr)
+    ret = PyObject_DelItem(surrogate, ind);
+  else
+    ret = PyObject_SetItem(surrogate, ind, op);
+
+  Py_DECREF(surrogate);
+
+  // TODO: Exception localize
+  return ret;
 }
 
 // XXX: solve dual outputs problem
@@ -687,6 +725,7 @@ static PyObject *mdarray_dtype_get(mdarray *self) {
       pd= PyArray_DescrFromType(NPY_INT);
       break;
     default:
+      PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");
       return nullptr;
   }
 

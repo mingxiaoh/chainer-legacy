@@ -80,7 +80,7 @@ class ReLUMKLDNN(function.Function):
         )
 
     def forward(self, x):
-        cc = ReluForward(x,
+        cc = ReLUForward(x,
                 pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
@@ -90,7 +90,7 @@ class ReLUMKLDNN(function.Function):
         return y,
 
     def backward(self, x, gy):
-        cc = LinearBackwardData(x, gy, self.hint,
+        cc = ReLUBackward(x, gy, self.hint,
                 pos=(self.rank, self.fanout))
 
         gx = cc_data.execute_on()

@@ -22,6 +22,7 @@
 %include pep_3118.i
 %include getattro.i
 %include asnumber.i
+%include asmap.i
 %include attribute.i
 
 %import support.i
@@ -35,6 +36,7 @@
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
 %number_protocol(mdarray)
+%map_protocol(mdarray)
 
 %immutable mdarray::dtype;
 %immutable mdarray::size;
