@@ -28,10 +28,6 @@
 %import support.i
 %import memory.i
 
-// %import convolution_forward.i
-// %import convolution_backward_data.i
-// %import convolution_backward_weights.i
-
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
@@ -124,20 +120,3 @@ public:
 
   %codegen(Class, mdarray *, getter)
 %enddef
-
-// %immutable bwb_op<mkldnn::convolution_backward_weights>::extra;
-// %newobject bwb_op<mkldnn::convolution_backward_weights>::extra;
-//
-// %extend bwb_op<mkldnn::convolution_backward_weights> {
-//   mdarray extra;
-// }
-//
-// %codegen(bwb_op<mkldnn::convolution_backward_weights>, mdarray *, extra_get);
-
-// %extend_ro_attr(bwb_op<mkldnn::convolution_backward_weights>
-//                 , mdarray *, attrib, extra_get)
-// 
-// %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
-// %template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;
-// %template (conv_bwb_op) bwb_op<mkldnn::convolution_backward_weights>;
-// %template (conv_bw_op) bw_op<mkldnn::convolution_backward_weights>;

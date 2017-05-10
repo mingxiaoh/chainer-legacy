@@ -169,7 +169,7 @@ class ConvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
-        return self.hint == hint
+        return self.hint is hint
 
 class ConvolutionBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
@@ -222,8 +222,7 @@ class ConvolutionBackwardWeighs(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
-        return self.hint == hint
-
+        return self.hint is hint
 
 class Convolution2DFunctionMKLDNN(function.Function):
 

@@ -262,6 +262,20 @@ public:
 
   mdarray_ty get_kind() const { return rtti; }
 
+  static mkldnn::memory reorder_if_must(mkldnn::memory user
+      , mkldnn::memory::primitive_desc expect
+      , std::vector<mkldnn::primitive> *dag) {
+
+    if (user.get_primitive_desc() != expect) {
+      mkldnn::memory interm(expect);
+
+      dag->push_back(mkldnn::reorder(user, interm));
+      return interm;
+    }
+
+    return user;
+  }
+
 private:
   // Private helpers
   void _collect_buffer_info() {
@@ -508,19 +522,7 @@ protected:
 
 using namespace mkldnn;
 
-static memory reorder_if_must(mkldnn::memory user
-    , mkldnn::memory::primitive_desc expect
-    , std::vector<primitive> *dag) {
 
-  if (user.get_primitive_desc() != expect) {
-    mkldnn::memory interm(expect);
-
-    dag->push_back(reorder(user, interm));
-    return interm;
-  }
-
-  return user;
-}
 
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
