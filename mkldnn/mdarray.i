@@ -106,14 +106,6 @@ public:
   , std::vector<mkldnn::primitive> *dag);
 };
 
-// TODO: Make it a reusable macro
-%immutable bwb_op<mkldnn::convolution_backward_weights>::extra;
-%newobject bwb_op<mkldnn::convolution_backward_weights>::extra;
-
-%extend bwb_op<mkldnn::convolution_backward_weights> {
-  mdarray extra;
-}
-
 %define %codegen(Class, ret_type, getter)
 %{
   ret_type %mangle(Class) ##_## extra ## _get(Class *self_) {
@@ -122,7 +114,29 @@ public:
 %}
 %enddef
 
-%codegen(bwb_op<mkldnn::convolution_backward_weights>, mdarray *, extra_get);
+// TODO: Make it a reusable macro
+%define %extend_ro_attr(Class, ret_type, attrib, getter)
+  %immutable Class::extra;
+  %newobject Class::extra;
+
+  %extend Class {
+    mdarray extra;
+  }
+
+  %codegen(Class, mdarray *, getter)
+%enddef
+
+// %immutable bwb_op<mkldnn::convolution_backward_weights>::extra;
+// %newobject bwb_op<mkldnn::convolution_backward_weights>::extra;
+//
+// %extend bwb_op<mkldnn::convolution_backward_weights> {
+//   mdarray extra;
+// }
+//
+// %codegen(bwb_op<mkldnn::convolution_backward_weights>, mdarray *, extra_get);
+
+%extend_ro_attr(bwb_op<mkldnn::convolution_backward_weights>
+                , mdarray *, attrib, extra_get)
 
 %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
 %template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;

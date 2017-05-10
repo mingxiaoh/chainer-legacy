@@ -20,6 +20,7 @@
   #include <cstddef>
   #include <mkldnn.hpp>
   using mkldnn::handle_traits;
+  #include "mdarray.h"
 %}
 
 %include stl.i
@@ -31,6 +32,7 @@
 %import support.i
 %import memory.i
 %import inner_product_forward.i
+%import mdarray.i
 
 namespace mkldnn {
 
@@ -82,5 +84,10 @@ struct inner_product_backward_weights: public primitive {
             const primitive::at &src, const primitive::at diff_dst,
             const memory &diff_weights, const memory &diff_bias);
 };
-
 }
+
+%extend_ro_attr(bwb_op<mkldnn::inner_product_backward_weights>
+                , mdarray *, attrib, extra_get)
+
+%template (linear_bwb_op) bwb_op<mkldnn::inner_product_backward_weights>;
+%template (linear_bw_op) bw_op<mkldnn::inner_product_backward_weights>;

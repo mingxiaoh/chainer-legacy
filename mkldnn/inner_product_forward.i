@@ -20,6 +20,7 @@
   #include <cstddef>
   #include <mkldnn.hpp>
   using mkldnn::handle_traits;
+  #include "mdarray.h"
 %}
 
 %include stl.i
@@ -30,17 +31,13 @@
 
 %import support.i
 %import memory.i
+%import mdarray.i
 
 namespace mkldnn {
 
 namespace c_api {
   %include c_api.i
 }
-
-%template (mkldnn_primitive_t_handle) handle< c_api::mkldnn_primitive_t >;
-%template (mkldnn_engine_t_handle) handle< c_api::mkldnn_engine_t >;
-%template (mkldnn_primitive_desc_t_handle) handle < c_api::mkldnn_primitive_desc_t >;
-%template (mkldnn_stream_t_handle) handle< c_api::mkldnn_stream_t >;
 
 %rename (desc) inner_product_forward::desc;
 %rename (primitive_desc) inner_product_forward::primitive_desc;
@@ -89,3 +86,5 @@ struct inner_product_forward: public primitive {
 };
 
 } // namespace mkldnn
+
+%template (linear_f_op) f_s_op<mkldnn::inner_product_forward>;

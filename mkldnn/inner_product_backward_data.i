@@ -20,6 +20,7 @@
   #include <cstddef>
   #include <mkldnn.hpp>
   using mkldnn::handle_traits;
+  #include "mdarray.h"
 %}
 
 %include stl.i
@@ -30,6 +31,7 @@
 
 %import support.i
 %import memory.i
+%import mdarray.i
 %import inner_product_forward.i
 
 namespace mkldnn {
@@ -72,3 +74,5 @@ struct inner_product_backward_data: public primitive {
 };
 
 }
+
+%template (linear_bd_op) bd_op<mkldnn::inner_product_backward_data>;

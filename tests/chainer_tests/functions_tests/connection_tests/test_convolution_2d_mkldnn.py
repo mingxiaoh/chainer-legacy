@@ -12,6 +12,8 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+from mkldnn.fanout import *
+
 @testing.parameterize(*(testing.product({
     'c_contiguous': [True, False],
     'cover_all': [True, False],
@@ -26,6 +28,8 @@ from chainer.testing import condition
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     def setUp(self):
+        fanout.clear()
+        print("SetUp Process")
         in_channels = 3
         out_channels = 2
         kh, kw = (3, 3)

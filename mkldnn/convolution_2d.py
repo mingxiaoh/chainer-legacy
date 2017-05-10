@@ -2,15 +2,18 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
+import numpy
 from mkldnn.runtime import Engine
 from mkldnn.compute_complex import *
 
 # Most important thing
 from mkldnn.support import *
+
 import mkldnn.memory as m
 import mkldnn.convolution_forward as conv_forward
 import mkldnn.convolution_backward_data as conv_backdata
 import mkldnn.convolution_backward_weights as conv_backweights
+
 from mkldnn.mdarray import *
 
 class conv_geometry(object):
@@ -69,11 +72,28 @@ def _pair(x):
     return x, x
 
 class ConvolutionForward(ComputeComplex):
-    def __init__(self, x, W, b = None, stride=1, pad=0, cover_all=False, e=Engine()):
+    cc_type = 'f'
+
+    def __init__(self, inputs, stride=1, pad=0, cover_all=False,
+            pos = None, e=Engine()):
+
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        if self.new:
+            self._create_cc(x, W, b, stride, pad, cover_all, e)
+            self.num_inputs = len(inputs)
+        else:
+            self._reuse(x, W, b)
+
+    def _create_cc(self, x, W, b, stride, pad, cover_all, e):
         super(ConvolutionForward, self).__init__()
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
 
         y_d = m.desc(g.out_shape, m.memory.f32, m.memory.any)
+
+        self.geometry = g.geometry
 
         # Create primitive_desc from any
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
@@ -93,9 +113,33 @@ class ConvolutionForward(ComputeComplex):
         self._hint = cc_pd
         self.outputs = y,
 
+    def _reuse(self, x, W, b):
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.W, W)
+        if b is not None:
+            reuse_buffer(self.b, b)
+
+    def match(self, inputs, stride = 1, pad = 0, cover_all = False, **kwargs):
+        x = inputs[0]
+        W = inputs[1]
+        g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
+        return (self.geometry == g.geometry) and (self.num_inputs == len(inputs))
+
 class ConvolutionBackwardData(ComputeComplex):
-    def __init__(self, x, W, dummy, gy, hint,
-            stride=1, pad=0, cover_all=False, e=Engine()):
+    cc_type = 'bd'
+
+    def __init__(self, inputs, grad_outputs, hint,
+            stride=1, pad=0, cover_all=False, pos = None, e=Engine()):
+        x = inputs[0]
+        W = inputs[1]
+        gy = grad_outputs[0]
+
+        if self.new:
+            self._create_cc(x, W, gy, hint, stride, pad, cover_all, e)
+        else:
+            self._reuse(x, gy)
+
+    def _create_cc(self, x, W, gy, hint, stride, pad, cover_all, e):
         super(ConvolutionBackwardData, self).__init__()
 
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
@@ -110,11 +154,32 @@ class ConvolutionBackwardData(ComputeComplex):
 
         gx = conv_bd_op(cc_pd, self.gy, self.W, self.dag_)
 
+        self._hint = hint
         self.outputs = gx,
 
+    def _reuse(self, W, gy):
+        reuse_buffer(self.W, W)
+        reuse_buffer(self.gy, gy)
+
+    def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
+        return self.hint == hint
+
 class ConvolutionBackwardWeighs(ComputeComplex):
-    def __init__(self, x, W, b, gy, hint,
-            stride=1, pad=0, cover_all=False, e=Engine()):
+    cc_type = 'bw'
+
+    def __init__(self, inputs, grad_ouputs, hint,
+            stride=1, pad=0, cover_all=False, pos = None, e=Engine()):
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+        gy = grad_ouputs[0]
+
+        if self.new:
+            self._create_cc(x, W, b, gy, hint, stride, pad, cover_all, e)
+        else:
+            self._reuse_cc(x, gy)
+
+    def _create_cc(self, x, W, b, gy, hint, stride, pad, cover_all, e):
         super(ConvolutionBackwardWeighs, self).__init__()
 
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
@@ -124,11 +189,12 @@ class ConvolutionBackwardWeighs(ComputeComplex):
 
         self.gy = array(gy, m.memory.nchw, e)
         self.x = array(x, m.memory.nchw, e)
+        self._hint = hint
 
         # Prepare outputs mdarray
-        gW = mdarray(cc_pd.diff_weights_primitive_desc())
-        if b is not None:
-            gb = mdarray(cc_pd.diff_bias_primitive_desc())
+        # gW = mdarray(cc_pd.diff_weights_primitive_desc())
+        # if b is not None:
+        #     gb = mdarray(cc_pd.diff_bias_primitive_desc())
 
         if b is not None:
             # XXX: This is ugly, will use swig to do something about it
@@ -143,6 +209,13 @@ class ConvolutionBackwardWeighs(ComputeComplex):
             self.outputs = gW, gb
         else:
             self.outputs = gW,
+
+    def _reuse_cc(self, x, gy):
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.gy, gy)
+
+    def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
+        return self.hint == hint
 
 
 class Convolution2DFunctionMKLDNN(function.Function):
@@ -176,8 +249,11 @@ class Convolution2DFunctionMKLDNN(function.Function):
             )
 
     def forward_cpu(self, inputs):
-        cc = ConvolutionForward(*inputs, stride = (self.sy, self.sx),
-                pad = (self.ph, self.pw), cover_all = self.cover_all)
+
+        cc = ConvolutionForward(inputs, stride = (self.sy, self.sx),
+                pad = (self.ph, self.pw), cover_all = self.cover_all,
+                pos=(self.rank, self.fanout))
+
         self.hint = cc.hint
 
         y, = cc.execute_on()
@@ -185,19 +261,16 @@ class Convolution2DFunctionMKLDNN(function.Function):
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
-        if len(inputs) == 2:
-            inputs += None,
 
-        cc_data = ConvolutionBackwardData(*inputs, *grad_outputs, self.hint,
+        cc_data = ConvolutionBackwardData(inputs, grad_outputs, self.hint,
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
-                cover_all = self.cover_all)
+                cover_all = self.cover_all, pos=(self.rank, self.fanout))
 
-        cc_weight = ConvolutionBackwardWeighs(*inputs, *grad_outputs, self.hint,
+        cc_weight = ConvolutionBackwardWeighs(inputs, grad_outputs, self.hint,
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
-                cover_all = self.cover_all)
+                cover_all = self.cover_all, pos=(self.rank, self.fanout))
 
         gx = cc_data.execute_on()
         gW_b = cc_weight.execute_on()
 
-        print(gx, gW_b)
         return gx + gW_b

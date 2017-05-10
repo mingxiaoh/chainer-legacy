@@ -14,6 +14,11 @@ def reorder_if_must(usr_m, expect, net_):
     else:
         return usr_m
 
+def reuse_buffer(d, s):
+    if isinstance(s, numpy.ndarray):
+        s = numpy.ascontiguousarray(s)
+        d.setbuffer(s)
+
 # XXX: move this file to another location
 def array(obj, *args):
     if isinstance(obj, mkldnn.mdarray):
@@ -36,12 +41,14 @@ class ComputeComplex(object):
 
     cache = { 'f':cache_f, 'bd':cache_bd, 'bw':cache_bw }
 
-    def __new__(cls, *args, pos = None):
+    def __new__(cls, *args, **kwargs):
+        pos = kwargs.pop('pos')
         assert isinstance(pos, tuple)
+
         cache = cls.cache[cls.cc_type]
         ret = cache.get(pos)
 
-        if ret and ret.match(*args):
+        if ret and ret.match(*args, **kwargs):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
