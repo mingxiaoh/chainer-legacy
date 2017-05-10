@@ -20,6 +20,7 @@
   #include <cstddef>
   #include <mkldnn.hpp>
   using mkldnn::handle_traits;
+  #include "mdarray.h"
 %}
 
 %include stl.i
@@ -30,6 +31,7 @@
 
 %import support.i
 %import memory.i
+%import mdarray.i
 %import convolution_forward.i
 
 namespace mkldnn {
@@ -75,3 +77,6 @@ struct convolution_backward_data : public primitive {
 };
 
 }
+
+
+%template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;

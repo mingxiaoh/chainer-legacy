@@ -28,9 +28,9 @@
 %import support.i
 %import memory.i
 
-%import convolution_forward.i
-%import convolution_backward_data.i
-%import convolution_backward_weights.i
+// %import convolution_forward.i
+// %import convolution_backward_data.i
+// %import convolution_backward_weights.i
 
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
@@ -114,7 +114,6 @@ public:
 %}
 %enddef
 
-// TODO: Make it a reusable macro
 %define %extend_ro_attr(Class, ret_type, attrib, getter)
   %immutable Class::extra;
   %newobject Class::extra;
@@ -135,10 +134,10 @@ public:
 //
 // %codegen(bwb_op<mkldnn::convolution_backward_weights>, mdarray *, extra_get);
 
-%extend_ro_attr(bwb_op<mkldnn::convolution_backward_weights>
-                , mdarray *, attrib, extra_get)
-
-%template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
-%template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;
-%template (conv_bwb_op) bwb_op<mkldnn::convolution_backward_weights>;
-%template (conv_bw_op) bw_op<mkldnn::convolution_backward_weights>;
+// %extend_ro_attr(bwb_op<mkldnn::convolution_backward_weights>
+//                 , mdarray *, attrib, extra_get)
+// 
+// %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
+// %template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;
+// %template (conv_bwb_op) bwb_op<mkldnn::convolution_backward_weights>;
+// %template (conv_bw_op) bw_op<mkldnn::convolution_backward_weights>;

@@ -10,9 +10,16 @@ from mkldnn.compute_complex import *
 from mkldnn.support import *
 
 import mkldnn.memory as m
+
 import mkldnn.convolution_forward as conv_forward
 import mkldnn.convolution_backward_data as conv_backdata
 import mkldnn.convolution_backward_weights as conv_backweights
+
+conv_f_op = conv_forward.conv_f_op
+conv_bd_op = conv_backdata.conv_bd_op
+
+conv_bw_op = conv_backweights.conv_bw_op
+conv_bwb_op = conv_backweights.conv_bwb_op
 
 from mkldnn.mdarray import *
 
