@@ -67,14 +67,10 @@ class LinearForward(ComputeComplex):
         self.outputs = y,
 
     def _reuse_cc(self, x, W, b, e = Engine()):
-        if isinstance(x, numpy.ndarray):
-            self.x.setbuffer(x)
-
-        # XXX: Do we need swap weights and bais everytime???
-        self.W.setbuffer(W) if not isinstance(W, mdarray) else None
-
-        if b is not None and not isinstance(b, mdarray):
-            self.b.setbuffer(b)
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.W, W)
+        if b is not None:
+            reuse_buffer(self.b, b)
 
     def match(self, inputs):
         return len(inputs) == self.argc
@@ -136,10 +132,8 @@ class LinearBackwardData(ComputeComplex):
         self.outputs = gx,
 
     def _reuse_cc(self, W, gy):
-        self.W.setbuffer(W) if not isinstance(W, mdarray) else None
-
-        if isinstance(gy, numpy.ndarray):
-            self.gy.setbuffer(gy)
+        reuse_buffer(self.W, W)
+        reuse_buffer(self.gy, gy)
 
 class LinearBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
@@ -181,11 +175,8 @@ class LinearBackwardWeighs(ComputeComplex):
             self.outputs = gW,
 
     def _reuse_cc(self, x, gy):
-        if isinstance(x, numpy.ndarray):
-            self.x.setbuffer(x)
-
-        if isinstance(gy, numpy.ndarray):
-            self.x.setbuffer(gy)
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.gy, gy)
 
     def match(self, inputs, *args):
         return len(inputs) == self.argc
