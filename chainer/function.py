@@ -12,7 +12,8 @@ from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 from chainer import mkld
-from chainer import testing
+if mkld.enable_cosim():
+    from chainer import testing
 
 def no_backprop_mode():
     """Disable back-propagation for Variable whose volatile is auto.
@@ -324,7 +325,7 @@ class Function(object):
         outputs_cosim = self.forward_cpu(inputs)
         mkld.set_mkldnn_enabled()
         return outputs_cosim
-        
+
     def forward_gpu(self, inputs):
         """Applies forward propagation to input arrays on GPU.
 
@@ -384,15 +385,23 @@ class Function(object):
         outputs_cosim = self.backward_cpu(inputs, grad_outputs)
         mkld.set_mkldnn_enabled()
         return outputs_cosim
-        
+
     def cpu_cosim_verify_result(self, mkl_result, numpy_result):
         """cosim verify result between MKLDNN and numpy
         """
         if not mkld.enable_cosim():
             return None
-        check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
-        testing.assert_allclose(np.asarray(mkl_result), np.asarray(numpy_result), **check_options)
-        
+        check_options = {'atol': 1e-3, 'rtol': 1e-3, 'verbose': True}
+        i = 0
+        for x in numpy_result:
+            y = mkl_result[i]
+            i = i + 1
+            if isinstance(x, np.ndarray):
+                testing.assert_allclose(x, y, **check_options)
+            elif x == None:
+                if y != None:
+                    raise KeyError('cosim mismatch')
+
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.
 
