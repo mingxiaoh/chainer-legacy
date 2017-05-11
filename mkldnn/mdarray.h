@@ -110,11 +110,11 @@ public:
     : mdarray({{std::move(dims), dt, format}, engine}) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
-    : size_([] (mkldnn::memory::primitive_desc &pd) {
+    : size_([&pd] () {
                     auto md = pd.desc().data;
                     return std::accumulate(md.dims, md.dims + md.ndims, 1
                         , std::multiplies<int>());
-                  }(pd))
+                  }())
               , data_(new avx::byte [size_ * _itemsize_from_pd(pd)])
               , m_(pd, data_.get())
               , desc_(nullptr), view_(nullptr), rtti(raw) {}
@@ -123,14 +123,14 @@ public:
       , mkldnn::memory::format format
       , mkldnn::engine &e)
     : size_(view->len/view->itemsize)
-          , data_ ([](Py_buffer *view) {
+          , data_ ([view]() {
              unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
              if (adrs % 16 != 0) {
                return std::unique_ptr
                  <avx::byte []>(new avx::byte [view->len]);
              } else
                return std::unique_ptr<avx::byte []>(nullptr);
-           } (view))
+           } ())
           , m_({_d_from_view(view, format), e}
               , data_ == nullptr? view->buf : data_.get())
           , desc_(nullptr), view_(view), rtti(raw) {
