@@ -390,16 +390,8 @@ class Function(object):
         """
         if not mkld.enable_cosim():
             return None
-        check_options = {'atol': 1e-3, 'rtol': 1e-3, 'verbose': True}
-        i = 0
-        for x in numpy_result:
-            y = mkl_result[i]
-            i = i + 1
-            if isinstance(x, np.ndarray):
-                testing.assert_allclose(x, y, **check_options)
-            elif x == None:
-                if y != None:
-                    raise KeyError('cosim mismatch')
+        check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
+        testing.assert_allclose(np.asarray(mkl_result), np.asarray(numpy_result), **check_options)
         
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.
