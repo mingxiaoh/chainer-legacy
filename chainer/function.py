@@ -11,7 +11,7 @@ from chainer.utils import type_check
 from chainer import variable
 
 # TODO: put it in cuda if success
-from mkldnn.chainer.fanout import *
+from mkldnn import fanout
 
 
 def no_backprop_mode():
