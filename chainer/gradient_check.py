@@ -9,7 +9,7 @@ from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
 
-from mkldnn.fanout import *
+from mkldnn.chainer.fanout import *
 
 
 def _copy_arrays(xs):

@@ -1,7 +1,7 @@
-from mkldnn.support import *
-from mkldnn import reorder as r
-from mkldnn import memory as m
-from mkldnn.runtime import Stream
+from mkldnn.api.support import *
+from mkldnn.api import reorder as r
+from mkldnn.api import memory as m
+from mkldnn.chainer.runtime import Stream
 
 import mkldnn
 import numpy

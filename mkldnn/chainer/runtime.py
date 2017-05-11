@@ -1,5 +1,5 @@
-from mkldnn.support import engine
-from mkldnn.support import stream
+from mkldnn.api.support import engine
+from mkldnn.api.support import stream
 
 class Engine(object):
     __instance = None

@@ -3,17 +3,17 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 import numpy
-from mkldnn.runtime import Engine
+from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import *
 
 # Most important thing
-from mkldnn.support import *
+from mkldnn.api.support import *
 
-import mkldnn.memory as m
+import mkldnn.api.memory as m
 
-import mkldnn.convolution_forward as conv_forward
-import mkldnn.convolution_backward_data as conv_backdata
-import mkldnn.convolution_backward_weights as conv_backweights
+import mkldnn.api.convolution_forward as conv_forward
+import mkldnn.api.convolution_backward_data as conv_backdata
+import mkldnn.api.convolution_backward_weights as conv_backweights
 
 conv_f_op = conv_forward.conv_f_op
 conv_bd_op = conv_backdata.conv_bd_op

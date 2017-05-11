@@ -7,7 +7,7 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 import mkldnn
-from mkldnn.convolution_2d import *
+from mkldnn.chainer.convolution_2d import *
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn

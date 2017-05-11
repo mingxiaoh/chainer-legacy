@@ -12,7 +12,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-from mkldnn.fanout import *
+from mkldnn.chainer.fanout import *
 
 @testing.parameterize(*(testing.product({
     'c_contiguous': [True, False],

@@ -1,15 +1,15 @@
 from chainer import function
 from chainer.utils import type_check
 
-from mkldnn.runtime import Engine
+from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import *
 
 # Most important thing
-from mkldnn.support import *
-import mkldnn.memory as m
-import mkldnn.inner_product_forward as ip_forward
-import mkldnn.inner_product_backward_data as ip_backdata
-import mkldnn.inner_product_backward_weights as ip_backweights
+from mkldnn.api.support import *
+import mkldnn.api.memory as m
+import mkldnn.api.inner_product_forward as ip_forward
+import mkldnn.api.inner_product_backward_data as ip_backdata
+import mkldnn.api.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import *
 
 def _as_mat(x):

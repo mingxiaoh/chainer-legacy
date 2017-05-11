@@ -12,7 +12,7 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 import mkldnn
-from mkldnn.fanout import *
+from mkldnn.chainer.fanout import *
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float32],

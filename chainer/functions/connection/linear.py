@@ -3,7 +3,7 @@ from chainer.utils import type_check
 
 import numpy
 import mkldnn
-from mkldnn.linear import *
+from mkldnn.chainer.linear import *
 
 
 def _as_mat(x):

@@ -1,14 +1,14 @@
 from chainer import function
 from chainer.utils import type_check
 
-from mkldnn.runtime import Engine
+from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import *
 
 # Most important thing
-from mkldnn.support import *
-import mkldnn.memory as m
-import mkldnn.relu_forward as relu_forward
-import mkldnn.relu_backward as relu_backward
+from mkldnn.api.support import *
+import mkldnn.api.memory as m
+import mkldnn.api.relu_forward as relu_forward
+import mkldnn.api.relu_backward as relu_backward
 from mkldnn.mdarray import *
 
 def create_backward_desc(d_creator, *inputs):
