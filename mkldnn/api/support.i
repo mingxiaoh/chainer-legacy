@@ -1,4 +1,4 @@
-%module (package="mkldnn") support
+%module (package="mkldnn.api") support
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>

@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn") convolution_forward
+%module (package="mkldnn.api") inner_product_forward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -39,11 +39,10 @@ namespace c_api {
   %include c_api.i
 }
 
+%rename (desc) inner_product_forward::desc;
+%rename (primitive_desc) inner_product_forward::primitive_desc;
 
-%rename (desc) convolution_forward::desc;
-%rename (primitive_desc) convolution_forward::primitive_desc;
-
-%exception convolution_forward::desc::desc {
+%exception inner_product_forward::desc::desc {
   try {
     $action
   }
@@ -52,45 +51,40 @@ namespace c_api {
   }
 }
 
-struct convolution_forward: public primitive {
+struct inner_product_forward: public primitive {
     struct desc {
-        c_api::mkldnn_convolution_desc_t data;
-        desc(prop_kind aprop_kind, algorithm aalgorithm,
-                const memory::desc &src_desc,
+        c_api::mkldnn_inner_product_desc_t data;
+        desc(prop_kind aprop_kind, const memory::desc &src_desc,
                 const memory::desc &weights_desc,
                 const memory::desc &bias_desc,
-                const memory::desc &dst_desc,
-                const memory::dims strides,
-                const memory::dims padding_l,
-                const memory::dims padding_r,
-                const padding_kind apadding_kind);
-        desc(prop_kind aprop_kind, algorithm aalgorithm,
-                const memory::desc &src_desc,
+                const memory::desc &dst_desc);
+
+        desc(prop_kind aprop_kind, const memory::desc &src_desc,
                 const memory::desc &weights_desc,
-                const memory::desc &dst_desc,
-                const memory::dims strides,
-                const memory::dims padding_l,
-                const memory::dims padding_r,
-                const padding_kind apadding_kind);
+                const memory::desc &dst_desc);
     };
 
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
+
         memory::primitive_desc src_primitive_desc() const;
+
         memory::primitive_desc weights_primitive_desc() const;
+
         memory::primitive_desc bias_primitive_desc() const;
+
         memory::primitive_desc dst_primitive_desc() const;
     };
 
-    convolution_forward(const primitive_desc &aprimitive_desc,
-            const primitive::at &src, const primitive::at &weights,
+    inner_product_forward(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const primitive::at weights,
             const primitive::at &bias, const memory &dst);
 
-    convolution_forward(const primitive_desc &aprimitive_desc,
-            const primitive::at &src, const primitive::at &weights,
+    inner_product_forward(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const primitive::at weights,
             const memory &dst);
 };
 
 } // namespace mkldnn
 
-%template (conv_f_op) f_s_op<mkldnn::convolution_forward>;
+%template (linear_f_op) f_s_op<mkldnn::inner_product_forward>;

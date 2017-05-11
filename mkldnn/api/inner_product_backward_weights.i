@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn") inner_product_backward_data
+%module (package="mkldnn.api") inner_product_backward_weights
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -31,15 +31,15 @@
 
 %import support.i
 %import memory.i
-%import mdarray.i
 %import inner_product_forward.i
+%import mdarray.i
 
 namespace mkldnn {
 
-%rename (desc) inner_product_backward_data::desc;
-%rename (primitive_desc) inner_product_backward_data::primitive_desc;
+%rename (desc) inner_product_backward_weights::desc;
+%rename (primitive_desc) inner_product_backward_weights::primitive_desc;
 
-%exception inner_product_backward_data::desc::desc {
+%exception inner_product_backward_weights::desc::desc {
   try {
     $action
   }
@@ -48,11 +48,17 @@ namespace mkldnn {
   }
 }
 
-struct inner_product_backward_data: public primitive {
+struct inner_product_backward_weights: public primitive {
     struct desc {
         c_api::mkldnn_inner_product_desc_t data;
-        desc(const memory::desc &diff_src_desc,
-                const memory::desc &weights_desc,
+        
+        desc(const memory::desc &src_desc,
+                const memory::desc &diff_weights_desc,
+                const memory::desc &diff_bias_desc,
+                const memory::desc &diff_dst_desc);
+
+        desc(const memory::desc &src_desc,
+                const memory::desc &diff_weights_desc,
                 const memory::desc &diff_dst_desc);
     };
 
@@ -63,16 +69,25 @@ struct inner_product_backward_data: public primitive {
 
         memory::primitive_desc diff_dst_primitive_desc() const;
 
-        memory::primitive_desc weights_primitive_desc() const;
+        memory::primitive_desc diff_weights_primitive_desc() const;
 
-        memory::primitive_desc diff_src_primitive_desc() const;
+        memory::primitive_desc diff_bias_primitive_desc() const;
+
+        memory::primitive_desc src_primitive_desc() const;
     };
 
-    inner_product_backward_data(const primitive_desc &aprimitive_desc,
-            const primitive::at &diff_dst, const primitive::at weights,
-            const memory &diff_src);
-};
+    inner_product_backward_weights(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const primitive::at diff_dst,
+            const memory &diff_weights);
 
+    inner_product_backward_weights(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const primitive::at diff_dst,
+            const memory &diff_weights, const memory &diff_bias);
+};
 }
 
-%template (linear_bd_op) bd_op<mkldnn::inner_product_backward_data>;
+%extend_ro_attr(bwb_op<mkldnn::inner_product_backward_weights>
+                , mdarray *, attrib, extra_get)
+
+%template (linear_bwb_op) bwb_op<mkldnn::inner_product_backward_weights>;
+%template (linear_bw_op) bw_op<mkldnn::inner_product_backward_weights>;

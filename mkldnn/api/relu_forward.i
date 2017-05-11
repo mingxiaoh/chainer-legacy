@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn") reorder
+%module (package="mkldnn.api") relu_forward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -37,34 +37,34 @@ namespace c_api {
   %include c_api.i
 }
 
-%rename (primitive_desc) reorder::primitive_desc;
+%rename (desc) relu_forward::desc;
+%rename (primitive_desc) relu_forward::primitive_desc;
 
-%exception reorder::primitive_desc {
+%exception relu_forward::desc::desc {
   try {
     $action
-  } catch (mkldnn::error &e) {
+  }
+  catch (mkldnn::error &e){
     SWIG_exception(SWIG_ValueError, e.message.c_str());
   }
 }
 
-%exception reorder::reorder {
-  try {
-    $action
-  } catch (mkldnn::error &e) {
-    SWIG_exception(SWIG_ValueError, e.message.c_str());
-  }
-}
-
-struct reorder : public primitive {
-    struct primitive_desc {
-        primitive_desc(const memory::primitive_desc &input,
-                       const memory::primitive_desc &output);
+struct relu_forward : public primitive {
+    struct desc {
+        c_api::mkldnn_relu_desc_t data;
+        // template <typename T>
+        desc(prop_kind aprop_kind, const memory::desc &src_desc,
+                /*T*/double negative_slope);
     };
 
-    reorder(const primitive_desc &aprimitive_desc,
-            const primitive::at &input, const memory &output);
+    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+        primitive_desc(const desc &adesc, const engine &aengine);
 
-    reorder(const primitive::at &input, const memory &output);
+        memory::primitive_desc dst_primitive_desc() const;
+    };
+
+    relu_forward(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const memory &dst);
 };
 
 } // namespace mkldnn
