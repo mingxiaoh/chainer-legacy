@@ -1,14 +1,26 @@
-class fanout(object):
-    current = {}
-    def __new__(cls, rank):
-        ret = cls.current.get(rank)
+import weakref
 
-        if ret is None:
-            ret = 0
+def fanout_recorder_clear(ref):
+    FanoutRecorder.clear()
 
-        cls.current[rank] = ret + 1
-        return ret
+class FanoutRecorder(object):
+    fanout = {}
+    head = None
 
     @classmethod
-    def clear(cls):
-        cls.current = {}
+    def new(recorder, func):
+        if not recorder.fanout:
+            recorder.head = weakref.ref(func, fanout_recorder_clear)
+
+        if recorder.fanout.get(func.rank) is None:
+            recorder.fanout[func.rank] = 0
+        else:
+            recorder.fanout[func.rank] += 1
+
+        return recorder.fanout[func.rank]
+
+    @classmethod
+    def clear(recorder):
+        if recorder.fanout:
+            recorder.head = None
+            recorder.fanout = {}
