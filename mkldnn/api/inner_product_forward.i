@@ -23,6 +23,10 @@
   #include "mdarray.h"
 %}
 
+%init %{
+  import_array();
+%}
+
 %include stl.i
 %include exception.i
 

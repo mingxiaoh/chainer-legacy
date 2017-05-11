@@ -1,6 +1,7 @@
 #ifndef _MDARRAY_H_
 #define _MDARRAY_H_
 #include <Python.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 #include <cstring>
 #include <iostream>
@@ -688,67 +689,64 @@ public:
       , mkldnn::memory::format format
       , mkldnn::engine &e)
     : py_handle(new implementation::mdarray(view, format, e)) {}
-};
 
-static PyObject *mdarray_shape_get(mdarray *arg) {
-  implementation::mdarray *self = arg->get();
-  int ndim = self->ndims();
-  PyObject *intTuple = PyTuple_New(ndim);
-  auto data = self->desc().data;
+  static PyObject *mdarray_shape_get(mdarray *arg) {
+    implementation::mdarray *self = arg->get();
+    int ndim = self->ndims();
+    PyObject *intTuple = PyTuple_New(ndim);
+    auto data = self->desc().data;
 
-  if (!intTuple)
-    goto fail;
-
-  for (int i = 0; i<ndim; i++) {
-    PyObject *o = PyLong_FromLong(data.dims[i]);
-
-    if (!o) {
-      Py_DECREF(intTuple);
-      intTuple = NULL;
+    if (!intTuple)
       goto fail;
+
+    for (int i = 0; i<ndim; i++) {
+      PyObject *o = PyLong_FromLong(data.dims[i]);
+  
+      if (!o) {
+        Py_DECREF(intTuple);
+        intTuple = NULL;
+        goto fail;
+      }
+
+      PyTuple_SET_ITEM(intTuple, i, o);
     }
-
-    PyTuple_SET_ITEM(intTuple, i, o);
+  
+  fail:
+    return intTuple;
   }
-
-fail:
-  return intTuple;
-}
-
-static PyObject *mdarray_dtype_get(mdarray *self) {
-  implementation::mdarray *m = self->get();
-  PyArray_Descr *pd;
-  // Translate our data_type to numpy one
-  switch (m->desc().data.data_type) {
-    case mkldnn::memory::f32:
-      pd = PyArray_DescrFromType(NPY_FLOAT);
-      break;
-    case mkldnn::memory::s32:
-      pd= PyArray_DescrFromType(NPY_INT);
-      break;
-    default:
-      PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");
-      return nullptr;
+  
+  static PyObject *mdarray_dtype_get(mdarray *self) {
+    implementation::mdarray *m = self->get();
+    PyArray_Descr *pd;
+    // Translate our data_type to numpy one
+    switch (m->desc().data.data_type) {
+      case mkldnn::memory::f32:
+        pd = PyArray_DescrFromType(NPY_FLOAT);
+        break;
+      case mkldnn::memory::s32:
+        pd= PyArray_DescrFromType(NPY_INT);
+        break;
+      default:
+        PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");
+        return nullptr;
+    }
+  
+    return reinterpret_cast<PyObject *>(pd);
   }
-
-  return reinterpret_cast<PyObject *>(pd);
-}
-
-static long mdarray_size_get(mdarray *self) {
-  return self->get()->size();
-}
-
-static long mdarray_ndim_get(mdarray *self) {
-  return self->get()->desc().data.ndims;
-}
-
-static mkldnn::memory *mdarray_memory_get(mdarray *self) {
-  return new mkldnn::memory((*self)->memory());
-}
-
-static int mdarray_setbuffer(mdarray *self, Py_buffer *view) {
-  return (*self)->setbuffer(view);
-}
+  
+  static long mdarray_size_get(mdarray *self) {
+    return self->get()->size();
+  }
+  
+  static long mdarray_ndim_get(mdarray *self) {
+    return self->get()->desc().data.ndims;
+  }
+  
+  static mkldnn::memory *mdarray_memory_get(mdarray *self) {
+    return new mkldnn::memory((*self)->memory());
+  }
+  
+};
 
 using namespace mkldnn;
 
@@ -783,10 +781,10 @@ public:
     : py_handle (new implementation::bwb_op<p_t, pd_t>
         (op, x, gy, dag)) {}
 
-  static py_handle *extra_get(const py_handle &in) {
-    if (isa<implementation::d_op>(in)){
+  static py_handle *extra_get(const py_handle *in) {
+    if (isa<implementation::d_op>(*in)){
         return new py_handle(implementation::d_op::extra_get
-        (static_cast<implementation::d_op *>(in.get())));
+        (static_cast<implementation::d_op *>(in->get())));
     }
 
     // Raise exception?

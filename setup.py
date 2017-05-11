@@ -90,7 +90,7 @@ setup(
     author_email='tokui@preferred.jp',
     url='http://chainer.org/',
     license='MIT License',
-    packages = packages
+    packages = packages,
     ext_modules=ext_modules,
     cmdclass={'install':_install, 'build_py':_build_py},
     zip_safe=False,

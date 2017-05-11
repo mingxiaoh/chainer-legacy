@@ -1,8 +1,6 @@
 %module (package="mkldnn") mdarray
 %{
   #define SWIG_FILE_WITH_INIT
-  #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-  #include <numpy/arrayobject.h>
   #include <cstring>
   #include <iostream>
   #include <vector>
@@ -14,7 +12,6 @@
 %}
 
 %init %{
-  // XXX: Do lazy init?
   import_array();
 %}
 
@@ -34,19 +31,46 @@
 %number_protocol(mdarray)
 %map_protocol(mdarray)
 
-%immutable mdarray::dtype;
-%immutable mdarray::size;
-%immutable mdarray::ndim;
-%immutable mdarray::shape;
-%immutable mdarray::memory;
-%newobject mdarray::memory;
+%define %codegen(Class, ret_type, attrib, getter)
+%{
+  inline ret_type %mangle(Class) ##_## attrib ## _get(Class *self_) {
+    return (ret_type) Class::getter(self_);
+  }
+%}
+%enddef
+
+%define %extend_ro_attr(Class, ret_type, attrib, getter)
+  %immutable Class::attrib;
+  %extend Class {
+    ret_type attrib;
+  }
+  %codegen(Class, ret_type, attrib, getter)
+%enddef
+
+%define %extend_ro_attr_and_own(Class, ret_type, attrib, getter)
+  %immutable Class::attrib;
+  %newobject Class::attrib;
+
+  %extend Class {
+    ret_type attrib;
+  }
+
+  %codegen(Class, ret_type *, attrib, getter)
+%enddef
+
+%extend_ro_attr(mdarray, PyObject *, dtype, mdarray_dtype_get)
+%extend_ro_attr(mdarray, PyObject *, shape, mdarray_shape_get)
+%extend_ro_attr(mdarray, long, size, mdarray_size_get)
+%extend_ro_attr(mdarray, long, ndim, mdarray_ndim_get)
+%extend_ro_attr_and_own(mdarray, mkldnn::memory, memory, mdarray_memory_get)
+
+%{
+  static int mdarray_setbuffer(mdarray *self, Py_buffer *view) {
+    return (*self)->setbuffer(view);
+  }
+%}
 
 %extend mdarray {
-  PyObject *dtype;
-  PyObject *shape;
-  mkldnn::memory memory;
-  long size;
-  long ndim;
   int setbuffer(Py_buffer *view);
 }
 
@@ -102,22 +126,3 @@ public:
   bw_op(pd_t &op, py_handle x, py_handle gy
   , std::vector<mkldnn::primitive> *dag);
 };
-
-%define %codegen(Class, ret_type, getter)
-%{
-  ret_type %mangle(Class) ##_## extra ## _get(Class *self_) {
-    return (ret_type) Class::getter(*self_);
-  }
-%}
-%enddef
-
-%define %extend_ro_attr(Class, ret_type, attrib, getter)
-  %immutable Class::extra;
-  %newobject Class::extra;
-
-  %extend Class {
-    mdarray extra;
-  }
-
-  %codegen(Class, mdarray *, getter)
-%enddef

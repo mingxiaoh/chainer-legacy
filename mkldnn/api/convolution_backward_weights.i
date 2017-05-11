@@ -23,6 +23,10 @@
   #include "mdarray.h"
 %}
 
+%init %{
+  import_array();
+%}
+
 %include stl.i
 %include exception.i
 
@@ -92,8 +96,8 @@ struct convolution_backward_weights : public primitive {
 
 }
 
-%extend_ro_attr(bwb_op<mkldnn::convolution_backward_weights>
-                , mdarray *, attrib, extra_get)
+%extend_ro_attr_and_own(bwb_op<mkldnn::convolution_backward_weights>
+                , mdarray, extra, extra_get)
 
 %template (conv_bwb_op) bwb_op<mkldnn::convolution_backward_weights>;
 %template (conv_bw_op) bw_op<mkldnn::convolution_backward_weights>;

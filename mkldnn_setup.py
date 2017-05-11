@@ -17,7 +17,7 @@ modules = {
         ['mkldnn/api/inner_product_forward.i'],
 
         'mkldnn.api._inner_product_backward_data' :
-        ['mkldnn/api/inner_produt_backward.i'],
+        ['mkldnn/api/inner_product_backward_data.i'],
 
         'mkldnn.api._inner_product_backward_weights' :
         ['mkldnn/api/inner_product_backward_weights.i'],
@@ -39,21 +39,21 @@ modules = {
 
         'mkldnn.api._reorder' : ['mkldnn/api/reorder.i'],
 
-        'mkldnn._mdarray' : ['mkldnn/api/mdarray.i']}
+        'mkldnn._mdarray' : ['mkldnn/mdarray.i']}
 
 swig_opts=['-c++', '-Imkldnn', '-relativeimport',
         '-builtin', '-modern', '-modernargs',
         '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 
-ccxx_opts=['-std=c++11', '-O0', '-g']
-includes = [get_inclues()]
+ccxx_opts=['-std=c++11', '-O0', '-g', '-Imkldnn']
+includes = [get_include()]
 libraries = ['mkldnn']
 
 ext_modules = []
 for m, s in modules.items():
-    ext = Extension(m, source=s,
+    ext = Extension(m, sources=s,
             swig_opts=swig_opts,
-            extra_compile_args=cxx_opts, include_dirs=includes, libraries=libraries)
+            extra_compile_args=ccxx_opts, include_dirs=includes, libraries=libraries)
 
     ext_modules.append(ext)
 
