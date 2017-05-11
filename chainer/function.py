@@ -174,6 +174,7 @@ class Function(object):
             :class:`Variable` objects.
 
         """
+
         inputs = [x if isinstance(x, variable.Variable)
                   else variable.Variable(x)
                   for x in inputs]
@@ -196,7 +197,7 @@ class Function(object):
         # Bring this forward for compute complex reuse
         # Topological ordering
         self.rank = max([x.rank for x in inputs]) if inputs else 0
-        self.fanout = fanout(self.rank)
+        self.fanout = FanoutRecorder.new(self)
 
         # Forward prop
         with cuda.get_device(*in_data):

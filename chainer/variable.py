@@ -612,7 +612,7 @@ Actual: {0}'''.format(type(data))
                 and therefore it is recommended to set this flag ``False``.
 
         """
-        fanout.clear()
+        FanoutRecorder.clear()
         if self.creator is None:
             return
         initial_device = None
@@ -645,7 +645,6 @@ Actual: {0}'''.format(type(data))
                 seen_set.add(cand)
 
         add_cand(self.creator)
-
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)

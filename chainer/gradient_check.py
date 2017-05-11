@@ -9,8 +9,6 @@ from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
 
-from mkldnn.chainer.fanout import *
-
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
@@ -232,7 +230,6 @@ def check_backward(func, x_data, y_grad, params=(),
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
-    fanout.clear()
 
     if dtype is None:
         casted_xs = [variable.Variable(x) for x in x_data]
@@ -246,7 +243,6 @@ def check_backward(func, x_data, y_grad, params=(),
                      for x in x_data]
 
     def f():
-        fanout.clear()
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         return tuple(y.data for y in ys)
