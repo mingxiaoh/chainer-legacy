@@ -103,11 +103,11 @@ public:
     Py_ssize_t shape[MAX_NDIM];
   };
 
-  mdarray(mkldnn::memory::dims dims
+  mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , mkldnn::engine &engine)
-    : mdarray({{dims, dt, format}, engine}) {}
+    : mdarray({{std::move(dims), dt, format}, engine}) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
     : size_([] (mkldnn::memory::primitive_desc &pd) {
@@ -674,7 +674,7 @@ private:
 //
 class mdarray : public py_handle {
 public:
-  mdarray(mkldnn::memory::dims dims
+  mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , mkldnn::engine &engine)

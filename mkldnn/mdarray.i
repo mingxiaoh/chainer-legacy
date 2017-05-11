@@ -60,6 +60,7 @@
 
 class mdarray: public py_handle {
 public:
+  // It is deliberately NOT matching prototypes!
   mdarray(mkldnn::memory::dims dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
