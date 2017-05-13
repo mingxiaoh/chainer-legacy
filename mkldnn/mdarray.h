@@ -272,8 +272,6 @@ public:
     if (user.get_primitive_desc() != expect) {
       mkldnn::memory interm(expect);
 
-      std::cout<<"========Create memory @"<<interm.get_data_handle()
-        <<", size="<<user.get_primitive_desc().get_size()<<std::endl;
       dag->push_back(mkldnn::reorder(user, interm));
       return interm;
     }
@@ -531,52 +529,34 @@ template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
 class f_s_op: public s_op {
 private:
-  f_s_op(pd_t &op, mdarray *x, mdarray *W, mdarray *b
-      , std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag), interms_(2) {
-
-    mkldnn::memory x_interm (reorder_if_must(x->memory()
-        , op.src_primitive_desc(), dag_));
-    mkldnn::memory W_interm (reorder_if_must(W->memory()
-        , op.weights_primitive_desc(), dag_));
-
-    dag_->push_back(p_t(op, x_interm, W_interm
-          , b->memory(), this->memory()));
-
-    interms_.push_back(x_interm);
-    interms_.push_back(W_interm);
-  }
-
   f_s_op(pd_t &op, mdarray *x, mdarray *W
       , std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag) {
-
-    mkldnn::memory x_interm (reorder_if_must(x->memory()
-          , op.src_primitive_desc(), dag_));
-    mkldnn::memory W_interm (reorder_if_must(W->memory()
-          , op.weights_primitive_desc(), dag_));
-
-    dag_->push_back(p_t(op, x_interm, W_interm, this->memory()));
-
-    interms_.push_back(x_interm);
-    interms_.push_back(W_interm);
+    : s_op(op.dst_primitive_desc(), dag)
+      , x_reordered_(reorder_if_must(x->memory()
+            , op.src_primitive_desc(), dag_))
+      , W_reordered_(reorder_if_must(W->memory()
+            , op.weights_primitive_desc(), dag_)) {
   }
 
 public:
   f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
       , std::vector<primitive> *dag)
-    : f_s_op(op, x.get(), W.get(), b.get(), dag){
+    : f_s_op(op, x.get(), W.get(), dag) {
       deps_ = {x, W, b};
+      dag_->push_back(p_t(op, x_reordered_, W_reordered_
+           , b->memory(), this->memory()));
     }
 
   f_s_op(pd_t &op, py_handle x, py_handle W
       , std::vector<primitive> *dag)
     : f_s_op(op, x.get(), W.get(), dag){
       deps_= {x, W};
+      dag_->push_back(p_t(op, x_reordered_, W_reordered_
+            , this->memory()));
     }
 
 private:
-  std::vector<mkldnn::primitive> interms_;
+  mkldnn::memory x_reordered_, W_reordered_;
   std::vector<py_handle> deps_;
 };
 
@@ -585,30 +565,23 @@ class bd_op: public s_op {
 private:
   bd_op(pd_t &op
       , mdarray *gy, mdarray *W, std::vector<primitive> *dag)
-    : s_op(op.diff_src_primitive_desc(), dag), interms_(2) {
-
-    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), dag_));
-
-    mkldnn::memory W_interm (reorder_if_must(W->memory()
-          , op.weights_primitive_desc(), dag_));
-
-    dag_->push_back(p_t(op, gy_interm, W_interm
-          , this->memory()));
-
-    interms_.push_back(gy_interm);
-    interms_.push_back(W_interm);
-  }
+    : s_op(op.diff_src_primitive_desc(), dag)
+      , gy_reordered_(reorder_if_must(gy->memory()
+            , op.diff_dst_primitive_desc(), dag_))
+      , W_reordered_(reorder_if_must(W->memory()
+            , op.weights_primitive_desc(), dag_)) {}
 
 public:
   bd_op(pd_t &op, py_handle gy, py_handle W
       , std::vector<primitive> *dag)
     : bd_op(op, gy.get(), W.get(), dag) {
-      deps_={gy, W};
+      deps_= {gy, W};
+      dag_->push_back(p_t(op, gy_reordered_, W_reordered_
+            , this->memory()));
     }
 
 private:
-  std::vector<mkldnn::primitive> interms_;
+  mkldnn::memory gy_reordered_, W_reordered_;
   std::vector<py_handle> deps_;
 };
 
@@ -618,27 +591,23 @@ public:
   bwb_op(pd_t &op
       , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
     : d_op(op.diff_weights_primitive_desc()
-        , op.diff_bias_primitive_desc(), dag), interms_(2) {
+        , op.diff_bias_primitive_desc(), dag)
+      , x_reordered_(reorder_if_must(x->memory()
+            , op.src_primitive_desc(), dag_))
+      , gy_reordered_(reorder_if_must(gy->memory()
+          , op.diff_dst_primitive_desc(), dag_)) {}
 
-    mkldnn::memory x_interm (reorder_if_must(x->memory()
-          , op.src_primitive_desc(), dag_));
-
-    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), dag_));
-
-    dag_->push_back(p_t(op, x_interm, gy_interm
-          , memory(), extra->memory()));
-
-    interms_.push_back(x_interm);
-    interms_.push_back(gy_interm);
-  }
 public:
   bwb_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
-    : bwb_op(op, x.get(), gy.get(), dag) { deps_ = {x, gy}; }
+    : bwb_op(op, x.get(), gy.get(), dag) {
+      deps_ = {x, gy};
+      dag_->push_back(p_t(op, x_reordered_, gy_reordered_
+          , memory(), extra->memory()));
+    }
 
 private:
-  std::vector<mkldnn::primitive> interms_;
+  mkldnn::memory x_reordered_, gy_reordered_;
   std::vector<py_handle> deps_;
 };
 
@@ -647,26 +616,21 @@ class bw_op: public s_op {
 public:
   bw_op(pd_t &op
       , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
-    : s_op(op.diff_weights_primitive_desc(), dag), interms_(2) {
-
-    mkldnn::memory x_interm (reorder_if_must(x->memory()
-          , op.src_primitive_desc(), dag_));
-
-    mkldnn::memory gy_interm (reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), dag_));
-
-    dag_ ->push_back(p_t(op, x_interm, gy_interm
-          , memory()));
-
-    interms_.push_back(x_interm);
-    interms_.push_back(gy_interm);
-  }
+    : s_op(op.diff_weights_primitive_desc(), dag)
+      , x_reordered_(reorder_if_must(x->memory()
+          , op.src_primitive_desc(), dag_))
+      , gy_reordered_(reorder_if_must(gy->memory()
+          , op.diff_dst_primitive_desc(), dag_)) {}
 public:
   bw_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
-    : bw_op(op, x.get(), gy.get(), dag) { deps_ = {x, gy}; }
+    : bw_op(op, x.get(), gy.get(), dag) {
+      deps_ = {x, gy};
+      dag_ ->push_back(p_t(op, x_reordered_, gy_reordered_
+          , memory()));
+    }
 private:
-  std::vector<mkldnn::primitive> interms_;
+  mkldnn::memory x_reordered_, gy_reordered_;
   std::vector<py_handle> deps_;
 };
 
