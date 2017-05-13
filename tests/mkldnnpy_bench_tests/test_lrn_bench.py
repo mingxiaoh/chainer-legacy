@@ -52,5 +52,6 @@ def test_lrn(caculate, switchOn=True):
     print(caculate, " Average Backward: ", total_backward/count, "ms")
     print(caculate, " Average Total: ", (total_forward + total_backward)/count, "ms")
 
+
 test_lrn("mkldnn")
 test_lrn("numpy", False)

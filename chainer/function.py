@@ -15,6 +15,7 @@ from chainer import mkld
 if mkld.enable_cosim():
     from chainer import testing
 
+
 def no_backprop_mode():
     """Disable back-propagation for Variable whose volatile is auto.
 
@@ -398,8 +399,8 @@ class Function(object):
             i = i + 1
             if isinstance(x, np.ndarray):
                 testing.assert_allclose(x, y, **check_options)
-            elif x == None:
-                if y != None:
+            elif x is None:
+                if y is not None:
                     raise KeyError('cosim mismatch')
 
     def backward_cpu(self, inputs, grad_outputs):

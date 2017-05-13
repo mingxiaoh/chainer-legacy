@@ -52,18 +52,22 @@ def SupportedInput(tul):
             isSupportType = True
     return isSupportType
 
+
 def set_mkldnn_enabled():
     global mkldnn_enabled
     mkldnn_enabled = True
+
 
 def set_mkldnn_disabled():
     global mkldnn_enabled
     mkldnn_enabled = False
 
+
 def enable_cosim():
     global mkldnn_enabled
     global cosim_enabled
     return mkldnn_enabled and cosim_enabled
+
 
 def enable_convF(tul):
         return mkldnn_enabled and SupportedInput(tul) and enable_conv

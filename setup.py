@@ -16,16 +16,19 @@ install_requires = [
     'glog',
 ]
 
+
 class _build_py(build_py):
     def run(self):
         self.run_command('build_ext')
         build_py.run(self)
+
 
 class _install(install):
     def install(self):
         print("run home made")
         self.run_command('build_ext')
         install.run(self)
+
 
 extensions = [
     Extension(
@@ -105,7 +108,7 @@ setup(
               'mkldpy',
               ],
     ext_modules=extensions,
-    cmdclass={'build_py':_build_py, 'install':_install},
+    cmdclass={'build_py': _build_py, 'install': _install},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
