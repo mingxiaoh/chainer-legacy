@@ -118,7 +118,9 @@ public:
                   }())
               , data_(new avx::byte [size_ * _itemsize_from_pd(pd)])
               , m_(pd, data_.get())
-              , desc_(nullptr), view_(nullptr), rtti(raw) {}
+              , desc_(nullptr), view_(nullptr), rtti(raw) {
+                std::cout<<"mdarray size="<<size_<<", data_ @"<<data_.get()<<std::endl;
+              }
   
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
@@ -270,6 +272,8 @@ public:
     if (user.get_primitive_desc() != expect) {
       mkldnn::memory interm(expect);
 
+      std::cout<<"========Create memory @"<<interm.get_data_handle()
+        <<", size="<<user.get_primitive_desc().get_size()<<std::endl;
       dag->push_back(mkldnn::reorder(user, interm));
       return interm;
     }
@@ -523,8 +527,6 @@ protected:
 
 using namespace mkldnn;
 
-
-
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
 class f_s_op: public s_op {
@@ -533,10 +535,10 @@ private:
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag), interms_(2) {
 
-    mkldnn::memory x_interm = reorder_if_must(x->memory()
-        , op.src_primitive_desc(), dag_);
-    mkldnn::memory W_interm = reorder_if_must(W->memory()
-        , op.weights_primitive_desc(), dag_);
+    mkldnn::memory x_interm (reorder_if_must(x->memory()
+        , op.src_primitive_desc(), dag_));
+    mkldnn::memory W_interm (reorder_if_must(W->memory()
+        , op.weights_primitive_desc(), dag_));
 
     dag_->push_back(p_t(op, x_interm, W_interm
           , b->memory(), this->memory()));
