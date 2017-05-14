@@ -104,6 +104,8 @@ public:
     Py_ssize_t shape[MAX_NDIM];
   };
 
+  virtual ~mdarray() {}
+
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
@@ -116,11 +118,19 @@ public:
                     return std::accumulate(md.dims, md.dims + md.ndims, 1
                         , std::multiplies<int>());
                   }())
-              , data_(new avx::byte [size_ * _itemsize_from_pd(pd)])
+              , data_(new avx::byte [size_ * _itemsize_from_pd(pd)]
+                  , [](avx::byte *p) {delete [] p;})
               , m_(pd, data_.get())
-              , desc_(nullptr), view_(nullptr), rtti(raw) {
-                std::cout<<"mdarray size="<<size_<<", data_ @"<<data_.get()<<std::endl;
-              }
+              , desc_(nullptr), view_(nullptr), rtti(raw)
+              , need_reorder_([&pd] () {
+                  auto md = pd.desc().data;
+                  if (md.format != mkldnn::memory::x
+                      && md.format != mkldnn::memory::nc
+                      && md.format != mkldnn::memory::nchw)
+                    return true;
+                  else
+                    return false;
+                  } ()) {}
   
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
@@ -129,16 +139,16 @@ public:
           , data_ ([view]() {
              unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
              if (adrs % 16 != 0) {
-               return std::unique_ptr
-                 <avx::byte []>(new avx::byte [view->len]);
+               return std::shared_ptr<avx::byte>(new avx::byte [view->len]
+                   , [] (avx::byte *p) {delete [] p;});
              } else
-               return std::unique_ptr<avx::byte []>(nullptr);
+               return std::shared_ptr<avx::byte>(nullptr);
            } ())
           , m_({_d_from_view(view, format), e}
               , data_ == nullptr? view->buf : data_.get())
-          , desc_(nullptr), view_(view), rtti(raw) {
+          , desc_(nullptr), view_(view), rtti(raw), need_reorder_(false) {
     if (data_ != nullptr) {
-      // XXX: OpenMP thing?
+      // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
       view_.reset(nullptr);
     }
@@ -155,11 +165,12 @@ public:
       unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
 
       if (adrs % 16 != 0) {
-        data_.reset(new avx::byte [view->len]);
+        data_.reset(new avx::byte [view->len]
+            , [] (avx::byte *p) {delete [] p;});
         memcpy(data_.get(), view->buf, view->len);
         view_.reset(nullptr);
       } else
-        data_.reset(nullptr);
+        data_.reset();
 
       m_.set_data_handle(data());
     }
@@ -248,7 +259,7 @@ private:
 
   // Attributes
   size_type size_;
-  std::unique_ptr<avx::byte []> data_;
+  std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
   std::unique_ptr<_data_desc> desc_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
@@ -258,6 +269,8 @@ protected:
     raw, dual_out
   };
   mdarray_ty rtti;
+  bool need_reorder_;
+
 public:
   static bool classof(const mdarray *p) {
     return p->get_kind() == raw;
@@ -279,10 +292,9 @@ public:
     return user;
   }
 
-private:
+protected:
   // Private helpers
   void _collect_buffer_info() {
-    // XXX: Do we need collect information every time?
     if (desc_ == nullptr) {
       desc_ = std::unique_ptr<_data_desc>(new _data_desc);
 
@@ -303,7 +315,6 @@ private:
           break;
       }
 
-      // XXX: figure this out
       for (int i = 0; i < ndims; i ++) {
         desc_->shape[i] = md.data.dims[i];
       }
@@ -317,6 +328,7 @@ private:
     }
   }
 
+private:
   static mkldnn::memory::desc _d_from_view(Py_buffer *view
       , mkldnn::memory::format order) {
     mkldnn::memory::dims dims (view->ndim);
