@@ -5,6 +5,9 @@ from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
+import mkldnn
+from mkldnn.chainer.avg_pooling_2d import *
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
@@ -133,4 +136,8 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    return AveragePooling2D(ksize, stride, pad, False)(x)
+    if (x.dtype == numpy.dtype('float32') \
+            or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
+        return AvgPooling2DMKLDNN(ksize, stride, pad, False)(x)
+    else:
+        return AveragePooling2D(ksize, stride, pad, False)(x)
