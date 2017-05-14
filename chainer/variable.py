@@ -15,7 +15,7 @@ from chainer import utils
 
 from mkldnn import mdarray
 from chainer.cuda import iscompatible
-from mkldnn import fanout
+from mkldnn.chainer.fanout import *
 
 
 def _check_grad_type(func, x, gx):
