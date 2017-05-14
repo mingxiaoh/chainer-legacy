@@ -66,7 +66,6 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1,
                 (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        print("SetUp Process ", self.in_shape, self.kernel_geo, self.b.shape, self.gy.shape)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float32, 'atol': 5e-4, 'rtol': 5e-3}
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
@@ -75,7 +74,6 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def test_forward_consistency(self, nobias=False):
-        print("Test forward consistency")
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if nobias else chainer.Variable(self.b)
@@ -87,9 +85,6 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         x_mkl = chainer.Variable(self.x)
         W_mkl = chainer.Variable(self.W)
         b_mkl = None if nobias else chainer.Variable(self.b)
-        print("x's memory", hex(self.x.ctypes.get_data()))
-        print("W's memory", hex(self.W.ctypes.get_data()))
-        print("b's memory", hex(self.b.ctypes.get_data()))
         with chainer.using_config('use_mkldnn', self.use_mkldnn):
             y_mkl = functions.convolution_2d(
                 x_mkl, W_mkl, b_mkl, stride=self.stride, pad=self.pad,
