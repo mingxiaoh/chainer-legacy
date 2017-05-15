@@ -32,12 +32,13 @@ class Pooling2DForward(ComputeComplex):
             self._reuse(x)
 
     def _create_cc(self, x, ksize, stride, pad, cover_all, e):
-        super(Pooling2DForward, self).__init__()
         self.ksize = ksize
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
         self.x = array(x, m.memory.nchw, e)
+
+        # TODO: check avx512?
 
         n, c, h, w = x.shape
         sy, sx = _pair(stride)
@@ -96,7 +97,6 @@ class Pooling2DBackward(ComputeComplex):
             self._reuse(x, gy)
 
     def _create_cc(self, x, gy, hint, ws, ksize, stride, pad, cover_all, e):
-        super(Pooling2DBackward, self).__init__()
         self.ksize = ksize
         self.stride = stride
         self.pad = pad

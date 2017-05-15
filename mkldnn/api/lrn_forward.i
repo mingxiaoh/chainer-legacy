@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn.api") pooling_backward
+%module (package="mkldnn.api") lrn_forward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -36,14 +36,17 @@
 %import support.i
 %import memory.i
 %import mdarray.i
-%import pooling_forward.i
 
 namespace mkldnn {
 
-%rename (desc) pooling_backward::desc;
-%rename (primitive_desc) pooling_backward::primitive_desc;
+namespace c_api {
+  %include c_api.i
+}
 
-%exception pooling_backward::desc::desc {
+%rename (desc) lrn_forward::desc;
+%rename (primitive_desc) lrn_forward::primitive_desc;
+
+%exception lrn_forward::desc::desc {
   try {
     $action
   }
@@ -52,31 +55,33 @@ namespace mkldnn {
   }
 }
 
-struct pooling_backward : public primitive {
+struct lrn_forward : public primitive {
     struct desc {
-        c_api::mkldnn_pooling_desc_t data;
-        desc(algorithm aalgorithm,
-                const memory::desc &diff_src_desc,
-                const memory::desc &diff_dst_desc,
-                const memory::dims &strides,
-                const memory::dims &kernel,
-                const memory::dims &padding_l,
-                const memory::dims &padding_r,
-                const padding_kind apadding_kind);
+        c_api::mkldnn_lrn_desc_t data;
+        desc(prop_kind aprop_kind, algorithm aalgorithm,
+            const memory::desc &src_desc,
+            int local_size, double alpha, double beta);
+        desc(prop_kind aprop_kind, algorithm aalgorithm,
+            const memory::desc &src_desc,
+            int local_size, double alpha, double beta, double k);
     };
 
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
-        primitive_desc(const desc &adesc, const engine &aengine,
-        const pooling_forward::primitive_desc &hint_fwd_primitive_desc);
-        
-        memory::primitive_desc diff_src_primitive_desc() const;
+        primitive_desc(const desc &adesc, const engine &aengine);
+
+        memory::primitive_desc src_primitive_desc() const;
+
+        memory::primitive_desc workspace_primitive_desc() const;
+
+        memory::primitive_desc dst_primitive_desc() const;
     };
 
-    pooling_backward(const primitive_desc &aprimitive_desc, const primitive::at &diff_dst,
-            const memory &diff_src);
+    lrn_forward(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const memory &workspace,
+            const memory &dst);
 
-    pooling_backward(const primitive_desc &aprimitive_desc, const primitive::at &diff_dst,
-            const primitive::at &workspace, const memory &diff_src);
+    lrn_forward(const primitive_desc &aprimitive_desc,
+            const primitive::at &src, const memory &dst);
 };
 
-}
+} // namespace mkldnn

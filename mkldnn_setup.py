@@ -43,6 +43,12 @@ modules = {
         'mkldnn.api._pooling_backward' :
         ['mkldnn/api/pooling_backward.i'],
 
+        'mkldnn.api._lrn_forward' :
+        ['mkldnn/api/lrn_forward.i'],
+
+        'mkldnn.api._lrn_backward' :
+        ['mkldnn/api/lrn_backward.i'],
+
         'mkldnn.api._reorder' : ['mkldnn/api/reorder.i'],
 
         'mkldnn._mdarray' : ['mkldnn/mdarray.i']}
