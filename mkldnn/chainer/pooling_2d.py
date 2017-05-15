@@ -58,10 +58,15 @@ class Pooling2DForward(ComputeComplex):
                 stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
         cc_pd = pooling_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
-        #ws = mdarray(cc_pd.workspace_primitive_desc())
-        ws = mdarray(cc_pd.dst_primitive_desc())
 
-        self.dag_.push_back(pooling_forward.pooling_forward(cc_pd, at(self.x.memory), y.memory, ws.memory))
+        if self.alg_kind is pooling_max:
+            ws = mdarray(cc_pd.workspace_primitive_desc())
+            self.dag_.push_back(pooling_forward.pooling_forward(cc_pd, at(self.x.memory), y.memory, ws.memory))
+        else:
+            # There is no workspace for average pooling
+            ws = None
+            self.dag_.push_back(pooling_forward.pooling_forward(cc_pd, at(self.x.memory), y.memory))
+
         self._hint = cc_pd
         self.outputs = y,
         self.ws = ws
@@ -120,7 +125,13 @@ class Pooling2DBackward(ComputeComplex):
 
         cc_pd = pooling_backward.primitive_desc(cc_d, e, hint)
         gx = mdarray(cc_pd.diff_src_primitive_desc())
-        self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(gy.memory), at(ws.memory), gx.memory))
+
+        if self.alg_kind is pooling_max:
+            self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(gy.memory), at(ws.memory), gx.memory))
+        else:
+            # There is no workspace for average pooling
+            self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(gy.memory), gx.memory))
+
         self._hint = hint
         self.gy = gy
         self.outputs = gx,
