@@ -1,10 +1,13 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
+import mkldnn
+from mkldnn.chainer.lrn import *
 
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
@@ -128,4 +131,8 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    return LocalResponseNormalization(n, k, alpha, beta)(x)
+    if (x.dtype == numpy.dtype('float32') \
+            or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
+        return LrnMKLDNN(n, k, alpha, beta)(x)
+    else:
+        return LocalResponseNormalization(n, k, alpha, beta)(x)
