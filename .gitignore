@@ -21,4 +21,5 @@ mkldnn/api/inner_product_*.py
 mkldnn/api/reorder.py
 mkldnn/api/convolution_*.py
 mkldnn/api/relu_*.py
+mkldnn/api/concat.py
 mkldnn/mdarray.py

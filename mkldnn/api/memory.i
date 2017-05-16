@@ -13,9 +13,9 @@
 %feature("nodefaultctor");
 
 %import support.i
-%import int_seq_map.i
+%import seq_typemap.i
 
-%int_sequence_map(mkldnn::memory::dims);
+%int_sequence_typemap(mkldnn::memory::dims);
 
 namespace mkldnn {
 

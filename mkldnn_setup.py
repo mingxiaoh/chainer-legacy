@@ -38,6 +38,7 @@ modules = {
         ['mkldnn/api/relu_backward.i'],
 
         'mkldnn.api._reorder' : ['mkldnn/api/reorder.i'],
+        'mkldnn.api._concat' : ['mkldnn/api/concat.i'],
 
         'mkldnn._mdarray' : ['mkldnn/mdarray.i']}
 
