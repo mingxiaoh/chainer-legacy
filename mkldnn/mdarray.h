@@ -312,6 +312,9 @@ public:
     }
   }
 
+  // TODO: for view case, shared buffer won't expand life in this case
+  // because mdarray will destroy it when out of service.
+  //
   int setbuffer(Py_buffer *view) {
 //    if (desc_ != nullptr)
 //      // TODO: not support by provided buffer to numpy
