@@ -512,6 +512,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
+  // TODO: Do we need to cache this thing?
   PyObject *rbobj = PyObject_CallObject(PyType_reorder_buffer, argList);
   Py_DECREF(argList);
 
