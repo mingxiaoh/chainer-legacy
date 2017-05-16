@@ -1,6 +1,6 @@
 import numpy as np
-from mkldnn.support import *
-import mkldnn.memory as memory
+from mkldnn.api.support import *
+import mkldnn.api.memory as memory
 from mkldnn.mdarray import *
 
 e = engine(engine.cpu, 0)

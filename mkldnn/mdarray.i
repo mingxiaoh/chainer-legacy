@@ -8,11 +8,13 @@
   #include <memory>
   #include <stdexcept>
   #include <mkldnn.hpp> 
+#define SWIG_INLINE
   #include "mdarray.h"
 %}
 
 %init %{
   import_array();
+  implementation::g_init();
 %}
 
 %include exception.i
@@ -126,3 +128,11 @@ public:
   bw_op(pd_t &op, py_handle x, py_handle gy
   , std::vector<mkldnn::primitive> *dag);
 };
+
+// do not plan to create it from python interpreter
+
+class reorder_buffer {
+public:
+  reorder_buffer(mdarray in);
+};
+

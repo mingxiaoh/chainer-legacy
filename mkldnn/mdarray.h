@@ -11,6 +11,9 @@
 #include <stdexcept>
 #include <mkldnn.hpp>
 #include <type_traits>
+#if !defined(SWIG_INLINE)
+#include <swigpyrun.h>
+#endif
 
 // Just grab it from MKL-DNN
 namespace avx {
@@ -51,6 +54,21 @@ static bool isa(const py_handle &t) {
 }
 
 namespace implementation {
+static PyObject *PyType_reorder_buffer = nullptr;
+
+  // We brought this to global scope to mitigate it consumption
+  void g_init() {
+    swig_type_info *Py_reorder_buffer = SWIG_TypeQuery("_p_reorder_buffer");
+    if (Py_reorder_buffer != nullptr) {
+      SwigPyClientData *cd
+        = (SwigPyClientData *)Py_reorder_buffer->clientdata;
+      PyType_reorder_buffer = reinterpret_cast<PyObject *>(cd->pytype);
+    }
+
+    if (PyType_reorder_buffer == nullptr)
+      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+          , "Failed to find reorder_buffer object");
+  }
 
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
@@ -93,17 +111,152 @@ namespace implementation {
 
 class mdarray {
 public:
+  // It is exposed to python
+  //
   static constexpr int MAX_NDIM = 12; //XXX: For now
-  typedef size_t size_type;
-  // Generated on demand
-  struct _data_desc {
-    int ndims;
-    char format[4];
-    Py_ssize_t itemsize;
-    Py_ssize_t strides[MAX_NDIM];
-    Py_ssize_t shape[MAX_NDIM];
+
+  class reorder_buffer {
+  private:
+    mkldnn::memory dst_;
+    std::shared_ptr<avx::byte> data_;
+
+    int ndims_;
+    int size_;
+    char format_[4];
+    Py_ssize_t itemsize_;
+    Py_ssize_t strides_[MAX_NDIM];
+    Py_ssize_t shape_[MAX_NDIM];
+
+    void _collect_buffer_info() {
+      auto md = dst_.get_primitive_desc().desc();
+      int ndims = md.data.ndims;
+
+      ndims_ = ndims;
+      switch(md.data.data_type) {
+        case mkldnn::memory::f32:
+          strcpy(format_, "f");
+          itemsize_ = 4;
+          break;
+        case mkldnn::memory::s32:
+          strcpy(format_, "i");
+          itemsize_ = 4;
+          break;
+        default:
+          break;
+      }
+
+      for (int i = 0; i < ndims; i ++) {
+        shape_[i] = md.data.dims[i];
+      }
+
+      Py_ssize_t sd = itemsize_;
+
+      for (int i = ndims -1; i >= 0; --i) {
+        strides_[i] = sd;
+        sd *= shape_[i];
+      }
+    }
+
+  public:
+    reorder_buffer(std::shared_ptr<mdarray> in)
+      :reorder_buffer(in.get()) {}
+
+    reorder_buffer(const mdarray *src)
+      : dst_([src] () {
+          if (src->internal()) {
+            auto md_data = src->desc().data;
+
+            mkldnn::memory::dims adims(md_data.dims
+                , md_data.dims + md_data.ndims);
+
+            mkldnn::memory::primitive_desc pd ({adims
+                , static_cast<mkldnn::memory::data_type>(md_data.data_type)
+                , public_format(md_data.ndims)}
+                , mkldnn::engine(mkldnn::engine::cpu, 0));
+
+            // XXX: magic number 4 is a hack
+            return mkldnn::memory(pd, reinterpret_cast<void *>(4));
+          } else {
+            return src->memory();
+          }} ()), size_(src->size()) {
+        if (src->internal()) {
+          auto pd = dst_.get_primitive_desc();
+
+          data_ = std::shared_ptr<avx::byte>(new avx::byte [pd.get_size()]
+              , [](avx::byte *p) {delete [] p;});
+
+          dst_.set_data_handle(data_.get());
+
+          mkldnn::reorder reorder(src->memory(), dst_);
+          mkldnn::stream s(mkldnn::stream::eager);
+          s.submit({reorder});
+
+        } else {
+          data_ = src->share_data();
+        }
+
+        _collect_buffer_info();
+      }
+
+    int build_view(Py_buffer *view, int flags) {
+      if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
+        PyErr_SetString(PyExc_ValueError, "C contiguous buffer only!");
+        return -1;
+      }
+
+      if (view == nullptr) {
+        PyErr_SetString(PyExc_ValueError, "NULL view.");
+        return -1;
+      }
+
+      view->buf = data_.get();
+      view->itemsize = itemsize_;
+      view->readonly = 0;
+      view->internal = nullptr;
+      view->len = size_ * itemsize_;
+
+      if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
+        view->format = format_;
+      } else {
+        view->format = nullptr;
+      }
+
+      if ((flags & PyBUF_ND) == PyBUF_ND) {
+        view->ndim = ndims_;
+        view->shape = shape_;
+      } else {
+        view->ndim = 0;
+        view->shape = nullptr;
+      }
+
+      if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
+        view->strides = strides_;
+      } else {
+        view->strides = nullptr;
+      }
+
+      view->suboffsets = nullptr;
+
+      return 0;
+    }
+
+    static mkldnn::memory::format public_format(int ndims) {
+      switch(ndims) {
+      case 2:
+        return mkldnn::memory::nc;
+        break;
+      case 4:
+        return mkldnn::memory::nchw;
+        break;
+      }
+
+      return mkldnn::memory::format_undef;
+    }
   };
 
+public:
+  typedef size_t size_type;
+  // Generated on demand
   virtual ~mdarray() {}
 
   mdarray(mkldnn::memory::dims &dims
@@ -118,16 +271,21 @@ public:
                     return std::accumulate(md.dims, md.dims + md.ndims, 1
                         , std::multiplies<int>());
                   }())
-              , data_(new avx::byte [size_ * _itemsize_from_pd(pd)]
+              // Use primitive desc's reference
+              , data_(new avx::byte [pd.get_size()]
                   , [](avx::byte *p) {delete [] p;})
               , m_(pd, data_.get())
-              , desc_(nullptr), view_(nullptr), rtti(raw)
-              , need_reorder_([&pd] () {
+              , view_(nullptr), rtti(raw)
+              , internal_order_([&pd] () {
                   auto md = pd.desc().data;
                   if (md.format != mkldnn::memory::x
                       && md.format != mkldnn::memory::nc
-                      && md.format != mkldnn::memory::nchw)
+                      && md.format != mkldnn::memory::nchw
+                      && md.format != mkldnn::memory::oi
+                      && md.format != mkldnn::memory::oihw) { 
+                    std::cout<<"Weired format "<<md.format<<std::endl;
                     return true;
+                  }
                   else
                     return false;
                   } ()) {}
@@ -142,12 +300,12 @@ public:
                return std::shared_ptr<avx::byte>(new avx::byte [view->len]
                    , [] (avx::byte *p) {delete [] p;});
              } else
-               return std::shared_ptr<avx::byte>(nullptr);
+               return std::shared_ptr<avx::byte>(reinterpret_cast<avx::byte *>(view->buf)
+                   , [] (avx::byte *p) {});
            } ())
-          , m_({_d_from_view(view, format), e}
-              , data_ == nullptr? view->buf : data_.get())
-          , desc_(nullptr), view_(view), rtti(raw), need_reorder_(false) {
-    if (data_ != nullptr) {
+          , m_({_d_from_view(view, format), e}, data_.get())
+          , view_(view), rtti(raw), internal_order_(false) {
+    if (data_.get() != view->buf) {
       // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
       view_.reset(nullptr);
@@ -155,10 +313,10 @@ public:
   }
 
   int setbuffer(Py_buffer *view) {
-    if (desc_ != nullptr)
-      // TODO: not support by provided buffer to numpy
-      goto fail;
-    else {
+//    if (desc_ != nullptr)
+//      // TODO: not support by provided buffer to numpy
+//      goto fail;
+//    else {
       // TODO: Guard this section with asserts
       view_.reset(view);
 
@@ -170,18 +328,20 @@ public:
         memcpy(data_.get(), view->buf, view->len);
         view_.reset(nullptr);
       } else
-        data_.reset();
+        data_.reset(reinterpret_cast<avx::byte *>(view->buf)
+            , [] (avx::byte *p) {});
 
       m_.set_data_handle(data());
-    }
+//    }
 
     return 0;
-  fail:
-    return -1;
+//  fail:
+//    return -1;
   }
 
-  inline void *data() const { return view_ == nullptr ? data_.get(): view_->buf; }
+  inline void *data() const { return data_.get(); }
   inline size_type size() const { return size_; }
+  inline size_type len() const { return m_.get_primitive_desc().get_size(); }
 
   inline int ndims() const {
     auto md = m_.get_primitive_desc().desc();
@@ -261,7 +421,6 @@ private:
   size_type size_;
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
-  std::unique_ptr<_data_desc> desc_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
 
 protected:
@@ -269,9 +428,14 @@ protected:
     raw, dual_out
   };
   mdarray_ty rtti;
-  bool need_reorder_;
+  bool internal_order_;
 
 public:
+  bool internal() const { return internal_order_; }
+  std::shared_ptr<avx::byte> share_data() const {
+    return data_;
+  }
+
   static bool classof(const mdarray *p) {
     return p->get_kind() == raw;
   }
@@ -294,40 +458,6 @@ public:
 
 protected:
   // Private helpers
-  void _collect_buffer_info() {
-    if (desc_ == nullptr) {
-      desc_ = std::unique_ptr<_data_desc>(new _data_desc);
-
-      auto md = m_.get_primitive_desc().desc();
-      int ndims = md.data.ndims;
-
-      desc_->ndims = ndims;
-      switch(md.data.data_type) {
-        case mkldnn::memory::f32:
-          strcpy(desc_->format, "f");
-          desc_->itemsize = 4;
-          break;
-        case mkldnn::memory::s32:
-          strcpy(desc_->format, "i");
-          desc_->itemsize = 4;
-          break;
-        default:
-          break;
-      }
-
-      for (int i = 0; i < ndims; i ++) {
-        desc_->shape[i] = md.data.dims[i];
-      }
-
-      Py_ssize_t sd = desc_->itemsize;
-
-      for (int i = ndims -1; i >= 0; --i) {
-        desc_->strides[i] = sd;
-        sd *= desc_->shape[i];
-      }
-    }
-  }
-
 private:
   static mkldnn::memory::desc _d_from_view(Py_buffer *view
       , mkldnn::memory::format order) {
@@ -354,76 +484,54 @@ private:
 
     return mkldnn::memory::desc(dims, dt, order);
   }
-
-  static int _itemsize_from_pd(mkldnn::memory::primitive_desc &pd) {
-    int ret;
-    switch(pd.desc().data.data_type) {
-    case mkldnn::memory::f32:
-    case mkldnn::memory::s32:
-      ret = 4;
-      break;
-    default:
-      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
-        , std::string("MKLDNN does not support data type: undef"));
-      break;
-    }
-    return ret;
-  }
 };
 
-int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags){
+int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
-    goto fail;
+    return -1;
   }
 
   if (view == nullptr) {
     PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
-    goto fail;
+    return -1;
   }
 
-  /* Fill in buffer detail */
-  _collect_buffer_info();
-
-  view->buf = data();
-  view->itemsize = desc_->itemsize;
-  view->readonly = 0;
-  view->internal = nullptr;
-  view->len = size_ * desc_->itemsize;
-
-  if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
-    view->format = desc_->format;
-  } else {
-    view->format = nullptr;
+  // Reorder_buffer type object
+  if (PyType_reorder_buffer == nullptr) {
+    PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
+    return -1;
   }
 
-  if ((flags & PyBUF_ND) == PyBUF_ND) {
-    view->ndim = desc_->ndims;
-    view->shape = desc_->shape;
-  } else {
-    view->ndim = 0;
-    view->shape = nullptr;
+  // Wrote some python in C++ :)
+  PyObject *argList = Py_BuildValue("(O)", self);
+  if (argList == nullptr) {
+    return -1;
   }
 
-  if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-    view->strides = desc_->strides;
-  } else
-    view->strides = nullptr;
+  PyObject *rbobj = PyObject_CallObject(PyType_reorder_buffer, argList);
+  Py_DECREF(argList);
 
-  // We do not have to check PyBUF_INDIRECT because we
-  // are C contiguous
-  view->suboffsets = nullptr;
+  if (rbobj == nullptr) {
+    return -1;
+  }
 
-  view->obj = self;
-  Py_INCREF(self);
+  reorder_buffer *rb;
+  SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
+
+  if ( rb->build_view(view, flags) ) {
+    PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
+    return -1;
+  }
+
+  // Stolen reference
+  view->obj = rbobj;
 
   return 0;
-
-fail:
-  return -1;
 }
 
 PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
+  // XXX: Recursive alarm !!! XXX
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
 
@@ -496,6 +604,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
   // TODO: Exception localize
   return ret;
 }
+
 
 // XXX: solve dual outputs problem
 // Type system should be rework
@@ -688,11 +797,11 @@ public:
 
       PyTuple_SET_ITEM(intTuple, i, o);
     }
-  
+
   fail:
     return intTuple;
   }
-  
+
   static PyObject *mdarray_dtype_get(mdarray *self) {
     implementation::mdarray *m = self->get();
     PyArray_Descr *pd;
@@ -708,18 +817,18 @@ public:
         PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");
         return nullptr;
     }
-  
+
     return reinterpret_cast<PyObject *>(pd);
   }
-  
+
   static long mdarray_size_get(mdarray *self) {
     return self->get()->size();
   }
-  
+
   static long mdarray_ndim_get(mdarray *self) {
     return self->get()->desc().data.ndims;
   }
-  
+
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
   }
@@ -778,5 +887,7 @@ public:
     : py_handle (new implementation::bw_op<p_t, pd_t>
         (op, x, gy, dag)) {}
 };
+
+using reorder_buffer = implementation::mdarray::reorder_buffer;
 
 #endif
