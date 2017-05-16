@@ -172,7 +172,8 @@ public:
             mkldnn::memory::primitive_desc pd ({adims
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
                 , public_format(md_data.ndims)}
-                , mkldnn::engine(mkldnn::engine::cpu, 0));
+                // Added interface for it
+                , src->get_engine());
 
             // XXX: magic number 4 is a hack
             return mkldnn::memory(pd, reinterpret_cast<void *>(4));
@@ -345,6 +346,9 @@ public:
   inline void *data() const { return data_.get(); }
   inline size_type size() const { return size_; }
   inline size_type len() const { return m_.get_primitive_desc().get_size(); }
+  inline mkldnn::engine get_engine() const {
+    return m_.get_primitive_desc().get_engine();
+  }
 
   inline int ndims() const {
     auto md = m_.get_primitive_desc().desc();
