@@ -20,7 +20,7 @@
   #include <cstddef>
   #include <mkldnn.hpp>
   using mkldnn::handle_traits;
-#define SWIG_INLINE
+
   #include "mdarray.h"
 %}
 
