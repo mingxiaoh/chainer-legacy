@@ -7,6 +7,8 @@
  * changes to this file unless you know what you are doing--modify the SWIG
  * interface file instead.
  * ----------------------------------------------------------------------------- */
+#if !defined(SWIGPYTHON)
+#define SWIGPYTHON
 
 #define SWIGPYTHON_BUILTIN
 /* -----------------------------------------------------------------------------
@@ -2982,4 +2984,5 @@ SWIG_MangledTypeQuery(const char *name) {
   return SWIG_MangledTypeQueryModule(module, module, name);
 }
 
+#endif
 #endif

@@ -11,9 +11,7 @@
 #include <stdexcept>
 #include <mkldnn.hpp>
 #include <type_traits>
-#if !defined(SWIG_INLINE)
 #include <swigpyrun.h>
-#endif
 
 // Just grab it from MKL-DNN
 namespace avx {
