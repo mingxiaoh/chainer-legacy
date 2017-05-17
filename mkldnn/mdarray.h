@@ -171,7 +171,7 @@ public:
 
             mkldnn::memory::primitive_desc pd ({adims
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
-                , public_format(md_data.ndims)}
+                , public_format(static_cast<mkldnn::memory::format>(md_data.format))}
                 // Added interface for it
                 , src->get_engine());
 
@@ -241,17 +241,29 @@ public:
       return 0;
     }
 
-    static mkldnn::memory::format public_format(int ndims) {
-      switch(ndims) {
-      case 2:
-        return mkldnn::memory::nc;
+    static mkldnn::memory::format public_format(mkldnn::memory::format origin) {
+      mkldnn::memory::format ret;
+
+      // review this relations carefully
+      switch(origin) {
+      case mkldnn::memory::nChw8c:
+      case mkldnn::memory::nChw16c:
+        ret = mkldnn::memory::nchw;
         break;
-      case 4:
-        return mkldnn::memory::nchw;
+      case mkldnn::memory::OIhw8i8o:
+      case mkldnn::memory::OIhw16i16o:
+      case mkldnn::memory::OIhw8o8i:
+      case mkldnn::memory::OIhw16o16i:
+      case mkldnn::memory::Ohwi8o:
+      case mkldnn::memory::Ohwi16o:
+        ret = mkldnn::memory::oihw;
+        break;
+      default:
+        ret = mkldnn::memory::format_undef;
         break;
       }
 
-      return mkldnn::memory::format_undef;
+      return ret;
     }
   };
 
@@ -284,13 +296,13 @@ public:
                       && md.format != mkldnn::memory::nchw
                       && md.format != mkldnn::memory::oi
                       && md.format != mkldnn::memory::oihw) { 
-                    std::cout<<"Weired format "<<md.format<<std::endl;
+                    // std::cout<<"Weired format "<<md.format<<std::endl;
                     return true;
                   }
                   else
                     return false;
                   } ()) {}
-  
+
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
       , mkldnn::engine &e)
@@ -358,7 +370,7 @@ public:
   inline mkldnn::memory memory() const {
     return m_;
   }
-  
+
   inline mkldnn::memory::desc desc() const {
     return m_.get_primitive_desc().desc();
   }
