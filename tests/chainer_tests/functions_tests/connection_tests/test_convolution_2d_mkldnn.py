@@ -24,15 +24,15 @@ from mkldnn.chainer.fanout import *
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],}) +
     testing.product({
-        'in_shape': [(8, 3, 227, 227)],
-        'kernel_geo': [(3, 11, 11, 4, 0)],
+        'in_shape': [(1, 3, 9, 9)],
+        'kernel_geo': [(8, 3, 3, 1, 0)],
         'c_contiguous': [True, False],
         'cover_all': [True, False],
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],}) +
     testing.product({
-        'in_shape': [(1, 3, 9, 9)],
-        'kernel_geo': [(8, 3, 3, 1, 0)],
+        'in_shape': [(8, 3, 227, 227)],
+        'kernel_geo': [(3, 11, 11, 4, 0)],
         'c_contiguous': [True],
         'cover_all': [False],
         'x_dtype': [numpy.float32],
@@ -63,6 +63,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         out_w = conv.get_conv_outsize(w, kw,
                 self.stride, self.pad, cover_all = self.cover_all)
 
+        print("Setup convolution", (n, c, h, w))
         self.gy = numpy.random.uniform(-1, 1,
                 (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
@@ -74,6 +75,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def test_forward_consistency(self, nobias=False):
+        print("test_forward_consistency")
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if nobias else chainer.Variable(self.b)
@@ -120,10 +122,12 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
+        print("test_backward_cpu")
         self.check_backward(self.x, self.W, self.b, self.gy)
 
     @condition.retry(3)
     def test_backward_cpu_nobias(self):
+        print("test_backward_cpu_nobias")
         self.check_backward(self.x, self.W, None, self.gy)
 
 testing.run_module(__name__, __file__)

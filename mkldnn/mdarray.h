@@ -173,10 +173,6 @@ public:
 
           dst_.set_data_handle(data_.get());
 
-          mkldnn::reorder reorder(src->memory(), dst_);
-          mkldnn::stream s(mkldnn::stream::eager);
-          s.submit({reorder});
-
         } else {
           data_ = src->share_data();
         }
@@ -184,17 +180,15 @@ public:
         _collect_buffer_info();
       }
 
+    mkldnn::reorder fire(const mdarray *src) {
+      mkldnn::reorder reorder(src->memory(), dst_);
+      mkldnn::stream s(mkldnn::stream::eager);
+
+      s.submit({reorder});
+      return reorder;
+    }
+
     int build_view(Py_buffer *view, int flags) {
-      if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
-        PyErr_SetString(PyExc_ValueError, "C contiguous buffer only!");
-        return -1;
-      }
-
-      if (view == nullptr) {
-        PyErr_SetString(PyExc_ValueError, "NULL view.");
-        return -1;
-      }
-
       view->buf = data_.get();
       view->itemsize = itemsize_;
       view->readonly = 0;
@@ -286,7 +280,7 @@ public:
                   }
                   else
                     return false;
-                  } ()) {}
+                  } ()), purpose_(sink) {}
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
@@ -302,7 +296,7 @@ public:
                    , [] (avx::byte *p) {});
            } ())
           , m_({_d_from_view(view, format), e}, data_.get())
-          , view_(view), rtti(raw), internal_order_(false) {
+          , view_(view), rtti(raw), internal_order_(false), purpose_(source) {
     if (data_.get() != view->buf) {
       // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -314,10 +308,10 @@ public:
   // because mdarray will destroy it when out of service.
   //
   int setbuffer(Py_buffer *view) {
-//    if (desc_ != nullptr)
-//      // TODO: not support by provided buffer to numpy
-//      goto fail;
-//    else {
+    if (purpose_ == sink)
+      // TODO: not support by provided buffer to numpy
+      goto fail;
+    else {
       // TODO: Guard this section with asserts
       view_.reset(view);
 
@@ -333,11 +327,11 @@ public:
             , [] (avx::byte *p) {});
 
       m_.set_data_handle(data());
-//    }
+    }
 
     return 0;
-//  fail:
-//    return -1;
+  fail:
+    return -1;
   }
 
   inline void *data() const { return data_.get(); }
@@ -361,24 +355,8 @@ public:
   }
 
   // PEP: 3118 Buffer Protocol Producer
-  /*virtual*/ int getbuffer(PyObject *obj, Py_buffer *view, int flags);
+  virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
   PyObject *getattro(PyObject *self, PyObject *name);
-
-  // Do not support old Buffer Protocol
-  /*
-  Py_ssize_t getsegcount(PyObject *self, Py_ssize_t *lenp) {
-    return 0;
-  }
-  Py_ssize_t getreadbuf(PyObject *self, Py_ssize_t segment, void **ptrptr) {
-    return 0;
-  }
-  Py_ssize_t getwritebuf(PyObject *self, Py_ssize_t segment, void **ptrptr) {
-    return 0;
-  }
-  Py_ssize_t getcharbuf(PyObject *self, Py_ssize_t segment, void **ptrptr) {
-    return 0;
-  }
-  */
 
   nb_binary_map(Add);
   nb_binary_map(Subtract);
@@ -435,6 +413,10 @@ protected:
   };
   mdarray_ty rtti;
   bool internal_order_;
+
+  enum purpose {
+    source, sink
+  } purpose_;
 
 public:
   bool internal() const { return internal_order_; }
@@ -494,25 +476,33 @@ private:
 
 // XXX: solve dual outputs problem
 // Type system should be rework
+// TODO: review polymophic relationship
+// TODO: rework the names
 
 class s_op: public mdarray {
 public:
+  using mdarray::reorder_buffer;
+
   s_op(mkldnn::memory::primitive_desc dst
       , std::vector<mkldnn::primitive> *dag)
-    : mdarray(dst), dag_(dag) {
+    : mdarray(dst), dag_(dag), reorder_(nullptr) {
   }
+
+  virtual int getbuffer(PyObject *self
+      , Py_buffer *view, int flags) override;
 
 protected:
   std::vector<mkldnn::primitive> *dag_;
+  std::unique_ptr<reorder_buffer> reorder_;
 };
 
-class d_op : public mdarray {
+class d_op : public s_op {
 public:
   // XXX: Tricky part, how extra managed
   d_op(mkldnn::memory::primitive_desc major
       , mkldnn::memory::primitive_desc extra
       , std::vector<mkldnn::primitive> *dag):
-    mdarray(major), extra(new s_op(extra, dag)), dag_(dag) {
+    s_op(major, dag), extra(new s_op(extra, dag)), dag_(dag) {
     rtti = dual_out;
   }
 
@@ -527,6 +517,37 @@ protected:
   // This seems unique, but it will share in python
   // Ugly. XXX
   std::shared_ptr<mdarray> extra;
+  std::vector<mkldnn::primitive> *dag_;
+};
+
+class t_op : public s_op {
+public:
+  // XXX: Tricky part, how extra managed
+  t_op(mkldnn::memory::primitive_desc major
+      , mkldnn::memory::primitive_desc b_
+      , mkldnn::memory::primitive_desc w_
+      , std::vector<mkldnn::primitive> *dag)
+    : s_op(major, dag), b_(new s_op(b_, dag))
+    , w_(new s_op(w_, dag)), dag_(dag) {
+    rtti = dual_out;
+  }
+
+  static py_handle bias_get(const t_op *that) {
+    return that->b_;
+  }
+
+  static py_handle wrks_get(const t_op *that) {
+    return that->w_;
+  }
+
+  static bool classof(const mdarray *p) {
+    return p->get_kind() == dual_out;
+  }
+protected:
+  // This seems unique, but it will share in python
+  // Ugly. XXX
+  std::shared_ptr<mdarray> b_;
+  std::shared_ptr<mdarray> w_;
   std::vector<mkldnn::primitive> *dag_;
 };
 

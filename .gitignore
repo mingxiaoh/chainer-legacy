@@ -4,6 +4,8 @@
 *.pyo
 *.cpp
 *.so
+cscope.*
+tags
 build
 \#*\#
 .\#*

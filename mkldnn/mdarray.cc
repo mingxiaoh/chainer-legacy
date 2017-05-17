@@ -67,6 +67,8 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   reorder_buffer *rb;
   SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
 
+  rb->fire(this);
+
   if ( rb->build_view(view, flags) ) {
     PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
     return -1;
@@ -151,6 +153,35 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 
   // TODO: Exception localize
   return ret;
+}
+
+int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
+  if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
+    PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
+    return -1;
+  }
+
+  if (view == nullptr) {
+    PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
+    return -1;
+  }
+
+  // Only for the first, framework do it for us next time
+  if (reorder_ == nullptr) {
+    reorder_.reset(new reorder_buffer(this));
+    mkldnn::reorder rb_p = reorder_->fire(this);
+    dag_->push_back(rb_p);
+  }
+
+  if ( reorder_->build_view(view, flags) ) {
+    PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
+    return -1;
+  }
+
+  view->obj = self;
+  Py_INCREF(self);
+
+  return 0;
 }
 
 }
