@@ -52,7 +52,7 @@ modules = {
         'mkldnn.api._reorder' : ['mkldnn/api/reorder.i'],
         'mkldnn.api._concat' : ['mkldnn/api/concat.i'],
 
-        'mkldnn._mdarray' : ['mkldnn/mdarray.i']}
+        'mkldnn._mdarray' : ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']}
 
 swig_opts=['-c++', '-Imkldnn', '-relativeimport',
         '-builtin', '-modern', '-modernargs',

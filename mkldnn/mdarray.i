@@ -96,6 +96,8 @@ public:
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format, mkldnn::engine &);
+
+  virtual ~mdarray();
 };
 
 template <class p_t
@@ -128,8 +130,6 @@ public:
   bw_op(pd_t &op, py_handle x, py_handle gy
   , std::vector<mkldnn::primitive> *dag);
 };
-
-// do not plan to create it from python interpreter
 
 class reorder_buffer {
 public:

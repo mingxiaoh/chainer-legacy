@@ -54,21 +54,8 @@ static bool isa(const py_handle &t) {
 }
 
 namespace implementation {
-static PyObject *PyType_reorder_buffer = nullptr;
 
-  // We brought this to global scope to mitigate it consumption
-  void g_init() {
-    swig_type_info *Py_reorder_buffer = SWIG_TypeQuery("_p_reorder_buffer");
-    if (Py_reorder_buffer != nullptr) {
-      SwigPyClientData *cd
-        = (SwigPyClientData *)Py_reorder_buffer->clientdata;
-      PyType_reorder_buffer = reinterpret_cast<PyObject *>(cd->pytype);
-    }
-
-    if (PyType_reorder_buffer == nullptr)
-      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
-          , "Failed to find reorder_buffer object");
-  }
+  int g_init();
 
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
@@ -270,7 +257,7 @@ public:
 public:
   typedef size_t size_type;
   // Generated on demand
-  virtual ~mdarray() {}
+  virtual ~mdarray();
 
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
@@ -376,10 +363,11 @@ public:
   }
 
   // PEP: 3118 Buffer Protocol Producer
-  int getbuffer(PyObject *obj, Py_buffer *view, int flags);
+  /*virtual*/ int getbuffer(PyObject *obj, Py_buffer *view, int flags);
   PyObject *getattro(PyObject *self, PyObject *name);
 
   // Do not support old Buffer Protocol
+  /*
   Py_ssize_t getsegcount(PyObject *self, Py_ssize_t *lenp) {
     return 0;
   }
@@ -392,6 +380,7 @@ public:
   Py_ssize_t getcharbuf(PyObject *self, Py_ssize_t segment, void **ptrptr) {
     return 0;
   }
+  */
 
   nb_binary_map(Add);
   nb_binary_map(Subtract);
@@ -504,127 +493,6 @@ private:
     return mkldnn::memory::desc(dims, dt, order);
   }
 };
-
-int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
-  if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
-    PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
-    return -1;
-  }
-
-  if (view == nullptr) {
-    PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
-    return -1;
-  }
-
-  // Reorder_buffer type object
-  if (PyType_reorder_buffer == nullptr) {
-    PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
-    return -1;
-  }
-
-  // Wrote some python in C++ :)
-  PyObject *argList = Py_BuildValue("(O)", self);
-  if (argList == nullptr) {
-    return -1;
-  }
-
-  // TODO: Do we need to cache this thing?
-  PyObject *rbobj = PyObject_CallObject(PyType_reorder_buffer, argList);
-  Py_DECREF(argList);
-
-  if (rbobj == nullptr) {
-    return -1;
-  }
-
-  reorder_buffer *rb;
-  SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
-
-  if ( rb->build_view(view, flags) ) {
-    PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
-    return -1;
-  }
-
-  // Stolen reference
-  view->obj = rbobj;
-
-  return 0;
-}
-
-PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
-  // XXX: Recursive alarm !!! XXX
-  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-
-  if (surrogate == nullptr)
-    return nullptr;
-
-  // Watch the reference count of surrogate if more compicated
-  // looking up method involved
-  PyObject * attr = PyObject_GetAttr(surrogate, name);
-
-  // The surrogate will be destroyed after attribute is done
-  Py_DECREF(surrogate);
-
-  if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
-    PyErr_Clear();
-
-    // Switch to our exception message if things gone wrong
-    PyTypeObject *tp = Py_TYPE(self);
-    PyErr_Format(PyExc_AttributeError
-        , "'%.50s' object has no attribute '%U'", tp->tp_name, name);
-  }
-
-  return attr;
-}
-
-Py_ssize_t mdarray::mp_length(PyObject *self) {
-  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-
-  if (surrogate == nullptr)
-    return -1;
-
-  Py_ssize_t len = PyMapping_Length(surrogate);
-  Py_DECREF(surrogate);
-
-  // TODO: Exception localize
-  return len;
-}
-
-PyObject *mdarray::mp_subscript(PyObject *self, PyObject *op) {
-  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-
-  if (surrogate == nullptr)
-    return nullptr;
-
-  PyObject *ret = PyObject_GetItem(surrogate, op);
-  Py_DECREF(surrogate);
-
-  // TODO: Exception localize
-  return ret;
-}
-
-int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
-  PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-
-  int ret;
-
-  if (surrogate == nullptr)
-    ret = -1;
-
-  if (op == nullptr)
-    ret = PyObject_DelItem(surrogate, ind);
-  else
-    ret = PyObject_SetItem(surrogate, ind, op);
-
-  Py_DECREF(surrogate);
-
-  // TODO: Exception localize
-  return ret;
-}
-
 
 // XXX: solve dual outputs problem
 // Type system should be rework
@@ -852,7 +720,6 @@ public:
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
   }
-  
 };
 
 using namespace mkldnn;

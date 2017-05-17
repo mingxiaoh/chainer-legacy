@@ -8,6 +8,7 @@
  * interface file instead.
  * ----------------------------------------------------------------------------- */
 
+#define SWIGPYTHON_BUILTIN
 /* -----------------------------------------------------------------------------
  *  This section contains generic SWIG labels for method/variable
  *  declarations/attributes, and other compiler dependent labels.
