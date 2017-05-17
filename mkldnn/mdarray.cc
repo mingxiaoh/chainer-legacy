@@ -17,7 +17,7 @@ int g_init() {
     throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
         , "Failed to find reorder_buffer object");
 
-  // XXX: I don't quite understand it, and its repercussions
+  // XXX: I don't quite understand it, and its repercussions :)
   SwigPyObject_stype = SWIG_MangledTypeQuery("_p_SwigPyObject");
 
   if (SwigPyObject_stype == nullptr)
