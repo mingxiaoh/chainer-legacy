@@ -98,3 +98,4 @@ public:
 }
 
 %template (dims) std::vector<int>;
+%template (mpd_list) std::vector<mkldnn::memory::primitive_desc>;

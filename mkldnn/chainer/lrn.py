@@ -13,11 +13,6 @@ import mkldnn.api.lrn_forward as lrn_forward
 import mkldnn.api.lrn_backward as lrn_backward
 from mkldnn.mdarray import *
 
-def _pair(x):
-    if isinstance(x, collections.Iterable):
-        return x
-    return x, x
-
 class LrnForward(ComputeComplex):
     cc_type = 'f'
 

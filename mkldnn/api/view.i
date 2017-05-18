@@ -14,12 +14,17 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn.api") concat
+%module (package="mkldnn.api") view
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
   #include "mkldnn.hpp"
   using mkldnn::handle_traits;
+  #include "mdarray.h"
+%}
+
+%init %{
+  import_array();
 %}
 
 %include stl.i
@@ -30,6 +35,7 @@
 
 %import support.i
 %import memory.i
+%import mdarray.i
 
 namespace mkldnn {
 
@@ -37,37 +43,18 @@ namespace c_api {
   %include c_api.i
 }
 
-%rename (primitive_desc) concat::primitive_desc;
-
-%exception concat::primitive_desc::primitive_desc {
-  try {
-    $action
-  }
-  catch (mkldnn::error &e){
-    SWIG_exception(SWIG_ValueError, e.message.c_str());
-  }
-}
-
-struct concat : public primitive {
+%rename (primitive_desc) view::primitive_desc;
+struct view : public primitive {
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
-//        std::vector<c_api::const_mkldnn_primitive_desc_t> cpp_to_c(
-//                std::vector<memory::primitive_desc> inputs);
-
-        primitive_desc(const memory::desc &output, int concat_dimension,
-                std::vector<memory::primitive_desc> inputs);
-
-        primitive_desc(int concat_dimension,
-                std::vector<memory::primitive_desc> inputs);
+        primitive_desc(const memory::primitive_desc &input, memory::dims dims,
+                memory::dims offsets);
 
         memory::primitive_desc dst_primitive_desc() const;
-
     };
 
-    //concat(const primitive_desc &concat_pd,
-    //        std::vector<primitive::at> inputs, const memory &output);
+    view(const primitive_desc &view_pd, primitive::at input);
 
-    concat(const primitive_desc &concat_pd,
-            std::vector<primitive> &inputs, const memory &output);
+    view(memory input, memory::dims dims, memory::dims offsets);
 };
 
 } // namespace mkldnn

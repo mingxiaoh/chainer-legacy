@@ -1,10 +1,13 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
+import mkldnn
+from mkldnn.chainer.concat import *
 
 class Concat(function.Function):
 
@@ -87,4 +90,8 @@ def concat(xs, axis=1):
                [ 8,  9, 10, 11,  2]])
 
     """
+    x = xs[0]
+    if (x.dtype == numpy.dtype('float32') \
+            or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
+        return ConcatMKLDNN(axis=axis)(*xs)
     return Concat(axis=axis)(*xs)
