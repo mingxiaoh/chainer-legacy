@@ -50,8 +50,8 @@ namespace c_api {
 
 struct concat : public primitive {
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
-//        std::vector<c_api::const_mkldnn_primitive_desc_t> cpp_to_c(
-//                std::vector<memory::primitive_desc> inputs);
+        std::vector<c_api::const_mkldnn_primitive_desc_t> cpp_to_c(
+                std::vector<memory::primitive_desc> inputs);
 
         primitive_desc(const memory::desc &output, int concat_dimension,
                 std::vector<memory::primitive_desc> inputs);
@@ -63,11 +63,11 @@ struct concat : public primitive {
 
     };
 
-    //concat(const primitive_desc &concat_pd,
-    //        std::vector<primitive::at> inputs, const memory &output);
-
     concat(const primitive_desc &concat_pd,
-            std::vector<primitive> &inputs, const memory &output);
+            std::vector<primitive::at> inputs, const memory &output);
+
+    // concat(const primitive_desc &concat_pd,
+    //         std::vector<primitive> &inputs, const memory &output);
 };
 
 } // namespace mkldnn
