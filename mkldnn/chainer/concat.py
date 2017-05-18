@@ -73,13 +73,11 @@ class ConcatBackward(ComputeComplex):
     def _create_cc(self, xs, gy, axis, e):
         self.axis = axis
 
-        print('---------gy.shape-------', gy[0].shape)
         gy = array(gy[0], m.memory.nchw, e)
         gy_mpd = gy.memory.get_primitive_desc()
         offsets = (0, 0, 0, 0)
         self.outputs = ()
         for x in xs:
-            print('--------------------xshape---------', x.shape)
             view_pd = view.primitive_desc(gy_mpd, x.shape, offsets)
             gx = mdarray(x.shape, memory.memory.f32, m.memory.nchw, e)
             reorder_pd = r.primitive_desc(view_pd.dst_primitive_desc(), gx.memory.get_primitive_desc())
@@ -88,7 +86,6 @@ class ConcatBackward(ComputeComplex):
             self.outputs += (gx,)
             new_off = offsets[axis] + x.shape[axis]
             offsets = offsets[:axis] + (new_off,) + offsets[axis+1:]
-            print('------------------offsets------------', offsets)
 
         self.gy = gy
         self.xs = xs
