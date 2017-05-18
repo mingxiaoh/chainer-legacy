@@ -30,6 +30,7 @@
 
 %import support.i
 %import memory.i
+%import mdarray.i
 
 namespace mkldnn {
 

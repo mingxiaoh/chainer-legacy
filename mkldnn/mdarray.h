@@ -143,7 +143,7 @@ public:
     }
 
   public:
-    reorder_buffer(std::shared_ptr<mdarray> in)
+    reorder_buffer(py_handle in)
       :reorder_buffer(in.get()) {}
 
     reorder_buffer(const mdarray *src)
@@ -516,7 +516,7 @@ public:
 protected:
   // This seems unique, but it will share in python
   // Ugly. XXX
-  std::shared_ptr<mdarray> extra;
+  py_handle extra;
   std::vector<mkldnn::primitive> *dag_;
 };
 
@@ -546,13 +546,15 @@ public:
 protected:
   // This seems unique, but it will share in python
   // Ugly. XXX
-  std::shared_ptr<mdarray> b_;
-  std::shared_ptr<mdarray> w_;
+  py_handle b_, w_;
   std::vector<mkldnn::primitive> *dag_;
 };
 
 using namespace mkldnn;
 
+//
+// Active primitive
+//
 template <class p_t
 , typename pd_t = typename p_t::primitive_desc>
 class f_s_op: public s_op {
@@ -659,10 +661,47 @@ private:
   std::vector<py_handle> deps_;
 };
 
+//
+// Passive primitive
+//
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class passive_f_op: public s_op {
+public:
+  passive_f_op(pd_t &op, std::vector<primitive> *dag)
+    : s_op(op.dst_primitive_desc(), dag) {}
+
+public:
+  passive_f_op(pd_t &op, py_handle x
+      , std::vector<primitive> *dag)
+    : passive_f_op(op, dag) {
+      deps_ = {x};
+      dag_ ->push_back(p_t(op, x->memory(), memory()));
+    }
+private:
+  std::vector<py_handle> deps_;
+};
+
+template<class p_t, typename pd_t = typename p_t::primitive_desc>
+class passive_bd_op: public s_op {
+public:
+  passive_bd_op(pd_t &op, std::vector<primitive> *dag)
+    : s_op(op.dst_primitive_desc(), dag) {}
+
+public:
+  passive_bd_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : passive_bd_op(op, dag) {
+      deps_ = {x, gy};
+      dag_ ->push_back(p_t(op, x->memory(), gy->memory(), memory()));
+    }
+private:
+  std::vector<py_handle> deps_;
+};
 }
 
+//
 // Actual interface for python
-// DO NOT add any field
+// DO NOT add field
 //
 class mdarray : public py_handle {
 public:
@@ -787,6 +826,24 @@ public:
   bw_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
     : py_handle (new implementation::bw_op<p_t, pd_t>
+        (op, x, gy, dag)) {}
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class passive_f_op: public py_handle {
+public:
+  passive_f_op(pd_t &op, py_handle x
+      , std::vector<primitive> *dag)
+    : py_handle (new implementation::passive_f_op<p_t, pd_t>
+        (op, x, dag)) {}
+};
+
+template <class p_t, typename pd_t = typename p_t::primitive_desc>
+class passive_bd_op: public py_handle {
+public:
+  passive_bd_op(pd_t &op, py_handle x, py_handle gy
+      , std::vector<primitive> *dag)
+    : py_handle (new implementation::passive_bd_op<p_t, pd_t>
         (op, x, gy, dag)) {}
 };
 
