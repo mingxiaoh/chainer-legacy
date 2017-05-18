@@ -21,6 +21,7 @@ from mkldnn.chainer.fanout import *
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
+        fanout.clear()
         self.W = numpy.random.uniform(
             -1, 1, (2, 3)).astype(self.W_dtype)
         self.b = numpy.random.uniform(

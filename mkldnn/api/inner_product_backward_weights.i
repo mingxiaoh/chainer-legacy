@@ -92,7 +92,7 @@ struct inner_product_backward_weights: public primitive {
 }
 
 %extend_ro_attr_and_own(bwb_op<mkldnn::inner_product_backward_weights>
-                , mdarray, attrib, extra_get)
+                , mdarray, extra, extra_get)
 
 %template (linear_bwb_op) bwb_op<mkldnn::inner_product_backward_weights>;
 %template (linear_bw_op) bw_op<mkldnn::inner_product_backward_weights>;

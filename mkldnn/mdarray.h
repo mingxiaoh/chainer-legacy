@@ -560,10 +560,10 @@ private:
   f_s_op(pd_t &op, mdarray *x, mdarray *W
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag)
-      , x_reordered_(reorder_if_must(x->memory()
-            , op.src_primitive_desc(), dag_))
-      , W_reordered_(reorder_if_must(W->memory()
-            , op.weights_primitive_desc(), dag_)) {
+      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
+            , dag_))
+      , W_reordered_(reorder_if_must(W->memory(), op.weights_primitive_desc()
+            , dag_)) {
   }
 
 public:
@@ -571,16 +571,15 @@ public:
       , std::vector<primitive> *dag)
     : f_s_op(op, x.get(), W.get(), dag) {
       deps_ = {x, W, b};
-      dag_->push_back(p_t(op, x_reordered_, W_reordered_
-           , b->memory(), this->memory()));
+      dag_->push_back(p_t(op, x_reordered_, W_reordered_, b->memory()
+            , this->memory()));
     }
 
   f_s_op(pd_t &op, py_handle x, py_handle W
       , std::vector<primitive> *dag)
     : f_s_op(op, x.get(), W.get(), dag){
       deps_= {x, W};
-      dag_->push_back(p_t(op, x_reordered_, W_reordered_
-            , this->memory()));
+      dag_->push_back(p_t(op, x_reordered_, W_reordered_, this->memory()));
     }
 
 private:
@@ -604,8 +603,7 @@ public:
       , std::vector<primitive> *dag)
     : bd_op(op, gy.get(), W.get(), dag) {
       deps_= {gy, W};
-      dag_->push_back(p_t(op, gy_reordered_, W_reordered_
-            , this->memory()));
+      dag_->push_back(p_t(op, gy_reordered_, W_reordered_, this->memory()));
     }
 
 private:
@@ -618,10 +616,10 @@ class bwb_op: public d_op {
 public:
   bwb_op(pd_t &op
       , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
-    : d_op(op.diff_weights_primitive_desc()
-        , op.diff_bias_primitive_desc(), dag)
-      , x_reordered_(reorder_if_must(x->memory()
-            , op.src_primitive_desc(), dag_))
+    : d_op(op.diff_weights_primitive_desc(), op.diff_bias_primitive_desc()
+        , dag)
+      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
+            , dag_))
       , gy_reordered_(reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_)) {}
 
@@ -630,8 +628,8 @@ public:
       , std::vector<primitive> *dag)
     : bwb_op(op, x.get(), gy.get(), dag) {
       deps_ = {x, gy};
-      dag_->push_back(p_t(op, x_reordered_, gy_reordered_
-          , memory(), extra->memory()));
+      dag_->push_back(p_t(op, x_reordered_, gy_reordered_, memory()
+            , extra->memory()));
     }
 
 private:
@@ -645,8 +643,8 @@ public:
   bw_op(pd_t &op
       , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
     : s_op(op.diff_weights_primitive_desc(), dag)
-      , x_reordered_(reorder_if_must(x->memory()
-          , op.src_primitive_desc(), dag_))
+      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
+            , dag_))
       , gy_reordered_(reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_)) {}
 public:
@@ -654,8 +652,7 @@ public:
       , std::vector<primitive> *dag)
     : bw_op(op, x.get(), gy.get(), dag) {
       deps_ = {x, gy};
-      dag_ ->push_back(p_t(op, x_reordered_, gy_reordered_
-          , memory()));
+      dag_ ->push_back(p_t(op, x_reordered_, gy_reordered_, memory()));
     }
 private:
   mkldnn::memory x_reordered_, gy_reordered_;
@@ -673,8 +670,7 @@ public:
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , mkldnn::engine &engine)
-    : py_handle(new implementation::mdarray(dims
-          , dt, format, engine)) {}
+    : py_handle(new implementation::mdarray(dims, dt, format, engine)) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
     : py_handle(new implementation::mdarray(pd)) {}

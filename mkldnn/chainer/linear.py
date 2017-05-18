@@ -12,6 +12,11 @@ import mkldnn.api.inner_product_backward_data as ip_backdata
 import mkldnn.api.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import *
 
+from mkldnn.api.inner_product_forward import linear_f_op
+from mkldnn.api.inner_product_backward_data import linear_bd_op
+from mkldnn.api.inner_product_backward_weights import linear_bw_op
+from mkldnn.api.inner_product_backward_weights import linear_bwb_op
+
 def _as_mat(x):
     if x.ndim == 2:
         return x
@@ -42,27 +47,33 @@ class LinearForward(ComputeComplex):
         # Transform inputs
         self.x = array(x, m.memory.nc, e)
         self.W = array(W, m.memory.oi, e)
+
         if b is not None:
             self.b = array(b, m.memory.x, e)
+            y = linear_f_op(cc_pd, self.x, self.W, self.b, self.dag_)
+        else:
+            y = linear_f_op(cc_pd, self.x, self.W, self.dag_)
 
         # Prepare output
-        y = mdarray(cc_pd.dst_primitive_desc())
+        # y = mdarray(cc_pd.dst_primitive_desc())
 
-        dag = self.dag_
+        # dag = self.dag_
 
-        # Reorder if must
-        x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
-        W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), dag)
+        # # Reorder if must
+        # x_m = reorder_if_must(self.x.memory,
+        #         cc_pd.src_primitive_desc(), dag)
+        # W_m = reorder_if_must(self.W.memory,
+        #         cc_pd.weights_primitive_desc(), dag)
 
-        if b is None:
-            dag.push_back(ip_forward.inner_product_forward(cc_pd,
-                at(x_m), at(W_m), y.memory))
-        else:
-            dag.push_back(ip_forward.inner_product_forward(cc_pd,
-                at(x_m), at(W_m), at(self.b.memory), y.memory))
+        # if b is None:
+        #     dag.push_back(ip_forward.inner_product_forward(cc_pd,
+        #         at(x_m), at(W_m), y.memory))
+        # else:
+        #     dag.push_back(ip_forward.inner_product_forward(cc_pd,
+        #         at(x_m), at(W_m), at(self.b.memory), y.memory))
 
-        self.x_m = x_m
-        self.W_m = W_m
+        # self.x_m = x_m
+        # self.W_m = W_m
         self._hint = cc_pd
         self.outputs = y,
 
@@ -114,20 +125,22 @@ class LinearBackwardData(ComputeComplex):
         self.W = array(W, m.memory.oi, e)
         self.gy = array(gy, m.memory.nc, e)
 
-        # Prepare output mdarray
-        gx = mdarray(cc_pd.diff_src_primitive_desc())
+        gx = linear_bd_op(cc_pd, self.gy, self.W, self.dag_)
 
-        dag = self.dag_
+        # # Prepare output mdarray
+        # gx = mdarray(cc_pd.diff_src_primitive_desc())
 
-        # Reorder if must
-        gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
-        W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), dag)
+        # dag = self.dag_
 
-        dag.push_back(ip_backdata.inner_product_backward_data(cc_pd,
-            at(gy_m), at(W_m), gx.memory))
+        # # Reorder if must
+        # gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
+        # W_m = reorder_if_must(self.W.memory, cc_pd.weights_primitive_desc(), dag)
 
-        self.gy_m = gy_m
-        self.W_m = W_m
+        # dag.push_back(ip_backdata.inner_product_backward_data(cc_pd,
+        #     at(gy_m), at(W_m), gx.memory))
+
+        # self.gy_m = gy_m
+        # self.W_m = W_m
 
         self.outputs = gx,
 
@@ -143,36 +156,42 @@ class LinearBackwardWeighs(ComputeComplex):
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
 
         # Transfer inputs to mdarray
-        self.gy = array(gy, m.memory.nc, e)
         self.x = array(x, m.memory.nc, e)
+        self.gy = array(gy, m.memory.nc, e)
+
+        if b is None:
+            gW = linear_bw_op(cc_pd, self.x, self.gy, self.dag_)
+        else:
+            gW = linear_bwb_op(cc_pd, self.x, self.gy, self.dag_)
+            gb = gW.extra
 
         # Prepare outputs mdarray
-        gW = mdarray(cc_pd.diff_weights_primitive_desc())
-        if b is not None:
-            gb = mdarray(cc_pd.diff_bias_primitive_desc())
-            self.has_b = True
-        else:
-            self.has_b = False
+        # gW = mdarray(cc_pd.diff_weights_primitive_desc())
+        # if b is not None:
+        #     gb = mdarray(cc_pd.diff_bias_primitive_desc())
+        #     self.has_b = True
+        # else:
+        #     self.has_b = False
 
-        dag = self.dag_
+        # dag = self.dag_
 
-        # Reorder if must
-        gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
-        x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
+        # # Reorder if must
+        # gy_m = reorder_if_must(self.gy.memory, cc_pd.diff_dst_primitive_desc(), dag)
+        # x_m = reorder_if_must(self.x.memory, cc_pd.src_primitive_desc(), dag)
 
-        if b is not None:
-            dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
-                at(x_m), at(self.gy.memory), gW.memory, gb.memory))
-        else:
-            dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
-                at(x_m), at(self.gy.memory), gW.memory))
+        # if b is not None:
+        #     dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
+        #         at(x_m), at(self.gy.memory), gW.memory, gb.memory))
+        # else:
+        #     dag.push_back(ip_backweights.inner_product_backward_weights(cc_pd,
+        #         at(x_m), at(self.gy.memory), gW.memory))
 
-        self.x_m = x_m
+        # self.x_m = x_m
 
-        if b is not None:
-            self.outputs = gW, gb
-        else:
+        if b is None:
             self.outputs = gW,
+        else:
+            self.outputs = gW, gb
 
     def _reuse_cc(self, x, gy):
         reuse_buffer(self.x, x)
