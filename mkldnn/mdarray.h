@@ -249,7 +249,7 @@ public:
 public:
   typedef size_t size_type;
   // Generated on demand
-  virtual ~mdarray();
+  virtual ~mdarray() = default;
 
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt

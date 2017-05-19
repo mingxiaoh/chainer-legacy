@@ -31,8 +31,6 @@ int g_init() {
 }
 
 // Pin the virtual table
-mdarray::~mdarray() {}
-
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");

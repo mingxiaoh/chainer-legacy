@@ -20,8 +20,8 @@
   $1 = PySequence_Check($input);
 }
 
-%typemap(in) (at_sequence_compitable_type) (int count, at_sequence_compitable_type ins) {
-  count = PySequence_Size($input);
+%typemap(in) (at_sequence_compitable_type) (int count,
+    at_sequence_compitable_type ins) {
 
   for (int i =0; i < count; i ++) {
     PyObject *o = PySequence_GetItem($input, i);
@@ -30,14 +30,16 @@
         , $descriptor(mkldnn::primitive::at *), 0);
 
     if (!SWIG_IsOK(res1)) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "typemap 'mkldnn::primitive::at' sequence type failed"); 
+      SWIG_exception_fail(SWIG_ArgError(res1)
+          , "typemap 'mkldnn::primitive::at' sequence type failed"); 
     }
     if (tmp == nullptr) {
-      SWIG_exception_fail(SWIG_ArgError(res1), "Input is not a sequential type of 'mkldnn::primitive::at'");
+      SWIG_exception_fail(SWIG_ArgError(res1)
+          , "Input is not a sequential type of 'mkldnn::primitive::at'");
     }
-    ins.push_back(*tmp);
+    ins.emplace_back(*tmp);
   }
 
-  $1 = ins;
+  $1 = std::move(ins);
 }
 %enddef
