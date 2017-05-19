@@ -502,7 +502,8 @@ public:
   d_op(mkldnn::memory::primitive_desc major
       , mkldnn::memory::primitive_desc extra
       , std::vector<mkldnn::primitive> *dag):
-    s_op(major, dag), extra(new s_op(extra, dag)), dag_(dag) {
+    s_op(major, dag), extra(std::make_shared<s_op>(extra, dag))
+    , dag_(dag) {
     rtti = dual_out;
   }
 
@@ -527,8 +528,8 @@ public:
       , mkldnn::memory::primitive_desc b_
       , mkldnn::memory::primitive_desc w_
       , std::vector<mkldnn::primitive> *dag)
-    : s_op(major, dag), b_(new s_op(b_, dag))
-    , w_(new s_op(w_, dag)), dag_(dag) {
+    : s_op(major, dag), b_(std::make_shared<s_op>(b_, dag))
+    , w_(std::make_shared<s_op>(w_, dag)), dag_(dag) {
     rtti = dual_out;
   }
 
@@ -709,15 +710,16 @@ public:
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , mkldnn::engine &engine)
-    : py_handle(new implementation::mdarray(dims, dt, format, engine)) {}
+    : py_handle(std::make_shared<implementation::mdarray>
+        (dims, dt, format, engine)) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
-    : py_handle(new implementation::mdarray(pd)) {}
+    : py_handle(std::make_shared<implementation::mdarray>(pd)) {}
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
       , mkldnn::engine &e)
-    : py_handle(new implementation::mdarray(view, format, e)) {}
+    : py_handle(std::make_shared<implementation::mdarray>(view, format, e)) {}
 
   static PyObject *mdarray_shape_get(mdarray *arg) {
     implementation::mdarray *self = arg->get();
@@ -783,12 +785,12 @@ class f_s_op : public py_handle {
 public:
   f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
       , std::vector<primitive> *dag)
-    : py_handle(new implementation::f_s_op<p_t, pd_t>
+    : py_handle(std::make_shared< implementation::f_s_op<p_t, pd_t> >
        (op, x, W, b, dag)){}
 
   f_s_op(pd_t &op, py_handle x, py_handle W
       , std::vector<primitive> *dag)
-    : py_handle(new implementation::f_s_op<p_t, pd_t>
+    : py_handle(std::make_shared< implementation::f_s_op<p_t, pd_t> >
        (op, x, W, dag)) {}
 };
 
@@ -797,7 +799,7 @@ class bd_op : public py_handle {
 public:
   bd_op(pd_t &op, py_handle gy, py_handle W
       , std::vector<primitive> *dag)
-    : py_handle (new implementation::bd_op<p_t, pd_t>
+    : py_handle (std::make_shared< implementation::bd_op<p_t, pd_t> >
         (op, gy, W, dag)) {}
 };
 
@@ -806,7 +808,7 @@ class bwb_op: public py_handle {
 public:
   bwb_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
-    : py_handle (new implementation::bwb_op<p_t, pd_t>
+    : py_handle (std::make_shared< implementation::bwb_op<p_t, pd_t> >
         (op, x, gy, dag)) {}
 
   static py_handle *extra_get(const py_handle *in) {
@@ -825,7 +827,7 @@ class bw_op: public py_handle {
 public:
   bw_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
-    : py_handle (new implementation::bw_op<p_t, pd_t>
+    : py_handle (std::make_shared< implementation::bw_op<p_t, pd_t> >
         (op, x, gy, dag)) {}
 };
 
@@ -834,7 +836,7 @@ class passive_f_op: public py_handle {
 public:
   passive_f_op(pd_t &op, py_handle x
       , std::vector<primitive> *dag)
-    : py_handle (new implementation::passive_f_op<p_t, pd_t>
+    : py_handle (std::make_shared< implementation::passive_f_op<p_t, pd_t> >
         (op, x, dag)) {}
 };
 
@@ -843,7 +845,7 @@ class passive_bd_op: public py_handle {
 public:
   passive_bd_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
-    : py_handle (new implementation::passive_bd_op<p_t, pd_t>
+    : py_handle (std::make_shared< implementation::passive_bd_op<p_t, pd_t> >
         (op, x, gy, dag)) {}
 };
 
