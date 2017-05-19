@@ -20,7 +20,7 @@
   $1 = PySequence_Check($input);
 }
 
-%typemap(in) (at_sequence_compitable_type) (int count) {
+%typemap(in) (at_sequence_compitable_type) (int count, at_sequence_compitable_type ins) {
   count = PySequence_Size($input);
 
   for (int i =0; i < count; i ++) {
@@ -35,7 +35,9 @@
     if (tmp == nullptr) {
       SWIG_exception_fail(SWIG_ArgError(res1), "Input is not a sequential type of 'mkldnn::primitive::at'");
     }
-    $1.push_back(*tmp);
+    ins.push_back(*tmp);
   }
+
+  $1 = ins;
 }
 %enddef

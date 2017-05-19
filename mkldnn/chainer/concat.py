@@ -31,18 +31,20 @@ class ConcatForward(ComputeComplex):
         xarrays = ()
         axis_dim = 0
         xs_mpdl = m.mpd_list()
-        xs_pl = primitive_list()
+        #xs_pl = primitive_list()
+        xs_pl = ()
         for x in xs:
             axis_dim += x.shape[1]
             xarray = array(x, m.memory.nchw, e)
             xarrays += (xarray,)
             xs_mpdl.push_back(xarray.memory.get_primitive_desc())
-            xs_pl.push_back(xarray.memory)
+            #xs_pl.push_back(xarray.memory)
+            xs_pl += (at(xarray.memory), )
 
         cc_pd = concat.primitive_desc(axis, xs_mpdl)
-        y_md = cc_pd.dst_primitive_desc().desc()
         y = mdarray(cc_pd.dst_primitive_desc())
         self.dag_.push_back(concat.concat(cc_pd, xs_pl, y.memory))
+
         self.outputs = y,
         self.xarrays = xarrays
 

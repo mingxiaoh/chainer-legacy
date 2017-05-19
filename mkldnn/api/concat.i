@@ -31,6 +31,8 @@
 %import support.i
 %import memory.i
 
+%at_sequence_typemap(std::vector<mkldnn::primitive::at>);
+
 namespace mkldnn {
 
 namespace c_api {
