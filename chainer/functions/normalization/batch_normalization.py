@@ -6,6 +6,9 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
+import mkldnn
+from mkldnn.chainer.bn import *
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
@@ -149,6 +152,13 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
+        elif isinstance(self, BnMKLDNN):
+            outputs = self.forward_cpu(inputs)
+            y = outputs[0]
+            self.flags = outputs[1]
+            if configuration.config.train:
+                mean = outputs[2]
+                var = outputs[3]
         else:
             if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
@@ -242,6 +252,9 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
+        elif isinstance(self, BnMKLDNN):
+            outputs = self.backward_cpu(inputs, gy)
+            gx, ggamma, gbeta = outputs[:3]
         else:
             gbeta = gy.sum(axis=axis)
             ggamma = (gy * self.x_hat).sum(axis=axis)
@@ -261,6 +274,64 @@ class BatchNormalizationFunction(function.Function):
                               gbeta[expander], inv_m)
         return gx, ggamma, gbeta
 
+class BnMKLDNN(BatchNormalizationFunction):
+
+    def __init__(self, *args, **kwargs):
+        super(BnMKLDNN, self).__init__(*args, **kwargs)
+
+    def forward_cpu(self, inputs):
+        self.expand_dim = False
+        x = inputs[0]
+        if x.ndim == 2:
+            self.expand_dim = True
+            x = x[:, :, None, None]
+        inputs = (x,) +  inputs[1:]
+        if configuration.config.train:
+            cc = BnForward(inputs, self.eps, None, None,
+                    pos=(self.rank, self.fanout))
+        else:
+            cc = BnForward(inputs, self.eps, self.fixed_mean, self.fixed_var,
+                    pos=(self.rank, self.fanout))
+
+        self.hint = cc.hint
+        outputs = cc.execute_on()
+        if configuration.config.train:
+            self.mkl_mean = outputs[2]
+            self.mkl_var = outputs[3]
+        y = outputs[0]
+        if self.expand_dim:
+            assert y.ndim == 4
+            y = numpy.squeeze(y, axis=(2,3))
+        outputs = (y,) + outputs[1:]
+        return outputs
+
+    def backward_cpu(self, inputs, gy):
+        expand_dim = False
+        x = inputs[0]
+        if x.ndim == 2:
+            expand_dim = True
+            x = x[:, :, None, None]
+            gy = gy[:, :, None, None]
+        inputs = (x,) +  inputs[1:]
+
+        if configuration.config.train:
+            mean = self.mkl_mean
+            var = self.mkl_var
+        else:
+            mean = self.fixed_mean
+            var = self.fixed_var
+        cc = BnBackward(inputs, gy, self.hint, self.flags,
+                self.eps, mean, var,
+                pos=(self.rank, self.fanout))
+
+        outputs = cc.execute_on()
+        gx = outputs[0]
+        ggamma = outputs[1][0]
+        gbeta = outputs[1][1]
+        if expand_dim:
+            assert gx.ndim == 4
+            gx = numpy.squeeze(gx, axis=(2,3))
+        return gx, ggamma, gbeta
 
 def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
                         running_var=None, decay=0.9):
@@ -306,8 +377,16 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     .. seealso:: :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, running_mean, running_var,
-                                      decay)(x, gamma, beta)
+
+    if (x.dtype == numpy.dtype('float32') \
+            or isinstance(x, mkldnn.mdarray)) \
+        and chainer.should_use_mkldnn('>=auto') \
+        and (x.ndim == 4 or x.ndim == 2):
+        return BnMKLDNN(eps, running_mean, running_var,
+                        decay)(x, gamma, beta)
+    else:
+        return BatchNormalizationFunction(eps, running_mean, running_var,
+                                        decay)(x, gamma, beta)
 
 
 def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
@@ -332,5 +411,12 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
 
     """
     with configuration.using_config('train', False):
-        return BatchNormalizationFunction(eps, None, None, 0.0)(
-            x, gamma, beta, mean, var)
+        if (x.dtype == numpy.dtype('float32') \
+                or isinstance(x, mkldnn.mdarray)) \
+            and chainer.should_use_mkldnn('>=auto') \
+            and (x.ndim == 4 or x.ndim == 2):
+            return BnMKLDNN(eps, None, None, 0.0)(
+                x, gamma, beta, mean, var)
+        else:
+            return BatchNormalizationFunction(eps, None, None, 0.0)(
+                x, gamma, beta, mean, var)

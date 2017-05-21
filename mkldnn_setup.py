@@ -53,6 +53,9 @@ modules = {
         'mkldnn.api._concat' : ['mkldnn/api/concat.i'],
         'mkldnn.api._view' : ['mkldnn/api/view.i'],
 
+        'mkldnn.api._bn_forward' : ['mkldnn/api/bn_forward.i'],
+        'mkldnn.api._bn_backward' : ['mkldnn/api/bn_backward.i'],
+
         'mkldnn._mdarray' : ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']}
 
 swig_opts=['-c++', '-Imkldnn', '-relativeimport',
