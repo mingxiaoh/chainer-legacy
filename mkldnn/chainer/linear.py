@@ -25,8 +25,11 @@ def _as_mat(x):
 def create_forward_desc(d_creator, o_expect, *inputs):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
             for v in inputs if v is not None]
+    x_m = inputs_d[0]
+    W_m = inputs_d[1]
+    b_m = inputs_d[2]
 
-    return d_creator(forward, *inputs_d, o_expect)
+    return d_creator(forward, x_m, W_m, b_m, o_expect)
 
 def create_backward_desc(d_creator, *inputs):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)

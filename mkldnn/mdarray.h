@@ -3,6 +3,7 @@
 #include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
+#include <numpy/ndarraytypes.h>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -53,7 +54,11 @@ static bool isa(const py_handle &t) {
 
 namespace implementation {
 
+#if PY_VERSION_HEX >= 0x03000000
   int g_init();
+#else
+  void g_init();
+#endif
 
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
@@ -104,6 +109,7 @@ public:
   private:
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
+    std::shared_ptr<PyArrayInterface> astr_;
 
     int ndims_;
     int size_;
@@ -218,6 +224,22 @@ public:
       view->suboffsets = nullptr;
 
       return 0;
+    }
+
+    PyArrayInterface *build_astr(void) {
+      astr_.reset(new PyArrayInterface());
+      astr_->two = 2;
+      astr_->nd = ndims_;
+      astr_->typekind = format_[0];
+      astr_->itemsize = itemsize_;
+      astr_->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
+                     NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
+      astr_->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
+      astr_->shape = shape_;
+      astr_->strides = strides_;
+      astr_->data = data_.get();
+      astr_->descr = nullptr;
+      return astr_.get();
     }
 
     static mkldnn::memory::format public_format(mkldnn::memory::format origin) {
@@ -357,6 +379,8 @@ public:
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
   PyObject *getattro(PyObject *self, PyObject *name);
+  // Array Protocol: Create __array_struct__ attribute object
+  virtual PyArrayInterface *getastr(reorder_buffer *rb);
 
   nb_binary_map(Add);
   nb_binary_map(Subtract);
@@ -386,8 +410,10 @@ public:
   nb_binary_map(TrueDivide);
   nb_binary_map(InPlaceFloorDivide);
   nb_binary_map(InPlaceTrueDivide);
+#if (PY_VERSION_HEX >= 0x03000000)
   nb_binary_map(MatrixMultiply);
   nb_binary_map(InPlaceMatrixMultiply);
+#endif
 
   Py_ssize_t mp_length(PyObject *self);
   PyObject *mp_subscript(PyObject *self, PyObject *op);
@@ -771,6 +797,34 @@ public:
 
   static long mdarray_ndim_get(mdarray *self) {
     return self->get()->desc().data.ndims;
+  }
+
+  #if (PY_VERSION_HEX < 0x02080000)
+  static void dtor_astr_callback(void *ptr, void *desc) {
+    delete (implementation::mdarray::reorder_buffer *)desc;
+  }
+  #else
+  static void dtor_astr_callback(PyObject *capsule) {
+    implementation::mdarray::reorder_buffer *rb =
+      (implementation::mdarray::reorder_buffer *)PyCapsule_GetContext(capsule);
+    delete rb;
+  }
+  #endif
+
+  static PyObject *mdarray_astr_get(mdarray *py_self) {
+    implementation::mdarray *self = py_self->get();
+    implementation::mdarray::reorder_buffer *rb =
+      new implementation::mdarray::reorder_buffer(self);
+    void *ptr = self->getastr(rb);
+#if (PY_VERSION_HEX < 0x02080000)
+    PyObject *ret = PyCObject_FromVoidPtrAndDesc(ptr, (void *)rb,
+                                                 dtor_astr_callback);
+#else
+    PyObject *ret = PyCapsule_New(ptr, nullptr, dtor_astr_callback);
+    PyCapsule_SetContext(ret, (void *)rb);
+#endif
+
+    return ret;
   }
 
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {

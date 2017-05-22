@@ -5,7 +5,11 @@ namespace implementation {
 static PyObject *PyType_reorder_buffer = nullptr;
 
 // We brought this to global scope to mitigate it consumption
+#if PY_VERSION_HEX >= 0x03000000
 int g_init() {
+#else
+void g_init() {
+#endif
   swig_type_info *Py_reorder_buffer = SWIG_TypeQuery("_p_reorder_buffer");
   if (Py_reorder_buffer != nullptr) {
     SwigPyClientData *cd
@@ -27,10 +31,19 @@ int g_init() {
   // Initiate static variables imported from numpy include
   import_array();
 
+#if PY_VERSION_HEX >= 0x03000000
   return 0;
+#else
+  return;
+#endif
 }
 
 // Pin the virtual table
+PyArrayInterface *mdarray::getastr(reorder_buffer *rb) {
+  rb->fire(this);
+  return rb->build_astr();
+}
+
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
