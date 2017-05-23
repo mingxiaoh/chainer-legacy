@@ -3,6 +3,19 @@
 namespace implementation {
 
 static PyObject *PyType_reorder_buffer = nullptr;
+static PyObject *PyType_mdarray = nullptr;
+
+PyObject *queryPyTypeObject(const char *name) {
+  swig_type_info *info = SWIG_TypeQuery(name);
+  if (info != nullptr) {
+    SwigPyClientData *cd
+      = (SwigPyClientData *)info->clientdata;
+    return reinterpret_cast<PyObject *>(cd->pytype);
+  }
+
+  throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+      , "Failed to find reorder_buffer object");
+}
 
 // We brought this to global scope to mitigate it consumption
 #if PY_VERSION_HEX >= 0x03000000
@@ -10,16 +23,8 @@ int g_init() {
 #else
 void g_init() {
 #endif
-  swig_type_info *Py_reorder_buffer = SWIG_TypeQuery("_p_reorder_buffer");
-  if (Py_reorder_buffer != nullptr) {
-    SwigPyClientData *cd
-      = (SwigPyClientData *)Py_reorder_buffer->clientdata;
-    PyType_reorder_buffer = reinterpret_cast<PyObject *>(cd->pytype);
-  }
-
-  if (PyType_reorder_buffer == nullptr)
-    throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
-        , "Failed to find reorder_buffer object");
+  PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
+  PyType_mdarray = queryPyTypeObject("_p_mdarray");
 
   // XXX: I don't quite understand it, and its repercussions :)
   SwigPyObject_stype = SWIG_MangledTypeQuery("_p_SwigPyObject");
