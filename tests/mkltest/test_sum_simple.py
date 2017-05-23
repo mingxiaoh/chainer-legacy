@@ -9,6 +9,7 @@ e = Engine()
 #y = np.random.rand(2,2,2,2).astype(np.float32)
 
 x = np.arange(16).reshape(2,2,2,2).astype(np.float32)
+x = x+1
 y = np.arange(16).reshape(2,2,2,2).astype(np.float32)
 print(x)
 print(y)
