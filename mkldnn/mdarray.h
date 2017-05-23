@@ -382,7 +382,8 @@ public:
   // Array Protocol: Create __array_struct__ attribute object
   virtual PyArrayInterface *getastr(reorder_buffer *rb);
 
-  nb_binary_map(Add);
+  PyObject * m_Add(PyObject *self, PyObject *o);
+  //nb_binary_map(Add);
   nb_binary_map(Subtract);
   nb_binary_map(Multiply);
   nb_binary_map(Remainder);
