@@ -190,7 +190,7 @@ public:
       mkldnn::reorder reorder(src->memory(), dst_);
       mkldnn::stream s(mkldnn::stream::eager);
 
-      s.submit({reorder});
+      s.submit({reorder}).wait();
       return reorder;
     }
 

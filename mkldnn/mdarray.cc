@@ -3,6 +3,8 @@
 namespace implementation {
 
 static PyObject *PyType_reorder_buffer = nullptr;
+
+static swig_type_info *SwigTy_mdarray = nullptr;
 static PyObject *PyType_mdarray = nullptr;
 
 PyObject *queryPyTypeObject(const char *name) {
@@ -24,6 +26,7 @@ int g_init() {
 void g_init() {
 #endif
   PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
+  SwigTy_mdarray = SWIG_TypeQuery("_p_mdarray");
   PyType_mdarray = queryPyTypeObject("_p_mdarray");
 
   // XXX: I don't quite understand it, and its repercussions :)
@@ -49,17 +52,21 @@ PyArrayInterface *mdarray::getastr(reorder_buffer *rb) {
   return rb->build_astr();
 }
 
-//FIXME macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
+//FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a)) 
+
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   void *oprd2;
+
   int res = SWIG_ConvertPtr(o, &oprd2, nullptr, 0);
+
   if (!SWIG_IsOK(res)) {
     PyErr_SetString(PyExc_ValueError, "Wrong operand object in add wrapper");
     return nullptr;
   }
+
   // mdarray + ndarray
-  if (strcmp(o->ob_type->tp_name, "mkldnn.mdarray.mdarray")) {
+  if (reinterpret_cast<PyObject *>(o->ob_type) != PyType_mdarray) {
       PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
               , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
 
@@ -72,25 +79,25 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   }
 
   // 2 mdarray add
-  std::vector<mkldnn::memory::primitive::at> inputs_at;
-  py_handle *output = new py_handle();
-  mdarray *mdarray1 = (mdarray *)this;
   auto mdarray2 = (reinterpret_cast<py_handle*>(oprd2))->get();
-  mkldnn::memory::primitive_desc lsrc1_mpd = mdarray1->m_.get_primitive_desc();
-  mkldnn::memory::primitive_desc lsrc2_mpd = mdarray2->m_.get_primitive_desc();
-  auto sum_pd = mkldnn::sum::primitive_desc({(double)1.0, (double)1.0}, {lsrc1_mpd, lsrc2_mpd});
-  inputs_at.push_back(mdarray1->memory());
-  inputs_at.push_back(mdarray2->memory());
-  mkldnn::memory::primitive_desc dst_mpd = sum_pd.dst_primitive_desc();
-  output->reset(new mdarray(dst_mpd));
-  auto sum_prim = mkldnn::sum(sum_pd, inputs_at, (*output)->memory());
 
-  std::vector<mkldnn::primitive> sum_prims;
-  sum_prims.push_back(sum_prim);
+  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
+      , {m_.get_primitive_desc(), mdarray2->m_.get_primitive_desc()});
 
-  auto stream = mkldnn::stream(mkldnn::stream::kind::eager);
-  stream.submit(sum_prims).wait();
-  auto resultobj = SWIG_Python_NewPointerObj(nullptr, SWIG_as_voidptr(output), SWIG_TypeQuery("_p_mdarray"), SWIG_POINTER_OWN |  0 );
+  std::vector<mkldnn::memory::primitive::at> inputs_at {memory()
+    , mdarray2->memory()};
+
+  py_handle *output = new py_handle(new mdarray(sum_pd.dst_primitive_desc()));
+
+  mkldnn::sum sum_prim(sum_pd
+      , inputs_at, (*output)->memory());
+
+  mkldnn::stream s(mkldnn::stream::kind::eager);
+  s.submit({sum_prim}).wait();
+
+  auto resultobj = SWIG_Python_NewPointerObj(nullptr, SWIG_as_voidptr(output)
+      , SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
+
   return resultobj;
 }
 
