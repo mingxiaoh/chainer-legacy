@@ -22,7 +22,7 @@
 
 %typemap(in) (at_sequence_compitable_type) (int count,
     at_sequence_compitable_type ins) {
-
+  count = PySequence_Size($input);
   for (int i =0; i < count; i ++) {
     PyObject *o = PySequence_GetItem($input, i);
     mkldnn::primitive::at *tmp;
