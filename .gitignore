@@ -26,4 +26,6 @@ mkldnn/api/relu_*.py
 mkldnn/api/concat.py
 mkldnn/api/lrn_*.py
 mkldnn/api/pooling_*.py
+mkldnn/api/bn_*.py
+mkldnn/api/view.py
 mkldnn/mdarray.py

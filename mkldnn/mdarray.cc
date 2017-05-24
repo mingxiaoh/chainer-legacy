@@ -5,6 +5,7 @@ namespace implementation {
 static PyObject *PyType_reorder_buffer = nullptr;
 
 static swig_type_info *SwigTy_mdarray = nullptr;
+static swig_type_info *SwigTy_engine = nullptr;
 static PyObject *PyType_mdarray = nullptr;
 
 PyObject *queryPyTypeObject(const char *name) {
@@ -28,6 +29,7 @@ void g_init() {
   PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
   SwigTy_mdarray = SWIG_TypeQuery("_p_mdarray");
   PyType_mdarray = queryPyTypeObject("_p_mdarray");
+  SwigTy_engine = SWIG_TypeQuery("_p_mkldnn__engine");
 
   // XXX: I don't quite understand it, and its repercussions :)
   SwigPyObject_stype = SWIG_MangledTypeQuery("_p_SwigPyObject");
@@ -56,8 +58,41 @@ PyArrayInterface *mdarray::getastr(reorder_buffer *rb) {
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a)) 
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
-  void *oprd2;
+  // Resource manager
+  auto py_decref = [](PyObject *p) { Py_DECREF(p); };
 
+  std::unique_ptr<PyObject
+    , decltype(py_decref)> op(nullptr);
+
+  // Create mdarray from buffer provider
+  if (reinterpret_cast<PyObject *>(o->ob_type) != PyType_mdarray) {
+    mkldnn::engine p_e = get_engine();
+
+    PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
+        , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
+
+    PyObject *argList = Py_BuildValue("(OiO)", o, mkldnn::memory::nchw
+        , Py_p_engine);
+
+    if (argList == nullptr) {
+      PyErr_SetString(PyExc_SystemError, "Can not create argument list");
+      return nullptr;
+    }
+
+    o = PyObject_CallObject(PyType_mdarray, argList);
+
+    Py_DECREF(argList);
+    Py_DECREF(Py_p_engine);
+
+    if (o == nullptr) {
+      PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
+      return nullptr;
+    }
+
+    op.reset(o);
+  }
+
+  void *oprd2;
   int res = SWIG_ConvertPtr(o, &oprd2, nullptr, 0);
 
   if (!SWIG_IsOK(res)) {
@@ -65,21 +100,8 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
     return nullptr;
   }
 
-  // mdarray + ndarray
-  if (reinterpret_cast<PyObject *>(o->ob_type) != PyType_mdarray) {
-      PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
-              , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-
-      if (surrogate == nullptr)
-          return nullptr;
-
-      PyObject *res = PyNumber_Add(surrogate, o);
-      Py_DECREF(surrogate);
-      return res;
-  }
-
   // 2 mdarray add
-  auto mdarray2 = (reinterpret_cast<py_handle*>(oprd2))->get();
+  auto mdarray2 = (reinterpret_cast<py_handle *>(oprd2))->get();
 
   mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
       , {m_.get_primitive_desc(), mdarray2->m_.get_primitive_desc()});
@@ -95,8 +117,8 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   mkldnn::stream s(mkldnn::stream::kind::eager);
   s.submit({sum_prim}).wait();
 
-  auto resultobj = SWIG_Python_NewPointerObj(nullptr, SWIG_as_voidptr(output)
-      , SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
+  PyObject *resultobj = SWIG_Python_NewPointerObj(nullptr
+      , SWIG_as_voidptr(output), SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
 
   return resultobj;
 }
