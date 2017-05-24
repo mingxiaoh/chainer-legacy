@@ -64,14 +64,55 @@ def create_forward_desc(d_creator, o_expect, inputs, geometry):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
             for v in inputs if v is not None]
 
-    return d_creator(forward, convolution_direct,
-            *inputs_d, o_expect, *geometry, zero)
+    strides = geometry[0]
+    padding_ul = geometry[1]
+    padding_dr = geometry[2]
+    x_desc = inputs_d[0]
+    w_desc = inputs_d[1]
+    if len(inputs_d) == 3:
+        b_desc = inputs_d[2]
+        return d_creator(forward, convolution_direct,
+               x_desc, w_desc, b_desc, o_expect,
+               strides, padding_ul, padding_dr, zero)
+    else:
+        return d_creator(forward, convolution_direct,
+               x_desc, w_desc, o_expect,
+               strides, padding_ul, padding_dr, zero)
 
 def create_backward_desc(d_creator, inputs, geometry):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
             for v in inputs if v is not None]
 
-    return d_creator(convolution_direct, *inputs_d, *geometry, zero)
+    strides = geometry[0]
+    padding_ul = geometry[1]
+    padding_dr = geometry[2]
+    """ As to backward data
+            in_desc1: diff_src_desc
+            in_desc2: weights_desc
+            in_desc3: diff_dst_desc
+        As to backward weight
+            in_desc1: src_desc
+            in_desc2: diff_weights_desc
+            in_desc3: diff_bias_desc
+            in_desc4: diff_dst_desc
+            or
+            in_desc1: src_desc
+            in_desc2: diff_weights_desc
+            in_desc3: diff_dst_desc
+    """
+    in_desc1 = inputs_d[0]
+    in_desc2 = inputs_d[1]
+    if len(inputs_d) == 4:
+        in_desc3 = inputs_d[2]
+        in_desc4 = inputs_d[3]
+        return d_creator(convolution_direct,
+               in_desc1, in_desc2, in_desc3, in_desc4,
+               strides, padding_ul, padding_dr, zero)
+    else:
+        in_desc3 = inputs_d[2]
+        return d_creator(convolution_direct,
+               in_desc1, in_desc2, in_desc3,
+               strides, padding_ul, padding_dr, zero)
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
