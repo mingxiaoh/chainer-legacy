@@ -21,7 +21,7 @@ from mkldnn.chainer.fanout import *
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        fanout.clear()
+        FanoutRecorder.clear()
         self.W = numpy.random.uniform(
             -1, 1, (2, 3)).astype(self.W_dtype)
         self.b = numpy.random.uniform(
@@ -41,7 +41,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, W_data, b_data, y_expect):
-        fanout.clear()
+        FanoutRecorder.clear()
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:

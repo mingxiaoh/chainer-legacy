@@ -41,7 +41,7 @@ from mkldnn.chainer.fanout import *
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     def setUp(self):
-        fanout.clear()
+        FanoutRecorder.clear()
         n, c, h, w = self.in_shape
         out_c= self.kernel_geo[0]
         kh, kw = (self.kernel_geo[1], self.kernel_geo[2])
