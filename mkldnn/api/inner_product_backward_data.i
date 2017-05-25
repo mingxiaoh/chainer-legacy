@@ -80,4 +80,4 @@ struct inner_product_backward_data: public primitive {
 
 }
 
-%template (linear_bd_op) bd_op<mkldnn::inner_product_backward_data>;
+%template (linear_bd_op) compatible_shape_bd_op<mkldnn::inner_product_backward_data>;
