@@ -71,7 +71,10 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
     PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
         , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
 
-    PyObject *argList = Py_BuildValue("(OiO)", o, mkldnn::memory::nchw
+    PyObject *argList = Py_BuildValue("(OiO)", o
+        , reorder_buffer::public_format(
+            static_cast<mkldnn::memory::format>(desc().data.format)
+          )
         , Py_p_engine);
 
     if (argList == nullptr) {
