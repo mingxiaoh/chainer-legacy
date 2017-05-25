@@ -152,15 +152,15 @@ def should_use_mkldnn(level):
     """
 
     if level not in _SHOULD_USE_MKLDNN:
-        raise ValueError('invalid cuDNN use level: %s '
+        raise ValueError('invalid mkldnn use level: %s '
                          '(must be either of "==always" or ">=auto")' %
                          repr(level))
     flags = _SHOULD_USE_MKLDNN[level]
 
     if config.use_mkldnn not in flags:
-        raise ValueError('invalid use_cudnn configuration: %s '
+        raise ValueError('invalid use_mkldnn configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.mkldnn))
+                         repr(config.use_mkldnn))
     return flags[config.use_mkldnn]
 
 def is_debug():
