@@ -34,9 +34,9 @@ class TestMaxPooling2D(unittest.TestCase):
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
         self.check_backward_options = {'eps': 2.0 ** -8}
 
-    def check_forward(self, x_data, use_cudnn='always'):
+    def check_forward(self, x_data, use_mkldnn='always'):
         x = chainer.Variable(x_data)
-        with chainer.using_config('use_cudnn', use_cudnn):
+        with chainer.using_config('use_mkldnn', use_mkldnn):
             y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
                                          cover_all=self.cover_all)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -66,18 +66,9 @@ class TestMaxPooling2D(unittest.TestCase):
         x = chainer.Variable(x_data)
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), 'never')
-
-    def check_backward(self, x_data, y_grad, use_cudnn='always'):
-        with chainer.using_config('use_cudnn', use_cudnn):
+    def check_backward(self, x_data, y_grad, use_mkldnn='always'):
+        with chainer.using_config('use_mkldnn', use_mkldnn):
             gradient_check.check_backward(
                     max_pooling_2d.MaxPooling2DMKLDNN(
                     3, stride=2, pad=1, cover_all=self.cover_all),
@@ -87,16 +78,6 @@ class TestMaxPooling2D(unittest.TestCase):
     def test_backward_cpu(self):
         print('ingore backward test')
         self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
     def test_backward_cpu_more_than_once(self):
         func = max_pooling_2d.MaxPooling2DMKLDNN(

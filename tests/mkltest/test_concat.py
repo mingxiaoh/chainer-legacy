@@ -36,11 +36,6 @@ class TestConcat(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.xs, self.y, axis=self.axis)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            [cuda.to_gpu(x.copy()) for x in self.xs],
-            cuda.to_gpu(self.y), axis=self.axis)
 
     def check_backward(self, xs_data, axis):
         xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
@@ -54,11 +49,6 @@ class TestConcat(unittest.TestCase):
     def test_backward_cpu(self):
         #print('ingore backward test')
         self.check_backward(self.xs, axis=self.axis)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward([cuda.to_gpu(x.copy()) for x in self.xs],
-                            axis=self.axis)
 
 
 class TestConcatInvalidAxisType(unittest.TestCase):
