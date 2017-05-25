@@ -77,8 +77,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
     PyObject *argList = Py_BuildValue("(OiO)", o
         , reorder_buffer::public_format(
             static_cast<mkldnn::memory::format>(desc().data.format)
-          )
-        , Py_p_engine);
+          ), Py_p_engine);
 
     if (argList == nullptr) {
       PyErr_SetString(PyExc_SystemError, "Can not create argument list");
@@ -117,8 +116,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 
   py_handle *output = new py_handle(new mdarray(sum_pd.dst_primitive_desc()));
 
-  mkldnn::sum sum_prim(sum_pd
-      , inputs_at, (*output)->memory());
+  mkldnn::sum sum_prim(sum_pd, inputs_at, (*output)->memory());
 
   mkldnn::stream s(mkldnn::stream::kind::eager);
   s.submit({sum_prim}).wait();

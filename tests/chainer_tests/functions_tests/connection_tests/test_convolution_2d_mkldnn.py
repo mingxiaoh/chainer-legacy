@@ -31,7 +31,7 @@ from mkldnn.chainer.fanout import *
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],}) +
     testing.product({
-        'in_shape': [(8, 3, 227, 227)],
+        'in_shape': [(8, 3, 15, 15)],
         'kernel_geo': [(3, 11, 11, 4, 0)],
         'c_contiguous': [True],
         'cover_all': [False],

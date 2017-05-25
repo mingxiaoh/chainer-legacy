@@ -247,10 +247,12 @@ public:
 
       // review this relations carefully
       switch(origin) {
+      case mkldnn::memory::nchw:
       case mkldnn::memory::nChw8c:
       case mkldnn::memory::nChw16c:
         ret = mkldnn::memory::nchw;
         break;
+      case mkldnn::memory::oihw:
       case mkldnn::memory::OIhw8i8o:
       case mkldnn::memory::OIhw16i16o:
       case mkldnn::memory::OIhw8o8i:
@@ -260,7 +262,7 @@ public:
         ret = mkldnn::memory::oihw;
         break;
       default:
-        ret = mkldnn::memory::format_undef;
+        ret = origin;
         break;
       }
 
