@@ -58,11 +58,14 @@ PyArrayInterface *mdarray::getastr(reorder_buffer *rb) {
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a)) 
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
-  // Resource manager
-  auto py_decref = [](PyObject *p) { Py_DECREF(p); };
+  // Resource manager, for GCC do not accept lambda
+  struct py_decref {
+    void operator () (PyObject *p) {
+      Py_DECREF(p);
+    }
+  };
 
-  std::unique_ptr<PyObject
-    , decltype(py_decref)> op(nullptr);
+  std::unique_ptr<PyObject, py_decref> op(nullptr);
 
   // Create mdarray from buffer provider
   if (reinterpret_cast<PyObject *>(o->ob_type) != PyType_mdarray) {
