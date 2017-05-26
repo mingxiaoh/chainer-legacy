@@ -14,7 +14,14 @@ from chainer.testing import condition
 import mkldnn
 from mkldnn.chainer.fanout import *
 
+def _as_mat(x):
+    if x.ndim == 2:
+        return x
+    return x.reshape(len(x), -1)
+
 @testing.parameterize(*testing.product({
+    'in_shape': [(4, 3), (4, 3, 1, 1)],
+    'out_shape': [(4, 2)],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
 }))
@@ -22,14 +29,15 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
         FanoutRecorder.clear()
+
         self.W = numpy.random.uniform(
-            -1, 1, (2, 3)).astype(self.W_dtype)
+                -1, 1, (self.out_shape[1],) + self.in_shape[1:]).astype(self.W_dtype)
         self.b = numpy.random.uniform(
             -1, 1, 2).astype(self.x_dtype)
 
-        self.x = numpy.random.uniform(-1, 1, (4, 3)).astype(self.x_dtype)
-        self.gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
-        self.y = self.x.dot(self.W.T) + self.b
+        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.x_dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.out_shape).astype(self.x_dtype)
+        self.y = _as_mat(self.x).dot(_as_mat(self.W).T) + self.b
         self.check_forward_options = {}
         self.check_backward_options = {}
         if self.x_dtype == numpy.float16:
@@ -57,13 +65,13 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def test_forward_cpu(self):
         print("test forward cpu")
         self.check_forward(self.x, self.W, self.b,
-                           self.x.dot(self.W.T) + self.b)
+                           _as_mat(self.x).dot(_as_mat(self.W).T) + self.b)
         print("finish")
 
     @condition.retry(3)
     def test_forward_cpu_nobias(self):
         print("test forward cpu nobias")
-        self.check_forward(self.x, self.W, None, self.x.dot(self.W.T))
+        self.check_forward(self.x, self.W, None, _as_mat(self.x).dot(_as_mat(self.W).T))
         print("finish")
 
     def check_backward(self, x_data, W_data, b_data, y_grad):

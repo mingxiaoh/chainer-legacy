@@ -55,7 +55,7 @@ class Linear(link.Link):
         self.add_param('W', initializer=initializers._get_initializer(
             initialW))
         if in_size is not None:
-            self._initialize_params(in_size)
+            self._initialize_params(in_size,)
 
         if nobias:
             self.b = None
@@ -65,8 +65,8 @@ class Linear(link.Link):
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_size, initializer=bias_initializer)
 
-    def _initialize_params(self, in_size):
-        self.W.initialize((self.out_size, in_size))
+    def _initialize_params(self, in_shape):
+        self.W.initialize((self.out_size,) + in_shape)
 
     def __call__(self, x):
         """Applies the linear layer.
@@ -79,5 +79,5 @@ class Linear(link.Link):
 
         """
         if self.W.data is None:
-            self._initialize_params(x.size // x.shape[0])
+            self._initialize_params(x.shape[1:])
         return linear.linear(x, self.W, self.b)

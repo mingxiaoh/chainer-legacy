@@ -36,7 +36,7 @@ class LinearFunction(function.Function):
 
     def forward(self, inputs):
         x = _as_mat(inputs[0])
-        W = inputs[1]
+        W = _as_mat(inputs[1])
         y = x.dot(W.T).astype(x.dtype, copy=False)
         if len(inputs) == 3:
             b = inputs[2]
@@ -45,7 +45,7 @@ class LinearFunction(function.Function):
 
     def backward(self, inputs, grad_outputs):
         x = _as_mat(inputs[0])
-        W = inputs[1]
+        W = _as_mat(inputs[1])
         gy = grad_outputs[0]
 
         gx = gy.dot(W).astype(x.dtype, copy=False).reshape(inputs[0].shape)

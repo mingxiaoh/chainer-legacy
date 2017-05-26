@@ -17,10 +17,21 @@ from mkldnn.api.inner_product_backward_data import linear_bd_op
 from mkldnn.api.inner_product_backward_weights import linear_bw_op
 from mkldnn.api.inner_product_backward_weights import linear_bwb_op
 
-def _as_mat(x):
-    if x.ndim == 2:
-        return x
-    return x.reshape(len(x), -1)
+def _x_format(ndim):
+    if ndim == 2:
+        return m.memory.nc
+    elif ndim == 4:
+        return m.memory.nchw
+    else:
+        return NotImplemented
+
+def _W_format(ndim):
+    if ndim == 2:
+        return m.memory.oi
+    elif ndim == 4:
+        return m.memory.oihw
+    else:
+        return NotImplemented
 
 def create_forward_desc(d_creator, o_expect, *inputs):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
@@ -50,8 +61,8 @@ class LinearForward(ComputeComplex):
         cc_pd = ip_forward.primitive_desc(cc_d, e)
 
         # Transform inputs
-        self.x = array(x, m.memory.nc, e)
-        self.W = array(W, m.memory.oi, e)
+        self.x = array(x, _x_format(x.ndim), e)
+        self.W = array(W, _W_format(W.ndim), e)
 
         if b is not None:
             self.b = array(b, m.memory.x, e)
@@ -93,7 +104,7 @@ class LinearForward(ComputeComplex):
 
     def __init__(self, inputs, pos = (0, 0), e=Engine()):
         super(LinearForward, self).__init__()
-        x = _as_mat(inputs[0])
+        x = inputs[0]
         W = inputs[1]
         b = inputs[2] if len(inputs) == 3 else None
         self.argc = len(inputs)
@@ -113,7 +124,7 @@ class LinearBackwardData(ComputeComplex):
         self.argc = len(inputs)
 
         if self.new:
-            x = _as_mat(inputs[0])
+            x = inputs[0]
             self._create_cc(x, W, gy, hint, e)
         else:
             self._reuse_cc(W, gy)
@@ -127,7 +138,7 @@ class LinearBackwardData(ComputeComplex):
         cc_pd = ip_backdata.primitive_desc(cc_d, e, hint)
 
         # Transform inputs
-        self.W = array(W, m.memory.oi, e)
+        self.W = array(W, _W_format(W.ndim), e)
         self.gy = array(gy, m.memory.nc, e)
 
         gx = linear_bd_op(cc_pd, self.gy, self.W, self.dag_)
@@ -161,7 +172,7 @@ class LinearBackwardWeighs(ComputeComplex):
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
 
         # Transfer inputs to mdarray
-        self.x = array(x, m.memory.nc, e)
+        self.x = array(x, _x_format(x.ndim), e)
         self.gy = array(gy, m.memory.nc, e)
 
         if b is None:
@@ -207,7 +218,7 @@ class LinearBackwardWeighs(ComputeComplex):
 
     def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
         super(LinearBackwardWeighs, self).__init__()
-        x = _as_mat(inputs[0])
+        x = inputs[0]
         gy = grad_outputs[0]
         self.argc = len(inputs)
 
@@ -230,7 +241,7 @@ class LinearFunctionMKLDNN(function.Function):
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
             x_type.ndim >= 2,
-            w_type.ndim == 2,
+            w_type.ndim >= 2,
             type_check.prod(x_type.shape[1:]) == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:

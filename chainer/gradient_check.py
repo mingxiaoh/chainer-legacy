@@ -8,7 +8,7 @@ from chainer import cuda
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
-
+from mkldnn.chainer.fanout import *
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
@@ -243,6 +243,7 @@ def check_backward(func, x_data, y_grad, params=(),
                      for x in x_data]
 
     def f():
+        FanoutRecorder.clear()
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         return tuple(y.data for y in ys)
