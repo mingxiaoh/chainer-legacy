@@ -5,21 +5,26 @@
       void *that;                                                 \
       int res1 = SWIG_ConvertPtr(self, &that, nullptr, 0);        \
       if (!SWIG_IsOK(res1)) {                                     \
-        PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
+        PyErr_SetString(PyExc_ValueError, "Wrong self object in nb_unary wrapper");  \
         return nullptr;                                                \
       }                                                           \
       return (*reinterpret_cast<T *>(that))->m_ ## m(self);  \
     }
 
   #define nb_binary(op, m) \
-    static PyObject * nb_ ## op (PyObject *self, PyObject *o) {    \
+    static PyObject * nb_ ## op (PyObject *left, PyObject *right) {    \
       void *that;                                                 \
-      int res1 = SWIG_ConvertPtr(self, &that, nullptr, 0);        \
-      if (!SWIG_IsOK(res1)) {                                     \
-        PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
-        return nullptr;                                                \
+      int res1 = SWIG_ConvertPtr(left, &that, nullptr, 0);        \
+      if (SWIG_IsOK(res1)) {                                      \
+        return (*reinterpret_cast<T *>(that))->m_ ## m(left, right);  \
+      } else {                                                    \
+        res1 = SWIG_ConvertPtr(right, &that, nullptr, 0);         \
+        if (!SWIG_IsOK(res1)) {                                   \
+          PyErr_SetString(PyExc_ValueError, "Wrong self object in nb_binary wrapper");  \
+          return nullptr;                                             \
+        }                                                         \
+        return (*reinterpret_cast<T *>(that))->m_ ## m(right, left);  \
       }                                                           \
-      return (*reinterpret_cast<T *>(that))->m_ ## m(self, o);  \
     }
 
   #define nb_ternary(op, m) \
@@ -27,7 +32,7 @@
       void *that;                                                 \
       int res1 = SWIG_ConvertPtr(self, &that, nullptr, 0);        \
       if (!SWIG_IsOK(res1)) {                                     \
-        PyErr_SetString(PyExc_ValueError, "Wrong self object in getbuffer wrapper");  \
+        PyErr_SetString(PyExc_ValueError, "Wrong self object in nb_ternary wrapper");  \
         return nullptr;                                                \
       }                                                           \
       return (*reinterpret_cast<T *>(that))->m_ ## m(self, o1, o2);  \
