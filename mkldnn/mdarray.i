@@ -118,13 +118,6 @@ public:
   , std::vector<mkldnn::primitive> *dag);
 };
 
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class compatible_shape_bd_op: public mdarray {
-public:
-  compatible_shape_bd_op(pd_t &op, py_handle gy, py_handle W
-  , std::vector<mkldnn::primitive> *dag, int cs_ndim/*, int *cs_dims*/);
-};
-
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
 class bwb_op: public mdarray {
 public:

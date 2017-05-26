@@ -113,7 +113,6 @@ class LinearBackwardData(ComputeComplex):
         self.argc = len(inputs)
 
         if self.new:
-            self.target_ndim = len(inputs[0].shape)
             x = _as_mat(inputs[0])
             self._create_cc(x, W, gy, hint, e)
         else:
@@ -131,7 +130,7 @@ class LinearBackwardData(ComputeComplex):
         self.W = array(W, m.memory.oi, e)
         self.gy = array(gy, m.memory.nc, e)
 
-        gx = linear_bd_op(cc_pd, self.gy, self.W, self.dag_, self.target_ndim)
+        gx = linear_bd_op(cc_pd, self.gy, self.W, self.dag_)
 
         # # Prepare output mdarray
         # gx = mdarray(cc_pd.diff_src_primitive_desc())

@@ -291,8 +291,8 @@ public:
               , data_(new avx::byte [pd.get_size()]
                   , [](avx::byte *p) {delete [] p;})
               , m_(pd, data_.get())
-              , view_(nullptr), compatible_shape_ndim_(-1)/*, compatible_shape_dims_(nullptr)*/
-              , rtti(raw) , internal_order_([&pd] () {
+              , view_(nullptr), rtti(raw)
+              , internal_order_([&pd] () {
                   auto md = pd.desc().data;
                   if (md.format != mkldnn::memory::x
                       && md.format != mkldnn::memory::nc
@@ -320,7 +320,7 @@ public:
                    , [] (avx::byte *p) {});
            } ())
           , m_({_d_from_view(view, format), e}, data_.get())
-          , view_(view), compatible_shape_ndim_(-1)/*, compatible_shape_dims_(nullptr)*/, rtti(raw), internal_order_(false), purpose_(source) {
+          , view_(view), rtti(raw), internal_order_(false), purpose_(source) {
     if (data_.get() != view->buf) {
       // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -376,16 +376,6 @@ public:
 
   inline mkldnn::memory::desc desc() const {
     return m_.get_primitive_desc().desc();
-  }
-
-  inline void set_compatible_shape(int cs_ndim/*, int *cs_dims*/) {
-    compatible_shape_ndim_ = cs_ndim;
-    // compatible_shape_dims_ = cs_dims;
-  }
-
-  inline void get_compatible_shape(int *cs_ndim/*, int **cs_dims*/) {
-    *cs_ndim = compatible_shape_ndim_;
-    // *cs_dims = compatible_shape_dims_;
   }
 
   // PEP: 3118 Buffer Protocol Producer
@@ -445,8 +435,6 @@ private:
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
   std::unique_ptr<Py_buffer, WeDontManageIt> view_;
-  int compatible_shape_ndim_;
-  // int *compatible_shape_dims_;
 
 protected:
   enum mdarray_ty{
@@ -655,33 +643,6 @@ private:
   std::vector<py_handle> deps_;
 };
 
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class compatible_shape_bd_op : public s_op {
-private:
-  compatible_shape_bd_op(pd_t &op
-      , mdarray *gy, mdarray *W, std::vector<primitive> *dag
-      , int cs_ndim/*, int *cs_dims*/)
-    : s_op(op.diff_src_primitive_desc(), dag)
-      , gy_reordered_(reorder_if_must(gy->memory()
-            , op.diff_dst_primitive_desc(), dag_))
-      , W_reordered_(reorder_if_must(W->memory()
-            , op.weights_primitive_desc(), dag_)) {
-    implementation::mdarray::set_compatible_shape(cs_ndim/*, cs_dims*/);
-  }
-
-public:
-  compatible_shape_bd_op(pd_t &op, py_handle gy, py_handle W
-      , std::vector<primitive> *dag, int cs_ndim/*, int *cs_dims*/)
-    : compatible_shape_bd_op(op, gy.get(), W.get(), dag, cs_ndim/*, cs_dims*/) {
-      deps_= {gy, W};
-      dag_->push_back(p_t(op, gy_reordered_, W_reordered_, this->memory()));
-    }
-
-private:
-  mkldnn::memory gy_reordered_, W_reordered_;
-  std::vector<py_handle> deps_;
-};
-
 template<class p_t, typename pd_t = typename p_t::primitive_desc>
 class bwb_op: public d_op {
 public:
@@ -791,34 +752,16 @@ public:
 
   static PyObject *mdarray_shape_get(mdarray *arg) {
     implementation::mdarray *self = arg->get();
-    int self_ndim = self->ndims();
-    int ndim = self_ndim;
-    int cs_ndim/*, *cs_dims*/, i;
-
-    self->get_compatible_shape(&cs_ndim/*, &cs_dims*/);
-    if ((cs_ndim != -1) && (cs_ndim != self_ndim)) {
-      ndim = cs_ndim;
-    }
-
+    int ndim = self->ndims();
     PyObject *intTuple = PyTuple_New(ndim);
     auto data = self->desc().data;
 
     if (!intTuple)
       goto fail;
 
-    for (i = 0; i < (ndim < self_ndim ? ndim : self_ndim); i++) {
+    for (int i = 0; i<ndim; i++) {
       PyObject *o = PyLong_FromLong(data.dims[i]);
-      if (!o) {
-        Py_DECREF(intTuple);
-        intTuple = NULL;
-        goto fail;
-      }
-
-      PyTuple_SET_ITEM(intTuple, i, o);
-    }
-
-    for (;i < ndim; i++) {
-      PyObject *o = PyLong_FromLong(1);
+  
       if (!o) {
         Py_DECREF(intTuple);
         intTuple = NULL;
@@ -855,17 +798,8 @@ public:
     return self->get()->size();
   }
 
-  static long mdarray_ndim_get(mdarray *arg) {
-    implementation::mdarray *self = arg->get();
-    int ndim = self->desc().data.ndims;
-    int cs_ndim/*, *cs_dims*/;
-
-    self->get_compatible_shape(&cs_ndim/*, &cs_dims*/);
-    if (cs_ndim != -1) {
-      ndim = cs_ndim;
-    }
-
-    return ndim;
+  static long mdarray_ndim_get(mdarray *self) {
+    return self->get()->desc().data.ndims;
   }
 
   #if (PY_VERSION_HEX < 0x02080000)
@@ -924,15 +858,6 @@ public:
       , std::vector<primitive> *dag)
     : py_handle (std::make_shared< implementation::bd_op<p_t, pd_t> >
         (op, gy, W, dag)) {}
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class compatible_shape_bd_op : public py_handle {
-public:
-  compatible_shape_bd_op(pd_t &op, py_handle gy, py_handle W
-      , std::vector<primitive> *dag, int cs_ndim/*, int *cs_dims*/)
-    : py_handle (std::make_shared< implementation::compatible_shape_bd_op<p_t, pd_t> >
-        (op, gy, W, dag, cs_ndim/*, cs_dims*/)) {}
 };
 
 template <class p_t, typename pd_t = typename p_t::primitive_desc>
