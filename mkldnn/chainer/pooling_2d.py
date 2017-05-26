@@ -1,3 +1,4 @@
+import math
 import collections
 from chainer import function
 from chainer.utils import type_check
@@ -156,6 +157,9 @@ class Pooling2DMKLDNN(function.Function):
         if stride is None:
             stride = ksize
 
+        ksize = math.floor(ksize)
+        stride = math.floor(stride)
+        pad = math.floor(pad)
         self.kh, self.kw = _pair(ksize)
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
