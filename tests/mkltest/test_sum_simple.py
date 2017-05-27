@@ -19,7 +19,8 @@ print(z)
 
 #x = np.random.rand(2,2,2,2).astype(np.float32)
 x = mdarray(x, m.memory.nchw, e)
-print(x*1)
+z = x + y
+print(type(x))
 
 #y = np.ndarray(shape=(2,2,2,2), dtype=np.float32, order='C')
 #y = np.random.rand(2,2,2,2).astype(np.float32)
