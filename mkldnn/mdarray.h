@@ -4,6 +4,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 #include <numpy/ndarraytypes.h>
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -321,6 +322,7 @@ public:
            } ())
           , m_({_d_from_view(view, format), e}, data_.get())
           , view_(view), rtti(raw), internal_order_(false), purpose_(source) {
+    assert(m_.get_primitive_desc().get_size() == view->len);
     if (data_.get() != view->buf) {
       // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -350,6 +352,7 @@ public:
         data_.reset(reinterpret_cast<avx::byte *>(view->buf)
             , [] (avx::byte *p) {});
 
+      assert(m_.get_primitive_desc().get_size() == view->len);
       m_.set_data_handle(data());
     }
 
