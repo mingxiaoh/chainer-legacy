@@ -92,13 +92,15 @@ class ConcatBackward(ComputeComplex):
         self.gy = gy
         self.xs = xs
 
-    def _reuse(self, gy):
+    def _reuse(self, inputs, gy):
+        for xarray, x in zip(self.xs, inputs):
+            reuse_buffer(xarray, x)
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, axis):
+    def match(self, inputs, gy, axis):
         if len(self.xs) != len(inputs):
             return False
-        for xarray, x in zip(xs, inputs):
+        for xarray, x in zip(self.xs, inputs):
             if xarray.shape != x.shape:
                 return False
         return True

@@ -93,7 +93,8 @@ class LrnBackward(ComputeComplex):
         reuse_buffer(self.x, x)
         reuse_buffer(self.gy, gy)
 
-    def match(self, x, hint, n, k, alpha, beta):
+    def match(self, inputs, gy, hint, ws, n, k, alpha, beta):
+        x = inputs[0]
         return  (self.x.shape == x.shape) and (self.n == n) \
                 and (self.k == k) and (self.alpha == alpha) \
                 and (self.beta == beta) and (self.hint is hint)
