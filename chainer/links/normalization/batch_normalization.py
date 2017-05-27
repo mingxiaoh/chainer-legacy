@@ -1,11 +1,13 @@
 import numpy
 
+import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
 from chainer import variable
+import mkldnn
 
 
 class BatchNormalization(link.Link):
@@ -120,8 +122,15 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            func = batch_normalization.BatchNormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, decay)
+            if (x.dtype == numpy.dtype('float32') \
+                or isinstance(x, mkldnn.mdarray)) \
+                and chainer.should_use_mkldnn('>=auto') \
+                and (x.ndim == 4 or x.ndim == 2):
+                func = batch_normalization.BnMKLDNN(
+                    self.eps, self.avg_mean, self.avg_var, decay)
+            else:
+                func = batch_normalization.BatchNormalizationFunction(
+                    self.eps, self.avg_mean, self.avg_var, decay)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean
