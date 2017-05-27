@@ -16,7 +16,6 @@ from chainer import mkld
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
 
-
 def _check_grad_type(func, x, gx):
     def make_message(message):
         if func:
@@ -430,8 +429,11 @@ Actual: {0}'''.format(type(data))
                 if _x.creator is None and func.in_chain is True:
                     func.mkldnn_opt = True
 
+            cosim_output = func.backward_cpu_cosim(in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
+            func.cpu_cosim_verify_result(gxs, cosim_output)
+
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
@@ -465,7 +467,7 @@ Actual: {0}'''.format(type(data))
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
                             if mkld.enable_acc_gradF((in_data,)) and in_data[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in in_data):
-                                # if enable_acc_grad,will deply to do grad accumulate,only record grad
+                                # if enable_acc_grad,will deply to do grad accumulate,only record grad 
                                 x.acc_grad += (gx,)
                             else:
                                 x.grad = utils.force_array(x.grad + gx)  # copy
@@ -473,9 +475,9 @@ Actual: {0}'''.format(type(data))
                         else:
                             if mkld.enable_acc_gradF((in_data,)) and in_data[0].ndim == 4 and all(isinstance(xi, numpy.ndarray) for xi in in_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
-                                if len(x.acc_grad) > 0:  # means 3rd or later visit for variable x
+                                if len(x.acc_grad) > 0: # means 3rd or later visit for variable x
                                     x.acc_grad += (gx,)
-                                else:  # means this variable is W or b
+                                else: # means this variable is W or b
                                     x._grad += gx
                             else:
                                 x._grad += gx  # 3rd or later visit
