@@ -4,8 +4,10 @@ from chainer import function
 from chainer.utils import type_check
 from chainer import mkld
 
+
 if mkld.mkldnn_enabled:
     mkldnn = mkld.mkldnn
+
 
 def _as_mat(x):
     if x.ndim == 2:

@@ -3,6 +3,7 @@ import numpy as np
 import time
 from chainer import mkld
 
+
 def test_lrn(caculate, switchOn=True):
     total_forward = 0
     total_backward = 0
@@ -50,6 +51,7 @@ def test_lrn(caculate, switchOn=True):
     print(caculate, " Average Forward: ", total_forward/count, "ms")
     print(caculate, " Average Backward: ", total_backward/count, "ms")
     print(caculate, " Average Total: ", (total_forward + total_backward)/count, "ms")
+
 
 test_lrn("mkldnn")
 test_lrn("numpy", False)
