@@ -242,7 +242,7 @@ class LinearFunctionMKLDNN(function.Function):
             w_type.dtype.kind == 'f',
             x_type.ndim >= 2,
             w_type.ndim >= 2,
-            type_check.prod(x_type.shape[1:]) == w_type.shape[1],
+            type_check.prod(x_type.shape[1:]) == type_check.prod(w_type.shape[1:]),
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]

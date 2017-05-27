@@ -5,6 +5,7 @@ import threading
 
 import numpy
 
+from mkldnn.mdarray import *
 from chainer import cuda
 
 
@@ -93,7 +94,8 @@ def _get_type(name, index, array, accept_none):
         return Variable(TypeInfo((), None), var)
 
     assert(isinstance(array, numpy.ndarray) or
-           isinstance(array, cuda.ndarray))
+           isinstance(array, cuda.ndarray) or
+           isinstance(array, mdarray))
     return Variable(TypeInfo(array.shape, array.dtype), var)
 
 

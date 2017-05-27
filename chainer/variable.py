@@ -800,6 +800,10 @@ Actual: {0}'''.format(type(data))
         self._data[0] = data
         self._node._grad = grad
 
+    def mkl_reshape(self, shape):
+        self._data[0] = self._data[0].reshape(shape)
+        self._node._grad = self._node._grad.reshape(shape)
+
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]

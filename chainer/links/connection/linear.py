@@ -48,6 +48,7 @@ class Linear(link.Link):
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
+        self.mkl_reshaped = False
         self.out_size = out_size
 
         if initialW is None:
@@ -66,6 +67,8 @@ class Linear(link.Link):
             self.add_param('b', out_size, initializer=bias_initializer)
 
     def _initialize_params(self, in_shape):
+        if not isinstance(in_shape, tuple):
+            in_shape = in_shape,
         self.W.initialize((self.out_size,) + in_shape)
 
     def __call__(self, x):
@@ -80,4 +83,8 @@ class Linear(link.Link):
         """
         if self.W.data is None:
             self._initialize_params(x.shape[1:])
+            self.mkl_reshaped = True
+        elif self.mkl_reshaped is False:
+            w_shape = (self.out_size,) + x.shape[1:]
+            self.W.mkl_reshape(w_shape)
         return linear.linear(x, self.W, self.b)

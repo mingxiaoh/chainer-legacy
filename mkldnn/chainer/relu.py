@@ -55,6 +55,7 @@ class ReLUBackward(ComputeComplex):
         x = inputs[0]
         gy = grad_outputs[0]
 
+        gy = array(gy, m.memory.nchw, e)
         assert isinstance(x, mdarray)
         assert isinstance(gy, mdarray)
 
