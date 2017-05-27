@@ -697,7 +697,7 @@ Actual: {0}'''.format(type(data))
                             x.grad = utils.force_array(x._grad + gx)  # copy
                             need_copy.remove(id_x)
                         else:
-                            x._grad += gx
+                            x._grad = gx + x._grad
                 else:  # not a leaf
                     add_cand(x.creator)
                     if id_x not in seen_vars:  # 1st visit
@@ -710,7 +710,7 @@ Actual: {0}'''.format(type(data))
                             x.grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
-                            x._grad += gx
+                            x._grad = gx + x._grad
             del gxs  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
