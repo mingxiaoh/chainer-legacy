@@ -138,7 +138,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
-  // Reorder_buffer type object
+  // reorder_buffer type object
   if (PyType_reorder_buffer == nullptr) {
     PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
     return -1;
@@ -161,9 +161,10 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   reorder_buffer *rb;
   SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
 
-  rb->fire(this);
+  if (rb->non_trivial())
+    rb->fire(this);
 
-  if ( rb->build_view(view, flags) ) {
+  if (rb->build_view(view, flags)) {
     PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
     return -1;
   }
@@ -263,8 +264,11 @@ int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   // Only for the first, framework do it for us next time
   if (reorder_ == nullptr) {
     reorder_.reset(new reorder_buffer(this));
-    mkldnn::reorder rb_p = reorder_->fire(this);
-    dag_->push_back(rb_p);
+
+    if (reorder_->non_trivial()) {
+      mkldnn::reorder rb_p = reorder_->fire(this);
+      dag_->push_back(rb_p);
+    }
   }
 
   if ( reorder_->build_view(view, flags) ) {

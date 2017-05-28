@@ -108,6 +108,7 @@ public:
 
   class reorder_buffer {
   private:
+    bool non_trivial_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
     std::shared_ptr<PyArrayInterface> astr_;
@@ -154,8 +155,8 @@ public:
       :reorder_buffer(in.get()) {}
 
     reorder_buffer(const mdarray *src)
-      : dst_([src] () {
-          if (src->internal()) {
+      : non_trivial_(src->incompatible()), dst_([src] () {
+          if (src->incompatible()) {
             auto md_data = src->desc().data;
 
             mkldnn::memory::dims adims(md_data.dims
@@ -172,7 +173,7 @@ public:
           } else {
             return src->memory();
           }} ()), size_(src->size()) {
-        if (src->internal()) {
+        if (src->incompatible()) {
           auto pd = dst_.get_primitive_desc();
 
           data_ = std::shared_ptr<avx::byte>(new avx::byte [pd.get_size()]
@@ -193,6 +194,10 @@ public:
 
       s.submit({reorder}).wait();
       return reorder;
+    }
+
+    inline bool non_trivial() {
+      return non_trivial_;
     }
 
     int build_view(Py_buffer *view, int flags) {
@@ -295,16 +300,9 @@ public:
               , view_(nullptr), rtti(raw)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
-                  if (md.format != mkldnn::memory::x
-                      && md.format != mkldnn::memory::nc
-                      && md.format != mkldnn::memory::nchw
-                      && md.format != mkldnn::memory::oi
-                      && md.format != mkldnn::memory::oihw) { 
-                    // std::cout<<"Weired format "<<md.format<<std::endl;
-                    return true;
-                  }
-                  else
-                    return false;
+                    return reorder_buffer::public_format(
+                        static_cast<mkldnn::memory::format>(md.format)
+                        ) == md.format;
                   } ()), purpose_(sink) {}
 
   mdarray(Py_buffer *view
@@ -451,7 +449,7 @@ protected:
   } purpose_;
 
 public:
-  bool internal() const { return internal_order_; }
+  bool incompatible() const { return internal_order_; }
   std::shared_ptr<avx::byte> share_data() const {
     return data_;
   }
