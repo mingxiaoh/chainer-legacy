@@ -120,7 +120,7 @@ class BnBackward(ComputeComplex):
         if self.new:
             self._create_cc(inputs, gy, hint, flags, eps, mean, var, e)
         else:
-            self._reuse(inputs, mean, var)
+            self._reuse(inputs, gy, mean, var)
 
     def _create_cc(self, inputs, gy, hint, flags, eps, mean, var, e):
         self.flags = flags
@@ -151,10 +151,10 @@ class BnBackward(ComputeComplex):
         self.gy = gy
         self.outputs = gx, self.gw
 
-    def _reuse(self, inputs, gy, gw, mean=None, var=None):
-        reuse_buffer(self.x, inputs[0])
+    def _reuse(self, inputs, gy, mean=None, var=None):
+        x, gamma, beta = inputs[:3]
+        reuse_buffer(self.x, x)
         reuse_buffer(self.gy, gy)
-        reuse_buffer(self.gw, gw)
         if mean is not None:
             reuse_buffer(self.mean, mean)
         if var is not None:
@@ -166,7 +166,5 @@ class BnBackward(ComputeComplex):
             pos=None, e=Engine()):
         x = inputs[0]
         if (self.x.shape != x.shape) or (self.eps != eps):
-            return False
-        if (mean is not None) and ((self.flags & use_global_stats) == 0):
             return False
         return True

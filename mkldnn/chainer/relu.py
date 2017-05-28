@@ -68,7 +68,7 @@ class ReLUBackward(ComputeComplex):
         # TODO: refine it
         x = inputs[0]
         gy = grad_outpus[0]
-        return self.x is x and self.gy is gy
+        return self.x.shape == x.shape
 
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
