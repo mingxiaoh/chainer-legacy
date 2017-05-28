@@ -133,7 +133,7 @@ class ConvolutionForward(ComputeComplex):
             self._create_cc(x, W, b, stride, pad, cover_all, e)
             self.num_inputs = len(inputs)
         else:
-            self._reuse(x, W, b)
+            self._reuse_cc(x, W, b)
 
     def _create_cc(self, x, W, b, stride, pad, cover_all, e):
         super(ConvolutionForward, self).__init__()
@@ -161,7 +161,7 @@ class ConvolutionForward(ComputeComplex):
         self._hint = cc_pd
         self.outputs = y,
 
-    def _reuse(self, x, W, b):
+    def _reuse_cc(self, x, W, b):
         reuse_buffer(self.x, x)
         reuse_buffer(self.W, W)
         if b is not None:
@@ -185,7 +185,7 @@ class ConvolutionBackwardData(ComputeComplex):
         if self.new:
             self._create_cc(x, W, gy, hint, stride, pad, cover_all, e)
         else:
-            self._reuse(x, gy)
+            self._reuse_cc(W, gy)
 
     def _create_cc(self, x, W, gy, hint, stride, pad, cover_all, e):
         super(ConvolutionBackwardData, self).__init__()
@@ -205,7 +205,7 @@ class ConvolutionBackwardData(ComputeComplex):
         self._hint = hint
         self.outputs = gx,
 
-    def _reuse(self, W, gy):
+    def _reuse_cc(self, W, gy):
         reuse_buffer(self.W, W)
         reuse_buffer(self.gy, gy)
 
