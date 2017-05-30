@@ -91,5 +91,5 @@ def relu(x):
     if isinstance(x, mdarray) or isinstance(x.data, mdarray):
         return ReLUMKLDNN()(x)
     else:
-        print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
+        #print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
         return ReLU()(x)

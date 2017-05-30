@@ -170,6 +170,8 @@ class ConvolutionForward(ComputeComplex):
     def match(self, inputs, stride = 1, pad = 0, cover_all = False, **kwargs):
         x = inputs[0]
         W = inputs[1]
+        if (self.x.shape != x.shape) or (self.W.shape != W.shape):
+            return False
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
         return (self.geometry == g.geometry) and (self.num_inputs == len(inputs))
 
