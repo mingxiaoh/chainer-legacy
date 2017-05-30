@@ -151,7 +151,7 @@ public:
     }
 
   public:
-    reorder_buffer(py_handle in)
+    reorder_buffer(const py_handle in)
       :reorder_buffer(in.get()) {}
 
     reorder_buffer(const mdarray *src)
@@ -164,7 +164,8 @@ public:
 
             mkldnn::memory::primitive_desc pd ({adims
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
-                , public_format(static_cast<mkldnn::memory::format>(md_data.format))}
+                , public_format(
+                    static_cast<mkldnn::memory::format>(md_data.format))}
                 // Added interface for it
                 , src->get_engine());
 
@@ -196,7 +197,7 @@ public:
       return reorder;
     }
 
-    inline bool non_trivial() {
+    inline bool non_trivial() const {
       return non_trivial_;
     }
 
@@ -248,7 +249,8 @@ public:
       return astr_.get();
     }
 
-    static mkldnn::memory::format public_format(mkldnn::memory::format origin) {
+    static mkldnn::memory::format public_format(
+        mkldnn::memory::format origin) {
       mkldnn::memory::format ret;
 
       // review this relations carefully
@@ -284,7 +286,7 @@ public:
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
-      , mkldnn::engine &engine)
+      , const mkldnn::engine &engine)
     : mdarray({{std::move(dims), dt, format}, engine}) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
@@ -307,7 +309,7 @@ public:
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
-      , mkldnn::engine &e)
+      , const mkldnn::engine &e)
     : size_(view->len/view->itemsize)
           , data_ ([view]() {
              unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
@@ -315,12 +317,17 @@ public:
                return std::shared_ptr<avx::byte>(new avx::byte [view->len]
                    , [] (avx::byte *p) {delete [] p;});
              } else
-               return std::shared_ptr<avx::byte>(reinterpret_cast<avx::byte *>(view->buf)
+               return std::shared_ptr<avx::byte>(
+                   reinterpret_cast<avx::byte *>(view->buf)
                    , [] (avx::byte *p) {});
            } ())
           , m_({_d_from_view(view, format), e}, data_.get())
           , view_(view), rtti(raw), internal_order_(false), purpose_(source) {
-    assert(m_.get_primitive_desc().get_size() == view->len);
+
+    assert(m_.get_primitive_desc().get_size()
+        == static_cast<decltype(
+          m_.get_primitive_desc().get_size())>(view->len));
+
     if (data_.get() != view->buf) {
       // XXX: Add OpenMP thing?
       memcpy(data_.get(), view->buf, view->len);
@@ -331,7 +338,7 @@ public:
   // TODO: for view case, shared buffer won't expand life in this case
   // because mdarray will destroy it when out of service.
   //
-  int setbuffer(Py_buffer *view) {
+  int setbuffer(const Py_buffer *view) {
     if (purpose_ == sink)
       // TODO: not support by provided buffer to numpy
       goto fail;
@@ -350,7 +357,10 @@ public:
         data_.reset(reinterpret_cast<avx::byte *>(view->buf)
             , [] (avx::byte *p) {});
 
-      assert(m_.get_primitive_desc().get_size() == view->len);
+      assert(m_.get_primitive_desc().get_size()
+          == static_cast<decltype(
+            m_.get_primitive_desc().get_size())>(view->len));
+
       m_.set_data_handle(data());
     }
 
@@ -425,8 +435,8 @@ public:
 
 private:
   struct WeDontManageIt {
-    void operator() (Py_buffer *view) {
-      PyBuffer_Release(view);
+    void operator() (const Py_buffer *view) {
+      PyBuffer_Release(const_cast<Py_buffer *>(view));
       delete view;
     }
   };
@@ -435,7 +445,7 @@ private:
   size_type size_;
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
-  std::unique_ptr<Py_buffer, WeDontManageIt> view_;
+  std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 
 protected:
   enum mdarray_ty{
@@ -449,7 +459,7 @@ protected:
   } purpose_;
 
 public:
-  bool incompatible() const { return internal_order_; }
+  inline bool incompatible() const { return internal_order_; }
   std::shared_ptr<avx::byte> share_data() const {
     return data_;
   }
@@ -477,7 +487,7 @@ public:
 protected:
   // Private helpers
 private:
-  static mkldnn::memory::desc _d_from_view(Py_buffer *view
+  static mkldnn::memory::desc _d_from_view(const Py_buffer *view
       , mkldnn::memory::format order) {
     mkldnn::memory::dims dims (view->ndim);
 
