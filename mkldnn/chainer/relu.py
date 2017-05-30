@@ -38,7 +38,7 @@ class ReLUForward(ComputeComplex):
     def match(self, inputs, *args):
         # TODO: refine it
         x = inputs[0]
-        return self.x is x
+        return self.x.shape == x.shape
 
     def __init__(self, inputs, pos = (0, 0), e=Engine()):
         x = inputs[0]

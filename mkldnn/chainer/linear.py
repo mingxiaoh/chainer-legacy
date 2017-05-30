@@ -100,7 +100,13 @@ class LinearForward(ComputeComplex):
             reuse_buffer(self.b, b)
 
     def match(self, inputs):
-        return len(inputs) == self.argc
+        if len(inputs) != self.argc:
+            return False
+        x, W = inputs[:2]
+        if (x.shape != self.x.shape) or (W.shape != self.W.shape):
+            print('WARNING: LinearForard x or w shape mismatch', x.shape, self.x.shape, W.shape, self.W.shape)
+            return False
+        return True
 
     def __init__(self, inputs, pos = (0, 0), e=Engine()):
         super(LinearForward, self).__init__()
@@ -129,8 +135,15 @@ class LinearBackwardData(ComputeComplex):
         else:
             self._reuse_cc(W, gy)
 
-    def match(self, inputs, *args):
-        return len(inputs) == self.argc
+    def match(self, inputs, grad_outputs, *args):
+        if len(inputs) != self.argc:
+            return False
+        W = inputs[1]
+        gy = grad_outputs[0]
+        if (gy.shape != self.gy.shape) or (W.shape != self.W.shape):
+            print('WARNING: LinearBackwardData gx or w shape mismatch', gy.shape, self.gy.shape, W.shape, self.W.shape)
+            return False
+        return True
 
     def _create_cc(self, x, W, gy, hint, e = Engine()):
         # Create primitive descriptor
@@ -213,8 +226,15 @@ class LinearBackwardWeighs(ComputeComplex):
         reuse_buffer(self.x, x)
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, *args):
-        return len(inputs) == self.argc
+    def match(self, inputs, grad_outputs, *args):
+        if len(inputs) != self.argc:
+            return False
+        x = inputs[0]
+        gy = grad_outputs[0]
+        if (gy.shape != self.gy.shape) or (x.shape != self.x.shape):
+            print('WARNING: LinearBackwardWeight gy or x shape mismatch', gy.shape, self.gy.shape, x.shape, self.x.shape)
+            return False
+        return True
 
     def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
         super(LinearBackwardWeighs, self).__init__()

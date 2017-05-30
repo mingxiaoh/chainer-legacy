@@ -48,7 +48,7 @@ class ComputeComplex(object):
         cache = cls.cache[cls.cc_type]
         ret = cache.get(pos)
 
-        if ret and ret.match(*args, **kwargs):
+        if ret and isinstance(ret, cls)  and ret.match(*args, **kwargs):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
@@ -60,6 +60,8 @@ class ComputeComplex(object):
 
     def __init__(self):
         if self.new:
+            self.rank = -1
+            self.fanout = -1
             self.dag_ = primitive_list()
             self._hint = None
 

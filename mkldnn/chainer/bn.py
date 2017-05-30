@@ -32,10 +32,12 @@ class BnForward(ComputeComplex):
         self.mean = None
         self.var = None
         self.w = None
+        self.train = configuration.config.train
         x, gamma, beta = inputs[:3]
 
         self.x = array(x, m.memory.nchw, e)
         w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+        self.numpy_w = w
         self.w = array(w, m.memory.nc, e)
         scale_shift = True
         self.flags = use_scale_shift
@@ -104,8 +106,13 @@ class BnForward(ComputeComplex):
     def match(self, inputs, eps, mean=None, var=None):
         x = inputs[0]
         if (self.x.shape != x.shape) or (self.eps != eps):
+            print('WARNING:bn forward, shape or eps mismatch ', self.x.shape, x.shape, self.eps, eps)
+            return False
+        if self.train != configuration.config.train:
+            print('WARNING:bn forward, config.train mismatch ', self.train, configuration.config.train)
             return False
         if (mean is not None) and ((self.flags & use_global_stats) == 0):
+            print('WARNING:bn forward, mean or flags mismatch ', mean, self.flags)
             return False
         return True
 
@@ -123,6 +130,7 @@ class BnBackward(ComputeComplex):
             self._reuse(inputs, gy, mean, var)
 
     def _create_cc(self, inputs, gy, hint, flags, eps, mean, var, e):
+        self.train = configuration.config.train
         self.flags = flags
         self.eps = eps
         x, gamma, beta = inputs[:3]
@@ -164,6 +172,9 @@ class BnBackward(ComputeComplex):
 
     def match(self, inputs, gy, hint, flags, eps, mean, var,
             pos=None, e=Engine()):
+        if self.train != configuration.config.train:
+            print('WARNING:bn backward, config.train mismatch ', self.train, configuration.config.train)
+            return False
         x = inputs[0]
         if (self.x.shape != x.shape) or (self.eps != eps):
             return False
