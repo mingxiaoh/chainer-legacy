@@ -59,10 +59,10 @@ struct pooling_backward : public primitive {
         desc(algorithm aalgorithm,
                 const memory::desc &diff_src_desc,
                 const memory::desc &diff_dst_desc,
-                const memory::dims &strides,
-                const memory::dims &kernel,
-                const memory::dims &padding_l,
-                const memory::dims &padding_r,
+                const memory::dims strides,
+                const memory::dims kernel,
+                const memory::dims padding_l,
+                const memory::dims padding_r,
                 const padding_kind apadding_kind);
     };
 
