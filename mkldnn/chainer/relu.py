@@ -21,10 +21,12 @@ class ReLUForward(ComputeComplex):
     cc_type = 'f'
 
     def _create_cc(self, x, e=Engine()):
-        format = m.memory.nchw
         if x.ndim == 2:
-            format = m.memory.nc
-        x = array(x, format, e)
+            fmt = m.memory.nc
+        elif x.ndim == 4:
+            fmt = m.memory.nchw
+
+        x = array(x, fmt, e)
         mem_pd = x.memory.get_primitive_desc()
 
         cc_d = relu_forward.desc(forward, mem_pd.desc(), 0.0)
@@ -59,11 +61,12 @@ class ReLUBackward(ComputeComplex):
         x = inputs[0]
         gy = grad_outputs[0]
 
-        format = m.memory.nchw
+        fmt = m.memory.nchw
         if x.ndim == 2:
-            format = m.memory.nc
-        x = array(x, format, e)
-        gy = array(gy, format, e)
+            fmt = m.memory.nc
+
+        x = array(x, fmt, e)
+        gy = array(gy, fmt, e)
 
         super(ReLUBackward, self).__init__()
 
