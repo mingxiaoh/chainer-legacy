@@ -88,8 +88,10 @@ def relu(x):
         (3, 2)
 
     """
-    if isinstance(x, mdarray) or isinstance(x.data, mdarray):
+    if (x.dtype == numpy.dtype('float32') \
+            or isinstance(x, mkldnn.mdarray)) \
+        and chainer.should_use_mkldnn('>=auto'):
         return ReLUMKLDNN()(x)
     else:
-        #print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
+        print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
         return ReLU()(x)
