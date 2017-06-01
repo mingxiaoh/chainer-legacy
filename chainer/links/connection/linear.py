@@ -86,5 +86,6 @@ class Linear(link.Link):
             self.mkl_reshaped = True
         elif self.mkl_reshaped is False:
             w_shape = (self.out_size,) + x.shape[1:]
-            self.W.mkl_reshape(w_shape)
+            if self.W.shape != w_shape:
+                self.W.mkl_reshape(w_shape)
         return linear.linear(x, self.W, self.b)

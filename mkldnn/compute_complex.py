@@ -52,7 +52,7 @@ class ComputeComplex(object):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
-            print("Create new CC: ", ret)
+            # print("Create new CC: ", ret)
             ret.new = True
             cache[pos] = ret
 
