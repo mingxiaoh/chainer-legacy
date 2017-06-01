@@ -65,27 +65,21 @@ class BnForward(ComputeComplex):
 
         if (not configuration.config.train) and (not global_stats):
             if scale_shift is True:
-                print('1----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), at(self.w.memory), y.memory)
             else:
-                print('2----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), y.memory)
         elif global_stats is True:
             if scale_shift is True:
-                print('3----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), at(self.mean.memory),
                         at(self.var.memory), at(self.w.memory), y.memory)
             else:
-                print('4----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), self.mean.memory,
                         self.var.memory, y.memory)
         else:
             if scale_shift is True:
-                print('5----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), at(self.w.memory),
                         y.memory, self.mean.memory, self.var.memory)
             else:
-                print('6----------------------------')
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory),
                         y.memory, self.mean.memory, self.var.memory)
 
