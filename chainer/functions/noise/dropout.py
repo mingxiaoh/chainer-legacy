@@ -5,7 +5,7 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
-from mkldnn.identity import Identity
+from chainer.functions.math import identity
 
 
 class Dropout(function.Function):
@@ -55,5 +55,5 @@ def dropout(x, ratio=.5):
     """
     if configuration.config.train:
         return Dropout(ratio)(x)
-    else:
-        return Identity()(x)
+    elif chainer.should_use_mkldnn('>=auto'):
+        return identity.Identity()(x)
