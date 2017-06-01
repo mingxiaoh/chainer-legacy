@@ -159,7 +159,12 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   }
 
   reorder_buffer *rb;
-  SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
+  int res = SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
+
+  if (!SWIG_IsOK(res)) {
+    PyErr_SetString(PyExc_RuntimeError, "Can't get C++ object from python object");
+    return -1;
+  }
 
   if (rb->non_trivial())
     rb->fire(this);
