@@ -166,7 +166,6 @@ public:
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
                 , public_format(
                     static_cast<mkldnn::memory::format>(md_data.format))}
-                // Added interface for it
                 , src->get_engine());
 
             // XXX: magic number 4 is a hack
@@ -304,7 +303,7 @@ public:
                   auto md = pd.desc().data;
                     return reorder_buffer::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
-                        ) == md.format;
+                        ) != md.format;
                   } ()), purpose_(sink) {}
 
   mdarray(Py_buffer *view
@@ -396,7 +395,6 @@ public:
   virtual PyArrayInterface *getastr(void *py_self);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
-  //nb_binary_map(Add);
   nb_binary_map(Subtract);
   nb_binary_map(Multiply);
   nb_binary_map(Remainder);
@@ -606,8 +604,7 @@ private:
       , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
             , dag_))
       , W_reordered_(reorder_if_must(W->memory(), op.weights_primitive_desc()
-            , dag_)) {
-  }
+            , dag_)) {}
 
 public:
   f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
@@ -690,6 +687,7 @@ public:
             , dag_))
       , gy_reordered_(reorder_if_must(gy->memory()
           , op.diff_dst_primitive_desc(), dag_)) {}
+
 public:
   bw_op(pd_t &op, py_handle x, py_handle gy
       , std::vector<primitive> *dag)
@@ -697,6 +695,7 @@ public:
       deps_ = {x, gy};
       dag_ ->push_back(p_t(op, x_reordered_, gy_reordered_, memory()));
     }
+
 private:
   mkldnn::memory x_reordered_, gy_reordered_;
   std::vector<py_handle> deps_;
@@ -718,6 +717,7 @@ public:
       deps_ = {x};
       dag_ ->push_back(p_t(op, x->memory(), memory()));
     }
+
 private:
   std::vector<py_handle> deps_;
 };
@@ -735,6 +735,7 @@ public:
       deps_ = {x, gy};
       dag_ ->push_back(p_t(op, x->memory(), gy->memory(), memory()));
     }
+
 private:
   std::vector<py_handle> deps_;
 };
@@ -813,16 +814,15 @@ public:
     return self->get()->desc().data.ndims;
   }
 
-  // Python manages these resources.
-  #if (PY_VERSION_HEX < 0x02080000)
+#if (PY_VERSION_HEX < 0x02080000)
   static void dtor_astr_callback(void *ptr, void *desc) {
     return;
   }
-  #else
+#else
   static void dtor_astr_callback(PyObject *capsule) {
     return;
   }
-  #endif
+#endif
 
   static PyObject *mdarray_astr_get(mdarray *py_self) {
     implementation::mdarray *self = py_self->get();
