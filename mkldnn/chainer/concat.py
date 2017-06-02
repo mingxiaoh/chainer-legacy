@@ -81,7 +81,7 @@ class ConcatBackward(ComputeComplex):
         self.outputs = ()
         for x in xs:
             view_pd = view.primitive_desc(gy_mpd, x.shape, offsets)
-            gx = mdarray(x.shape, memory.memory.f32, m.memory.nchw, e)
+            gx = mdarray(x.memory.get_primitive_desc())
             reorder_pd = r.primitive_desc(view_pd.dst_primitive_desc(), gx.memory.get_primitive_desc())
             reorder_prim = r.reorder(reorder_pd, at(gy.memory), gx.memory)
             self.dag_.push_back(reorder_prim)
