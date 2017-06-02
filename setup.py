@@ -37,6 +37,7 @@ extensions = [
                 "mkldpy/relu4d.cc",
                 "mkldpy/relu.cc",
                 "mkldpy/conv.cc",
+                "mkldpy/deconv.cc",
                 "mkldpy/concat.cc",
                 "mkldpy/common.cc",
                 "mkldpy/cpu_info.cc",

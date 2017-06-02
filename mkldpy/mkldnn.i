@@ -10,6 +10,7 @@
     #include "max_pooling.h"
     #include "avg_pooling.h"
     #include "conv.h"
+    #include "deconv.h"
     #include "relu4d.h"
     #include "relu.h"
     #include "softmax.h"
@@ -96,6 +97,7 @@
 %include "max_pooling.h"
 %include "avg_pooling.h"
 %include "conv.h"
+%include "deconv.h"
 %include "relu4d.h"
 %include "relu.h"
 %include "softmax.h"
@@ -182,6 +184,7 @@
 
 %template(Layer_F32) Layer<float>;
 %template(Convolution2D_F32) Convolution2D<float>;
+%template(DeConvolution2D_F32) DeConvolution2D<float>;
 %template(Pooling_F32) Pooling<float>;
 %template(MaxPooling_F32) MaxPooling<float>;
 %template(Relu4D_F32) Relu4D<float>;
