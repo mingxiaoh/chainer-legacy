@@ -48,14 +48,50 @@ void g_init() {
 #endif
 }
 
+//FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
+#define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a))
+
 // Pin the virtual table
-PyArrayInterface *mdarray::getastr(reorder_buffer *rb) {
-  rb->fire(this);
+PyArrayInterface *mdarray::getastr(void *py_self) {
+  // reorder_buffer type object
+  if (PyType_reorder_buffer == nullptr) {
+    PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
+    return nullptr;
+  }
+
+  PyObject *self =
+    SWIG_NewInstanceObj(SWIG_as_voidptr(py_self), SwigTy_mdarray, SWIG_POINTER_OWN | 0);
+  if (self == nullptr) {
+    return nullptr;
+  }
+
+  // Wrote some python in C++ :)
+  PyObject *argList = Py_BuildValue("(O)", self);
+  if (argList == nullptr) {
+    return nullptr;
+  }
+
+  // TODO: Do we need to cache this thing?
+  PyObject *rbobj = PyObject_CallObject(PyType_reorder_buffer, argList);
+  Py_DECREF(argList);
+
+  if (rbobj == nullptr) {
+    return nullptr;
+  }
+
+  reorder_buffer *rb;
+  int res = SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
+
+  if (!SWIG_IsOK(res)) {
+    PyErr_SetString(PyExc_RuntimeError, "Can't get C++ object from python object");
+    return nullptr;
+  }
+
+  if (rb->non_trivial())
+    rb->fire(this);
+
   return rb->build_astr();
 }
-
-//FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
-#define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a)) 
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   // Resource manager, for GCC do not accept lambda

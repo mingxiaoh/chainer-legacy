@@ -393,7 +393,7 @@ public:
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
   PyObject *getattro(PyObject *self, PyObject *name);
   // Array Protocol: Create __array_struct__ attribute object
-  virtual PyArrayInterface *getastr(reorder_buffer *rb);
+  virtual PyArrayInterface *getastr(void *py_self);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
   //nb_binary_map(Add);
@@ -813,29 +813,24 @@ public:
     return self->get()->desc().data.ndims;
   }
 
+  // Python manages these resources.
   #if (PY_VERSION_HEX < 0x02080000)
   static void dtor_astr_callback(void *ptr, void *desc) {
-    delete (implementation::mdarray::reorder_buffer *)desc;
+    return;
   }
   #else
   static void dtor_astr_callback(PyObject *capsule) {
-    implementation::mdarray::reorder_buffer *rb =
-      (implementation::mdarray::reorder_buffer *)PyCapsule_GetContext(capsule);
-    delete rb;
+    return;
   }
   #endif
 
   static PyObject *mdarray_astr_get(mdarray *py_self) {
     implementation::mdarray *self = py_self->get();
-    implementation::mdarray::reorder_buffer *rb =
-      new implementation::mdarray::reorder_buffer(self);
-    void *ptr = self->getastr(rb);
+    void *ptr = self->getastr(py_self);
 #if (PY_VERSION_HEX < 0x02080000)
-    PyObject *ret = PyCObject_FromVoidPtrAndDesc(ptr, (void *)rb,
-                                                 dtor_astr_callback);
+    PyObject *ret = PyCObject_FromVoidPtrAndDesc(ptr, ptr, dtor_astr_callback);
 #else
     PyObject *ret = PyCapsule_New(ptr, nullptr, dtor_astr_callback);
-    PyCapsule_SetContext(ret, (void *)rb);
 #endif
 
     return ret;
