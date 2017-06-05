@@ -31,14 +31,14 @@ from mkldnn.chainer.fanout import *
         'cover_all': [True, False],
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],}) 
-    # +
-    # testing.product({
-    #     'in_shape': [(8, 3, 227, 227)],
-    #     'kernel_geo': [(3, 11, 11, 4, 0)],
-    #     'c_contiguous': [True],
-    #     'cover_all': [False],
-    #     'x_dtype': [numpy.float32],
-    #     'W_dtype': [numpy.float32]})
+    +
+    testing.product({
+        'in_shape': [(8, 3, 227, 227)],
+        'kernel_geo': [(3, 11, 11, 4, 0)],
+        'c_contiguous': [True],
+        'cover_all': [False],
+        'x_dtype': [numpy.float32],
+        'W_dtype': [numpy.float32]})
     ))
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
@@ -69,11 +69,11 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1,
                 (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        self.con2mkl = convolution_2d.Convolution2DFunctionMKLDNN(stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-        self.con2 = convolution_2d.Convolution2DFunction(stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+        self.con2dMkl = convolution_2d.Convolution2DFunctionMKLDNN(
+                    self.stride, self.pad, self.cover_all)
 
+        self.con2d = convolution_2d.Convolution2DFunction(
+                    self.stride, self.pad, self.cover_all)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float32, 'atol': 5e-4, 'rtol': 5e-3}
@@ -82,7 +82,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward():
+    def check_forward(self, nobias=False):
         print("test_forward_consistency")
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
@@ -91,42 +91,22 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             y_cpu = functions.convolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
                 cover_all=self.cover_all)
-        y_cpu = self.con2.forward_cpu()
 
         x_mkl = chainer.Variable(self.x)
         W_mkl = chainer.Variable(self.W)
         b_mkl = None if nobias else chainer.Variable(self.b)
-        with chainer.using_config('use_mkldnn', self.use_mkldnn):
-            y_mkl = functions.convolution_2d(
-                x_mkl, W_mkl, b_mkl, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-        y_mkl = self.con2mkl.forward_cpu()
+
+        y_mkl = self.con2dMkl(x_mkl, W_mkl, b_mkl)
+        y_cpu = self.con2d(x_mkl, W_mkl, b_mkl)
 
         testing.assert_allclose(
-            y_cpu.data, y_mkl.data, **self.check_forward_options)
+        y_cpu.data, y_mkl.data, **self.check_forward_options)
 
     def test_forward_consistency(self, nobias=False):
-        print("test_forward_consistency")
-        x_cpu = chainer.Variable(self.x)
-        W_cpu = chainer.Variable(self.W)
-        b_cpu = None if nobias else chainer.Variable(self.b)
-        with chainer.using_config('use_mkldnn', 'never'):
-            y_cpu = functions.convolution_2d(
-                x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-
-        x_mkl = chainer.Variable(self.x)
-        W_mkl = chainer.Variable(self.W)
-        b_mkl = None if nobias else chainer.Variable(self.b)
-        with chainer.using_config('use_mkldnn', self.use_mkldnn):
-            y_mkl = functions.convolution_2d(
-                x_mkl, W_mkl, b_mkl, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-
-        testing.assert_allclose(
-            y_cpu.data, y_mkl.data, **self.check_forward_options)
+        self.check_forward()
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
+        # print(x_data.shape, W_data.shape, b_data.shape)
         xp = cuda.get_array_module(x_data)
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)
@@ -144,21 +124,42 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         args = (x_data, W_data)
         if b_data is not None:
             args = args + (b_data,)
+        # print(args)
+        # with chainer.using_config('use_mkldnn', self.use_mkldnn):
+        #     gradient_check.check_backward(
+        #         convolution_2d.Convolution2DFunctionMKLDNN(
+        #             self.stride, self.pad, self.cover_all),
+        #         args, y_grad, **self.check_backward_options)
 
-        with chainer.using_config('use_mkldnn', self.use_mkldnn):
-            gradient_check.check_backward(
-                convolution_2d.Convolution2DFunctionMKLDNN(
-                    self.stride, self.pad, self.cover_all),
-                args, y_grad, **self.check_backward_options)
+        # with chainer.using_config('use_mkldnn', self.use_mkldnn):
+        #     con2d = convolution_2d.Convolution2DFunctionMKLDNN(
+        #             self.stride, self.pad, self.cover_all)
+        #     y_cpu = con2d.backward_cpu(args, y_grad)
+            # gradient_check.check_backward(
+            #     convolution_2d.Convolution2DFunctionMKLDNN(
+            #         self.stride, self.pad, self.cover_all),
+            #     args, y_grad, **self.check_backward_options)
+        # with chainer.using_config('use_mkldnn', 'never'):
+        #     con2d = convolution_2d.Convolution2DFunctionMKLDNN(
+        #             self.stride, self.pad, self.cover_all)
+        #     y_cpu_expect = con2d.backward_cpu(args, y_grad)
+
+        y_cpu = self.con2dMkl.backward_cpu(args, y_grad)
+        y_cpu_expect = self.con2d.backward_cpu(args, y_grad)
+
+        # print(y_cpu)
+        # print(y_cpu_expect)
+        testing.assert_allclose(
+            y_cpu.data, y_mkl.data, **self.check_backward_options)
+    # @condition.retry(3)
+    # def test_backward_cpu(self):
+    #     print("test_backward_cpu")
+    #     self.check_forward()
+    #     self.check_backward(self.x, self.W, self.b, self.gy)
 
     # @condition.retry(3)
-    def test_backward_cpu(self):
-        print("test_backward_cpu")
-        self.check_backward(self.x, self.W, self.b, self.gy)
-
-    # @condition.retry(3)
-    def test_backward_cpu_nobias(self):
-        print("test_backward_cpu_nobias")
-        self.check_backward(self.x, self.W, None, self.gy)
+    # def test_backward_cpu_nobias(self):
+    #     print("test_backward_cpu_nobias")
+    #     self.check_backward(self.x, self.W, None, self.gy)
 
 testing.run_module(__name__, __file__)
