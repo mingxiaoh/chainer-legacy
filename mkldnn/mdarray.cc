@@ -104,7 +104,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   std::unique_ptr<PyObject, py_decref> op(nullptr);
 
   // Create mdarray from buffer provider
-  if (reinterpret_cast<PyObject *>(o->ob_type) != PyType_mdarray) {
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
     mkldnn::engine p_e = get_engine();
 
     PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
