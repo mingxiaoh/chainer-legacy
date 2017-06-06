@@ -21,6 +21,8 @@ class ReLUForward(ComputeComplex):
     cc_type = 'f'
 
     def _create_cc(self, x, e=Engine()):
+        #fix bug local variable 'fmt' referenced before assignment
+        fmt = m.memory.nchw
         if x.ndim == 2:
             fmt = m.memory.nc
         elif x.ndim == 4:

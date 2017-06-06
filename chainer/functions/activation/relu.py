@@ -7,6 +7,7 @@ from chainer import utils
 from chainer.utils import type_check
 
 from mkldnn.mdarray import *
+import mkldnn
 from mkldnn.chainer.relu import ReLUMKLDNN
 
 
