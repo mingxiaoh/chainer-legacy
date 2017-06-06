@@ -35,6 +35,7 @@ enable_softmax_cross_entropy = False
 enable_concat = True
 enable_acc_grad = True
 enable_batch_normalization = True
+enable_sgd = True
 cosim_enabled = False
 
 supportTypes = (numpy.float32,)
@@ -111,3 +112,7 @@ def enable_acc_gradF(tul):
 
 def enable_batch_normalizationF(tul):
         return mkldnn_enabled and SupportedInput(tul) and enable_batch_normalization
+
+
+def enable_sgdF(tul):
+        return mkldnn_enabled and SupportedInput(tul) and enable_sgd

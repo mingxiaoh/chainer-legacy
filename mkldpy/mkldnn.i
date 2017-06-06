@@ -86,7 +86,8 @@
     {( float* mean, int mean_d1)}
 %apply ( float* INPLACE_ARRAY1, int DIM1)
     {( float* var, int var_d1)}
-
+%apply ( double* IN_ARRAY1, int DIM1)
+    {( double* scale, int scale_d1)}
 
 %include "common.h"
 %include "layer_factory.h"
@@ -156,15 +157,31 @@
         void* data= array_data(x);
         ($2)[i] = (char*)data;
         int ndims = array_numdims(x);
-        if (ndims != 4) {
-            PyErr_SetString(PyExc_ValueError, "Only support 4 dimensions now");
-            return NULL;
-        }
         npy_intp *dims = array_dimensions(x);
-        ($3)[i] = dims[0];
-        ($4)[i] = dims[1];
-        ($5)[i] = dims[2];
-        ($6)[i] = dims[3];
+        switch(ndims)
+        {
+            case 1:
+                ($3)[i] = dims[0];
+                ($4)[i] = -1;
+                ($5)[i] = -1;
+                ($6)[i] = -1;
+                break;
+            case 2:
+                ($3)[i] = dims[0];
+                ($4)[i] = dims[1];
+                ($5)[i] = -1;
+                ($6)[i] = -1;
+                break;
+            case 4:
+                ($3)[i] = dims[0];
+                ($4)[i] = dims[1];
+                ($5)[i] = dims[2];
+                ($6)[i] = dims[3];
+                break;
+            default:
+                PyErr_SetString(PyExc_ValueError, "Only support 4 dimensions now");
+                return NULL;
+        }
     }
 }
 /* free the list*/
@@ -177,6 +194,7 @@
 }
 %apply (int num_concats, char** data, int* n, int* c, int* h, int* w) {
     (int num_concats, char** data, int* n, int* c, int* h, int* w),
+    (int num_sum, char** data, int* o, int* i, int* h, int* w),
     (int num_sum, char** data, int* n, int* c, int* h, int* w)
 }
 
