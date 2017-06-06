@@ -24,7 +24,7 @@ class TestReLU(unittest.TestCase):
 
     def setUp(self):
         # Avoid unstability of numerical grad
-        fanout.clear()
+        # fanout.clear()
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         for i in numpy.ndindex(self.shape):
             if -0.1 < x[i] < 0.1:
