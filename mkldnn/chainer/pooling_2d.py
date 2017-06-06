@@ -26,6 +26,7 @@ class Pooling2DForward(ComputeComplex):
             cover_all=True, pos=None, e=Engine()):
         super(Pooling2DForward, self).__init__()
         self.alg_kind = alg_kind
+        # super(Pooling2DForward, self).__init__()
         x = inputs[0]
         if self.new:
             self._create_cc(x, ksize, stride, pad, cover_all, e)
@@ -78,7 +79,7 @@ class Pooling2DForward(ComputeComplex):
 
     def match(self, inputs, alg_kind, ksize, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
-        assert self.alg_kind == alg_kind
+        # assert self.alg_kind == alg_kind
         return  (self.x.shape == x.shape) and (self.ksize == ksize) \
                 and (self.stride == stride) and (self.pad == pad) \
                 and (self.cover_all == cover_all)
