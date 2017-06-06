@@ -156,10 +156,10 @@ class Pooling2DMKLDNN(function.Function):
     def __init__(self, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
-
-        ksize = math.floor(ksize)
-        stride = math.floor(stride)
-        pad = math.floor(pad)
+        # A but here: must be real number, not tuple
+        # ksize = math.floor(ksize)
+        # stride = math.floor(stride)
+        # pad = math.floor(pad)
         self.kh, self.kw = _pair(ksize)
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
