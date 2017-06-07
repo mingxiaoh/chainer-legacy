@@ -146,10 +146,12 @@ class ConvolutionForward(ComputeComplex):
         # Create primitive_desc from any
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
         cc_pd = conv_forward.primitive_desc(cc_d, e)
+        w_mpd = cc_pd.weights_primitive_desc()
+        self.usr_w = array(W, m.memory.oihw, e)
+        self.W = reorder_if_must(self.usr_w.memory, w_mpd, self.dag_)
 
         # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
-        self.W = array(W, m.memory.oihw, e)
         if b is not None:
             self.b = array(b, m.memory.x, e)
 
@@ -163,7 +165,7 @@ class ConvolutionForward(ComputeComplex):
 
     def _reuse_cc(self, x, W, b):
         reuse_buffer(self.x, x)
-        reuse_buffer(self.W, W)
+        reuse_buffer(self.usr_w, W)
         if b is not None:
             reuse_buffer(self.b, b)
 
@@ -178,18 +180,18 @@ class ConvolutionForward(ComputeComplex):
 class ConvolutionBackwardData(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, inputs, grad_outputs, hint,
+    def __init__(self, inputs, grad_outputs, hint, fwd_W,
             stride=1, pad=0, cover_all=False, pos = None, e=Engine()):
         x = inputs[0]
         W = inputs[1]
         gy = grad_outputs[0]
 
         if self.new:
-            self._create_cc(x, W, gy, hint, stride, pad, cover_all, e)
+            self._create_cc(x, W, gy, hint, fwd_W, stride, pad, cover_all, e)
         else:
             self._reuse_cc(W, gy)
 
-    def _create_cc(self, x, W, gy, hint, stride, pad, cover_all, e):
+    def _create_cc(self, x, W, gy, hint, fwd_W, stride, pad, cover_all, e):
         super(ConvolutionBackwardData, self).__init__()
 
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
@@ -200,7 +202,8 @@ class ConvolutionBackwardData(ComputeComplex):
 
         # Transform inputs
         self.gy = array(gy, m.memory.nchw, e)
-        self.W = array(W, m.memory.oihw, e)
+        #self.W = array(W, m.memory.oihw, e)
+        self.W = fwd_W
 
         gx = conv_bd_op(cc_pd, self.gy, self.W, self.dag_)
 
@@ -304,6 +307,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
                 pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
+        self.W = cc.W
 
         y, = cc.execute_on()
 
@@ -311,7 +315,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
 
     def backward_cpu(self, inputs, grad_outputs):
 
-        cc_data = ConvolutionBackwardData(inputs, grad_outputs, self.hint,
+        cc_data = ConvolutionBackwardData(inputs, grad_outputs, self.hint, self.W,
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
                 cover_all = self.cover_all, pos=(self.rank, self.fanout))
 

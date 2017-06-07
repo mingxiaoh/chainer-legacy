@@ -5,12 +5,14 @@ from mkldnn.chainer.runtime import Stream
 
 import mkldnn
 import numpy
+from mkldnn.mdarray import *
 
 def reorder_if_must(usr_m, expect, net_):
     if (usr_m.get_primitive_desc() != expect):
-        reorded = m.memory(expect)
+        reorded_array = mdarray(expect)
+        reorded = reorded_array.memory
         net_.push_back(r.reorder(at(usr_m), reorded))
-        return reorded
+        return reorded_array
     else:
         return usr_m
 
