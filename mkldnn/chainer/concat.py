@@ -76,11 +76,14 @@ class ConcatBackward(ComputeComplex):
         self.axis = axis
 
         gy = array(gy[0], m.memory.nchw, e)
+        fmt = m.memory.nchw
         gy_mpd = gy.memory.get_primitive_desc()
         offsets = (0, 0, 0, 0)
         self.outputs = ()
         for x in xs:
             view_pd = view.primitive_desc(gy_mpd, x.shape, offsets)
+            #fix bug 'numpy.ndarray' object has no attribute 'memory'
+            x = array(x, fmt, e)
             gx = mdarray(x.memory.get_primitive_desc())
             reorder_pd = r.primitive_desc(view_pd.dst_primitive_desc(), gx.memory.get_primitive_desc())
             reorder_prim = r.reorder(reorder_pd, at(gy.memory), gx.memory)
