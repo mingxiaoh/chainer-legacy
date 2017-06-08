@@ -7,14 +7,15 @@ import mkldnn
 import numpy
 from mkldnn.mdarray import *
 
-def reorder_if_must(usr_m, expect, net_):
+def reorder_if_must(x, expect, net_):
+    usr_m = x.memory
     if (usr_m.get_primitive_desc() != expect):
         reorded_array = mdarray(expect)
         reorded = reorded_array.memory
         net_.push_back(r.reorder(at(usr_m), reorded))
         return reorded_array
     else:
-        return usr_m
+        return x
 
 def reuse_buffer(d, s):
     if isinstance(s, numpy.ndarray):

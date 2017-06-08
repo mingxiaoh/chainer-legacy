@@ -49,6 +49,7 @@ modules = {
         'mkldnn.api._lrn_backward' :
         ['mkldnn/api/lrn_backward.i'],
 
+        'mkldnn.api._sum' : ['mkldnn/api/sum.i'],
         'mkldnn.api._reorder' : ['mkldnn/api/reorder.i'],
         'mkldnn.api._concat' : ['mkldnn/api/concat.i'],
         'mkldnn.api._view' : ['mkldnn/api/view.i'],
