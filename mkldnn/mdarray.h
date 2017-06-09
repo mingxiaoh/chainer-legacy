@@ -534,12 +534,38 @@ public:
 
   static mkldnn::memory reorder_if_must(mkldnn::memory user
       , mkldnn::memory::primitive_desc expect
+      , std::unique_ptr<mkldnn::memory> &mreorder
       , std::vector<mkldnn::primitive> *dag) {
 
     if (user.get_primitive_desc() != expect) {
       mkldnn::memory interm(expect);
 
-      dag->push_back(mkldnn::reorder(user, interm));
+      auto user_mpd = user.get_primitive_desc();
+      mkldnn::memory::format user_fmt = static_cast<mkldnn::memory::format>(
+          user_mpd.desc().data.format);
+      mkldnn::memory::format mkl_fmt = static_cast<mkldnn::memory::format>(
+          expect.desc().data.format);
+      mkldnn::memory::data_type dtype = static_cast<mkldnn::memory::data_type>(
+          expect.desc().data.data_type);
+
+      if ((user_fmt == mkldnn::memory::format::nChw16c &&
+           mkl_fmt == mkldnn::memory::format::nChw8c) ||
+          (mkl_fmt == mkldnn::memory::format::nChw16c &&
+           user_fmt == mkldnn::memory::format::nChw8c)) {
+          auto m = expect.desc().data;
+          int n = m.dims[0], c = m.dims[1], h = m.dims[2], w = m.dims[3];
+          mkldnn::memory::dims tz = {n, c, h, w};
+          mreorder.reset(new mkldnn::memory({{{ tz }, dtype, mkldnn::memory::format::nchw }, expect.get_engine()}));
+          //auto mreorder = new mkldnn::memory({{{ tz }, dtype, mkldnn::memory::format::nchw }, expect.get_engine()});
+          auto rep1 = mkldnn::reorder(user, *mreorder);
+          auto rep2 = mkldnn::reorder(*mreorder, interm);
+          dag->push_back(rep1);
+          dag->push_back(rep2);
+          //static int spl_nr = 0;
+          //printf("\n   %d *Reorder(split) iutput from:%d, to:%d\n", spl_nr++, user_fmt, mkl_fmt);
+      } else {
+          dag->push_back(mkldnn::reorder(user, interm));
+	  }
       return interm;
     }
 
@@ -587,7 +613,8 @@ public:
 
   s_op(mkldnn::memory::primitive_desc dst
       , std::vector<mkldnn::primitive> *dag)
-    : mdarray(dst), dag_(dag), reorder_(nullptr) {
+    : mdarray(dst), dag_(dag), reorder_(nullptr),
+      mreorder_(nullptr) {
   }
 
   virtual int getbuffer(PyObject *self
@@ -596,6 +623,7 @@ public:
 protected:
   std::vector<mkldnn::primitive> *dag_;
   std::unique_ptr<reorder_buffer> reorder_;
+  std::unique_ptr<mkldnn::memory> mreorder_;
 };
 
 class d_op : public s_op {
@@ -666,9 +694,9 @@ private:
       , std::vector<primitive> *dag)
     : s_op(op.dst_primitive_desc(), dag)
       , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , dag_))
+            , mreorder_, dag_))
       , W_reordered_(reorder_if_must(W->memory(), op.weights_primitive_desc()
-            , dag_)) {}
+            , mreorder_, dag_)) {}
 
 public:
   f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
@@ -698,9 +726,9 @@ private:
       , mdarray *gy, mdarray *W, std::vector<primitive> *dag)
     : s_op(op.diff_src_primitive_desc(), dag)
       , gy_reordered_(reorder_if_must(gy->memory()
-            , op.diff_dst_primitive_desc(), dag_))
+            , op.diff_dst_primitive_desc(), mreorder_, dag_))
       , W_reordered_(reorder_if_must(W->memory()
-            , op.weights_primitive_desc(), dag_)) {}
+            , op.weights_primitive_desc(), mreorder_, dag_)) {}
 
 public:
   bd_op(pd_t &op, py_handle gy, py_handle W
@@ -723,9 +751,9 @@ public:
     : d_op(op.diff_weights_primitive_desc(), op.diff_bias_primitive_desc()
         , dag)
       , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , dag_))
+            , mreorder_, dag_))
       , gy_reordered_(reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), dag_)) {}
+          , op.diff_dst_primitive_desc(), mreorder_, dag_)) {}
 
 public:
   bwb_op(pd_t &op, py_handle x, py_handle gy
@@ -748,9 +776,9 @@ public:
       , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
     : s_op(op.diff_weights_primitive_desc(), dag)
       , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , dag_))
+            , mreorder_, dag_))
       , gy_reordered_(reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), dag_)) {}
+          , op.diff_dst_primitive_desc(), mreorder_, dag_)) {}
 
 public:
   bw_op(pd_t &op, py_handle x, py_handle gy
