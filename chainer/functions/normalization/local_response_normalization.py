@@ -133,6 +133,12 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     """
     if (x.dtype == numpy.dtype('float32') \
             or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
-        return LrnMKLDNN(n, k, alpha, beta)(x)
+        func = LrnMKLDNN(n, k, alpha, beta)
+        ret = func(x)
+        if chainer.is_cosim():
+            func.cosim_func = LocalResponseNormalization(n, k, alpha, beta)
+            numpy_result = func.cosim_func(x)
+            func.cpu_cosim_verify_result(ret, numpy_result)
+        return ret           
     else:
         return LocalResponseNormalization(n, k, alpha, beta)(x)

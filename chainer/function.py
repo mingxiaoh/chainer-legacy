@@ -12,7 +12,11 @@ from chainer import variable
 
 # TODO: put it in cuda if success
 from mkldnn.chainer.fanout import *
-
+#if chainer.is_cosim():
+import numpy as np
+import copy
+from chainer import testing
+import pdb
 
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
@@ -396,6 +400,53 @@ class Function(object):
             return self.backward_gpu(inputs, grad_outputs)
         else:
             return self.backward_cpu(inputs, grad_outputs)
+
+    def backward_cpu_cosim(self, inputs, grad_outputs):
+        """backward cosim between numpy and MKLDNN
+        """
+        if not chainer.is_cosim():
+            return
+        #pdb.set_trace()
+        print('backward_cosim v2')
+        print(self)
+        if not hasattr(self, 'cosim_func'):
+            #print('not need cosim')
+            return
+        cosim_inputs = copy.copy(inputs)
+        cosim_grad_outputs = copy.copy(grad_outputs)
+        chainer.disable_cosim()
+        output_cosim = self.cosim_func.backward(cosim_inputs, cosim_grad_outputs)
+        chainer.enable_cosim()
+        return output_cosim
+
+    def cpu_cosim_verify_result(self, mkl_result, numpy_result):
+        """cosim verify result between MKLDNN and numpy
+        """
+        if not chainer.is_cosim():
+            return
+        check_options = {'atol': 5e-1, 'rtol': 5e-1, 'verbose': True}
+        i = 0
+        if numpy_result is None:
+            return None
+        print('cpu_cosim_verify_result v2')
+        #db.set_trace()
+        for numpy_y in numpy_result:
+            mkl_x = mkl_result[i]
+            if numpy_y is None:
+                if mkl_x is None:
+                    continue
+                else:
+                    raise KeyError('cosim mismatch!')
+            if mkl_x is None:
+                if numpy_y is not None:
+                    raise KeyError('cosim mismatch!')           
+            mkl_x_nd =  np.array(mkl_x.data)
+            numpy_y_nd = np.array(numpy_y.data)
+            i = i + 1
+            if isinstance(mkl_x_nd, np.ndarray):
+                testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
+            else:
+                raise KeyError('cosim, unexpected!')
 
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.

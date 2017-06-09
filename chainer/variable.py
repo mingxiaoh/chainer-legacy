@@ -680,8 +680,10 @@ Actual: {0}'''.format(type(data))
             cuda.get_device(*(in_data + out_grad)).use()
             for hook in six.itervalues(hooks):
                 hook.backward_preprocess(func, in_data, out_grad)
+            cosim_output = func.backward_cpu_cosim(in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
+            func.cpu_cosim_verify_result(gxs, cosim_output)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 

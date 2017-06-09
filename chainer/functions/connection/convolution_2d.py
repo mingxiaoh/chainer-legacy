@@ -324,6 +324,17 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
             or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
         func = Convolution2DFunctionMKLDNN(
             stride, pad, cover_all, deterministic)
+        if chainer.is_cosim():
+            func.cosim_func = Convolution2DFunction(
+                stride, pad, cover_all, deterministic)
+            if b is None:
+                ret = func(x, W)
+                numpy_result = func.cosim_func(x, W)
+            else:
+                ret = func(x, W, b)
+                numpy_result = func.cosim_func(x, W, b)
+            func.cpu_cosim_verify_result(ret, numpy_result)
+            return ret
     else:
         func = Convolution2DFunction(
             stride, pad, cover_all, deterministic)
