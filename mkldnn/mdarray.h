@@ -61,42 +61,58 @@ namespace implementation {
   void g_init();
 #endif
 
+#if PY_VERSION_HEX < 0x03000000
+#define NPY_ARRAY_SURROGATE_ENTRY(mdarray) \
+  /* Create reorder_array explicitly as array protocol interface */ \
+  PyObject *raobj = create_reorder_array(mdarray); \
+  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0 \
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr) \
+
+#define NPY_ARRAY_SURROGATE_EXIT() Py_DECREF(raobj)
+#else
+#define NPY_ARRAY_SURROGATE_ENTRY(mdarray) \
+  PyObject *surrogate = PyArray_FromAny(mdarray, nullptr, 0, 0 \
+      , NPY_ARRAY_ELEMENTSTRIDES, nullptr)   \
+
+#define NPY_ARRAY_SURROGATE_EXIT()
+#endif
+
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
-    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
-        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+    NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
     PyObject *res = PyNumber_ ## method(surrogate); \
     Py_DECREF(surrogate);   \
+    NPY_ARRAY_SURROGATE_EXIT(); \
     return res;   \
   }
 
 #define nb_binary_map(method) \
   PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
-    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
-        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+    NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
     PyObject *res = PyNumber_ ## method(surrogate, o); \
     Py_DECREF(surrogate);   \
+    NPY_ARRAY_SURROGATE_EXIT(); \
     return res;   \
   }
 
 #define nb_ternary_map(method) \
   PyObject * m_ ## method (PyObject *self, PyObject *o1, PyObject *o2) {    \
-    PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0 \
-        , NPY_ARRAY_ELEMENTSTRIDES, nullptr);   \
+    NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
       return nullptr;           \
                                 \
     PyObject *res = PyNumber_ ## method(surrogate, o1, o2); \
     Py_DECREF(surrogate); \
+    NPY_ARRAY_SURROGATE_EXIT(); \
     return res;   \
   }
 
@@ -106,12 +122,11 @@ public:
   //
   static constexpr int MAX_NDIM = 12; //XXX: For now
 
-  class reorder_buffer {
+  class reorder_constructor {
   private:
     bool non_trivial_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
-    std::shared_ptr<PyArrayInterface> astr_;
 
     int ndims_;
     int size_;
@@ -151,10 +166,19 @@ public:
     }
 
   public:
-    reorder_buffer(const py_handle in)
-      :reorder_buffer(in.get()) {}
+    inline avx::byte *  get_data()      { return data_.get(); }
+    inline int          get_ndims()     { return ndims_;      }
+    inline int          get_size()      { return size_;       }
+    inline char *       get_format()    { return format_;     }
+    inline Py_ssize_t   get_itemsize()  { return itemsize_;   }
+    inline Py_ssize_t * get_strides()   { return strides_;    }
+    inline Py_ssize_t * get_shape()     { return shape_;      }
 
-    reorder_buffer(const mdarray *src)
+  public:
+    reorder_constructor(const py_handle in)
+      :reorder_constructor(in.get()) {}
+
+    reorder_constructor(const mdarray *src)
       : non_trivial_(src->incompatible()), dst_([src] () {
           if (src->incompatible()) {
             auto md_data = src->desc().data;
@@ -200,54 +224,6 @@ public:
       return non_trivial_;
     }
 
-    int build_view(Py_buffer *view, int flags) {
-      view->buf = data_.get();
-      view->itemsize = itemsize_;
-      view->readonly = 0;
-      view->internal = nullptr;
-      view->len = size_ * itemsize_;
-
-      if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
-        view->format = format_;
-      } else {
-        view->format = nullptr;
-      }
-
-      if ((flags & PyBUF_ND) == PyBUF_ND) {
-        view->ndim = ndims_;
-        view->shape = shape_;
-      } else {
-        view->ndim = 0;
-        view->shape = nullptr;
-      }
-
-      if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-        view->strides = strides_;
-      } else {
-        view->strides = nullptr;
-      }
-
-      view->suboffsets = nullptr;
-
-      return 0;
-    }
-
-    PyArrayInterface *build_astr(void) {
-      astr_.reset(new PyArrayInterface());
-      astr_->two = 2;
-      astr_->nd = ndims_;
-      astr_->typekind = format_[0];
-      astr_->itemsize = itemsize_;
-      astr_->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
-                     NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
-      astr_->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
-      astr_->shape = shape_;
-      astr_->strides = strides_;
-      astr_->data = data_.get();
-      astr_->descr = nullptr;
-      return astr_.get();
-    }
-
     static mkldnn::memory::format public_format(
         mkldnn::memory::format origin) {
       mkldnn::memory::format ret;
@@ -277,6 +253,91 @@ public:
     }
   };
 
+  // PEP 3118 interface
+  class reorder_buffer : public reorder_constructor {
+  public:
+    reorder_buffer(const py_handle in) : reorder_constructor(in) {}
+    reorder_buffer(const mdarray *src) : reorder_constructor(src) {}
+
+    int build_view(Py_buffer *view, int flags) {
+      view->buf = get_data();
+      view->itemsize = get_itemsize();
+      view->readonly = 0;
+      view->internal = nullptr;
+      view->len = get_size() * get_itemsize();
+
+      if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
+        view->format = get_format();
+      } else {
+        view->format = nullptr;
+      }
+
+      if ((flags & PyBUF_ND) == PyBUF_ND) {
+        view->ndim = get_ndims();
+        view->shape = get_shape();
+      } else {
+        view->ndim = 0;
+        view->shape = nullptr;
+      }
+
+      if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
+        view->strides = get_strides();
+      } else {
+        view->strides = nullptr;
+      }
+
+      view->suboffsets = nullptr;
+
+      return 0;
+    }
+  };
+
+  // Array Protocol interface
+  class reorder_array : public reorder_constructor {
+  public:
+    reorder_array(const py_handle in) : reorder_constructor(in) {}
+    reorder_array(const mdarray *src) : reorder_constructor(src) {}
+
+    PyArrayInterface *build_array_struct(void) {
+      arrstr_.reset(new PyArrayInterface());
+      arrstr_->two = 2;
+      arrstr_->nd = get_ndims();
+      arrstr_->typekind = *((char *)get_format());
+      arrstr_->itemsize = get_itemsize();
+      arrstr_->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
+                     NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
+      arrstr_->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
+      arrstr_->shape = get_shape();
+      arrstr_->strides = get_strides();
+      arrstr_->data = get_data();
+      arrstr_->descr = nullptr;
+      return arrstr_.get();
+    }
+
+  // Nothing to do here.
+  // array_struct will be deleted with reorder_array destruction.
+  static void reorder_array_dtor_arrstr_cb(void *ptr, void *desc) {
+    return;
+  }
+
+  static void reorder_array_dtor_arrstr_cb(PyObject *capsule) {
+    return;
+  }
+
+  static PyObject *reorder_array_get_arrstr(reorder_array *ra) {
+    PyArrayInterface *arrstr = ra->build_array_struct();
+
+#if PY_VERSION_HEX < 0x03000000
+    return PyCObject_FromVoidPtrAndDesc(arrstr, arrstr, reorder_array_dtor_arrstr_cb);
+#else
+    return PyCapsule_New(arrstr, nullptr, reorder_array_dtor_arrstr_cb);
+#endif
+  }
+
+  private:
+    std::shared_ptr<PyArrayInterface> arrstr_;
+  };
+
 public:
   typedef size_t size_type;
   // Generated on demand
@@ -301,7 +362,7 @@ public:
               , view_(nullptr), rtti(raw)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
-                    return reorder_buffer::public_format(
+                    return reorder_constructor::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
                   } ()), purpose_(sink) {}
@@ -392,7 +453,10 @@ public:
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
   PyObject *getattro(PyObject *self, PyObject *name);
   // Array Protocol: Create __array_struct__ attribute object
-  virtual PyArrayInterface *getastr(void *py_self);
+  // Currently mdarray could not export array_struct, due to memory management.
+  // We need create reorder_array explicitly as array protocol interface.
+  // virtual PyArrayInterface *getarrstr(void *py_self);
+  PyObject *create_reorder_array(PyObject *self);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
   nb_binary_map(Subtract);
@@ -814,28 +878,6 @@ public:
     return self->get()->desc().data.ndims;
   }
 
-#if (PY_VERSION_HEX < 0x02080000)
-  static void dtor_astr_callback(void *ptr, void *desc) {
-    return;
-  }
-#else
-  static void dtor_astr_callback(PyObject *capsule) {
-    return;
-  }
-#endif
-
-  static PyObject *mdarray_astr_get(mdarray *py_self) {
-    implementation::mdarray *self = py_self->get();
-    void *ptr = self->getastr(py_self);
-#if (PY_VERSION_HEX < 0x02080000)
-    PyObject *ret = PyCObject_FromVoidPtrAndDesc(ptr, ptr, dtor_astr_callback);
-#else
-    PyObject *ret = PyCapsule_New(ptr, nullptr, dtor_astr_callback);
-#endif
-
-    return ret;
-  }
-
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
   }
@@ -913,5 +955,6 @@ public:
 };
 
 using reorder_buffer = implementation::mdarray::reorder_buffer;
+using reorder_array = implementation::mdarray::reorder_array;
 
 #endif
