@@ -94,6 +94,12 @@ def concat(xs, axis=1):
     if (x.dtype == numpy.dtype('float32') or isinstance(x, mkldnn.mdarray)) \
         and chainer.should_use_mkldnn('>=auto') \
         and x.ndim == 4:
-        return ConcatMKLDNN(axis=axis)(*xs)
+        func = ConcatMKLDNN(axis=axis)
+        ret = func(*xs)
+        if chainer.is_cosim():
+            func.cosim_func = Concat(axis=axis)
+            numpy_result = func.cosim_func(*xs)
+            func.cpu_cosim_verify_result(ret, numpy_result)
+        return ret
     else:
         return Concat(axis=axis)(*xs)

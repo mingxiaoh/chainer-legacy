@@ -83,7 +83,7 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
-
+global_config.cosim = False
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
@@ -163,6 +163,30 @@ def should_use_mkldnn(level):
                          repr(config.use_mkldnn))
     return flags[config.use_mkldnn]
 
+def is_cosim():
+    """Get the cosim mode.
+
+    Returns:
+        bool: Return ``True`` if Chainer is in cosim mode.
+    """
+    return config.cosim
+   
+def enable_cosim():
+    """Get the cosim mode.
+
+    Returns:
+        bool: Return ``True`` if Chainer is in cosim mode.
+    """
+    config.cosim = True
+
+def disable_cosim():
+    """Get the cosim mode.
+
+    Returns:
+        bool: Return ``True`` if Chainer is in cosim mode.
+    """
+    config.cosim = False
+   
 def is_debug():
     """Get the debug mode.
 
@@ -206,6 +230,7 @@ class DebugMode(object):
                       'Use chainer.using_config("debug", ...) instead.',
                       DeprecationWarning)
         self._using = using_config('debug', debug)
+        enable_cosim()
 
     def __enter__(self):
         self._using.__enter__()

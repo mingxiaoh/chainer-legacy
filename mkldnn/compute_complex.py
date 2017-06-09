@@ -5,14 +5,17 @@ from mkldnn.chainer.runtime import Stream
 
 import mkldnn
 import numpy
+from mkldnn.mdarray import *
 
-def reorder_if_must(usr_m, expect, net_):
+def reorder_if_must(x, expect, net_):
+    usr_m = x.memory
     if (usr_m.get_primitive_desc() != expect):
-        reorded = m.memory(expect)
+        reorded_array = mdarray(expect)
+        reorded = reorded_array.memory
         net_.push_back(r.reorder(at(usr_m), reorded))
-        return reorded
+        return reorded_array
     else:
-        return usr_m
+        return x
 
 def reuse_buffer(d, s):
     if isinstance(s, numpy.ndarray):
@@ -55,6 +58,7 @@ class ComputeComplex(object):
             # print("Create new CC: ", ret)
             ret.new = True
             cache[pos] = ret
+            ret.pos = pos
 
         return ret
 
@@ -66,6 +70,10 @@ class ComputeComplex(object):
             self._hint = None
 
     def execute_on(self, s = None):
+        if (self.pos[0] == 0) and (isinstance(self, type(ComputeComplex.cache_bd.get(self.pos)))):
+            # print('ingore 1st layer backward data', self.pos, self)
+            return None,
+
         if s is None:
             # XXX: Refresh everytime
             s = Stream()
