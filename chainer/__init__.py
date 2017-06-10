@@ -80,6 +80,7 @@ def get_function_hooks():
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.enable_backprop = True
 global_config.train = True
+global_config.gx_opt = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
@@ -170,7 +171,7 @@ def is_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     return config.cosim
-   
+
 def enable_cosim():
     """Get the cosim mode.
 
@@ -178,6 +179,7 @@ def enable_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     config.cosim = True
+    config.gx_opt = False
 
 def disable_cosim():
     """Get the cosim mode.
@@ -186,7 +188,7 @@ def disable_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     config.cosim = False
-   
+
 def is_debug():
     """Get the debug mode.
 
