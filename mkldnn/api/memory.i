@@ -3,6 +3,7 @@
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
   #include <mkldnn.hpp>
+  #include "mkldnn_ex.hpp"
   using mkldnn::handle_traits;
 %}
 
@@ -96,6 +97,9 @@ public:
 };
 
 }
+
+mkldnn::memory::format get_fmt(mkldnn::memory::primitive_desc mpd);
+
 
 %template (dims) std::vector<int>;
 %template (vectord) std::vector<double>;
