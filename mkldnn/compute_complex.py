@@ -1,4 +1,4 @@
-from chainer import configuration
+from mkldnn import config as mkld_config
 from mkldnn.api.support import *
 from mkldnn.api import reorder as r
 from mkldnn.api import memory as m
@@ -71,7 +71,7 @@ class ComputeComplex(object):
             self._hint = None
 
     def execute_on(self, s = None):
-        if (configuration.config.gx_opt == True) and (self.pos[0] == 0) \
+        if (mkld_config.config.gx_opt == True) and (self.pos[0] == 0) \
             and (isinstance(self, type(ComputeComplex.cache_bd.get(self.pos)))):
             print('ingore 1st layer backward data', self.pos, self)
             return None,

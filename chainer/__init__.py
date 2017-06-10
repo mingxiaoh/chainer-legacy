@@ -5,6 +5,7 @@ import sys
 import threading
 import warnings
 
+from mkldnn import config as mkld_config
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -80,7 +81,6 @@ def get_function_hooks():
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.enable_backprop = True
 global_config.train = True
-global_config.gx_opt = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
@@ -179,7 +179,7 @@ def enable_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     config.cosim = True
-    config.gx_opt = False
+    mkld_config.config.gx_opt = False
 
 def disable_cosim():
     """Get the cosim mode.

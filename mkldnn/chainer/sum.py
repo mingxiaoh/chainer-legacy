@@ -1,4 +1,4 @@
-#import six
+import numpy
 import chainer
 from chainer.utils import type_check
 from mkldnn.chainer.runtime import Engine

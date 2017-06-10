@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import configuration
+from mkldnn import config as mkld_config
 from chainer import cuda
 from chainer import functions
 from chainer import testing
@@ -51,7 +51,7 @@ class TestConcat(unittest.TestCase):
         xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
         y = functions.concat(xs, axis=axis)
         y.grad = y.data
-        with configuration.using_config('gx_opt', False):
+        with mkld_config.using_config('gx_opt', False):
             y.backward()
 
         for x in xs:
