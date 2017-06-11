@@ -48,6 +48,9 @@ class ReLUForward(ComputeComplex):
         x = inputs[0]
         return self.x.shape == x.shape
 
+    def _reuse_cc(self, x):
+        reuse_buffer(self.x, x)
+
     def __init__(self, inputs, pos = (0, 0), e=Engine()):
         x = inputs[0]
         # assert isinstance(x, mdarray)
@@ -55,6 +58,8 @@ class ReLUForward(ComputeComplex):
 
         if self.new:
             self._create_cc(x, e)
+        else:
+            self._reuse_cc(x)
 
 class ReLUBackward(ComputeComplex):
     cc_type = 'bd'
@@ -74,6 +79,8 @@ class ReLUBackward(ComputeComplex):
 
         if self.new:
             self._create_cc(x, gy, hint, e)
+        else:
+            self._reuse(x, gy)
 
     def match(self, inputs, grad_outpus, *args):
         # TODO: refine it
@@ -96,6 +103,10 @@ class ReLUBackward(ComputeComplex):
         self.x = x
         self.gy = gy
         self.outputs = gx,
+
+    def _reuse_cc(self, x, gy):
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.gy, gy)
 
 class ReLUMKLDNN(function.Function):
 
