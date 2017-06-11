@@ -80,7 +80,7 @@ class ReLUBackward(ComputeComplex):
         if self.new:
             self._create_cc(x, gy, hint, e)
         else:
-            self._reuse(x, gy)
+            self._reuse_cc(x, gy)
 
     def match(self, inputs, grad_outpus, *args):
         # TODO: refine it
