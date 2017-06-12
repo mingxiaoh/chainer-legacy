@@ -90,6 +90,7 @@ class ReLUBackward(ComputeComplex):
 
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
+        x = reorder_if_must(x, diff_pd, self.dag_)
         mem_pd = x.memory.get_primitive_desc()
 
         cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
