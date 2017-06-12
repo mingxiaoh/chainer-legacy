@@ -143,10 +143,10 @@ class Pooling2DBackward(ComputeComplex):
 
     def match(self, inputs, gy, hint, ws, alg_kind, ksize, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
-        assert self.alg_kind == alg_kind
         return  (self.x.shape == x.shape) and (self.ksize == ksize) \
                 and (self.stride == stride) and (self.pad == pad) \
-                and (self.cover_all == cover_all) and (self.hint == hint)
+                and (self.cover_all == cover_all) and (self.hint == hint) \
+                and (self.alg_kind == alg_kind)
 
 
 class Pooling2DMKLDNN(function.Function):
