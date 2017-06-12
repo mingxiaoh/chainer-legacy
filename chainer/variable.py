@@ -143,11 +143,13 @@ class VariableNode(object):
 
     """
 
+    RANK_START = 0
+
     def __init__(self, variable, grad=None):
         self._variable = weakref.ref(variable)
         self._creator = None
         self._data = None
-        self._rank = 0
+        self._rank = VariableNode.RANK_START
         self.name = variable.name
 
         vdata = variable.data
