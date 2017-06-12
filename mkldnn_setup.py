@@ -57,22 +57,23 @@ modules = {
         'mkldnn.api._bn_forward' : ['mkldnn/api/bn_forward.i'],
         'mkldnn.api._bn_backward' : ['mkldnn/api/bn_backward.i'],
 
-        'mkldnn._mdarray' : ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']}
+        'mkldnn._mdarray' : ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc', 'mkldnn/cpu_info.cc']}
 
 swig_opts=['-c++', '-Imkldnn', '-relativeimport',
         '-builtin', '-modern', '-modernargs',
         '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 
-ccxx_opts=['-std=c++11']
+ccxx_opts=['-std=c++11', "-fopenmp"]
 
 includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils']
-libraries = ['mkldnn']
+libraries = ['glog', 'stdc++', 'boost_system', 'mkldnn', 'm']
 
 ext_modules = []
 for m, s in modules.items():
     ext = Extension(m, sources=s,
             swig_opts=swig_opts,
-            extra_compile_args=ccxx_opts, include_dirs=includes, libraries=libraries)
+            extra_compile_args=ccxx_opts,
+			include_dirs=includes, libraries=libraries)
 
     ext_modules.append(ext)
 
