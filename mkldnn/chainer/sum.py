@@ -17,6 +17,8 @@ def mkl_sum_enabled(in_data):
         return False
 
 def _x_format(ndim):
+    if ndim == 1:
+        return m.memory.x
     if ndim == 2:
         return m.memory.nc
     elif ndim == 4:
@@ -28,13 +30,11 @@ def mkl_sum(xs):
     e = Engine()
 
     xarrays = ()
-    axis_dim = 0
     xs_mpdl = m.mpd_list()
     xs_pl = ()
     scales = m.vectord()
     pl = primitive_list()
     for x in xs:
-        axis_dim += x.shape[1]
         xarray = array(x, _x_format(x.ndim), e)
         #xarray = reorder_if_must(xarray, xmpd, pl)
         xarrays += (xarray,)
