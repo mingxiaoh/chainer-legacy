@@ -1,6 +1,9 @@
 #include <glog/logging.h>
-#include "cpu_info.h"
 #include "mdarray.h"
+
+#if defined(OPENMP_AFFINITY)
+#include "cpu_info.h"
+#endif
 
 namespace implementation {
 
@@ -45,10 +48,13 @@ void g_init() {
   // Initiate static variables imported from numpy include
   import_array();
 
+#if defined(OPENMP_AFFINITY)
   google::SetStderrLogging(1);
-  google::InitGoogleLogging("mkldpy");
+  google::InitGoogleLogging("mkldnn");
   OpenMpManager::bindOpenMpThreads();
   OpenMpManager::printVerboseInformation();
+#endif
+
 #if PY_VERSION_HEX >= 0x03000000
   return 0;
 #else
