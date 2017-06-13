@@ -88,7 +88,8 @@ class Linear(link.Link):
         #we only support ndim of x 2 , 4
         elif self.mkl_reshaped is False and x.ndim != 3 \
         and x.dtype == numpy.dtype('float32') \
-        and self.W.dtype == numpy.dtype('float32'):
+        and self.W.dtype == numpy.dtype('float32')\
+        and self.W.ndim != x.ndim:
             # set_trace()
             w_shape = (self.out_size,) + x.shape[1:]
             if self.W.shape != w_shape:
