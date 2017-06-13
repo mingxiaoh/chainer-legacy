@@ -1,9 +1,8 @@
 #include <glog/logging.h>
-#include "mdarray.h"
-
 #if defined(OPENMP_AFFINITY)
 #include "cpu_info.h"
 #endif
+#include "mdarray.h"
 
 namespace implementation {
 
