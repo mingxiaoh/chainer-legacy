@@ -16,7 +16,10 @@ from chainer import utils
 from mkldnn import mdarray
 from chainer.cuda import iscompatible
 from mkldnn.chainer.fanout import *
+from mkldnn.chainer import sum
 
+
+RANK_START = 0
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -142,11 +145,12 @@ class VariableNode(object):
 
     """
 
+
     def __init__(self, variable, grad=None):
         self._variable = weakref.ref(variable)
         self._creator = None
         self._data = None
-        self._rank = 0
+        self._rank = RANK_START
         self.name = variable.name
 
         vdata = variable.data
@@ -157,6 +161,8 @@ class VariableNode(object):
             self.shape = None
 
         self.grad = grad
+        # for grad accumulate
+        self.acc_grad = ()
 
     @property
     def creator(self):
@@ -651,7 +657,24 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in func.inputs])
-            out_grad = tuple([None if y is None else y.grad for y in outputs])
+            out_grad = ()
+            if sum.mkl_sum_enabled(in_data):
+                out_grad_tmp = tuple([None if y is None else y.grad for y in outputs])
+                acc_grad_tuple = tuple([None if y is None else y.acc_grad for y in outputs])
+                for grad_tmp, acc_grad in zip(out_grad_tmp, acc_grad_tuple):
+                    if len(acc_grad) == 0:
+                        # no need accumulate, just return grad
+                        out_grad += (grad_tmp,)
+                    else:
+                        """
+                        acc_grad's length is not 0, means need to do grad accumulate
+                        call native MKLDNN sum primitive
+                        """
+                        acc_grad += (grad_tmp,)
+                        y = sum.mkl_sum(acc_grad)
+                        out_grad += (y,)
+            else:
+                out_grad = tuple([None if y is None else y.grad for y in outputs])
             hooks = chainer.get_function_hooks()
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
@@ -660,8 +683,10 @@ Actual: {0}'''.format(type(data))
             cuda.get_device(*(in_data + out_grad)).use()
             for hook in six.itervalues(hooks):
                 hook.backward_preprocess(func, in_data, out_grad)
+            cosim_output = func.backward_cpu_cosim(in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
+            func.cpu_cosim_verify_result(gxs, cosim_output)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
@@ -694,8 +719,8 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:
-                            x.grad = utils.force_array(x._grad + gx)  # copy
-                            need_copy.remove(id_x)
+                            x.grad = utils.force_array(x.grad + gx)  # copy
+                            need_copy.remove(id_x)  # remove from list in 2nd visit
                         else:
                             x._grad = gx + x._grad
                 else:  # not a leaf
@@ -707,10 +732,18 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
-                            x.grad = utils.force_array(gx + x._grad)  # copied
+                            if sum.mkl_sum_enabled(in_data):
+                                # if enable_acc_grad, will deply to do grad accumulate, only record grad
+                                x.acc_grad += (gx,)
+                            else:
+                                x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
-                            x._grad = gx + x._grad
+                            if sum.mkl_sum_enabled(in_data):
+                                # if enable_acc_grad, will deply to do grad accumulate, only record grad
+                                x.acc_grad += (gx,)
+                            else:
+                                x._grad = gx + x._grad
             del gxs  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()

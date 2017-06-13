@@ -419,8 +419,13 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
                 or isinstance(x, mkldnn.mdarray)) \
             and chainer.should_use_mkldnn('>=auto') \
             and (x.ndim == 4 or x.ndim == 2):
-            return BnMKLDNN(eps, None, None, 0.0)(
-                x, gamma, beta, mean, var)
+            func = BnMKLDNN(eps, None, None, 0.0)
+            ret = func(x, gamma, beta, mean, var)
+            if chainer.is_cosim():
+                func.cosim_func = BatchNormalizationFunction(eps, None, None, 0.0)
+                numpy_result = func.cosim_func(x, gamma, beta, mean, var)
+                func.cpu_cosim_verify_result(ret, numpy_result)
+            return ret
         else:
             return BatchNormalizationFunction(eps, None, None, 0.0)(
                 x, gamma, beta, mean, var)

@@ -62,7 +62,9 @@ class LinearForward(ComputeComplex):
 
         # Transform inputs
         self.x = array(x, _x_format(x.ndim), e)
-        self.W = array(W, _W_format(W.ndim), e)
+        w_mpd = cc_pd.weights_primitive_desc()
+        self.usr_w = array(W, _W_format(W.ndim), e)
+        self.W = reorder_if_must(self.usr_w, w_mpd, self.dag_)
 
         if b is not None:
             self.b = array(b, m.memory.x, e)
@@ -123,7 +125,7 @@ class LinearForward(ComputeComplex):
 class LinearBackwardData(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, inputs, grad_outputs, hint, pos = (0, 0), e=Engine()):
+    def __init__(self, inputs, grad_outputs, hint, fwd_W, pos = (0, 0), e=Engine()):
         super(LinearBackwardData, self).__init__()
         W = inputs[1]
         gy = grad_outputs[0]
@@ -131,7 +133,7 @@ class LinearBackwardData(ComputeComplex):
 
         if self.new:
             x = inputs[0]
-            self._create_cc(x, W, gy, hint, e)
+            self._create_cc(x, W, gy, hint, fwd_W, e)
         else:
             self._reuse_cc(W, gy)
 
@@ -145,13 +147,13 @@ class LinearBackwardData(ComputeComplex):
             return False
         return True
 
-    def _create_cc(self, x, W, gy, hint, e = Engine()):
+    def _create_cc(self, x, W, gy, hint, fwd_W, e = Engine()):
         # Create primitive descriptor
         cc_d = create_backward_desc(ip_backdata.desc, x, W, gy)
         cc_pd = ip_backdata.primitive_desc(cc_d, e, hint)
 
         # Transform inputs
-        self.W = array(W, _W_format(W.ndim), e)
+        self.W = fwd_W
         self.gy = array(gy, m.memory.nc, e)
 
         gx = linear_bd_op(cc_pd, self.gy, self.W, self.dag_)
@@ -276,13 +278,14 @@ class LinearFunctionMKLDNN(function.Function):
         cc = LinearForward(inputs,
                 pos=(self.rank, self.fanout))
         self.hint = cc.hint
+        self.W = cc.W
 
         y, = cc.execute_on()
 
         return y,
 
     def backward(self, inputs, grad_outputs):
-        cc_data = LinearBackwardData(inputs, grad_outputs, self.hint,
+        cc_data = LinearBackwardData(inputs, grad_outputs, self.hint, self.W,
                 pos=(self.rank, self.fanout))
         cc_weight = LinearBackwardWeighs(inputs, grad_outputs, self.hint,
                 pos=(self.rank, self.fanout))

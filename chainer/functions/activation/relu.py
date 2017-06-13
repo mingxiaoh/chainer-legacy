@@ -91,8 +91,15 @@ def relu(x):
     """
     if (x.dtype == numpy.dtype('float32') \
             or isinstance(x, mkldnn.mdarray)) \
-        and chainer.should_use_mkldnn('>=auto'):
-        return ReLUMKLDNN()(x)
+        and chainer.should_use_mkldnn('>=auto') \
+        and (x.ndim == 2 or x.ndim == 4):
+        func = ReLUMKLDNN()
+        ret = func(x)
+        if chainer.is_cosim():
+            func.cosim_func = ReLU()
+            numpy_result = func.cosim_func(x)
+            func.cpu_cosim_verify_result(ret, numpy_result)
+        return ret
     else:
         print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
         return ReLU()(x)

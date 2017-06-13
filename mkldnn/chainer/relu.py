@@ -34,7 +34,8 @@ class ReLUForward(ComputeComplex):
         cc_d = relu_forward.desc(forward, mem_pd.desc(), 0.0)
         cc_pd = relu_forward.primitive_desc(cc_d, e)
 
-        y = mdarray(cc_pd.dst_primitive_desc())
+        # y = mdarray(cc_pd.dst_primitive_desc())
+        y = x
 
         self.x = x
         self.dag_.push_back(relu_forward.relu_forward(cc_pd,
@@ -48,6 +49,9 @@ class ReLUForward(ComputeComplex):
         x = inputs[0]
         return self.x.shape == x.shape
 
+    def _reuse_cc(self, x):
+        reuse_buffer(self.x, x)
+
     def __init__(self, inputs, pos = (0, 0), e=Engine()):
         x = inputs[0]
         # assert isinstance(x, mdarray)
@@ -55,6 +59,8 @@ class ReLUForward(ComputeComplex):
 
         if self.new:
             self._create_cc(x, e)
+        else:
+            self._reuse_cc(x)
 
 class ReLUBackward(ComputeComplex):
     cc_type = 'bd'
@@ -74,6 +80,8 @@ class ReLUBackward(ComputeComplex):
 
         if self.new:
             self._create_cc(x, gy, hint, e)
+        else:
+            self._reuse_cc(x, gy)
 
     def match(self, inputs, grad_outpus, *args):
         # TODO: refine it
@@ -83,12 +91,14 @@ class ReLUBackward(ComputeComplex):
 
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
+        x = reorder_if_must(x, diff_pd, self.dag_)
         mem_pd = x.memory.get_primitive_desc()
 
         cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
         cc_pd = relu_backward.primitive_desc(cc_d, e, hint)
 
-        gx = mdarray(cc_pd.diff_src_primitive_desc())
+        # gx = mdarray(cc_pd.diff_src_primitive_desc())
+        gx = gy
 
         self.dag_.push_back(relu_backward.relu_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
@@ -96,6 +106,10 @@ class ReLUBackward(ComputeComplex):
         self.x = x
         self.gy = gy
         self.outputs = gx,
+
+    def _reuse_cc(self, x, gy):
+        reuse_buffer(self.x, x)
+        reuse_buffer(self.gy, gy)
 
 class ReLUMKLDNN(function.Function):
 

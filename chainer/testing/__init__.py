@@ -13,6 +13,8 @@ from chainer.testing.parameterized import product  # NOQA
 from chainer.testing.parameterized import product_dict  # NOQA
 from chainer.testing.unary_math_function_test import unary_math_function_unittest  # NOQA
 
+import chainer.variable
+
 
 def run_module(name, file):
     """Run current test cases of the file.
@@ -21,6 +23,7 @@ def run_module(name, file):
         name: __name__ attribute of the file.
         file: __file__ attribute of the file.
     """
+    chainer.variable.RANK_START = 1
 
     if name == '__main__':
 

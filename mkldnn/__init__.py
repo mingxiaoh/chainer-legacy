@@ -12,3 +12,6 @@ from mkldnn import compute_complex
 from mkldnn.mdarray import mdarray
 
 from mkldnn.chainer.fanout import *
+
+from mkldnn.config import global_config  # NOQA
+global_config.gx_opt = True

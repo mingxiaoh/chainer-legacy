@@ -138,6 +138,12 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
     """
     if (x.dtype == numpy.dtype('float32') \
             or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
-        return AvgPooling2DMKLDNN(ksize, stride, pad, False)(x)
+        func = AvgPooling2DMKLDNN(ksize, stride, pad, False)
+        ret = func(x)
+        if chainer.is_cosim():
+            func.cosim_func = AveragePooling2D(ksize, stride, pad, False)
+            numpy_result = func.cosim_func(x)
+            func.cpu_cosim_verify_result(ret, numpy_result)
+        return ret
     else:
         return AveragePooling2D(ksize, stride, pad, False)(x)

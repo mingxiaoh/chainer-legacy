@@ -30,15 +30,8 @@ class TestReLU(unittest.TestCase):
             if -0.1 < x[i] < 0.1:
                 x[i] = 0.5
 
-        gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-
-        try:
-            self.x.setbuffer(x)
-            self.gy.setbuffer(gy)
-        except AttributeError:
-            self.x = mdarray(x, m.memory.nc, Engine())
-            self.gy = mdarray(gy, m.memory.nc, Engine())
-
+        self.x = x
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
 
     def check_forward(self, x_data):

@@ -82,9 +82,11 @@ class ConcatBackward(ComputeComplex):
         self.outputs = ()
         for x in xs:
             view_pd = view.primitive_desc(gy_mpd, x.shape, offsets)
-            #fix bug 'numpy.ndarray' object has no attribute 'memory'
-            x = array(x, fmt, e)
-            gx = mdarray(x.memory.get_primitive_desc())
+            fmt = m.get_fmt(gy_mpd)
+            assert x.dtype == numpy.dtype('float32')
+            gx = mdarray(x.shape, m.memory.f32, fmt, e)
+            # gx = mdarray(x.memory.get_primitive_desc())
+            # gx = array(x, m.memory.nchw, e)
             reorder_pd = r.primitive_desc(view_pd.dst_primitive_desc(), gx.memory.get_primitive_desc())
             reorder_prim = r.reorder(reorder_pd, at(gy.memory), gx.memory)
             self.dag_.push_back(reorder_prim)
@@ -96,8 +98,6 @@ class ConcatBackward(ComputeComplex):
         self.xs = xs
 
     def _reuse(self, inputs, gy):
-        for xarray, x in zip(self.xs, inputs):
-            reuse_buffer(xarray, x)
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, axis):
