@@ -86,7 +86,7 @@ class Linear(link.Link):
             self._initialize_params(x.shape[1:])
             self.mkl_reshaped = True
         #we only support ndim of x 2 , 4
-        elif self.mkl_reshaped is False and x.ndim != 3 \
+        elif self.mkl_reshaped is False and (x.ndim ==2 or x.ndim ==4)\
         and x.dtype == numpy.dtype('float32') \
         and self.W.dtype == numpy.dtype('float32')\
         and self.W.ndim != x.ndim:
