@@ -200,7 +200,8 @@ class Function(object):
         # if configuration.config.enable_backprop:
         # Bring this forward for compute complex reuse
         # Topological ordering
-        self.rank = max([x.rank for x in inputs]) if inputs else 0
+        self.rank = max([x.rank for x in inputs]) if inputs else variable.RANK_START
+
         self.fanout = FanoutRecorder.new(self)
 
         # Forward prop
@@ -439,7 +440,7 @@ class Function(object):
                     raise KeyError('cosim mismatch!')
             if mkl_x is None:
                 if numpy_y is not None:
-                    raise KeyError('cosim mismatch!')           
+                    raise KeyError('cosim mismatch!')
             mkl_x_nd =  np.array(mkl_x.data)
             numpy_y_nd = np.array(numpy_y.data)
             i = i + 1

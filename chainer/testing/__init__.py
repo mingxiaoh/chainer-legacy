@@ -23,7 +23,9 @@ def run_module(name, file):
         name: __name__ attribute of the file.
         file: __file__ attribute of the file.
     """
+    chainer.variable.RANK_START = 1
+
     if name == '__main__':
-        chainer.variable.VariableNode.RANK_START = 1
+
         nose.runmodule(argv=[file, '-vvs', '-x', '--ipdb', '--ipdb-failure'],
                        exit=False)
