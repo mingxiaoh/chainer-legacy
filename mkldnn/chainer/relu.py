@@ -34,7 +34,8 @@ class ReLUForward(ComputeComplex):
         cc_d = relu_forward.desc(forward, mem_pd.desc(), 0.0)
         cc_pd = relu_forward.primitive_desc(cc_d, e)
 
-        y = mdarray(cc_pd.dst_primitive_desc())
+        # y = mdarray(cc_pd.dst_primitive_desc())
+        y = x
 
         self.x = x
         self.dag_.push_back(relu_forward.relu_forward(cc_pd,
@@ -96,7 +97,8 @@ class ReLUBackward(ComputeComplex):
         cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
         cc_pd = relu_backward.primitive_desc(cc_d, e, hint)
 
-        gx = mdarray(cc_pd.diff_src_primitive_desc())
+        # gx = mdarray(cc_pd.diff_src_primitive_desc())
+        gx = gy
 
         self.dag_.push_back(relu_backward.relu_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
