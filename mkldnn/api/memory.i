@@ -87,7 +87,7 @@ public:
 
     memory(const primitive &aprimitive);
     // XXX: This is not what we want
-    // memory(const primitive_desc &adesc);
+    memory(const primitive_desc &adesc);
     memory(const primitive_desc &adesc, void *ahandle);
 
     primitive_desc get_primitive_desc() const;
