@@ -16,8 +16,10 @@ from chainer import utils
 from mkldnn import mdarray
 from chainer.cuda import iscompatible
 from mkldnn.chainer.fanout import *
+
 from mkldnn.chainer import sum
 
+# from nose.tools import set_trace
 
 RANK_START = 0
 
@@ -819,6 +821,7 @@ Actual: {0}'''.format(type(data))
             shape (tuple of int): Shape of the data array.
 
         """
+        # set_trace()
         data = initializers.generate_array(self.initializer, shape, numpy)
 
         ginit = self._grad_initializer
@@ -835,7 +838,8 @@ Actual: {0}'''.format(type(data))
 
     def mkl_reshape(self, shape):
         self._data[0] = self._data[0].reshape(shape)
-        self._node._grad = self._node._grad.reshape(shape)
+        if self._node._grad is not None:
+            self._node._grad = self._node._grad.reshape(shape)
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
