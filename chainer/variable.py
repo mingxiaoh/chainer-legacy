@@ -659,8 +659,10 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in func.inputs])
+            outputs_data = tuple([y.grad for y in outputs])
+
             out_grad = ()
-            if sum.mkl_sum_enabled(in_data):
+            if sum.mkl_sum_enabled(outputs_data):
                 out_grad_tmp = tuple([None if y is None else y.grad for y in outputs])
                 acc_grad_tuple = tuple([None if y is None else y.acc_grad for y in outputs])
                 for grad_tmp, acc_grad in zip(out_grad_tmp, acc_grad_tuple):
@@ -734,14 +736,14 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
-                            if sum.mkl_sum_enabled(in_data):
+                            if sum.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:
                                 x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
-                            if sum.mkl_sum_enabled(in_data):
+                            if sum.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:
