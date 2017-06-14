@@ -464,7 +464,6 @@ private:
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
-  std::forward_list<reorderer> balloons_;
 
 protected:
   enum mdarray_ty{
