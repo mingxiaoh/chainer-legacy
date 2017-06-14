@@ -22,7 +22,7 @@ PyObject *queryPyTypeObject(const char *name) {
   }
 
   throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
-      , "Failed to find reorder_buffer object");
+      , "Failed to find reorderer object");
 }
 
 // We brought this to global scope to mitigate it consumption
@@ -85,7 +85,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
         , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
 
     PyObject *argList = Py_BuildValue("(OiO)", o
-        , reorder_buffer::public_format(
+        , reorderer::public_format(
             static_cast<mkldnn::memory::format>(desc().data.format)
           ), Py_p_engine);
 
@@ -153,9 +153,9 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
-  // reorder_buffer type object
+  // reorderer type object
   if (PyType_reorder_buffer == nullptr) {
-    PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
+    PyErr_SetString(PyExc_NameError, "name 'reorderer' is not defined");
     return -1;
   }
 
@@ -173,7 +173,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
-  reorder_buffer *rb;
+  reorderer *rb;
   int res = SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
 
   if (!SWIG_IsOK(res)) {
@@ -283,7 +283,7 @@ int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
 
   // Only for the first, framework do it for us next time
   if (reorder_ == nullptr) {
-    reorder_.reset(new reorder_buffer(this));
+    reorder_.reset(new reorderer(this));
 
     if (reorder_->non_trivial()) {
       mkldnn::reorder rb_p = reorder_->fire(this);

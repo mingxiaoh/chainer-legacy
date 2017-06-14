@@ -235,14 +235,8 @@ public:
 
       return ret;
     }
-  };
 
-  // PEP 3118 interface
-  class reorder_buffer : public reorderer {
-  public:
-    reorder_buffer(const py_handle in) : reorderer(in) {}
-    reorder_buffer(const mdarray *src) : reorderer(src) {}
-
+    // PEP 3118 interface
     int build_view(Py_buffer *view, int flags) {
       view->buf = data_.get();
       view->itemsize = itemsize_;
@@ -274,14 +268,8 @@ public:
 
       return 0;
     }
-  };
 
-  // Array Protocol interface
-  class reorder_array : public reorderer {
-  public:
-    reorder_array(const py_handle in) : reorderer(in) {}
-    reorder_array(const mdarray *src) : reorderer(src) {}
-
+    // Array protocol
     PyArrayInterface *build_array_struct(void) {
       auto arrstr = new PyArrayInterface();
 
@@ -299,6 +287,15 @@ public:
 
       return arrstr;
     }
+  };
+
+
+  // Array Protocol interface
+  class reorder_array : public reorderer {
+  public:
+    reorder_array(const py_handle in) : reorderer(in) {}
+    reorder_array(const mdarray *src) : reorderer(src) {}
+
   };
 
 public:
@@ -470,7 +467,7 @@ private:
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
-  std::forward_list<reorder_array> balloons_;
+  std::forward_list<reorderer> balloons_;
 
 protected:
   enum mdarray_ty{
@@ -572,7 +569,7 @@ private:
 
 class s_op: public mdarray {
 public:
-  using mdarray::reorder_buffer;
+  using mdarray::reorderer;
 
   s_op(mkldnn::memory::primitive_desc dst
       , std::vector<mkldnn::primitive> *dag)
@@ -585,7 +582,7 @@ public:
 
 protected:
   std::vector<mkldnn::primitive> *dag_;
-  std::unique_ptr<reorder_buffer> reorder_;
+  std::unique_ptr<reorderer> reorder_;
   std::unique_ptr<mkldnn::memory> mreorder_;
 };
 
@@ -949,7 +946,7 @@ public:
         (op, x, gy, dag)) {}
 };
 
-using reorder_buffer = implementation::mdarray::reorder_buffer;
+using reorder_buffer = implementation::mdarray::reorderer;
 using reorder_array = implementation::mdarray::reorder_array;
 
 #endif

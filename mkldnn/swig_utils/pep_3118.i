@@ -23,6 +23,7 @@
 
 %define %buffer_protocol_producer(type...)
   %feature("python:bf_getbuffer") type "buffer_traits<" %str(type) ">::getbuffer";
+  %feature("Python:tp_flags") "| Py_TPFLAGS_HAVE_NEWBUFFER";
 %enddef
 
 %define %buffer_protocol_typemap(VIEW)
