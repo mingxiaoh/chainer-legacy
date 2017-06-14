@@ -30,6 +30,7 @@
 
 %include stl.i
 %include exception.i
+%include pep_3118.i
 
 %feature("flatnested");
 %feature("nodefaultctor");
@@ -98,4 +99,5 @@ struct convolution_forward: public primitive {
 
 } // namespace mkldnn
 
+%buffer_protocol_producer(f_s_op<mkldnn::convolution_forward>)
 %template (conv_f_op) f_s_op<mkldnn::convolution_forward>;

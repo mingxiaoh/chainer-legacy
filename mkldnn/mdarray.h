@@ -412,9 +412,6 @@ public:
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
 
-  // NUMPY Array Protocol
-  virtual PyObject *get_arrstr();
-
   PyObject *getattro(PyObject *self, PyObject *name);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
@@ -869,10 +866,6 @@ public:
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
   }
-
-  static PyObject *mdarray_astr_get(mdarray *self) {
-    return (*self)->get_arrstr();
-  }
 };
 
 using namespace mkldnn;
@@ -947,6 +940,5 @@ public:
 };
 
 using reorder_buffer = implementation::mdarray::reorderer;
-using reorder_array = implementation::mdarray::reorder_array;
 
 #endif

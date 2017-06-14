@@ -30,6 +30,7 @@
 
 %include stl.i
 %include exception.i
+%include pep_3118.i
 
 %feature("flatnested");
 %feature("nodefaultctor");
@@ -93,6 +94,9 @@ struct inner_product_backward_weights: public primitive {
 
 %extend_ro_attr_and_own(bwb_op<mkldnn::inner_product_backward_weights>
                 , mdarray, extra, extra_get)
+
+%buffer_protocol_producer(bwb_op<mkldnn::inner_product_backward_weights>)
+%buffer_protocol_producer(bw_op<mkldnn::inner_product_backward_weights>)
 
 %template (linear_bwb_op) bwb_op<mkldnn::inner_product_backward_weights>;
 %template (linear_bw_op) bw_op<mkldnn::inner_product_backward_weights>;

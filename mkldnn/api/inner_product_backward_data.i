@@ -30,6 +30,7 @@
 
 %include stl.i
 %include exception.i
+%include pep_3118.i
 
 %feature("flatnested");
 %feature("nodefaultctor");
@@ -80,4 +81,5 @@ struct inner_product_backward_data: public primitive {
 
 }
 
+%buffer_protocol_producer(bd_op<mkldnn::inner_product_backward_data>)
 %template (linear_bd_op) bd_op<mkldnn::inner_product_backward_data>;

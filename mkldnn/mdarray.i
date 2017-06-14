@@ -64,7 +64,6 @@
 %extend_ro_attr(mdarray, PyObject *, shape, mdarray_shape_get)
 %extend_ro_attr(mdarray, long, size, mdarray_size_get)
 %extend_ro_attr(mdarray, long, ndim, mdarray_ndim_get)
-%extend_ro_attr(mdarray, PyObject *, __array_struct__, mdarray_astr_get)
 %extend_ro_attr_and_own(mdarray, mkldnn::memory, memory, mdarray_memory_get)
 
 %{
@@ -135,9 +134,4 @@ public:
 class reorder_buffer {
 public:
   reorder_buffer(mdarray in);
-};
-
-class reorder_array {
-public:
-  reorder_array(mdarray in);
 };

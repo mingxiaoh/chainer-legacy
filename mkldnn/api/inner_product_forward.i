@@ -30,6 +30,7 @@
 
 %include stl.i
 %include exception.i
+%include pep_3118.i
 
 %feature("flatnested");
 %feature("nodefaultctor");
@@ -92,4 +93,5 @@ struct inner_product_forward: public primitive {
 
 } // namespace mkldnn
 
+%buffer_protocol_producer(f_s_op<mkldnn::inner_product_forward>)
 %template (linear_f_op) f_s_op<mkldnn::inner_product_forward>;

@@ -7,7 +7,6 @@
 namespace implementation {
 
 static PyObject *PyType_reorder_buffer = nullptr;
-static PyObject *PyType_reorder_array = nullptr;
 
 static swig_type_info *SwigTy_mdarray = nullptr;
 static swig_type_info *SwigTy_engine = nullptr;
@@ -32,10 +31,16 @@ int g_init() {
 void g_init() {
 #endif
   PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
-  PyType_reorder_array = queryPyTypeObject("_p_reorder_array");
   SwigTy_mdarray = SWIG_TypeQuery("_p_mdarray");
   PyType_mdarray = queryPyTypeObject("_p_mdarray");
   SwigTy_engine = SWIG_TypeQuery("_p_mkldnn__engine");
+
+#if PY_VERSION_HEX < 0x03000000
+  if ((reinterpret_cast<PyTypeObject *>(PyType_mdarray)->tp_flags
+    & Py_TPFLAGS_HAVE_NEWBUFFER) != Py_TPFLAGS_HAVE_NEWBUFFER)
+    throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+    , "Python2 should have new buffer flag on!");
+#endif
 
   // XXX: I don't quite understand it, and its repercussions :)
   SwigPyObject_stype = SWIG_MangledTypeQuery("_p_SwigPyObject");
@@ -63,9 +68,6 @@ void g_init() {
 
 //FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a))
-
-PyObject *mdarray::get_arrstr() {
-}
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   // Resource manager, for GCC do not accept lambda

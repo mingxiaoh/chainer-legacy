@@ -30,6 +30,7 @@
 
 %include stl.i
 %include exception.i
+%include pep_3118.i
 
 %feature("flatnested");
 %feature("nodefaultctor");
@@ -83,5 +84,5 @@ struct convolution_backward_data : public primitive {
 
 }
 
-
+%buffer_protocol_producer(bd_op<mkldnn::convolution_backward_data>)
 %template (conv_bd_op) bd_op<mkldnn::convolution_backward_data>;

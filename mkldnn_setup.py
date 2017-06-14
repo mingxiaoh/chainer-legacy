@@ -1,6 +1,7 @@
 from setuptools.extension import Extension
 from numpy import get_include
 from platform import system
+import sys
 
 subdir = 'mkldnn'
 
@@ -63,7 +64,10 @@ swig_opts=['-c++', '-Imkldnn', '-relativeimport',
         '-builtin', '-modern', '-modernargs',
         '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 
-ccxx_opts=['-std=c++11', '-O0', '-g']
+if sys.version_info.major < 3:
+    swig_opts += ['-DNEWBUFFER_ON']
+
+ccxx_opts=['-std=c++11']
 
 includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils']
 libraries = ['mkldnn']
