@@ -96,7 +96,8 @@ def linear(x, W, b=None):
     """
     # XXX: switch the route, work on the critera
     if (x.dtype == numpy.dtype('float32') \
-            and W.dtype == numpy.dtype('float32')) \
+            and W.dtype == numpy.dtype('float32')\
+            and (x.ndim == 2 or x.ndim == 4)) \
             or isinstance(x, mkldnn.mdarray):
         return linearMKLDNN(x, W, b)
     else:
