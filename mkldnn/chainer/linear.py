@@ -64,7 +64,11 @@ class LinearForward(ComputeComplex):
         self.x = array(x, _x_format(x.ndim), e)
         w_mpd = cc_pd.weights_primitive_desc()
         self.usr_w = array(W, _W_format(W.ndim), e)
-        self.W = reorder_if_must(self.usr_w, w_mpd, self.dag_)
+        outputs = reorder_if_must(self.usr_w, w_mpd, e, self.dag_)
+        if len(outputs) == 2:
+            self.W, self.itm_arr = outputs[:2]
+        else:
+            self.W = outputs[0]
 
         if b is not None:
             self.b = array(b, m.memory.x, e)

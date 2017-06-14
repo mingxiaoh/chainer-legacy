@@ -150,18 +150,23 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   // 2 mdarray add
   auto mdarray2 = (reinterpret_cast<py_handle *>(oprd2))->get();
 
-  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
-      , {m_.get_primitive_desc(), mdarray2->m_.get_primitive_desc()});
+  std::vector<mkldnn::primitive> prims;
+  std::unique_ptr<mkldnn::memory> mreorder;
+  auto mem1 = reorder_if_must(memory(), mdarray2->m_.get_primitive_desc(), mreorder, &prims);
 
-  std::vector<mkldnn::memory::primitive::at> inputs_at {memory()
+  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
+      , {mem1.get_primitive_desc(), mdarray2->m_.get_primitive_desc()});
+
+  std::vector<mkldnn::memory::primitive::at> inputs_at {mem1
     , mdarray2->memory()};
 
   py_handle *output = new py_handle(new mdarray(sum_pd.dst_primitive_desc()));
 
   mkldnn::sum sum_prim(sum_pd, inputs_at, (*output)->memory());
+  prims.push_back(sum_prim);
 
   mkldnn::stream s(mkldnn::stream::kind::eager);
-  s.submit({sum_prim}).wait();
+  s.submit(prims).wait();
 
   PyObject *resultobj = SWIG_Python_NewPointerObj(nullptr
       , SWIG_as_voidptr(output), SwigTy_mdarray, SWIG_POINTER_OWN |  0 );

@@ -148,7 +148,11 @@ class ConvolutionForward(ComputeComplex):
         cc_pd = conv_forward.primitive_desc(cc_d, e)
         w_mpd = cc_pd.weights_primitive_desc()
         self.usr_w = array(W, m.memory.oihw, e)
-        self.W = reorder_if_must(self.usr_w, w_mpd, self.dag_)
+        outputs = reorder_if_must(self.usr_w, w_mpd, e, self.dag_)
+        if len(outputs) == 2:
+            self.W, self.itm_arr = outputs[:2]
+        else:
+            self.W = outputs[0]
 
         # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
