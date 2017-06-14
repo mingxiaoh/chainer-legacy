@@ -122,8 +122,8 @@ public:
   //
   static constexpr int MAX_NDIM = 12; //XXX: For now
 
-  class reorder_constructor {
-  private:
+  class reorderer {
+  protected:
     bool non_trivial_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
@@ -165,20 +165,13 @@ public:
       }
     }
 
-  public:
-    inline avx::byte *  get_data()      { return data_.get(); }
-    inline int          get_ndims()     { return ndims_;      }
-    inline int          get_size()      { return size_;       }
-    inline char *       get_format()    { return format_;     }
-    inline Py_ssize_t   get_itemsize()  { return itemsize_;   }
-    inline Py_ssize_t * get_strides()   { return strides_;    }
-    inline Py_ssize_t * get_shape()     { return shape_;      }
+    inline avx::byte *data() const { return data_.get(); }
 
   public:
-    reorder_constructor(const py_handle in)
-      :reorder_constructor(in.get()) {}
+    reorderer(const py_handle in)
+      :reorderer(in.get()) {}
 
-    reorder_constructor(const mdarray *src)
+    reorderer(const mdarray *src)
       : non_trivial_(src->incompatible()), dst_([src] () {
           if (src->incompatible()) {
             auto md_data = src->desc().data;
@@ -254,34 +247,34 @@ public:
   };
 
   // PEP 3118 interface
-  class reorder_buffer : public reorder_constructor {
+  class reorder_buffer : public reorderer {
   public:
-    reorder_buffer(const py_handle in) : reorder_constructor(in) {}
-    reorder_buffer(const mdarray *src) : reorder_constructor(src) {}
+    reorder_buffer(const py_handle in) : reorderer(in) {}
+    reorder_buffer(const mdarray *src) : reorderer(src) {}
 
     int build_view(Py_buffer *view, int flags) {
-      view->buf = get_data();
-      view->itemsize = get_itemsize();
+      view->buf = data();
+      view->itemsize = itemsize_;
       view->readonly = 0;
       view->internal = nullptr;
-      view->len = get_size() * get_itemsize();
+      view->len = size_ * itemsize_;
 
       if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
-        view->format = get_format();
+        view->format = format_;
       } else {
         view->format = nullptr;
       }
 
       if ((flags & PyBUF_ND) == PyBUF_ND) {
-        view->ndim = get_ndims();
-        view->shape = get_shape();
+        view->ndim = ndims_;
+        view->shape = shape_;
       } else {
         view->ndim = 0;
         view->shape = nullptr;
       }
 
       if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-        view->strides = get_strides();
+        view->strides = strides_;
       } else {
         view->strides = nullptr;
       }
@@ -293,23 +286,23 @@ public:
   };
 
   // Array Protocol interface
-  class reorder_array : public reorder_constructor {
+  class reorder_array : public reorderer {
   public:
-    reorder_array(const py_handle in) : reorder_constructor(in) {}
-    reorder_array(const mdarray *src) : reorder_constructor(src) {}
+    reorder_array(const py_handle in) : reorderer(in) {}
+    reorder_array(const mdarray *src) : reorderer(src) {}
 
     PyArrayInterface *build_array_struct(void) {
       arrstr_.reset(new PyArrayInterface());
       arrstr_->two = 2;
-      arrstr_->nd = get_ndims();
-      arrstr_->typekind = *((char *)get_format());
-      arrstr_->itemsize = get_itemsize();
+      arrstr_->nd = ndims_;
+      arrstr_->typekind = *((char *)format_);
+      arrstr_->itemsize = itemsize_;
       arrstr_->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
                      NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
       arrstr_->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
-      arrstr_->shape = get_shape();
-      arrstr_->strides = get_strides();
-      arrstr_->data = get_data();
+      arrstr_->shape = shape_;
+      arrstr_->strides = strides_;
+      arrstr_->data = data();
       arrstr_->descr = nullptr;
       return arrstr_.get();
     }
@@ -362,7 +355,7 @@ public:
               , view_(nullptr), rtti(raw)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
-                    return reorder_constructor::public_format(
+                    return reorderer::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
                   } ()), purpose_(sink) {}

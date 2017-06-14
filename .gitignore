@@ -28,4 +28,5 @@ mkldnn/api/lrn_*.py
 mkldnn/api/pooling_*.py
 mkldnn/api/bn_*.py
 mkldnn/api/view.py
+mkldnn/api/sum.py
 mkldnn/mdarray.py
