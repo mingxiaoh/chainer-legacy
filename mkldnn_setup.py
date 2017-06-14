@@ -63,7 +63,7 @@ swig_opts=['-c++', '-Imkldnn', '-relativeimport',
         '-builtin', '-modern', '-modernargs',
         '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 
-ccxx_opts=['-std=c++11']
+ccxx_opts=['-std=c++11', '-O0', '-g']
 
 includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils']
 libraries = ['mkldnn']
