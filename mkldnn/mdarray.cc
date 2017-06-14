@@ -64,39 +64,7 @@ void g_init() {
 //FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a))
 
-PyObject *mdarray::create_reorder_array(PyObject *self) {
-  // reorder_buffer type object
-  if (PyType_reorder_array == nullptr) {
-    PyErr_SetString(PyExc_NameError, "name 'reorder_buffer' is not defined");
-    return nullptr;
-  }
-
-  // Wrote some python in C++ :)
-  PyObject *argList = Py_BuildValue("(O)", self);
-  if (argList == nullptr) {
-    return nullptr;
-  }
-
-  // TODO: Do we need to cache this thing?
-  PyObject *raobj = PyObject_CallObject(PyType_reorder_array, argList);
-  Py_DECREF(argList);
-
-  if (raobj == nullptr) {
-    return nullptr;
-  }
-
-  reorder_array *ra;
-  int res = SWIG_ConvertPtr(raobj, reinterpret_cast<void **>(&ra), nullptr, 0);
-
-  if (!SWIG_IsOK(res)) {
-    PyErr_SetString(PyExc_RuntimeError, "Can't get C++ object from python object");
-    return nullptr;
-  }
-
-  if (ra->non_trivial())
-    ra->fire(this);
-
-  return raobj;
+PyObject *mdarray::get_arrstr() {
 }
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
@@ -229,14 +197,8 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
 
 PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
   // XXX: Recursive alarm !!! XXX
-#if PY_VERSION_HEX < 0x03000000
-  PyObject *raobj = create_reorder_array(self);
-  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#else
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#endif
 
   if (surrogate == nullptr)
     return nullptr;
@@ -247,9 +209,6 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
 
   // The surrogate will be destroyed after attribute is done
   Py_DECREF(surrogate);
-#if PY_VERSION_HEX < 0x03000000
-  Py_DECREF(raobj);
-#endif
 
   if (attr == nullptr && PyErr_ExceptionMatches(PyExc_AttributeError)) {
     PyErr_Clear();
@@ -264,60 +223,36 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
 }
 
 Py_ssize_t mdarray::mp_length(PyObject *self) {
-#if PY_VERSION_HEX < 0x03000000
-  PyObject *raobj = create_reorder_array(self);
-  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#else
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#endif
 
   if (surrogate == nullptr)
     return -1;
 
   Py_ssize_t len = PyMapping_Length(surrogate);
   Py_DECREF(surrogate);
-#if PY_VERSION_HEX < 0x03000000
-  Py_DECREF(raobj);
-#endif
 
   // TODO: Exception localize
   return len;
 }
 
 PyObject *mdarray::mp_subscript(PyObject *self, PyObject *op) {
-#if PY_VERSION_HEX < 0x03000000
-  PyObject *raobj = create_reorder_array(self);
-  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#else
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#endif
 
   if (surrogate == nullptr)
     return nullptr;
 
   PyObject *ret = PyObject_GetItem(surrogate, op);
   Py_DECREF(surrogate);
-#if PY_VERSION_HEX < 0x03000000
-  Py_DECREF(raobj);
-#endif
 
   // TODO: Exception localize
   return ret;
 }
 
 int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
-#if PY_VERSION_HEX < 0x03000000
-  PyObject *raobj = create_reorder_array(self);
-  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#else
   PyObject *surrogate = PyArray_FromAny(self, nullptr, 0, 0
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
-#endif
 
   int ret;
 
@@ -330,9 +265,6 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
     ret = PyObject_SetItem(surrogate, ind, op);
 
   Py_DECREF(surrogate);
-#if PY_VERSION_HEX < 0x03000000
-  Py_DECREF(raobj);
-#endif
 
   // TODO: Exception localize
   return ret;

@@ -10,6 +10,7 @@
 #include <vector>
 #include <numeric>
 #include <memory>
+#include <forward_list>
 #include <stdexcept>
 #include <mkldnn.hpp>
 #include <type_traits>
@@ -61,21 +62,11 @@ namespace implementation {
   void g_init();
 #endif
 
-#if PY_VERSION_HEX < 0x03000000
-#define NPY_ARRAY_SURROGATE_ENTRY(mdarray) \
-  /* Create reorder_array explicitly as array protocol interface */ \
-  PyObject *raobj = create_reorder_array(mdarray); \
-  PyObject *surrogate = PyArray_FromAny(raobj, nullptr, 0, 0 \
-      , NPY_ARRAY_ELEMENTSTRIDES, nullptr) \
-
-#define NPY_ARRAY_SURROGATE_EXIT() Py_DECREF(raobj)
-#else
 #define NPY_ARRAY_SURROGATE_ENTRY(mdarray) \
   PyObject *surrogate = PyArray_FromAny(mdarray, nullptr, 0, 0 \
       , NPY_ARRAY_ELEMENTSTRIDES, nullptr)   \
 
 #define NPY_ARRAY_SURROGATE_EXIT()
-#endif
 
 #define nb_unary_map(method) \
   PyObject * m_ ## method (PyObject *self) {    \
@@ -253,7 +244,7 @@ public:
     reorder_buffer(const mdarray *src) : reorderer(src) {}
 
     int build_view(Py_buffer *view, int flags) {
-      view->buf = data();
+      view->buf = data_.get();
       view->itemsize = itemsize_;
       view->readonly = 0;
       view->internal = nullptr;
@@ -292,43 +283,22 @@ public:
     reorder_array(const mdarray *src) : reorderer(src) {}
 
     PyArrayInterface *build_array_struct(void) {
-      arrstr_.reset(new PyArrayInterface());
-      arrstr_->two = 2;
-      arrstr_->nd = ndims_;
-      arrstr_->typekind = *((char *)format_);
-      arrstr_->itemsize = itemsize_;
-      arrstr_->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
-                     NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
-      arrstr_->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
-      arrstr_->shape = shape_;
-      arrstr_->strides = strides_;
-      arrstr_->data = data();
-      arrstr_->descr = nullptr;
-      return arrstr_.get();
+      auto arrstr = new PyArrayInterface();
+
+      arrstr->two = 2;
+      arrstr->nd = ndims_;
+      arrstr->typekind = *((char *)format_);
+      arrstr->itemsize = itemsize_;
+      arrstr->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
+                    NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
+      arrstr->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
+      arrstr->shape = shape_;
+      arrstr->strides = strides_;
+      arrstr->data = data_.get();
+      arrstr->descr = nullptr;
+
+      return arrstr;
     }
-
-  // Nothing to do here.
-  // array_struct will be deleted with reorder_array destruction.
-  static void reorder_array_dtor_arrstr_cb(void *ptr, void *desc) {
-    return;
-  }
-
-  static void reorder_array_dtor_arrstr_cb(PyObject *capsule) {
-    return;
-  }
-
-  static PyObject *reorder_array_get_arrstr(reorder_array *ra) {
-    PyArrayInterface *arrstr = ra->build_array_struct();
-
-#if PY_VERSION_HEX < 0x03000000
-    return PyCObject_FromVoidPtrAndDesc(arrstr, arrstr, reorder_array_dtor_arrstr_cb);
-#else
-    return PyCapsule_New(arrstr, nullptr, reorder_array_dtor_arrstr_cb);
-#endif
-  }
-
-  private:
-    std::shared_ptr<PyArrayInterface> arrstr_;
   };
 
 public:
@@ -444,12 +414,11 @@ public:
 
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
+
+  // NUMPY Array Protocol
+  virtual PyObject *get_arrstr();
+
   PyObject *getattro(PyObject *self, PyObject *name);
-  // Array Protocol: Create __array_struct__ attribute object
-  // Currently mdarray could not export array_struct, due to memory management.
-  // We need create reorder_array explicitly as array protocol interface.
-  // virtual PyArrayInterface *getarrstr(void *py_self);
-  PyObject *create_reorder_array(PyObject *self);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
   nb_binary_map(Subtract);
@@ -501,6 +470,7 @@ private:
   std::shared_ptr<avx::byte> data_;
   mkldnn::memory m_;
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
+  std::forward_list<reorder_array> balloons_;
 
 protected:
   enum mdarray_ty{
@@ -901,6 +871,10 @@ public:
 
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
+  }
+
+  static PyObject *mdarray_astr_get(mdarray *self) {
+    return (*self)->get_arrstr();
   }
 };
 
