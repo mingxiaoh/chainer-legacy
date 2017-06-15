@@ -22,7 +22,7 @@ mkldnn/api/memory.py
 mkldnn/api/inner_product_*.py
 mkldnn/api/reorder.py
 mkldnn/api/convolution_*.py
-mkldnn/api/relu_*.py
+mkldnn/api/eltwise_*.py
 mkldnn/api/concat.py
 mkldnn/api/lrn_*.py
 mkldnn/api/pooling_*.py

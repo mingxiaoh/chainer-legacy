@@ -37,11 +37,11 @@ modules = {
         'mkldnn.api._convolution_backward_weights' :
         ['mkldnn/api/convolution_backward_weights.i'],
 
-        'mkldnn.api._relu_forward' :
-        ['mkldnn/api/relu_forward.i'],
+        'mkldnn.api._eltwise_forward' :
+        ['mkldnn/api/eltwise_forward.i'],
 
-        'mkldnn.api._relu_backward' :
-        ['mkldnn/api/relu_backward.i'],
+        'mkldnn.api._eltwise_backward' :
+        ['mkldnn/api/eltwise_backward.i'],
 
         'mkldnn.api._pooling_forward' :
         ['mkldnn/api/pooling_forward.i'],

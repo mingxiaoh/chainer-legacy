@@ -54,7 +54,7 @@ struct eltwise_forward : public primitive {
     struct desc {
         c_api::mkldnn_relu_desc_t data;
         // template <typename T>
-        desc(prop_kind aprop_kind,, algorithm alg_kind
+        desc(prop_kind aprop_kind, algorithm alg_kind
             , const memory::desc &src_desc, double alpha, double beta);
     };
 

@@ -98,6 +98,7 @@ enum query {
 
     memory_d = c_api::mkldnn_query_memory_d,
     convolution_d = c_api::mkldnn_query_convolution_d,
+    eltwise_d = c_api::mkldnn_query_eltwise_d,
     relu_d = c_api::mkldnn_query_relu_d,
     softmax_d = c_api::mkldnn_query_softmax_d,
     pooling_d = c_api::mkldnn_query_pooling_d,
@@ -143,6 +144,8 @@ inline c_api::mkldnn_prop_kind_t convert_to_c(prop_kind kind) {
 
 enum algorithm {
     convolution_direct = c_api::mkldnn_convolution_direct,
+    convolution_winograd = c_api::mkldnn_convolution_winograd,
+    eltwise_relu = c_api::mkldnn_eltwise_relu,
     lrn_across_channels = c_api::mkldnn_lrn_across_channels,
     lrn_within_channel  = c_api::mkldnn_lrn_within_channel,
     pooling_max = c_api::mkldnn_pooling_max,

@@ -49,7 +49,7 @@ namespace mkldnn {
 struct eltwise_backward : public primitive {
     struct desc {
         desc(algorithm alg_kind, const memory::desc &diff_data_desc
-          , const memory::desc &data_desc, double alpha = 0, double beta = 0);
+          , const memory::desc &data_desc, double alpha, double beta);
     };
 
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
