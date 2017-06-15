@@ -5,6 +5,7 @@ from chainer import function
 from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import mkld
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -19,6 +20,10 @@ if cuda.cudnn_enabled:
 
 
 _check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
+
+
+if mkld.mkldnn_enabled:
+    mkldnn = mkld.mkldnn
 
 
 def _pair(x):
@@ -74,22 +79,35 @@ class Deconvolution2DFunction(function.Function):
     def forward_cpu(self, inputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
-        kh, kw = W.shape[2:]
-        _, _, h, w = x.shape
-        gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
-        # - k, m, n: shape of out_channel
-        # - b: number of inputs
-        # - h, w: height and width of kernels
-        # k, m, n, b, h, w -> b, k, m, n, h, w
-        gcol = numpy.rollaxis(gcol, 3)
+        out_c, input_c, kh, kw = W.shape
+        n, c, h, w = x.shape
+
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
-        y = conv.col2im_cpu(
-            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+
+        if mkld.enable_deconvF(inputs):
+            y = numpy.empty(shape=(n, input_c, self.outh, self.outw), dtype=x.dtype)
+            mkldnn.DeConvolution2D_F32.do_forward(x, W, y, kh, kw, self.sx, self.sy, self.ph, self.pw, self.ph, self.pw)
+        else:
+            gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
+            # - k, m, n: shape of out_channel
+            # - b: number of inputs
+            # - h, w: height and width of kernels
+            # k, m, n, b, h, w -> b, k, m, n, h, w
+            gcol = numpy.rollaxis(gcol, 3)
+            if self.outh is None:
+                self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph)
+                assert self.outh > 0, 'Height in the output should be positive.'
+            if self.outw is None:
+                self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
+                assert self.outw > 0, 'Width in the output should be positive.'
+            y = conv.col2im_cpu(
+                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+
         # b, k, h, w
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
@@ -176,13 +194,19 @@ class Deconvolution2DFunction(function.Function):
         b = inputs[2] if len(inputs) == 3 else None
         gy = grad_outputs[0]
         kh, kw = W.shape[2:]
-        col = conv.im2col_cpu(
-            gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
-        gW = numpy.tensordot(
-            x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-        gx = numpy.tensordot(
-            col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-        gx = numpy.rollaxis(gx, 3, 1)
+
+        if mkld.enable_deconvF(inputs):
+            gW = numpy.empty(shape=W.shape, dtype=W.dtype)
+            gx = numpy.empty(shape=x.shape, dtype=x.dtype)
+            mkldnn.DeConvolution2D_F32.do_backward(x, W, gy, gW, gx, kh, kw, self.sy, self.sx, self.ph, self.pw, self.ph, self.pw, False)
+        else:
+            col = conv.im2col_cpu(
+                gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
+            gW = numpy.tensordot(
+                x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
+            gx = numpy.tensordot(
+                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+            gx = numpy.rollaxis(gx, 3, 1)
 
         if b is None:
             return gx, gW

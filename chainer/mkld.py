@@ -25,6 +25,7 @@ if avaiable and not mkldnn_enabled:
 MKLDNN backend switch
 """
 enable_conv = True
+enable_deconv = True
 enable_max_pooling = True
 enable_avg_pooling = True
 enable_lrn = True
@@ -72,6 +73,10 @@ def enable_cosim():
 
 def enable_convF(tul):
         return mkldnn_enabled and SupportedInput(tul) and enable_conv
+
+
+def enable_deconvF(tul):
+        return mkldnn_enabled and SupportedInput(tul) and enable_deconv
 
 
 def enable_max_poolingF(tul):
