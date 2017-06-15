@@ -2,8 +2,12 @@ from setuptools.extension import Extension
 from numpy import get_include
 from platform import system
 import sys
+import os
 
 subdir = 'mkldnn'
+
+# Sepcify prefix under which you put ipl_mkldnn
+prefix = os.path.expanduser('~')
 
 modules = {
         'mkldnn.api._c_api' :
@@ -68,8 +72,9 @@ if sys.version_info.major < 3:
     swig_opts += ['-DNEWBUFFER_ON']
 
 ccxx_opts=['-std=c++11']
+link_opts=[prefix + '/lib']
 
-includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils']
+includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils', prefix + '/include']
 libraries = ['mkldnn']
 
 if system() == 'Linux':
@@ -83,15 +88,15 @@ ext_modules = []
 for m, s in modules.items():
     ext = Extension(m, sources=s,
             swig_opts=swig_opts,
-            extra_compile_args=ccxx_opts,
-			include_dirs=includes, libraries=libraries)
+                extra_compile_args=ccxx_opts, extra_link_args=link_opts,
+                    include_dirs=includes, libraries=libraries)
 
     ext_modules.append(ext)
 
 ext = Extension('mkldnn._mdarray', sources=mdarray_src,
         swig_opts=swig_opts,
-        extra_compile_args=ccxx_opts,
-        include_dirs=includes, libraries=libraries)
+            extra_compile_args=ccxx_opts, extra_link_args=link_opts,
+                include_dirs=includes, libraries=libraries)
 
 ext_modules.append(ext)
 
