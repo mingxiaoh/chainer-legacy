@@ -4,18 +4,12 @@ from chainer.utils import type_check
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import *
 
-# Most important thing
 from mkldnn.api.support import *
 import mkldnn.api.memory as m
-import mkldnn.api.relu_forward as relu_forward
-import mkldnn.api.relu_backward as relu_backward
+import mkldnn.api.eltwise_forward as eltwise_forward
+import mkldnn.api.eltwise_backward as eltwise_backward
+
 from mkldnn.mdarray import *
-
-def create_backward_desc(d_creator, *inputs):
-    inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
-            for v in inputs if v is not None]
-
-    return d_creator(*inputs_d)
 
 class ReLUForward(ComputeComplex):
     cc_type = 'f'
@@ -31,14 +25,15 @@ class ReLUForward(ComputeComplex):
         x = array(x, fmt, e)
         mem_pd = x.memory.get_primitive_desc()
 
-        cc_d = relu_forward.desc(forward, mem_pd.desc(), 0.0)
-        cc_pd = relu_forward.primitive_desc(cc_d, e)
+        cc_d = eltwise_forward.desc(forward, eltwise_relu,
+                mem_pd.desc(), 0.0, 0.0)
+        cc_pd = eltwise_forward.primitive_desc(cc_d, e)
 
         y = mdarray(cc_pd.dst_primitive_desc())
         #y = x
 
         self.x = x
-        self.dag_.push_back(relu_forward.relu_forward(cc_pd,
+        self.dag_.push_back(eltwise_forward.eltwise_forward(cc_pd,
                 at(x.memory), y.memory))
 
         self._hint = cc_pd
@@ -98,14 +93,15 @@ class ReLUBackward(ComputeComplex):
             x = outputs[0]
         mem_pd = x.memory.get_primitive_desc()
 
-        cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
-        cc_pd = relu_backward.primitive_desc(cc_d, e, hint)
+        cc_d = eltwise_backward.desc(eltwise_relu, diff_pd.desc(),
+                mem_pd.desc(), 0.0, 0.0)
+        cc_pd = eltwise_backward.primitive_desc(cc_d, e, hint)
 
         gx = mdarray(cc_pd.diff_src_primitive_desc())
         #print("gx.format=", m.get_fmt(cc_pd.diff_src_primitive_desc()))
         #gx = gy
 
-        self.dag_.push_back(relu_backward.relu_backward(cc_pd,
+        self.dag_.push_back(eltwise_backward.eltwise_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
 
         self.x = x
