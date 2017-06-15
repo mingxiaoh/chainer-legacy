@@ -222,11 +222,10 @@ class Function(object):
 
         ret = tuple([variable.Variable(y) for y in outputs])
 
-        # Backward edges
-        for y in ret:
-            y.set_creator(self)
-
         if configuration.config.enable_backprop:
+            # Backward edges
+            for y in ret:
+                y.set_creator(self)
 
             self.inputs = tuple([x.node for x in inputs])
             # Forward edges (must be weak references)
@@ -246,6 +245,9 @@ class Function(object):
                     ret[index].retain_data()
             del self._output_indexes_to_retain
             self.output_data = tuple([y.node.data for y in ret])
+        else:
+            for y in ret:
+                y._rank = self.rank + 1
 
         if len(ret) == 1:
             return ret[0]
