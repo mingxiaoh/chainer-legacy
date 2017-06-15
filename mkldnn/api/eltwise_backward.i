@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn.api") relu_backward
+%module (package="mkldnn.api") eltwise_backward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -30,14 +30,14 @@
 
 %import support.i
 %import memory.i
-%import relu_forward.i
+%import eltwise_forward.i
 
 namespace mkldnn {
 
-%rename (desc) relu_backward::desc;
-%rename (primitive_desc) relu_backward::primitive_desc;
+%rename (desc) eltwise_backward::desc;
+%rename (primitive_desc) eltwise_backward::primitive_desc;
 
-%exception relu_backward::desc::desc {
+%exception eltwise_backward::desc::desc {
   try {
     $action
   }
@@ -46,21 +46,20 @@ namespace mkldnn {
   }
 }
 
-struct relu_backward : public primitive {
+struct eltwise_backward : public primitive {
     struct desc {
-        c_api::mkldnn_relu_desc_t data;
-        desc(const memory::desc &diff_data_desc, const memory::desc &data_desc,
-            double negative_slope);
+        desc(algorithm alg_kind, const memory::desc &diff_data_desc
+          , const memory::desc &data_desc, double alpha = 0, double beta = 0);
     };
 
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
-        primitive_desc(const desc &adesc, const engine &aengine,
-        const relu_forward::primitive_desc &hint_fwd_primitive_desc);
-        
+        primitive_desc(const desc &adesc, const engine &aengine
+          ,const eltwise_forward::primitive_desc &hint_fwd_primitive_desc);
+
         memory::primitive_desc diff_src_primitive_desc() const;
     };
 
-    relu_backward(const primitive_desc &aprimitive_desc,
+    eltwise_backward(const primitive_desc &aprimitive_desc,
             const primitive::at &src, const primitive::at &diff_dst,
             const memory &diff_src);
 };

@@ -14,7 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
-%module (package="mkldnn.api") relu_forward
+%module (package="mkldnn.api") eltwise_forward
 %{
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
@@ -38,10 +38,10 @@ namespace c_api {
   %include c_api.i
 }
 
-%rename (desc) relu_forward::desc;
-%rename (primitive_desc) relu_forward::primitive_desc;
+%rename (desc) eltwise_forward::desc;
+%rename (primitive_desc) eltwise_forward::primitive_desc;
 
-%exception relu_forward::desc::desc {
+%exception eltwise_forward::desc::desc {
   try {
     $action
   }
@@ -50,21 +50,20 @@ namespace c_api {
   }
 }
 
-struct relu_forward : public primitive {
+struct eltwise_forward : public primitive {
     struct desc {
         c_api::mkldnn_relu_desc_t data;
         // template <typename T>
-        desc(prop_kind aprop_kind, const memory::desc &src_desc,
-                /*T*/double negative_slope);
+        desc(prop_kind aprop_kind,, algorithm alg_kind
+            , const memory::desc &src_desc, double alpha, double beta);
     };
 
     struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
-
         memory::primitive_desc dst_primitive_desc() const;
     };
 
-    relu_forward(const primitive_desc &aprimitive_desc,
+    eltwise_forward(const primitive_desc &aprimitive_desc,
             const primitive::at &src, const memory &dst);
 };
 
