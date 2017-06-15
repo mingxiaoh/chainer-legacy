@@ -3,6 +3,7 @@
   #define SWIG_FILE_WITH_INIT
   #include <cstddef>
   #include <mkldnn.hpp>
+  #include "utils.hpp"
   #include "mkldnn_ex.hpp"
   using mkldnn::handle_traits;
 %}
@@ -99,6 +100,7 @@ public:
 }
 
 mkldnn::memory::format get_fmt(mkldnn::memory::primitive_desc mpd);
+mkldnn::memory::format get_desired_format(int channel);
 
 
 %template (dims) std::vector<int>;

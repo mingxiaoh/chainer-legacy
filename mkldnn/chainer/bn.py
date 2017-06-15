@@ -35,7 +35,21 @@ class BnForward(ComputeComplex):
         self.train = configuration.config.train
         x, gamma, beta = inputs[:3]
 
-        self.x = array(x, m.memory.nchw, e)
+        fmt_desired = m.get_desired_format(x.shape[1])
+        # self.x = array(x, m.memory.nchw, e)
+        x = array(x, fmt_desired, e)
+
+        assert x.dtype == numpy.dtype('float32')
+        x_desired_md = m.desc(x.shape, m.memory.f32, fmt_desired)
+        x_desired_mpd = m.primitive_desc(x_desired_md, e)
+        outputs = reorder_if_must(x, x_desired_mpd, e, self.dag_)
+        if len(outputs) == 2:
+            self.x, self.itm_arr = outputs[:2]
+            self.x_src = x
+        else:
+            self.x = outputs[0]
+            self.x_src = x
+
         w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
         self.numpy_w = w
         self.w = array(w, m.memory.nc, e)
@@ -113,24 +127,36 @@ class BnForward(ComputeComplex):
 class BnBackward(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, inputs, gy, hint, flags, eps, mean, var,
+    def __init__(self, inputs, fwd_x, gy, hint, flags, eps, mean, var,
             pos=None, e=Engine()):
         super(BnBackward, self).__init__()
 
         x = inputs[0]
         if self.new:
-            self._create_cc(inputs, gy, hint, flags, eps, mean, var, e)
+            self._create_cc(inputs, fwd_x, gy, hint, flags, eps, mean, var, e)
         else:
-            self._reuse(inputs, gy, mean, var)
+            self._reuse(inputs, fwd_x, gy, mean, var)
 
-    def _create_cc(self, inputs, gy, hint, flags, eps, mean, var, e):
+    def _create_cc(self, inputs, fwd_x, gy, hint, flags, eps, mean, var, e):
         self.train = configuration.config.train
         self.flags = flags
         self.eps = eps
         x, gamma, beta = inputs[:3]
-        self.x = array(x, m.memory.nchw, e)
-        x_md = self.x.memory.get_primitive_desc().desc()
-        gy = array(gy, m.memory.nchw, e)
+        # self.x = array(x, m.memory.nchw, e)
+        self.x = fwd_x
+
+        x_mpd = self.x.memory.get_primitive_desc()
+        x_md = x_mpd.desc()
+
+        gy = array(gy, m.get_fmt(x_mpd), e)
+        outputs = reorder_if_must(gy, x_mpd, e, self.dag_)
+        if len(outputs) == 2:
+            self.gy_src = gy
+            gy, self.itm_arr = outputs[:2]
+        else:
+            self.gy_src = gy
+            gy = outputs[0]
+
         gy_md = gy.memory.get_primitive_desc().desc()
         cc_d = bn_backward.desc(backward, gy_md, x_md, eps, flags)
         cc_pd = bn_backward.primitive_desc(cc_d, e, hint)

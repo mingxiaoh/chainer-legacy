@@ -13,7 +13,7 @@ modules = {
         ['mkldnn/api/support.i'],
 
         'mkldnn.api._memory' :
-        ['mkldnn/api/memory.i'],
+        ['mkldnn/api/memory.i', 'mkldnn/utils.cc'],
 
         'mkldnn.api._inner_product_forward' :
         ['mkldnn/api/inner_product_forward.i'],

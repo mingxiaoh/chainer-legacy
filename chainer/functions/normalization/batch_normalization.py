@@ -298,6 +298,7 @@ class BnMKLDNN(BatchNormalizationFunction):
                     pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
+        self.fwd_x = cc.x
         outputs = cc.execute_on()
         if configuration.config.train:
             self.mkl_mean = outputs[2]
@@ -324,7 +325,7 @@ class BnMKLDNN(BatchNormalizationFunction):
         else:
             mean = self.fixed_mean
             var = self.fixed_var
-        cc = BnBackward(inputs, gy, self.hint, self.flags,
+        cc = BnBackward(inputs, self.fwd_x, gy, self.hint, self.flags,
                 self.eps, mean, var,
                 pos=(self.rank, self.fanout))
 
