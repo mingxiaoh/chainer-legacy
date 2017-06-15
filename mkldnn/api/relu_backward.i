@@ -34,10 +34,10 @@
 
 namespace mkldnn {
 
-%rename (desc) relu_backward_data::desc;
-%rename (primitive_desc) relu_backward_data::primitive_desc;
+%rename (desc) relu_backward::desc;
+%rename (primitive_desc) relu_backward::primitive_desc;
 
-%exception inner_product_backward_data::desc::desc {
+%exception relu_backward::desc::desc {
   try {
     $action
   }
