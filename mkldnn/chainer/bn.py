@@ -198,8 +198,8 @@ class BnBackward(ComputeComplex):
         x = inputs[0]
         if (self.x.shape != x.shape) or (self.eps != eps):
             return False
-        if (isinstance(mean, mdarray) and id(mean) != id(self.mean)):                                                                      
+        if (isinstance(mean, mdarray) and (mean is not self.mean)):                                                                      
             return False
-        if (isinstance(var, mdarray) and id(var) != id(self.var)):                                                                        
+        if (isinstance(var, mdarray) and (var is not self.var)):                                                                        
             return False
         return True
