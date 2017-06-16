@@ -83,10 +83,23 @@ public:
     ~Sum<T>();
 
     void sum_setup(int num_sum, sum_data* sum_input,
+            T* y, mkldnn::memory::dims output_tz, mkldnn::memory::format src_mfmt,
+            double* scale, int scale_d1);
+
+    void sum4d_gx(int num_sum, char** data, int* n, int* c, int* h, int* w,
             T* y, int y_d1, int y_d2, int y_d3, int y_d4);
 
-    void sum(int num_sum, char** data, int* n, int* c, int* h, int* w,
-            T* y, int y_d1, int y_d2, int y_d3, int y_d4);
+    void sum1d_diff(int num_sum, char** data, int* o, int* i, int* h, int* w,
+            T* y, int y_d1,
+            double* scale, int scale_d1);
+
+    void sum2d_diff(int num_sum, char** data, int* o, int* i, int* h, int*w,
+            T* y, int y_d1, int y_d2,
+            double* scale, int scale_d1);
+
+    void sum4d_diff(int num_sum, char** data, int* o, int* i, int* h, int* w,
+            T* y, int y_d1, int y_d2, int y_d3, int y_d4,
+            double* scale, int scale_d1);
 
 private:
        bool first_run_ = true;

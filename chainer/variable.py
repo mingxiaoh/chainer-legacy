@@ -412,7 +412,7 @@ Actual: {0}'''.format(type(data))
                         y = numpy.empty((grad_tmp.shape), dtype=grad_tmp.dtype)
                         acc_grad += (grad_tmp,)
                         mkldnn_sum = mkldnn.Sum_F32()
-                        mkldnn_sum.sum(acc_grad, y)
+                        mkldnn_sum.sum4d_gx(acc_grad, y)
                         out_grad += (y,)
             else:
                 out_grad = tuple([None if y is None else y.grad for y in outputs])
