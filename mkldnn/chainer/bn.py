@@ -135,7 +135,7 @@ class BnBackward(ComputeComplex):
         if self.new:
             self._create_cc(inputs, fwd_x, gy, hint, flags, eps, mean, var, e)
         else:
-            self._reuse(inputs, fwd_x, gy, mean, var)
+            self._reuse(inputs, gy, mean, var)
 
     def _create_cc(self, inputs, fwd_x, gy, hint, flags, eps, mean, var, e):
         self.train = configuration.config.train
@@ -190,7 +190,7 @@ class BnBackward(ComputeComplex):
         w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
         reuse_buffer(self.w, w)
 
-    def match(self, inputs, gy, hint, flags, eps, mean, var,
+    def match(self, inputs, fwd_x, gy, hint, flags, eps, mean, var,
             pos=None, e=Engine()):
         if self.train != configuration.config.train:
             print('WARNING:bn backward, config.train mismatch ', self.train, configuration.config.train)
