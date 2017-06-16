@@ -34,8 +34,8 @@ class ReLUForward(ComputeComplex):
         cc_d = relu_forward.desc(forward, mem_pd.desc(), 0.0)
         cc_pd = relu_forward.primitive_desc(cc_d, e)
 
-        # y = mdarray(cc_pd.dst_primitive_desc())
-        y = x
+        y = mdarray(cc_pd.dst_primitive_desc())
+        #y = x
 
         self.x = x
         self.dag_.push_back(relu_forward.relu_forward(cc_pd,
@@ -68,7 +68,6 @@ class ReLUBackward(ComputeComplex):
     def __init__(self, inputs, grad_outputs, hint, pos = (0, 0), e=Engine()):
         x = inputs[0]
         gy = grad_outputs[0]
-
         fmt = m.memory.nchw
         if x.ndim == 2:
             fmt = m.memory.nc
@@ -92,6 +91,7 @@ class ReLUBackward(ComputeComplex):
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
         outputs = reorder_if_must(x, diff_pd, e, self.dag_)
+        #print("len(outputs)=", len(outputs))
         if len(outputs) == 2:
             x, self.itm_arr = outputs[:2]
         else:
@@ -101,8 +101,9 @@ class ReLUBackward(ComputeComplex):
         cc_d = relu_backward.desc(diff_pd.desc(), mem_pd.desc(), 0.0)
         cc_pd = relu_backward.primitive_desc(cc_d, e, hint)
 
-        # gx = mdarray(cc_pd.diff_src_primitive_desc())
-        gx = gy
+        gx = mdarray(cc_pd.diff_src_primitive_desc())
+        #print("gx.format=", m.get_fmt(cc_pd.diff_src_primitive_desc()))
+        #gx = gy
 
         self.dag_.push_back(relu_backward.relu_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))

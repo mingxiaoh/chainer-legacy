@@ -119,7 +119,7 @@ class LrnMKLDNN(function.Function):
         )
 
     def forward_cpu(self, x):
-        cc = LrnForward(x, n=self.n, k=self.k, alpha=self.alpha, beta=self.beta,
+        cc = LrnForward(x, n=self.n, k=self.k, alpha=self.alpha*self.n, beta=self.beta,
                 pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
@@ -129,7 +129,7 @@ class LrnMKLDNN(function.Function):
 
     def backward_cpu(self, x, gy):
         cc = LrnBackward(x, gy[0], self.hint, self.ws,
-                n=self.n, k=self.k, alpha=self.alpha, beta=self.beta,
+                n=self.n, k=self.k, alpha=self.alpha*self.n, beta=self.beta,
                 pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
