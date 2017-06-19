@@ -139,9 +139,8 @@ class MultiprocessIterator(iterator.Iterator):
             self._mem_list.append(sharedctypes.RawArray('b', mem_size))
             self._unused_mem_queue.put(i)
 
-        args = (self.dataset, self._index_queue, self._data_queue,
-                self._mem_list)
-        for _ in range(self.n_processes):
+        for worker_id in range(self.n_processes):
+            args = (self.dataset, self._index_queue, self._data_queue,self._mem_list, worker_id)
             worker = multiprocessing.Process(target=_worker, args=args)
             worker.daemon = True
             self._workers.append(worker)
@@ -329,6 +328,7 @@ def _unpack(data, mem):
 
 
 def _worker(dataset, in_queue, out_queue, mem_list):
+    os.system("taskset -p -c %d %d" % (worker_id % multiprocessing.cpu_count(), os.getpid()))
     while True:
         cnt, mem_index, index = in_queue.get()
         if cnt < 0:
