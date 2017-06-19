@@ -232,7 +232,6 @@ class DebugMode(object):
                       'Use chainer.using_config("debug", ...) instead.',
                       DeprecationWarning)
         self._using = using_config('debug', debug)
-        enable_cosim()
 
     def __enter__(self):
         self._using.__enter__()
