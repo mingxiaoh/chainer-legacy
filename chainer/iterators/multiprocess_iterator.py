@@ -327,7 +327,7 @@ def _unpack(data, mem):
     return data
 
 
-def _worker(dataset, in_queue, out_queue, mem_list):
+def _worker(dataset, in_queue, out_queue, mem_list, worker_id):
     os.system("taskset -p -c %d %d" % (worker_id % multiprocessing.cpu_count(), os.getpid()))
     while True:
         cnt, mem_index, index = in_queue.get()
