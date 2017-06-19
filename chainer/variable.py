@@ -591,6 +591,14 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator(gen_func)
 
+    def set_rank(self, val):
+        """Notifies the variable to update its rank.
+
+        Args:
+            val (int): New rank value
+        """
+        self._node._rank = val;
+
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
 

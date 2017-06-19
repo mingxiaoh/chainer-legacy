@@ -247,7 +247,7 @@ class Function(object):
             self.output_data = tuple([y.node.data for y in ret])
         else:
             for y in ret:
-                y._rank = self.rank + 1
+                y.set_rank(self.rank + 1)
 
         if len(ret) == 1:
             return ret[0]
