@@ -11,7 +11,7 @@ from mkldnn.mdarray import *
 
 def mkl_sum_enabled(in_data):
     if chainer.should_use_mkldnn('>=auto') \
-       and and all(isinstance(xi, numpy.ndarray) or isinstance(xi, mkldnn.mdarray) for xi in in_data):
+       and all(isinstance(xi, mkldnn.mdarray) for xi in in_data):
         return True
     else:
         return False
