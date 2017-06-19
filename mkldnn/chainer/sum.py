@@ -11,7 +11,7 @@ from mkldnn.mdarray import *
 
 def mkl_sum_enabled(in_data):
     if chainer.should_use_mkldnn('>=auto') \
-       and all(isinstance(xi, numpy.ndarray) or isinstance(xi, mkldnn.mdarray) for xi in in_data):
+       and all(isinstance(xi, mkldnn.mdarray) for xi in in_data):
         return True
     else:
         return False
@@ -30,15 +30,23 @@ def mkl_sum(xs):
     e = Engine()
 
     xarrays = () # prevent the obj from gc
+    xs_arrays = () # prevent the obj from gc
     itm_arr = None #prvent the obj from gc
     xs_mpdl = m.mpd_list()
     xs_pl = ()
     scales = m.vectord()
     pl = primitive_list()
-    xmpd = xs[0].memory.get_primitive_desc()
-    for x in xs:
-        xarray = array(x, _x_format(x.ndim), e)
-        outputs = reorder_if_must(xarray, xmpd, e, pl)
+    for i in range(len(xs)):
+        xarray = array(xs[i], _x_format(xs[i].ndim), e)
+        xmpd = xarray.memory.get_primitive_desc()
+        if i == 0:
+            xmpd_best = xmpd
+        else:
+            if m.get_fmt(xmpd) > m.get_fmt(xmpd_best):
+                xmpd_best = xmpd
+        xs_arrays += (xarray,)
+    for x in xs_arrays:
+        outputs = reorder_if_must(x, xmpd_best, e, pl)
         if len(outputs) == 2:
             xarray, itm_arr = outputs[:2]
         else:
