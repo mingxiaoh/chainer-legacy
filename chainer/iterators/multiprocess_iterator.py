@@ -6,7 +6,7 @@ import warnings
 
 import numpy
 import six
-
+import os
 from chainer.dataset import iterator
 
 
