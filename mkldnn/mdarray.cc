@@ -144,6 +144,78 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   return resultobj;
 }
 
+PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
+  // Resource manager, for GCC do not accept lambda
+  struct py_decref {
+    void operator () (PyObject *p) {
+      Py_DECREF(p);
+    }
+  };
+
+  std::unique_ptr<PyObject, py_decref> op(nullptr);
+
+  // Create mdarray from buffer provider
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
+    mkldnn::engine p_e = get_engine();
+
+    PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
+        , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
+
+    PyObject *argList = Py_BuildValue("(OiO)", o
+        , reorderer::public_format(
+            static_cast<mkldnn::memory::format>(desc().data.format)
+          ), Py_p_engine);
+
+    if (argList == nullptr) {
+      PyErr_SetString(PyExc_SystemError, "Can not create argument list");
+      return nullptr;
+    }
+
+    o = PyObject_CallObject(PyType_mdarray, argList);
+
+    Py_DECREF(argList);
+    Py_DECREF(Py_p_engine);
+
+    if (o == nullptr) {
+      PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
+      return nullptr;
+    }
+
+    op.reset(o);
+  }
+
+  void *oprd2;
+  int res = SWIG_ConvertPtr(o, &oprd2, nullptr, 0);
+
+  if (!SWIG_IsOK(res)) {
+    PyErr_SetString(PyExc_ValueError, "Wrong operand object in add wrapper");
+    return nullptr;
+  }
+
+  // 2 mdarray add
+  auto mdarray2 = (reinterpret_cast<py_handle *>(oprd2))->get();
+
+  std::vector<mkldnn::primitive> prims;
+  std::unique_ptr<mkldnn::memory> mreorder;
+  auto mem2 = reorder_if_must(mdarray2->memory(), m_.get_primitive_desc(), mreorder, &prims);
+
+  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
+      , {m_.get_primitive_desc(), mem2.get_primitive_desc()});
+
+  std::vector<mkldnn::memory::primitive::at> inputs_at {m_
+    , mem2};
+
+  assert(m_.get_primitive_desc().data.format == sum_pd.dst_primitive_desc().data.format);
+  mkldnn::sum sum_prim(sum_pd, inputs_at, memory());
+  prims.push_back(sum_prim);
+
+  mkldnn::stream s(mkldnn::stream::kind::eager);
+  s.submit(prims).wait();
+
+  Py_INCREF(self);
+  return self;
+}
+
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");

@@ -415,6 +415,7 @@ public:
   PyObject *getattro(PyObject *self, PyObject *name);
 
   PyObject * m_Add(PyObject *self, PyObject *o);
+  PyObject * m_InPlaceAdd(PyObject *self, PyObject *o);
   nb_binary_map(Subtract);
   nb_binary_map(Multiply);
   nb_binary_map(Remainder);
@@ -428,7 +429,6 @@ public:
   nb_binary_map(And);
   nb_binary_map(Xor);
   nb_binary_map(Or);
-  nb_binary_map(InPlaceAdd);
   nb_binary_map(InPlaceSubtract);
   nb_binary_map(InPlaceMultiply);
   nb_binary_map(InPlaceRemainder);
