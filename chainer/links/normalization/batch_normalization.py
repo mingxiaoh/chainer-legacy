@@ -90,7 +90,7 @@ class BatchNormalization(link.Link):
         """Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
-        mean and variance for evaluatino during training, and normalizes the
+        mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
         Args:
