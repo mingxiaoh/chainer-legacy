@@ -1119,17 +1119,17 @@ mkldnn_status_t MKLDNN_API mkldnn_convolution_backward_weights_desc_init(
 
 /** Initializes a @p relu_desc for forward propagation using @p prop_kind
  * (possible values are #mkldnn_forward_training or #mkldnn_forward_inference),
- * @p negative_slope and memory descriptor @p data_desc. */
+ * @p negative_slope and memory descriptor @p data_desc.
 mkldnn_status_t MKLDNN_API mkldnn_relu_forward_desc_init(
         mkldnn_relu_desc_t *relu_desc, mkldnn_prop_kind_t prop_kind,
-        const mkldnn_memory_desc_t *data_desc, double negative_slope);
+        const mkldnn_memory_desc_t *data_desc, double negative_slope); */
 
 /** Initializes a @p relu_desc for backward propagation using @p negative_slope
- * and memory descriptors @p diff_data_desc and @p data_desc. */
+ * and memory descriptors @p diff_data_desc and @p data_desc.
 mkldnn_status_t MKLDNN_API mkldnn_relu_backward_desc_init(
         mkldnn_relu_desc_t *relu_desc,
         const mkldnn_memory_desc_t *diff_data_desc,
-        const mkldnn_memory_desc_t *data_desc, double negative_slope);
+        const mkldnn_memory_desc_t *data_desc, double negative_slope); */
 
 /** @} */
 

@@ -7,7 +7,7 @@ import os
 subdir = 'mkldnn'
 
 # Sepcify prefix under which you put ipl_mkldnn
-prefix = os.path.expanduser('~')
+prefix = '/usr/local'
 
 modules = {
         'mkldnn.api._c_api' :
