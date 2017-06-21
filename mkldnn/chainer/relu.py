@@ -42,6 +42,8 @@ class ReLUForward(ComputeComplex):
     def match(self, inputs, *args):
         # TODO: refine it
         x = inputs[0]
+        if(isinstance(x, mdarray) and (x is not self.x)):
+            return False
         return self.x.shape == x.shape
 
     def _reuse_cc(self, x):
