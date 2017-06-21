@@ -442,7 +442,7 @@ def iscompatible(obj, class_or_tuple):
     if isinstance(obj, class_or_tuple):
         return True
 
-    if (isinstance(obj, numpy.ndarray) or isinstance(obj, mkldnn.mdarray)) \
+    if (isinstance(obj, mkldnn.mdarray) or isinstance(obj, numpy.ndarray)) \
             and (issubclass(class_or_tuple, mkldnn.mdarray) or \
             class_or_tuple is numpy.ndarray):
         return True
