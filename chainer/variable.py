@@ -640,7 +640,7 @@ Actual: {0}'''.format(type(data))
                     raise
 
         is_debug = chainer.is_debug()
-
+        is_cosim = chainer.is_cosim()
         cand_funcs = []
         seen_set = set()
         seen_vars = set()
@@ -697,7 +697,8 @@ Actual: {0}'''.format(type(data))
                 hook.backward_preprocess(func, in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
-            func.cpu_cosim_verify_result(gxs, func.backward_cpu_cosim(in_data, out_grad))
+            if is_cosim:
+                func.cpu_cosim_verify_result(gxs, func.backward_cpu_cosim(in_data, out_grad))
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
