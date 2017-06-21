@@ -150,8 +150,6 @@ def should_use_mkldnn(level):
     Returns:
         bool: ``True`` if the caller should use cuDNN.
 
-    """
-
     if level not in _SHOULD_USE_MKLDNN:
         raise ValueError('invalid mkldnn use level: %s '
                          '(must be either of "==always" or ">=auto")' %
@@ -164,13 +162,16 @@ def should_use_mkldnn(level):
                          repr(config.use_mkldnn))
     return flags[config.use_mkldnn]
 
+    """
+    return True
+
 def is_cosim():
     """Get the cosim mode.
 
     Returns:
         bool: Return ``True`` if Chainer is in cosim mode.
     """
-    return config.cosim
+    return False
 
 def enable_cosim():
     """Get the cosim mode.
