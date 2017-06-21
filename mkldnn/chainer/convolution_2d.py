@@ -319,15 +319,18 @@ class Convolution2DFunctionMKLDNN(function.Function):
 
     def backward_cpu(self, inputs, grad_outputs):
 
-        cc_data = ConvolutionBackwardData(inputs, grad_outputs, self.hint, self.W,
-                stride = (self.sy, self.sx), pad = (self.ph, self.pw),
-                cover_all = self.cover_all, pos=(self.rank, self.fanout))
-
         cc_weight = ConvolutionBackwardWeighs(inputs, grad_outputs, self.hint,
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
                 cover_all = self.cover_all, pos=(self.rank, self.fanout))
-
-        gx = cc_data.execute_on()
         gW_b = cc_weight.execute_on()
+
+        if self.rank != 0:
+            cc_data = ConvolutionBackwardData(inputs, grad_outputs,
+                    self.hint, self.W,
+                stride = (self.sy, self.sx), pad = (self.ph, self.pw),
+                cover_all = self.cover_all, pos=(self.rank, self.fanout))
+            gx = cc_data.execute_on()
+        else:
+            gx = None
 
         return gx + gW_b

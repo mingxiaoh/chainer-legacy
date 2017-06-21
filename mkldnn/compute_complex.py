@@ -83,11 +83,6 @@ class ComputeComplex(object):
             self._hint = None
 
     def execute_on(self, s = None):
-        if (mkld_config.config.gx_opt == True) and (self.pos[0] == 0) \
-            and (isinstance(self, type(ComputeComplex.cache_bd.get(self.pos)))):
-            # print('ingore 1st layer backward data', self.pos, self)
-            return None,
-
         if s is None:
             # XXX: Refresh everytime
             s = Stream()
