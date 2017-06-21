@@ -331,6 +331,6 @@ class Convolution2DFunctionMKLDNN(function.Function):
                 cover_all = self.cover_all, pos=(self.rank, self.fanout))
             gx = cc_data.execute_on()
         else:
-            gx = None
+            gx = None,
 
         return gx + gW_b
