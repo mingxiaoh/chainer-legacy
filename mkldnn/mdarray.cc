@@ -205,7 +205,7 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
   std::vector<mkldnn::memory::primitive::at> inputs_at {m_
     , mem2};
 
-  assert(m_.get_primitive_desc().data.format == sum_pd.dst_primitive_desc().data.format);
+  assert(m_.get_primitive_desc() == sum_pd.dst_primitive_desc());
   mkldnn::sum sum_prim(sum_pd, inputs_at, memory());
   prims.push_back(sum_prim);
 
