@@ -123,8 +123,7 @@ class BatchNormalization(link.Link):
                 decay = self.decay
 
             if (isinstance(x, mkldnn.mdarray)\
-                or x.dtype == numpy.dtype('float32')) \
-                and chainer.should_use_mkldnn('>=auto') \
+                or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
                 and (x.ndim == 4 or x.ndim == 2):
                 func = batch_normalization.BnMKLDNN(
                     self.eps, self.avg_mean, self.avg_var, decay)

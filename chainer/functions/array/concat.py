@@ -91,8 +91,8 @@ def concat(xs, axis=1):
 
     """
     x = xs[0]
-    if (x.dtype == numpy.dtype('float32') or isinstance(x, mkldnn.mdarray)) \
-        and chainer.should_use_mkldnn('>=auto') \
+    if (isinstance(x, mkldnn.mdarray) \
+            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
         and x.ndim == 4:
         func = ConcatMKLDNN(axis=axis)
         ret = func(*xs)

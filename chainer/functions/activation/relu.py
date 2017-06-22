@@ -89,9 +89,8 @@ def relu(x):
         (3, 2)
 
     """
-    if (x.dtype == numpy.dtype('float32') \
-            or isinstance(x, mkldnn.mdarray)) \
-        and chainer.should_use_mkldnn('>=auto') \
+    if (isinstance(x, mkldnn.mdarray) \
+            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
         and (x.ndim == 2 or x.ndim == 4):
         func = ReLUMKLDNN()
         ret = func(x)

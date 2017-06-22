@@ -171,8 +171,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
 
     """
     # XXX: Switch the route, work on the critera
-    if (x.dtype == numpy.dtype('float32') \
-            or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
+    if (isinstance(x, mkldnn.mdarray) \
+            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))):
         func = MaxPooling2DMKLDNN(ksize, stride, pad, cover_all)
         ret = func(x)
         if chainer.is_cosim():

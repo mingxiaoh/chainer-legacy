@@ -131,8 +131,8 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    if (x.dtype == numpy.dtype('float32') \
-            or isinstance(x, mkldnn.mdarray)) and chainer.should_use_mkldnn('>=auto'):
+    if (isinstance(x, mkldnn.mdarray) \
+            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))):
         func = LrnMKLDNN(n, k, alpha, beta)
         ret = func(x)
         if chainer.is_cosim():
