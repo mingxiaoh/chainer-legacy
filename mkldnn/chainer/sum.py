@@ -10,8 +10,8 @@ import mkldnn.api.sum as sum
 from mkldnn.mdarray import *
 
 def mkl_sum_enabled(in_data):
-    if chainer.should_use_mkldnn('>=auto') \
-       and (isinstance(in_data[0], numpy.ndarray) or isinstance(in_data[0], mkldnn.mdarray)):
+    if isinstance(in_data[0], mkldnn.mdarray) \
+       or (isinstance(in_data[0], numpy.ndarray) and chainer.should_use_mkldnn('>=auto')):
         return True
     else:
         return False
