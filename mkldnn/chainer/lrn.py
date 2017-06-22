@@ -31,7 +31,6 @@ class LrnForward(ComputeComplex):
         self.k = k
         self.alpha = alpha
         self.beta = beta
-
         # TODO: check avx512?
         self.x = array(x, m.memory.nchw, e)
         x_md = self.x.memory.get_primitive_desc().desc()
@@ -74,7 +73,6 @@ class LrnBackward(ComputeComplex):
         self.alpha = alpha
         self.beta = beta
         self.x = array(x, m.memory.nchw, e)
-
         x_md = self.x.memory.get_primitive_desc().desc()
         # TODO: check avx512?
         gy = array(gy, m.memory.nchw, e)
@@ -94,10 +92,7 @@ class LrnBackward(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, hint, ws, n, k, alpha, beta):
-        x = inputs[0]
-        return  (self.x.shape == x.shape) and (self.n == n) \
-                and (self.k == k) and (self.alpha == alpha) \
-                and (self.beta == beta) and (self.hint is hint)
+        return  (hint is self._hint)
 
 class LrnMKLDNN(function.Function):
 

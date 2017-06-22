@@ -142,7 +142,6 @@ class ConvolutionForward(ComputeComplex):
         y_d = m.desc(g.out_shape, m.memory.f32, m.memory.any)
 
         self.geometry = g.geometry
-
         # Create primitive_desc from any
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
         cc_pd = conv_forward.primitive_desc(cc_d, e)
@@ -178,6 +177,8 @@ class ConvolutionForward(ComputeComplex):
         W = inputs[1]
         if (self.x.shape != x.shape) or (self.W.shape != W.shape):
             return False
+        if (isinstance(x, mdarray) and (x is not self.x)):
+            return False
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
         return (self.geometry == g.geometry) and (self.num_inputs == len(inputs))
 
@@ -189,7 +190,6 @@ class ConvolutionBackwardData(ComputeComplex):
         x = inputs[0]
         W = inputs[1]
         gy = grad_outputs[0]
-
         if self.new:
             self._create_cc(x, W, gy, hint, fwd_W, stride, pad, cover_all, e)
         else:
@@ -219,7 +219,7 @@ class ConvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
-        return self.hint is hint
+        return  hint is self._hint
 
 class ConvolutionBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
@@ -243,11 +243,10 @@ class ConvolutionBackwardWeighs(ComputeComplex):
 
         cc_d = create_backward_desc(conv_backweights.desc, (x, W, b, gy), g.geometry)
         cc_pd = conv_backweights.primitive_desc(cc_d, e, hint)
-
+        
         self.gy = array(gy, m.memory.nchw, e)
         self.x = array(x, m.memory.nchw, e)
         self._hint = hint
-
         # Prepare outputs mdarray
         # gW = mdarray(cc_pd.diff_weights_primitive_desc())
         # if b is not None:
@@ -272,7 +271,7 @@ class ConvolutionBackwardWeighs(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
-        return self.hint is hint
+        return (hint is self._hint)
 
 class Convolution2DFunctionMKLDNN(function.Function):
 

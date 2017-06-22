@@ -79,11 +79,9 @@ class ReLUBackward(ComputeComplex):
         else:
             self._reuse_cc(x, gy)
 
-    def match(self, inputs, grad_outpus, *args):
+    def match(self, inputs, grad_outpus, hint, *args):
         # TODO: refine it
-        x = inputs[0]
-        gy = grad_outpus[0]
-        return self.x.shape == x.shape
+        return (hint is self._hint)
 
     def _create_cc(self, x, gy, hint, e = Engine()):
         diff_pd = gy.memory.get_primitive_desc()
@@ -108,6 +106,7 @@ class ReLUBackward(ComputeComplex):
 
         self.x = x
         self.gy = gy
+        self._hint = hint
         self.outputs = gx,
 
     def _reuse_cc(self, x, gy):

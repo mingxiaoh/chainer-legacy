@@ -39,7 +39,6 @@ class Pooling2DForward(ComputeComplex):
         self.pad = pad
         self.cover_all = cover_all
         self.x = array(x, m.memory.nchw, e)
-
         # TODO: check avx512?
 
         n, c, h, w = x.shape
@@ -103,11 +102,10 @@ class Pooling2DBackward(ComputeComplex):
         self.pad = pad
         self.cover_all = cover_all
         self.x = array(x, m.memory.nchw, e)
-
         gy = array(gy, m.memory.nchw, e)
         gy_md = gy.memory.get_primitive_desc().desc()
         gx_md = m.desc(x.shape, m.memory.f32, m.memory.any)
-
+        
         n, c, h, w = x.shape
         sy, sx = _pair(stride)
         kh, kw = _pair(ksize)
@@ -141,12 +139,8 @@ class Pooling2DBackward(ComputeComplex):
         reuse_buffer(self.x, x)
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, gy, hint, ws, alg_kind, ksize, stride=1, pad=0, cover_all=False, **kwargs):
-        x = inputs[0]
-        return  (self.x.shape == x.shape) and (self.ksize == ksize) \
-                and (self.stride == stride) and (self.pad == pad) \
-                and (self.cover_all == cover_all) and (self.hint == hint) \
-                and (self.alg_kind == alg_kind)
+    def match(self, inputs, gy, hint, *args, **kwargs):
+        return  (hint is self._hint) 
 
 
 class Pooling2DMKLDNN(function.Function):

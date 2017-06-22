@@ -27,7 +27,6 @@ class ConcatForward(ComputeComplex):
 
     def _create_cc(self, xs, axis, e):
         self.axis = axis
-
         xarrays = ()
         axis_dim = 0
         xs_mpdl = m.mpd_list()
@@ -58,6 +57,8 @@ class ConcatForward(ComputeComplex):
         for xarray, x in zip(self.xarrays, inputs):
             if xarray.shape != x.shape:
                 return False
+            if (isinstance(x, mdarray) and (x is not xarray)):
+                return False
         return True
 
 class ConcatBackward(ComputeComplex):
@@ -74,7 +75,6 @@ class ConcatBackward(ComputeComplex):
 
     def _create_cc(self, xs, gy, axis, e):
         self.axis = axis
-
         gy = array(gy[0], m.memory.nchw, e)
         fmt = m.memory.nchw
         gy_mpd = gy.memory.get_primitive_desc()

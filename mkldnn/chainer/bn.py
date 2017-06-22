@@ -144,10 +144,8 @@ class BnBackward(ComputeComplex):
         x, gamma, beta = inputs[:3]
         # self.x = array(x, m.memory.nchw, e)
         self.x = fwd_x
-
         x_mpd = self.x.memory.get_primitive_desc()
         x_md = x_mpd.desc()
-
         gy = array(gy, m.get_fmt(x_mpd), e)
         outputs = reorder_if_must(gy, x_mpd, e, self.dag_)
         if len(outputs) == 2:
@@ -190,16 +188,8 @@ class BnBackward(ComputeComplex):
         w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
         reuse_buffer(self.w, w)
 
-    def match(self, inputs, fwd_x, gy, hint, flags, eps, mean, var,
-            pos=None, e=Engine()):
+    def match(self, inputs, fwd_x, gy, hint, *args):
         if self.train != configuration.config.train:
             print('WARNING:bn backward, config.train mismatch ', self.train, configuration.config.train)
             return False
-        x = inputs[0]
-        if (self.x.shape != x.shape) or (self.eps != eps):
-            return False
-        if (isinstance(mean, mdarray) and (mean is not self.mean)):                                                                      
-            return False
-        if (isinstance(var, mdarray) and (var is not self.var)):                                                                        
-            return False
-        return True
+        return (hint is self._hint)
