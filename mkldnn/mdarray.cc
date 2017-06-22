@@ -358,11 +358,11 @@ int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   // Only for the first, framework do it for us next time
   if (reorder_ == nullptr) {
     reorder_.reset(new reorderer(this));
-
-    if (reorder_->non_trivial()) {
-      mkldnn::reorder rb_p = reorder_->fire(this);
-      dag_->push_back(rb_p);
-    }
+  }
+  if (reorder_->non_trivial() && (reorder_->is_reordered() == false)) {
+    mkldnn::reorder rb_p = reorder_->fire(this);
+    reorder_->set_reordered();
+    //dag_->push_back(rb_p);
   }
 
   if ( reorder_->build_view(view, flags) ) {

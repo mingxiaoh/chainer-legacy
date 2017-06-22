@@ -70,10 +70,14 @@
   static int mdarray_setbuffer(mdarray *self, Py_buffer *view) {
     return (*self)->setbuffer(view);
   }
+  static void mdarray_reset_buf_order(mdarray *self) {
+    (*self)->reset_buf_order();
+  }
 %}
 
 %extend mdarray {
   int setbuffer(Py_buffer *view);
+  void reset_buf_order();
 }
 
 %exception mdarray::mdarray {

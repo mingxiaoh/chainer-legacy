@@ -116,6 +116,7 @@ public:
   class reorderer {
   protected:
     bool non_trivial_;
+    bool reordered_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
 
@@ -163,7 +164,7 @@ public:
       :reorderer(in.get()) {}
 
     reorderer(const mdarray *src)
-      : non_trivial_(src->incompatible()), dst_([src] () {
+      : non_trivial_(src->incompatible()), reordered_(false), dst_([src] () {
           if (src->incompatible()) {
             auto md_data = src->desc().data;
 
@@ -206,6 +207,18 @@ public:
 
     inline bool non_trivial() const {
       return non_trivial_;
+    }
+
+    inline void set_reordered() {
+      reordered_ = true;
+    }
+
+    inline void reset_reorder() {
+      reordered_ = false;
+    }
+
+    inline bool is_reordered() const {
+      return reordered_;
     }
 
     static mkldnn::memory::format public_format(
@@ -388,6 +401,8 @@ public:
   fail:
     return -1;
   }
+
+  virtual void reset_buf_order() { }
 
   inline void *data() const { return data_.get(); }
   inline size_type size() const { return size_; }
@@ -576,6 +591,11 @@ public:
   virtual int getbuffer(PyObject *self
       , Py_buffer *view, int flags) override;
 
+  virtual void reset_buf_order() {
+    if (reorder_) {
+	  reorder_->reset_reorder();
+	}
+  }
 protected:
   std::vector<mkldnn::primitive> *dag_;
   std::unique_ptr<reorderer> reorder_;

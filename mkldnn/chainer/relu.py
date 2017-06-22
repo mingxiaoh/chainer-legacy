@@ -29,8 +29,8 @@ class ReLUForward(ComputeComplex):
                 mem_pd.desc(), 0.0, 0.0)
         cc_pd = eltwise_forward.primitive_desc(cc_d, e)
 
-        y = mdarray(cc_pd.dst_primitive_desc())
-        #y = x
+        # y = mdarray(cc_pd.dst_primitive_desc())
+        y = x
 
         self.x = x
         self.dag_.push_back(eltwise_forward.eltwise_forward(cc_pd,
@@ -99,9 +99,9 @@ class ReLUBackward(ComputeComplex):
                 mem_pd.desc(), 0.0, 0.0)
         cc_pd = eltwise_backward.primitive_desc(cc_d, e, hint)
 
-        gx = mdarray(cc_pd.diff_src_primitive_desc())
+        # gx = mdarray(cc_pd.diff_src_primitive_desc())
         #print("gx.format=", m.get_fmt(cc_pd.diff_src_primitive_desc()))
-        #gx = gy
+        gx = gy
 
         self.dag_.push_back(eltwise_backward.eltwise_backward(cc_pd,
             at(x.memory), at(gy.memory), gx.memory))
@@ -129,6 +129,7 @@ class ReLUMKLDNN(function.Function):
         self.hint = cc.hint
 
         y, = cc.execute_on()
+        y.reset_buf_order()
 
         return y,
 
@@ -137,5 +138,6 @@ class ReLUMKLDNN(function.Function):
                 pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
+        gx.reset_buf_order()
 
         return gx,
