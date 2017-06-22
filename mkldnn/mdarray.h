@@ -510,7 +510,7 @@ public:
 
     if (user.get_primitive_desc() != expect) {
       mkldnn::memory interm(expect);
-
+#if 0
       auto user_mpd = user.get_primitive_desc();
       mkldnn::memory::format user_fmt = static_cast<mkldnn::memory::format>(
           user_mpd.desc().data.format);
@@ -537,6 +537,9 @@ public:
       } else {
           dag->push_back(mkldnn::reorder(user, interm));
 	  }
+#else
+      dag->push_back(mkldnn::reorder(user, interm));
+#endif
       return interm;
     }
 

@@ -11,24 +11,34 @@ from mkldnn.mdarray import *
 def reorder_if_must(x, expect, e, net_):
     usr_m = x.memory
     if (usr_m.get_primitive_desc() != expect):
-        usr_pd = usr_m.get_primitive_desc()
-        usr_fmt = m.get_fmt(usr_pd)
-        expect_fmt = m.get_fmt(expect)
         reorded_array = mdarray(expect)
         reorded = reorded_array.memory
-        if (usr_fmt == m.memory.nChw16c and expect_fmt == m.memory.nChw8c) \
-            or (usr_fmt == m.memory.nChw8c and expect_fmt == m.memory.nChw16c):
-            # Only support float32
-            intermediate_arr = mdarray(x.shape, m.memory.f32, m.memory.nchw, e)
-            itm_m = intermediate_arr.memory
-            net_.push_back(r.reorder(at(usr_m), itm_m))
-            net_.push_back(r.reorder(at(itm_m), reorded))
-            return reorded_array, intermediate_arr
-        else:
-            net_.push_back(r.reorder(at(usr_m), reorded))
-            return reorded_array,
+        net_.push_back(r.reorder(at(usr_m), reorded))
+        return reorded_array,
     else:
         return x,
+
+# def reorder_if_must(x, expect, e, net_):
+#     usr_m = x.memory
+#     if (usr_m.get_primitive_desc() != expect):
+#         usr_pd = usr_m.get_primitive_desc()
+#         usr_fmt = m.get_fmt(usr_pd)
+#         expect_fmt = m.get_fmt(expect)
+#         reorded_array = mdarray(expect)
+#         reorded = reorded_array.memory
+#         if (usr_fmt == m.memory.nChw16c and expect_fmt == m.memory.nChw8c) \
+#             or (usr_fmt == m.memory.nChw8c and expect_fmt == m.memory.nChw16c):
+#             # Only support float32
+#             intermediate_arr = mdarray(x.shape, m.memory.f32, m.memory.nchw, e)
+#             itm_m = intermediate_arr.memory
+#             net_.push_back(r.reorder(at(usr_m), itm_m))
+#             net_.push_back(r.reorder(at(itm_m), reorded))
+#             return reorded_array, intermediate_arr
+#         else:
+#             net_.push_back(r.reorder(at(usr_m), reorded))
+#             return reorded_array,
+#     else:
+#         return x,
 
 def reuse_buffer(d, s):
     if isinstance(s, numpy.ndarray):
