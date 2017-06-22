@@ -153,7 +153,8 @@ class BatchNormalizationFunction(function.Function):
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
         elif isinstance(self, BnMKLDNN) \
-            and (isinstance(x, mkldnn.mdarray) or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
+            and (isinstance(x.data, mkldnn.mdarray) \
+                or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
             and (x.ndim == 2 or x.ndim == 4):
             outputs = self.forward_cpu(inputs)
             y = outputs[0]
@@ -255,7 +256,8 @@ class BatchNormalizationFunction(function.Function):
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
         elif isinstance(self, BnMKLDNN) \
-            and (isinstance(x, mkldnn.mdarray) or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
+            and (isinstance(x.data, mkldnn.mdarray) \
+                or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
             and (x.ndim == 2 or x.ndim == 4):
             outputs = self.backward_cpu(inputs, gy)
             gx, ggamma, gbeta = outputs[:3]
@@ -383,7 +385,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
     """
 
-    if (isinstance(x, mkldnn.mdarray) \
+    if (isinstance(x.data, mkldnn.mdarray) \
             or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
         and (x.ndim == 4 or x.ndim == 2):
         return BnMKLDNN(eps, running_mean, running_var,
@@ -415,7 +417,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
 
     """
     with configuration.using_config('train', False):
-        if (isinstance(x, mkldnn.mdarray) \
+        if (isinstance(x.data, mkldnn.mdarray) \
                 or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
             and (x.ndim == 4 or x.ndim == 2):
             func = BnMKLDNN(eps, None, None, 0.0)

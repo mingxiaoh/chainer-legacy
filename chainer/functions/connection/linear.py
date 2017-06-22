@@ -137,10 +137,11 @@ def linear(x, W, b=None):
 
     """
     # XXX: switch the route, work on the critera
-    if (x.dtype == numpy.dtype('float32') \
+    if isinstance(x.data, mkldnn.mdarray) \
+        or isinstance(x, mkldnn.mdarray) \
+        or (x.dtype == numpy.dtype('float32') \
             and W.dtype == numpy.dtype('float32')\
-            and (x.ndim == 2 or x.ndim == 4)) \
-            or isinstance(x, mkldnn.mdarray):
+            and (x.ndim == 2 or x.ndim == 4)):
         if b is None:
             return LinearFunctionMKLDNN()(x, W)
         else:
