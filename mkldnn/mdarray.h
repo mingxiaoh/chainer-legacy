@@ -402,8 +402,6 @@ public:
     return -1;
   }
 
-  virtual void reset_buf_order() { }
-
   inline void *data() const { return data_.get(); }
   inline size_type size() const { return size_; }
   inline size_type len() const { return m_.get_primitive_desc().get_size(); }
@@ -426,6 +424,8 @@ public:
 
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
+
+  virtual void reset_buf_order() {}
 
   PyObject *getattro(PyObject *self, PyObject *name);
 
@@ -594,8 +594,8 @@ public:
   virtual int getbuffer(PyObject *self
       , Py_buffer *view, int flags) override;
 
-  virtual void reset_buf_order() {
-    if (reorder_) {
+  virtual void reset_buf_order() override {
+    if (reorder_.get()) {
 	  reorder_->reset_reorder();
 	}
   }

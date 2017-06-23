@@ -85,6 +85,7 @@ class LinearFunctionMKLDNN(LinearFunction):
         self.W = cc.W
 
         y, = cc.execute_on()
+        y.reset_buf_order()
 
         return y,
 
@@ -95,7 +96,9 @@ class LinearFunctionMKLDNN(LinearFunction):
                 pos=(self.rank, self.fanout))
 
         gx = cc_data.execute_on()
+        gx[0].reset_buf_order()
         gW_b = cc_weight.execute_on()
+        gW_b[0].reset_buf_order()
 
         return gx + gW_b
 

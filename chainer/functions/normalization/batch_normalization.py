@@ -101,7 +101,11 @@ class BatchNormalizationFunction(function.Function):
         cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
+        if isinstance(self, BnMKLDNN):
+            self._can_use_cudnn = False
+        else:
+            # Can't touch element of x, it cause mdarray reorder.
+            self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
 
         cudnn_updated_running_stats = False
         if (xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and
@@ -291,7 +295,7 @@ class BnMKLDNN(BatchNormalizationFunction):
         if x.ndim == 2:
             self.expand_dim = True
             x = x[:, :, None, None]
-        inputs = (x,) +  inputs[1:]
+            inputs = (x,) +  inputs[1:]
         if configuration.config.train:
             cc = BnForward(inputs, self.eps, None, None,
                     pos=(self.rank, self.fanout))

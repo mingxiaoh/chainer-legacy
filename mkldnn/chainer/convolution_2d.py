@@ -243,7 +243,7 @@ class ConvolutionBackwardWeighs(ComputeComplex):
 
         cc_d = create_backward_desc(conv_backweights.desc, (x, W, b, gy), g.geometry)
         cc_pd = conv_backweights.primitive_desc(cc_d, e, hint)
-        
+
         self.gy = array(gy, m.memory.nchw, e)
         self.x = array(x, m.memory.nchw, e)
         self._hint = hint
@@ -313,6 +313,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
         self.W = cc.W
 
         y, = cc.execute_on()
+        y.reset_buf_order()
 
         return y,
 
@@ -322,6 +323,8 @@ class Convolution2DFunctionMKLDNN(function.Function):
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
                 cover_all = self.cover_all, pos=(self.rank, self.fanout))
         gW_b = cc_weight.execute_on()
+        # No reorder for bias?
+        gW_b[0].reset_buf_order()
 
         if self.rank != 0:
             cc_data = ConvolutionBackwardData(inputs, grad_outputs,
@@ -329,6 +332,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
                 stride = (self.sy, self.sx), pad = (self.ph, self.pw),
                 cover_all = self.cover_all, pos=(self.rank, self.fanout))
             gx = cc_data.execute_on()
+            gx[0].reset_buf_order()
         else:
             gx = None,
 
