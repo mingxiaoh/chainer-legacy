@@ -157,7 +157,7 @@ class BatchNormalizationFunction(function.Function):
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
         elif isinstance(self, BnMKLDNN) \
-            and (isinstance(x.data, mkldnn.mdarray) \
+            and (isinstance(x, mkldnn.mdarray) \
                 or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
             and (x.ndim == 2 or x.ndim == 4):
             outputs = self.forward_cpu(inputs)
@@ -260,7 +260,7 @@ class BatchNormalizationFunction(function.Function):
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
         elif isinstance(self, BnMKLDNN) \
-            and (isinstance(x.data, mkldnn.mdarray) \
+            and (isinstance(x, mkldnn.mdarray) \
                 or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
             and (x.ndim == 2 or x.ndim == 4):
             outputs = self.backward_cpu(inputs, gy)
