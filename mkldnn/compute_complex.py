@@ -1,12 +1,13 @@
-from mkldnn import config as mkld_config
-from mkldnn.api.support import *
+# from mkldnn import config as mkld_config
+from mkldnn.api.support import at, primitive_list
 from mkldnn.api import reorder as r
-from mkldnn.api import memory as m
+# from mkldnn.api import memory as m
 from mkldnn.chainer.runtime import Stream
 
 import mkldnn
 import numpy
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
+
 
 def reorder_if_must(x, expect, e, net_):
     usr_m = x.memory
@@ -40,10 +41,12 @@ def reorder_if_must(x, expect, e, net_):
 #     else:
 #         return x,
 
+
 def reuse_buffer(d, s):
     if isinstance(s, numpy.ndarray):
         s = numpy.ascontiguousarray(s)
         d.setbuffer(s)
+
 
 # XXX: move this file to another location
 def array(obj, *args):
@@ -57,6 +60,7 @@ def array(obj, *args):
     else:
         raise NotImplementedError
 
+
 class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
@@ -65,7 +69,7 @@ class ComputeComplex(object):
     cache_bd = {}
     cache_bw = {}
 
-    cache = { 'f':cache_f, 'bd':cache_bd, 'bw':cache_bw }
+    cache = {'f': cache_f, 'bd': cache_bd, 'bw': cache_bw}
 
     def __new__(cls, *args, **kwargs):
         pos = kwargs.pop('pos')
@@ -74,7 +78,7 @@ class ComputeComplex(object):
         cache = cls.cache[cls.cc_type]
         ret = cache.get(pos)
 
-        if ret and isinstance(ret, cls)  and ret.match(*args, **kwargs):
+        if ret and isinstance(ret, cls) and ret.match(*args, **kwargs):
             ret.new = False
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
@@ -92,7 +96,7 @@ class ComputeComplex(object):
             self.dag_ = primitive_list()
             self._hint = None
 
-    def execute_on(self, s = None):
+    def execute_on(self, s=None):
         if s is None:
             # XXX: Refresh everytime
             s = Stream()

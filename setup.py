@@ -5,9 +5,9 @@ import pkg_resources
 from setuptools.command.build_py import build_py
 from setuptools.command.install import install
 from setuptools import setup
-from setuptools.extension import Extension
-
-from numpy import get_include
+# from setuptools.extension import Extension
+import mkldnn_setup
+# from numpy import get_include
 
 setup_requires = []
 install_requires = [
@@ -29,17 +29,20 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
+
 class _build_py(build_py):
     def run(self):
         self.run_command('build_ext')
         build_py.run(self)
+
 
 class _install(install):
     def run(self):
         self.run_command('build_ext')
         install.run(self)
 
-packages=['chainer',
+packages = [
+          'chainer',
           'chainer.dataset',
           'chainer.datasets',
           'chainer.functions',
@@ -76,10 +79,7 @@ packages=['chainer',
           'chainer.training.triggers',
           'chainer.utils']
 
-
-import mkldnn_setup
-
-ext_modules=mkldnn_setup.ext_modules
+ext_modules = mkldnn_setup.ext_modules
 packages += mkldnn_setup.packages
 
 setup(
@@ -90,9 +90,9 @@ setup(
     author_email='tokui@preferred.jp',
     url='http://chainer.org/',
     license='MIT License',
-    packages = packages,
+    packages=packages,
     ext_modules=ext_modules,
-    cmdclass={'install':_install, 'build_py':_build_py},
+    cmdclass={'install': _install, 'build_py': _build_py},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

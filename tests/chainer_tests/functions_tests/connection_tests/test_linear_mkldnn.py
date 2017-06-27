@@ -3,21 +3,23 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer.functions.connection import linear
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
+# import mkldnn
+from mkldnn.chainer.fanout import FanoutRecorder
 
-import mkldnn
-from mkldnn.chainer.fanout import *
 
 def _as_mat(x):
+
     if x.ndim == 2:
         return x
     return x.reshape(len(x), -1)
+
 
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3), (4, 3, 1, 1)],

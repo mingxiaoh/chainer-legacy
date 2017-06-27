@@ -7,7 +7,8 @@ from chainer import function
 from chainer.utils import type_check
 
 import mkldnn
-from mkldnn.chainer.lrn import *
+from mkldnn.chainer.lrn import LrnMKLDNN
+
 
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
@@ -131,14 +132,15 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    if (isinstance(x.data, mkldnn.mdarray) \
-            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))):
+    if (isinstance(x.data, mkldnn.mdarray) or
+        (x.dtype == numpy.dtype('float32') and
+         chainer.should_use_mkldnn('>=auto'))):
         func = LrnMKLDNN(n, k, alpha, beta)
         ret = func(x)
         if chainer.is_cosim():
             func.cosim_func = LocalResponseNormalization(n, k, alpha, beta)
             numpy_result = func.cosim_func(x)
             func.cpu_cosim_verify_result(ret, numpy_result)
-        return ret           
+        return ret
     else:
         return LocalResponseNormalization(n, k, alpha, beta)(x)

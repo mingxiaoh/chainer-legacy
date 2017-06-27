@@ -3,16 +3,17 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer.functions.connection import linear
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 
-import mkldnn
-from mkldnn.chainer.fanout import *
+# import mkldnn
+from mkldnn.chainer.fanout import FanoutRecorder
+
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float32],

@@ -1,6 +1,6 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 import six
 
@@ -9,13 +9,13 @@ from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 from mkldnn.chainer import avg_pooling_2d
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float32,],
+    'dtype': [numpy.float32, ],
 }))
 class TestAveragePooling2D(unittest.TestCase):
 
@@ -61,6 +61,7 @@ class TestAveragePooling2D(unittest.TestCase):
             y_expect = cuda.to_cpu(y.data)
         testing.assert_allclose(
                     y_expect, y_data, **self.check_forward_options)
+
     @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)

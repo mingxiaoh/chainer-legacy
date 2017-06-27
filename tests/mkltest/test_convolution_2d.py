@@ -1,4 +1,4 @@
-import mock
+# import mock
 import unittest
 
 import numpy
@@ -9,11 +9,12 @@ from chainer import functions
 from chainer.functions.connection import convolution_2d
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
+# from chainer.testing import attr
+# from chainer.testing import condition
 from chainer.utils import conv
 
-from mkldnn.chainer.fanout import *
+from mkldnn.chainer.fanout import FanoutRecorder
+
 
 @testing.parameterize(*(
     testing.product({
@@ -22,15 +23,15 @@ from mkldnn.chainer.fanout import *
         'c_contiguous': [True, False],
         'cover_all': [True, False],
         'x_dtype': [numpy.float32],
-        'W_dtype': [numpy.float32],}) 
-    +
+        'W_dtype': [numpy.float32], }) +
+
     testing.product({
         'in_shape': [(1, 3, 9, 9)],
         'kernel_geo': [(8, 3, 3, 1, 0)],
         'c_contiguous': [True, False],
         'cover_all': [True, False],
         'x_dtype': [numpy.float32],
-        'W_dtype': [numpy.float32],}) 
+        'W_dtype': [numpy.float32], })
     # +
     # testing.product({
     #     'in_shape': [(8, 3, 227, 227)],
@@ -45,7 +46,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
     def setUp(self):
         FanoutRecorder.clear()
         n, c, h, w = self.in_shape
-        out_c= self.kernel_geo[0]
+        out_c = self.kernel_geo[0]
         kh, kw = (self.kernel_geo[1], self.kernel_geo[2])
         self.stride = self.kernel_geo[3]
         self.pad = self.kernel_geo[4]
@@ -60,20 +61,24 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         self.x = numpy.random.uniform(
             -1, 1, self.in_shape).astype(self.x_dtype)
 
-        out_h = conv.get_conv_outsize(h, kh,
-                self.stride, self.pad, cover_all = self.cover_all)
-        out_w = conv.get_conv_outsize(w, kw,
-                self.stride, self.pad, cover_all = self.cover_all)
+        out_h = conv.get_conv_outsize(
+            h, kh,
+            self.stride, self.pad, cover_all=self.cover_all)
+        out_w = conv.get_conv_outsize(
+            w, kw,
+            self.stride, self.pad, cover_all=self.cover_all)
 
         print("Setup convolution", (n, c, h, w))
-        self.gy = numpy.random.uniform(-1, 1,
-                (n, out_c, out_h, out_w)).astype(self.x_dtype)
+        self.gy = numpy.random.uniform(
+            -1, 1,
+            (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        self.con2mkl = convolution_2d.Convolution2DFunctionMKLDNN(stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-        self.con2 = convolution_2d.Convolution2DFunction(stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-
+        self.con2mkl = convolution_2d.Convolution2DFunctionMKLDNN(
+            stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all)
+        self.con2 = convolution_2d.Convolution2DFunction(
+            stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float32, 'atol': 5e-4, 'rtol': 5e-3}
@@ -82,7 +87,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward():
+    def check_forward(self, nobias=False):
         print("test_forward_consistency")
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)

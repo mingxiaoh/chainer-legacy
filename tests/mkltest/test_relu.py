@@ -1,20 +1,21 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
+# from chainer.testing import attr
+# from chainer.testing import condition
 
 from mkldnn.chainer.runtime import Engine
 import mkldnn.api.memory as m
-from mkldnn.chainer.fanout import *
-from mkldnn.mdarray import *
+from mkldnn.chainer.fanout import FanoutRecorder
+from mkldnn.mdarray import mdarray
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2)],

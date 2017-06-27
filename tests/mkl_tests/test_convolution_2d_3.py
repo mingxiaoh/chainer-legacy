@@ -204,7 +204,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
                 cover_all=self.cover_all)
 
         testing.assert_allclose(
-            y_mkl.data, y_mkl.data, **self.check_forward_options)
+            y_mkl.data, y_cpu.data, **self.check_forward_options)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
         xp = cuda.get_array_module(x_data)
@@ -238,6 +238,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
     @condition.retry(3)
     def test_backward_cpu_nobias(self):
         self.check_backward(self.x, self.W, None, self.gy)
+
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],

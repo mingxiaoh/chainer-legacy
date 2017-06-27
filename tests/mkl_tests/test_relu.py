@@ -1,20 +1,22 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
+# from chainer.testing import attr
+# from chainer.testing import condition
 
 from mkldnn.chainer.runtime import Engine
 import mkldnn.api.memory as m
-from mkldnn.chainer.fanout import *
-from mkldnn.mdarray import *
+import mkldnn.chainer.fanout
+import mkldnn.mdarray
+# from mkldnn.mdarray import *
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2)],
@@ -25,7 +27,7 @@ class TestReLU(unittest.TestCase):
     def setUp(self):
         # Avoid unstability of numerical grad
         # fanout.clear()
-        FanoutRecorder.clear()
+        mkldnn.chainer.fanout.FanoutRecorder.clear()
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         for i in numpy.ndindex(self.shape):
             if -0.1 < x[i] < 0.1:
@@ -37,8 +39,8 @@ class TestReLU(unittest.TestCase):
             self.x.setbuffer(x)
             self.gy.setbuffer(gy)
         except AttributeError:
-            self.x = mdarray(x, m.memory.nc, Engine())
-            self.gy = mdarray(gy, m.memory.nc, Engine())
+            self.x = mkldnn.mdarray.mdarray(x, m.memory.nc, Engine())
+            self.gy = mkldnn.mdarray.mdarray(gy, m.memory.nc, Engine())
 
         self.check_backward_options = {}
 

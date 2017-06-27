@@ -1,18 +1,19 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 import six
 
 import chainer
 from chainer import cuda
 from chainer import functions
-from chainer import gradient_check
+# from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 from chainer.functions.math import identity
 from mkldnn.chainer import max_pooling_2d
+
 
 class TestMaxPooling2D(unittest.TestCase):
 
@@ -72,13 +73,12 @@ class TestMaxPooling2D(unittest.TestCase):
             iy.grad = igy
         y[0].backward()
 
-
     @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
 test = TestMaxPooling2D()
 test.setUp()
-#test.test_forward_cpu()
-#test.test_forward_cpu_wide()
+# test.test_forward_cpu()
+# test.test_forward_cpu_wide()
 test.test_backward_cpu()

@@ -3,10 +3,10 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product_dict(
@@ -36,7 +36,6 @@ class TestConcat(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.xs, self.y, axis=self.axis)
 
-
     def check_backward(self, xs_data, axis):
         xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
         y = functions.concat(xs, axis=axis)
@@ -47,7 +46,7 @@ class TestConcat(unittest.TestCase):
             testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
 
     def test_backward_cpu(self):
-        #print('ingore backward test')
+        # print('ingore backward test')
         self.check_backward(self.xs, axis=self.axis)
 
 

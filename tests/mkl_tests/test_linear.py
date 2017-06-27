@@ -3,16 +3,17 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer.functions.connection import linear
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 
 import mkldnn
-from mkldnn.chainer.fanout import *
+import mkldnn.chainer.fanout
+
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float32],
@@ -21,7 +22,7 @@ from mkldnn.chainer.fanout import *
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        FanoutRecorder.clear()
+        mkldnn.chainer.fanout.FanoutRecorder.clear()
         self.W = numpy.random.uniform(
             -1, 1, (2, 3)).astype(self.W_dtype)
         self.b = numpy.random.uniform(
@@ -41,7 +42,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, W_data, b_data, y_expect):
-        FanoutRecorder.clear()
+        mkldnn.chainer.fanout.FanoutRecorder.clear()
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:

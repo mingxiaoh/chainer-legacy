@@ -8,7 +8,7 @@ from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 from mkldnn.chainer import lrn
 
@@ -20,10 +20,10 @@ from mkldnn.chainer import lrn
 class TestLocalResponseNormalization(unittest.TestCase):
 
     def setUp(self):
-        n = 5
-        k = 1
-        alpha = 1e-4
-        beta = .75
+        # n = 5
+        # k = 1
+        # alpha = 1e-4
+        # beta = .75
         # self.x = numpy.random.uniform(
         #     -1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
         # self.gy = numpy.random.uniform(
@@ -37,7 +37,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
-        #self.lrn = lrn.LrnMKLDNN(n, k, alpha, beta)
+        # self.lrn = lrn.LrnMKLDNN(n, k, alpha, beta)
         # self.lrn = functions.LocalResponseNormalization(n, k, alpha, beta)
 
     def check_forward(self, x_data):
@@ -78,6 +78,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
             y_expect[n, c, h, w] = self.x[n, c, h, w] / denom
         testing.assert_allclose(
             y_expect, y_data, **self.check_forward_optionss)
+
     @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)

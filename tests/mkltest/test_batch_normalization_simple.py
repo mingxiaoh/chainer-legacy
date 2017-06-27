@@ -1,6 +1,6 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 import six
 
@@ -94,14 +94,10 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
-
-
 test = TestBatchNormalization()
 test.setUp()
 test.test_forward_cpu()
-#test.test_backward_cpu()
-
-
+# test.test_backward_cpu()
 
 
 class TestFixedBatchNormalization(unittest.TestCase):
@@ -179,5 +175,5 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
 test = TestFixedBatchNormalization()
 test.setUp()
-#test.test_forward_cpu()
+# test.test_forward_cpu()
 test.test_backward_cpu()

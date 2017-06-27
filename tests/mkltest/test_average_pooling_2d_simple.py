@@ -1,16 +1,16 @@
 import unittest
 
-import mock
+# import mock
 import numpy
-import six
+# import six
 
 import chainer
-from chainer import cuda
-from chainer import functions
+# from chainer import cuda
+# from chainer import functions
 from chainer import gradient_check
-from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
+# from chainer import testing
+# from chainer.testing import attr
+# from chainer.testing import condition
 from mkldnn.chainer import avg_pooling_2d
 
 

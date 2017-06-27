@@ -1,16 +1,16 @@
 import unittest
 
-import mock
+# import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer.functions.normalization import batch_normalization
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 from chainer.testing import condition
 
 
@@ -23,7 +23,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
 
 @testing.parameterize(*testing.product({
     'ndim': [0, 1, 2, 3],
-    'dtype': [numpy.float32,],
+    'dtype': [numpy.float32, ],
 }))
 class TestBatchNormalization(unittest.TestCase):
 
@@ -83,7 +83,7 @@ class TestBatchNormalization(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'ndim': [0, 1, 2, 3],
-    'dtype': [numpy.float32,],
+    'dtype': [numpy.float32, ],
 }))
 class TestFixedBatchNormalization(unittest.TestCase):
 
@@ -126,7 +126,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
     @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.args)
-
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):

@@ -13,6 +13,7 @@ from chainer.testing import condition
 
 import mkldnn
 
+
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],

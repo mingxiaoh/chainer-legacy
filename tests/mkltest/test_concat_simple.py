@@ -4,10 +4,10 @@ import numpy
 
 import chainer
 from mkldnn import config as mkld_config
-from chainer import cuda
+# from chainer import cuda
 from chainer import functions
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 
 
 class TestConcat(unittest.TestCase):
@@ -17,19 +17,8 @@ class TestConcat(unittest.TestCase):
         self.shape = (2, 7, 3, 3)
         self.axis = 1
         self.slices = [
-                [slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    #[slice(None), slice(5, 6)],
-                    #[slice(None), slice(6, 7)],
-                    #[slice(None), slice(7, 8)],
-                    #[slice(None), slice(8, 9)],
-                    #[slice(None), slice(9, 10)],
-                    #[slice(None), slice(10, 11)],
-                    #[slice(None), slice(11, 12)],
-                    #[slice(None), slice(12, 13)],
-                    #[slice(None), slice(13, 14)],
-                    #[slice(None), slice(14, 15)],
-                    [slice(None), slice(5, None)],
-                    ]
+                [
+                    slice(None), slice(None, 2)], [slice(None), slice(2, 5)], [slice(None), slice(5, None)], ]
         self.y = numpy.arange(
             numpy.prod(self.shape), dtype=self.dtype).reshape(self.shape)
         print('----------y.shape--------', self.y.shape)
@@ -45,7 +34,6 @@ class TestConcat(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.check_forward(self.xs, self.y, axis=self.axis)
-
 
     def check_backward(self, xs_data, axis):
         xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
@@ -63,5 +51,5 @@ class TestConcat(unittest.TestCase):
 
 test = TestConcat()
 test.setUp()
-#test.test_forward_cpu()
+# test.test_forward_cpu()
 test.test_backward_cpu()
