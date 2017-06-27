@@ -1,7 +1,9 @@
 import weakref
 
+
 def fanout_recorder_clear(ref):
     FanoutRecorder.clear()
+
 
 class FanoutRecorder(object):
     fanout = {}
