@@ -1,21 +1,19 @@
-from chainer import function
-from chainer.utils import type_check
-
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
 
 # Most important thing
-from mkldnn.api.support import *
+from mkldnn.api.support import forward
 import mkldnn.api.memory as m
 import mkldnn.api.inner_product_forward as ip_forward
 import mkldnn.api.inner_product_backward_data as ip_backdata
 import mkldnn.api.inner_product_backward_weights as ip_backweights
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
 
 from mkldnn.api.inner_product_forward import linear_f_op
 from mkldnn.api.inner_product_backward_data import linear_bd_op
 from mkldnn.api.inner_product_backward_weights import linear_bw_op
 from mkldnn.api.inner_product_backward_weights import linear_bwb_op
+
 
 def _x_format(ndim):
     if ndim == 2:
@@ -25,6 +23,7 @@ def _x_format(ndim):
     else:
         return NotImplemented
 
+
 def _W_format(ndim):
     if ndim == 2:
         return m.memory.oi
@@ -33,9 +32,10 @@ def _W_format(ndim):
     else:
         return NotImplemented
 
+
 def create_forward_desc(d_creator, o_expect, *inputs):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
-            for v in inputs if v is not None]
+                for v in inputs if v is not None]
     x_m = inputs_d[0]
     W_m = inputs_d[1]
     if len(inputs_d) == 3:
@@ -44,11 +44,13 @@ def create_forward_desc(d_creator, o_expect, *inputs):
     else:
         return d_creator(forward, x_m, W_m, o_expect)
 
+
 def create_backward_desc(d_creator, *inputs):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
-            for v in inputs if v is not None]
+                for v in inputs if v is not None]
 
     return d_creator(*inputs_d)
+
 
 class LinearForward(ComputeComplex):
     cc_type = 'f'
@@ -98,7 +100,7 @@ class LinearForward(ComputeComplex):
         self._hint = cc_pd
         self.outputs = y,
 
-    def _reuse_cc(self, x, W, b, e = Engine()):
+    def _reuse_cc(self, x, W, b, e=Engine()):
         reuse_buffer(self.x, x)
         reuse_buffer(self.W, W)
         if b is not None:
@@ -115,7 +117,7 @@ class LinearForward(ComputeComplex):
             return False
         return True
 
-    def __init__(self, inputs, pos = (0, 0), e=Engine()):
+    def __init__(self, inputs, pos=(0, 0), e=Engine()):
         super(LinearForward, self).__init__()
         x = inputs[0]
         W = inputs[1]
@@ -127,10 +129,11 @@ class LinearForward(ComputeComplex):
         else:
             self._reuse_cc(x, W, b, e)
 
+
 class LinearBackwardData(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, inputs, grad_outputs, hint, fwd_W, pos = (0, 0), e=Engine()):
+    def __init__(self, inputs, grad_outputs, hint, fwd_W, pos=(0, 0), e=Engine()):
         super(LinearBackwardData, self).__init__()
         W = inputs[1]
         gy = grad_outputs[0]
@@ -147,7 +150,7 @@ class LinearBackwardData(ComputeComplex):
             return False
         return (hint is self._hint)
 
-    def _create_cc(self, x, W, gy, hint, fwd_W, e = Engine()):
+    def _create_cc(self, x, W, gy, hint, fwd_W, e=Engine()):
         # Create primitive descriptor
         cc_d = create_backward_desc(ip_backdata.desc, x, W, gy)
         cc_pd = ip_backdata.primitive_desc(cc_d, e, hint)
@@ -178,6 +181,7 @@ class LinearBackwardData(ComputeComplex):
     def _reuse_cc(self, W, gy):
         reuse_buffer(self.W, W)
         reuse_buffer(self.gy, gy)
+
 
 class LinearBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
@@ -246,5 +250,3 @@ class LinearBackwardWeighs(ComputeComplex):
             self._create_cc(x, W, b, gy, hint, e)
         else:
             self._reuse_cc(x, gy)
-
-
