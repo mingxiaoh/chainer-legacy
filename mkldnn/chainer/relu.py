@@ -67,13 +67,6 @@ class ReLUBackward(ComputeComplex):
     def __init__(self, inputs, grad_outputs, hint, pos=(0, 0), e=Engine()):
         x = inputs[0]
         gy = grad_outputs[0]
-        fmt = m.memory.nchw
-        if x.ndim == 2:
-            fmt = m.memory.nc
-
-        x = array(x, fmt, e)
-        gy = array(gy, fmt, e)
-
         super(ReLUBackward, self).__init__()
 
         if self.new:
@@ -86,6 +79,12 @@ class ReLUBackward(ComputeComplex):
         return (hint is self._hint)
 
     def _create_cc(self, x, gy, hint, e=Engine()):
+        fmt = m.memory.nchw
+        if x.ndim == 2:
+            fmt = m.memory.nc
+        x = array(x, fmt, e)
+        gy = array(gy, fmt, e)
+ 
         diff_pd = gy.memory.get_primitive_desc()
         outputs = reorder_if_must(x, diff_pd, e, self.dag_)
         # print("len(outputs)=", len(outputs))
