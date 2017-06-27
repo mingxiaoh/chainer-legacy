@@ -6,6 +6,8 @@ from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
+from mkldnn import mdarray
+from mkldnn.chainer import basic_math as mkld_bm
 
 
 def _convert_value_to_string(value):
@@ -120,7 +122,10 @@ class Add(function.Function):
 
     def forward(self, x):
         self.retain_inputs(())
-        y = utils.force_array(x[0] + x[1])
+        if isinstance(x[0], mdarray) and isinstance(x[1], mdarray):
+            y = mkld_bm.AddMKLDNN()((x[0], x[1]), (self.rank, self.fanout))
+        else:
+            y = utils.force_array(x[0] + x[1])
         return y,
 
     def backward(self, x, gy):
