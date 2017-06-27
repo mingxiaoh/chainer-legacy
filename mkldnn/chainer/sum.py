@@ -1,20 +1,22 @@
 import numpy
 import chainer
-from chainer.utils import type_check
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import array, reorder_if_must
 # Most important thing
-from mkldnn.api.support import *
+from mkldnn.api.support import primitive_list, at
 import mkldnn.api.memory as m
 import mkldnn.api.sum as sum
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
+from mkldnn.chainer.runtime import Stream
+
 
 def mkl_sum_enabled(in_data):
-    if isinstance(in_data[0], mkldnn.mdarray) \
+    if isinstance(in_data[0], mdarray) \
        or (isinstance(in_data[0], numpy.ndarray) and chainer.should_use_mkldnn('>=auto')):
         return True
     else:
         return False
+
 
 def _x_format(ndim):
     if ndim == 1:
@@ -26,12 +28,13 @@ def _x_format(ndim):
     else:
         return NotImplemented
 
+
 def mkl_sum(xs):
     e = Engine()
 
-    xarrays = () # prevent the obj from gc
-    xs_arrays = () # prevent the obj from gc
-    itm_arr = None #prvent the obj from gc
+    xarrays = ()  # prevent the obj from gc
+    xs_arrays = ()  # prevent the obj from gc
+    itm_arr = None  # prvent the obj from gc
     xs_mpdl = m.mpd_list()
     xs_pl = ()
     scales = m.vectord()

@@ -1,6 +1,7 @@
 from mkldnn.api.support import engine
 from mkldnn.api.support import stream
 
+
 class Engine(object):
     __instance = None
 
@@ -30,6 +31,7 @@ class Engine(object):
 
         def use(self):
             pass
+
 
 def Stream():
     return stream(stream.eager)
