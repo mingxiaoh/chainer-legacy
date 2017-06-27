@@ -1,18 +1,22 @@
 import six
-import collections
+import numpy
 from chainer import function
 from chainer.utils import type_check
-from chainer.utils import conv
 
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import reuse_buffer
+from mkldnn.compute_complex import array
+from mkldnn.compute_complex import ComputeComplex
 
 # Most important thing
-from mkldnn.api.support import *
+
+from mkldnn.api.support import at
 import mkldnn.api.memory as m
 import mkldnn.api.view as view
 import mkldnn.api.concat as concat
-from mkldnn.mdarray import *
+import mkldnn.api.reorder as r
+from mkldnn.mdarray import mdarray
+
 
 class ConcatForward(ComputeComplex):
     cc_type = 'f'
@@ -30,14 +34,14 @@ class ConcatForward(ComputeComplex):
         xarrays = ()
         axis_dim = 0
         xs_mpdl = m.mpd_list()
-        #xs_pl = primitive_list()
+        # xs_pl = primitive_list()
         xs_pl = ()
         for x in xs:
             axis_dim += x.shape[1]
             xarray = array(x, m.memory.nchw, e)
             xarrays += (xarray,)
             xs_mpdl.push_back(xarray.memory.get_primitive_desc())
-            #xs_pl.push_back(xarray.memory)
+            # xs_pl.push_back(xarray.memory)
             xs_pl += (at(xarray.memory), )
 
         cc_pd = concat.primitive_desc(axis, xs_mpdl)
@@ -61,11 +65,12 @@ class ConcatForward(ComputeComplex):
                 return False
         return True
 
+
 class ConcatBackward(ComputeComplex):
     cc_type = 'bd'
 
     def __init__(self, xs, gy, axis,
-            pos=None, e=Engine()):
+                 pos=None, e=Engine()):
         super(ConcatBackward, self).__init__()
 
         if self.new:
@@ -143,14 +148,14 @@ class ConcatMKLDNN(function.Function):
 
     def forward_cpu(self, xs):
         cc = ConcatForward(xs, self.axis,
-                pos=(self.rank, self.fanout))
+                           pos=(self.rank, self.fanout))
 
         y, = cc.execute_on()
         return y,
 
     def backward_cpu(self, xs, gy):
         cc = ConcatBackward(xs, gy, self.axis,
-                pos=(self.rank, self.fanout))
+                            pos=(self.rank, self.fanout))
 
         gx = cc.execute_on()
         return gx
