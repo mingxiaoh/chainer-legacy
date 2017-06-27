@@ -140,7 +140,7 @@ class MultiprocessIterator(iterator.Iterator):
             self._unused_mem_queue.put(i)
 
         for worker_id in range(self.n_processes):
-            args = (self.dataset, self._index_queue, self._data_queue,self._mem_list, worker_id)
+            args = (self.dataset, self._index_queue, self._data_queue, self._mem_list, worker_id)
             worker = multiprocessing.Process(target=_worker, args=args)
             worker.daemon = True
             self._workers.append(worker)
