@@ -6,6 +6,7 @@ import numpy
 
 # from nose.tools import set_trace
 
+
 class Linear(link.Link):
 
     """Linear layer (a.k.a. fully-connected layer).
@@ -85,11 +86,12 @@ class Linear(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1:])
             self.mkl_reshaped = True
-        #we only support ndim of x 2 , 4
-        elif self.mkl_reshaped is False and (x.ndim ==2 or x.ndim ==4)\
-        and x.dtype == numpy.dtype('float32') \
-        and self.W.dtype == numpy.dtype('float32')\
-        and self.W.ndim != x.ndim:
+        # we only support ndim of x 2 , 4
+        elif (self.mkl_reshaped is False) and \
+             (x.ndim == 2 or x.ndim == 4) and \
+             (x.dtype == numpy.dtype('float32')) and \
+             (self.W.dtype == numpy.dtype('float32')) and \
+             (self.W.ndim != x.ndim):
             # set_trace()
             w_shape = (self.out_size,) + x.shape[1:]
             if self.W.shape != w_shape:
