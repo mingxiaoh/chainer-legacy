@@ -5,25 +5,27 @@ from chainer.utils import type_check
 from chainer.utils import conv
 
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
 
 # Most important thing
-from mkldnn.api.support import *
+from mkldnn.api.support import forward_training, zero, pooling_max, at
 import mkldnn.api.memory as m
 import mkldnn.api.pooling_forward as pooling_forward
 import mkldnn.api.pooling_backward as pooling_backward
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
+
 
 def _pair(x):
     if isinstance(x, collections.Iterable):
         return x
     return x, x
 
+
 class Pooling2DForward(ComputeComplex):
     cc_type = 'f'
 
     def __init__(self, inputs, alg_kind, ksize, stride=None, pad=0,
-            cover_all=True, pos=None, e=Engine()):
+                 cover_all=True, pos=None, e=Engine()):
         super(Pooling2DForward, self).__init__()
         self.alg_kind = alg_kind
         # super(Pooling2DForward, self).__init__()
@@ -46,9 +48,9 @@ class Pooling2DForward(ComputeComplex):
         kh, kw = _pair(ksize)
         p_upper, p_left = _pair(pad)
 
-        yh = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all = cover_all)
+        yh = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all=cover_all)
         assert yh > 0, 'Height in the output should be positive.'
-        yw = conv.get_conv_outsize(w, kw, sx, p_left, cover_all = cover_all)
+        yw = conv.get_conv_outsize(w, kw, sx, p_left, cover_all=cover_all)
         assert yw > 0, 'Width in the output should be positive.'
 
         y_shape = (n, c, yh, yw)
@@ -57,7 +59,7 @@ class Pooling2DForward(ComputeComplex):
         y_md = m.desc(y_shape, m.memory.f32, m.memory.any)
         x_md = self.x.memory.get_primitive_desc().desc()
         cc_d = pooling_forward.desc(forward_training, self.alg_kind, x_md, y_md,
-                stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
+                                    stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
         cc_pd = pooling_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
 
@@ -78,16 +80,20 @@ class Pooling2DForward(ComputeComplex):
 
     def match(self, inputs, alg_kind, ksize, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
-        return  (self.x.shape == x.shape) and (self.ksize == ksize) \
-                and (self.stride == stride) and (self.pad == pad) \
-                and (self.cover_all == cover_all) and (self.alg_kind == alg_kind)
+        return ((self.x.shape == x.shape) and
+                (self.ksize == ksize) and
+                (self.stride == stride) and
+                (self.pad == pad) and
+                (self.cover_all == cover_all) and
+                (self.alg_kind == alg_kind))
+
 
 class Pooling2DBackward(ComputeComplex):
     cc_type = 'bd'
 
     def __init__(self, inputs, gy, hint, ws, alg_kind,
-            ksize, stride=None, pad=0, cover_all=True,
-            pos=None, e=Engine()):
+                 ksize, stride=None, pad=0, cover_all=True,
+                 pos=None, e=Engine()):
         super(Pooling2DBackward, self).__init__()
         x = inputs[0]
         self.alg_kind = alg_kind
@@ -105,22 +111,22 @@ class Pooling2DBackward(ComputeComplex):
         gy = array(gy, m.memory.nchw, e)
         gy_md = gy.memory.get_primitive_desc().desc()
         gx_md = m.desc(x.shape, m.memory.f32, m.memory.any)
-        
+
         n, c, h, w = x.shape
         sy, sx = _pair(stride)
         kh, kw = _pair(ksize)
         p_upper, p_left = _pair(pad)
 
-        yh = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all = cover_all)
+        yh = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all=cover_all)
         assert yh > 0, 'Height in the output should be positive.'
-        yw = conv.get_conv_outsize(w, kw, sx, p_left, cover_all = cover_all)
+        yw = conv.get_conv_outsize(w, kw, sx, p_left, cover_all=cover_all)
         assert yw > 0, 'Width in the output should be positive.'
 
         p_down = sy * (yh - 1) + kh - h - p_upper
         p_right = sx * (yw - 1) + kw - w - p_left
 
         cc_d = pooling_backward.desc(self.alg_kind, gx_md, gy_md,
-                stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
+                                     stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
 
         cc_pd = pooling_backward.primitive_desc(cc_d, e, hint)
         gx = mdarray(cc_pd.diff_src_primitive_desc())
@@ -140,7 +146,7 @@ class Pooling2DBackward(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, hint, *args, **kwargs):
-        return  (hint is self._hint) 
+        return (hint is self._hint)
 
 
 class Pooling2DMKLDNN(function.Function):

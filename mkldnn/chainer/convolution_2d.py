@@ -2,18 +2,18 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
-import numpy
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
 
 # Most important thing
-from mkldnn.api.support import *
+from mkldnn.api.support import forward, convolution_direct, zero
 
 import mkldnn.api.memory as m
 
 import mkldnn.api.convolution_forward as conv_forward
 import mkldnn.api.convolution_backward_data as conv_backdata
 import mkldnn.api.convolution_backward_weights as conv_backweights
+from mkldnn.mdarray import mdarray
 
 conv_f_op = conv_forward.conv_f_op
 conv_bd_op = conv_backdata.conv_bd_op
@@ -21,7 +21,6 @@ conv_bd_op = conv_backdata.conv_bd_op
 conv_bw_op = conv_backweights.conv_bw_op
 conv_bwb_op = conv_backweights.conv_bwb_op
 
-from mkldnn.mdarray import *
 
 class conv_geometry(object):
     def __init__(self, x_shape, W_shape, stride, pad, cover_all):
@@ -34,13 +33,13 @@ class conv_geometry(object):
         out_c, _, kh, kw = W_shape
         n, c, h, w = x_shape
 
-        out_h = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all = cover_all)
+        out_h = conv.get_conv_outsize(h, kh, sy, p_upper, cover_all=cover_all)
         assert out_h > 0, 'Height in the output should be positive.'
-        out_w = conv.get_conv_outsize(w, kw, sx, p_left, cover_all = cover_all)
+        out_w = conv.get_conv_outsize(w, kw, sx, p_left, cover_all=cover_all)
         assert out_w > 0, 'Width in the output should be positive.'
 
-        p_down = sy * (out_h -1) + kh - h - p_upper
-        p_right = sx * (out_w -1) + kw - w - p_left
+        p_down = sy * (out_h - 1) + kh - h - p_upper
+        p_right = sx * (out_w - 1) + kw - w - p_left
 
         self.p_upper = p_upper
         self.p_left = p_left
@@ -60,9 +59,10 @@ class conv_geometry(object):
     def geometry(self):
         return self._geometry
 
+
 def create_forward_desc(d_creator, o_expect, inputs, geometry):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
-            for v in inputs if v is not None]
+                for v in inputs if v is not None]
 
     strides = geometry[0]
     padding_ul = geometry[1]
@@ -72,16 +72,17 @@ def create_forward_desc(d_creator, o_expect, inputs, geometry):
     if len(inputs_d) == 3:
         b_desc = inputs_d[2]
         return d_creator(forward, convolution_direct,
-               x_desc, w_desc, b_desc, o_expect,
-               strides, padding_ul, padding_dr, zero)
+                         x_desc, w_desc, b_desc, o_expect,
+                         strides, padding_ul, padding_dr, zero)
     else:
         return d_creator(forward, convolution_direct,
-               x_desc, w_desc, o_expect,
-               strides, padding_ul, padding_dr, zero)
+                         x_desc, w_desc, o_expect,
+                         strides, padding_ul, padding_dr, zero)
+
 
 def create_backward_desc(d_creator, inputs, geometry):
     inputs_d = [m.desc(v.shape, m.memory.f32, m.memory.any)
-            for v in inputs if v is not None]
+                for v in inputs if v is not None]
 
     strides = geometry[0]
     padding_ul = geometry[1]
@@ -106,24 +107,26 @@ def create_backward_desc(d_creator, inputs, geometry):
         in_desc3 = inputs_d[2]
         in_desc4 = inputs_d[3]
         return d_creator(convolution_direct,
-               in_desc1, in_desc2, in_desc3, in_desc4,
-               strides, padding_ul, padding_dr, zero)
+                         in_desc1, in_desc2, in_desc3, in_desc4,
+                         strides, padding_ul, padding_dr, zero)
     else:
         in_desc3 = inputs_d[2]
         return d_creator(convolution_direct,
-               in_desc1, in_desc2, in_desc3,
-               strides, padding_ul, padding_dr, zero)
+                         in_desc1, in_desc2, in_desc3,
+                         strides, padding_ul, padding_dr, zero)
+
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
 
+
 class ConvolutionForward(ComputeComplex):
     cc_type = 'f'
 
     def __init__(self, inputs, stride=1, pad=0, cover_all=False,
-            pos = None, e=Engine()):
+                 pos=None, e=Engine()):
 
         x = inputs[0]
         W = inputs[1]
@@ -172,7 +175,7 @@ class ConvolutionForward(ComputeComplex):
         if b is not None:
             reuse_buffer(self.b, b)
 
-    def match(self, inputs, stride = 1, pad = 0, cover_all = False, **kwargs):
+    def match(self, inputs, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
         W = inputs[1]
         if (self.x.shape != x.shape) or (self.W.shape != W.shape):
@@ -182,11 +185,12 @@ class ConvolutionForward(ComputeComplex):
         g = conv_geometry(x.shape, W.shape, stride, pad, cover_all)
         return (self.geometry == g.geometry) and (self.num_inputs == len(inputs))
 
+
 class ConvolutionBackwardData(ComputeComplex):
     cc_type = 'bd'
 
     def __init__(self, inputs, grad_outputs, hint, fwd_W,
-            stride=1, pad=0, cover_all=False, pos = None, e=Engine()):
+                 stride=1, pad=0, cover_all=False, pos=None, e=Engine()):
         x = inputs[0]
         W = inputs[1]
         gy = grad_outputs[0]
@@ -206,7 +210,7 @@ class ConvolutionBackwardData(ComputeComplex):
 
         # Transform inputs
         self.gy = array(gy, m.memory.nchw, e)
-        #self.W = array(W, m.memory.oihw, e)
+        # self.W = array(W, m.memory.oihw, e)
         self.W = fwd_W
 
         gx = conv_bd_op(cc_pd, self.gy, self.W, self.dag_)
@@ -219,13 +223,14 @@ class ConvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
-        return  hint is self._hint
+        return hint is self._hint
+
 
 class ConvolutionBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
 
     def __init__(self, inputs, grad_ouputs, hint,
-            stride=1, pad=0, cover_all=False, pos = None, e=Engine()):
+                 stride=1, pad=0, cover_all=False, pos=None, e=Engine()):
         x = inputs[0]
         W = inputs[1]
         b = inputs[2] if len(inputs) == 3 else None
@@ -273,6 +278,7 @@ class ConvolutionBackwardWeighs(ComputeComplex):
     def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
         return (hint is self._hint)
 
+
 class Convolution2DFunctionMKLDNN(function.Function):
 
     def __init__(self, stride=1, pad=0, cover_all=False, deterministic=False):
@@ -305,9 +311,9 @@ class Convolution2DFunctionMKLDNN(function.Function):
 
     def forward_cpu(self, inputs):
 
-        cc = ConvolutionForward(inputs, stride = (self.sy, self.sx),
-                pad = (self.ph, self.pw), cover_all = self.cover_all,
-                pos=(self.rank, self.fanout))
+        cc = ConvolutionForward(inputs, stride=(self.sy, self.sx),
+                                pad=(self.ph, self.pw), cover_all=self.cover_all,
+                                pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
         self.W = cc.W
@@ -320,17 +326,17 @@ class Convolution2DFunctionMKLDNN(function.Function):
     def backward_cpu(self, inputs, grad_outputs):
 
         cc_weight = ConvolutionBackwardWeighs(inputs, grad_outputs, self.hint,
-                stride = (self.sy, self.sx), pad = (self.ph, self.pw),
-                cover_all = self.cover_all, pos=(self.rank, self.fanout))
+                                              stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+                                              cover_all=self.cover_all, pos=(self.rank, self.fanout))
         gW_b = cc_weight.execute_on()
         # No reorder for bias?
         gW_b[0].reset_buf_order()
 
         if self.rank != 0:
             cc_data = ConvolutionBackwardData(inputs, grad_outputs,
-                    self.hint, self.W,
-                stride = (self.sy, self.sx), pad = (self.ph, self.pw),
-                cover_all = self.cover_all, pos=(self.rank, self.fanout))
+                                              self.hint, self.W,
+                                              stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+                                              cover_all=self.cover_all, pos=(self.rank, self.fanout))
             gx = cc_data.execute_on()
             gx[0].reset_buf_order()
         else:
