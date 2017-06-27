@@ -84,7 +84,7 @@ class ReLUBackward(ComputeComplex):
             fmt = m.memory.nc
         x = array(x, fmt, e)
         gy = array(gy, fmt, e)
- 
+
         diff_pd = gy.memory.get_primitive_desc()
         outputs = reorder_if_must(x, diff_pd, e, self.dag_)
         # print("len(outputs)=", len(outputs))
