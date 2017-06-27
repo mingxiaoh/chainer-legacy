@@ -6,7 +6,6 @@ from chainer import function
 from chainer import utils
 from chainer.utils import type_check
 
-from mkldnn.mdarray import *
 import mkldnn
 from mkldnn.chainer.relu import ReLUMKLDNN
 
@@ -89,10 +88,10 @@ def relu(x):
         (3, 2)
 
     """
-    if (isinstance(x.data, mkldnn.mdarray) \
-            or isinstance(x, mkldnn.mdarray) \
-            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
-        and (x.ndim == 2 or x.ndim == 4):
+    if (isinstance(x.data, mkldnn.mdarray) or
+        isinstance(x, mkldnn.mdarray) or
+        (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
+       and (x.ndim == 2 or x.ndim == 4):
         func = ReLUMKLDNN()
         ret = func(x)
         if chainer.is_cosim():

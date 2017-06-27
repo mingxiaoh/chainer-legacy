@@ -15,13 +15,14 @@ from chainer import utils
 
 from mkldnn import mdarray
 from chainer.cuda import iscompatible
-from mkldnn.chainer.fanout import *
+from mkldnn.chainer.fanout import FanoutRecorder
 
 from mkldnn.chainer import sum
 
 # from nose.tools import set_trace
 
 RANK_START = 0
+
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -146,7 +147,6 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     """
-
 
     def __init__(self, variable, grad=None):
         self._variable = weakref.ref(variable)
@@ -597,7 +597,7 @@ Actual: {0}'''.format(type(data))
         Args:
             val (int): New rank value
         """
-        self._node._rank = val;
+        self._node._rank = val
 
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.

@@ -11,12 +11,11 @@ from chainer.utils import type_check
 from chainer import variable
 
 # TODO: put it in cuda if success
-from mkldnn.chainer.fanout import *
-#if chainer.is_cosim():
+from mkldnn.chainer.fanout import FanoutRecorder
 import numpy as np
 import copy
 from chainer import testing
-import pdb
+
 
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
@@ -409,11 +408,9 @@ class Function(object):
         """
         if not chainer.is_cosim():
             return
-        #pdb.set_trace()
         print('backward_cosim v2')
         print(self)
         if not hasattr(self, 'cosim_func'):
-            #print('not need cosim')
             return
         cosim_inputs = copy.copy(inputs)
         cosim_grad_outputs = copy.copy(grad_outputs)
@@ -432,7 +429,6 @@ class Function(object):
         if numpy_result is None:
             return None
         print('cpu_cosim_verify_result v2')
-        #db.set_trace()
         for numpy_y in numpy_result:
             mkl_x = mkl_result[i]
             if numpy_y is None:
@@ -443,7 +439,7 @@ class Function(object):
             if mkl_x is None:
                 if numpy_y is not None:
                     raise KeyError('cosim mismatch!')
-            mkl_x_nd =  np.array(mkl_x.data)
+            mkl_x_nd = np.array(mkl_x.data)
             numpy_y_nd = np.array(numpy_y.data)
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):

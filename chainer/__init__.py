@@ -133,6 +133,7 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(config.use_cudnn))
     return flags[config.use_cudnn]
 
+
 def should_use_mkldnn(level):
     """Determines if we should use cuDNN.
 
@@ -171,6 +172,7 @@ def is_cosim():
     """
     return False
 
+
 def enable_cosim():
     """Get the cosim mode.
 
@@ -180,6 +182,7 @@ def enable_cosim():
     config.cosim = True
     mkld_config.config.gx_opt = False
 
+
 def disable_cosim():
     """Get the cosim mode.
 
@@ -187,6 +190,7 @@ def disable_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     config.cosim = False
+
 
 def is_debug():
     """Get the debug mode.

@@ -7,6 +7,7 @@ from chainer.utils import type_check
 
 from mkldnn import mdarray
 
+
 def _extract_gates(x):
     r = x.reshape((len(x), x.shape[1] // 4, 4) + x.shape[2:])
     return [r[:, :, i] for i in six.moves.range(4)]

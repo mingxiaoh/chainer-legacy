@@ -3,7 +3,7 @@ from chainer.utils import type_check
 
 import numpy
 import mkldnn
-from mkldnn.chainer.linear import *
+from mkldnn.chainer.linear import LinearForward, LinearBackwardData, LinearBackwardWeighs
 
 
 def _as_mat(x):
@@ -56,6 +56,7 @@ class LinearFunction(function.Function):
         else:
             return gx, gW
 
+
 class LinearFunctionMKLDNN(LinearFunction):
 
     def check_type_forward(self, in_types):
@@ -80,7 +81,7 @@ class LinearFunctionMKLDNN(LinearFunction):
 
     def forward(self, inputs):
         cc = LinearForward(inputs,
-                pos=(self.rank, self.fanout))
+                           pos=(self.rank, self.fanout))
         self.hint = cc.hint
         self.W = cc.W
 
@@ -91,9 +92,9 @@ class LinearFunctionMKLDNN(LinearFunction):
 
     def backward(self, inputs, grad_outputs):
         cc_data = LinearBackwardData(inputs, grad_outputs, self.hint, self.W,
-                pos=(self.rank, self.fanout))
+                                     pos=(self.rank, self.fanout))
         cc_weight = LinearBackwardWeighs(inputs, grad_outputs, self.hint,
-                pos=(self.rank, self.fanout))
+                                         pos=(self.rank, self.fanout))
 
         gx = cc_data.execute_on()
         gx[0].reset_buf_order()
@@ -101,6 +102,7 @@ class LinearFunctionMKLDNN(LinearFunction):
         gW_b[0].reset_buf_order()
 
         return gx + gW_b
+
 
 def linear(x, W, b=None):
     """Linear function, or affine transformation.
@@ -140,11 +142,11 @@ def linear(x, W, b=None):
 
     """
     # XXX: switch the route, work on the critera
-    if (isinstance(x.data, mkldnn.mdarray) \
-            or isinstance(x, mkldnn.mdarray) \
-            or (x.dtype == numpy.dtype('float32') \
-                and W.dtype == numpy.dtype('float32')))\
-        and (x.ndim == 2 or x.ndim == 4):
+    if (isinstance(x.data, mkldnn.mdarray) or
+        isinstance(x, mkldnn.mdarray) or
+        (x.dtype == numpy.dtype('float32') and
+         W.dtype == numpy.dtype('float32'))) and \
+       (x.ndim == 2 or x.ndim == 4):
         if b is None:
             return LinearFunctionMKLDNN()(x, W)
         else:

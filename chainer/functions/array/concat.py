@@ -7,7 +7,8 @@ from chainer import function
 from chainer.utils import type_check
 
 import mkldnn
-from mkldnn.chainer.concat import *
+from mkldnn.chainer.concat import ConcatMKLDNN
+
 
 class Concat(function.Function):
 
@@ -91,10 +92,10 @@ def concat(xs, axis=1):
 
     """
     x = xs[0]
-    if (isinstance(x.data, mkldnn.mdarray) \
-            or isinstance(x, mkldnn.mdarray) \
-            or (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
-        and x.ndim == 4:
+    if (isinstance(x.data, mkldnn.mdarray) or
+        isinstance(x, mkldnn.mdarray) or
+        (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
+       and x.ndim == 4:
         func = ConcatMKLDNN(axis=axis)
         ret = func(*xs)
         if chainer.is_cosim():

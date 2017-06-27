@@ -5,7 +5,7 @@ import threading
 
 import numpy
 
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
 from chainer import cuda
 
 

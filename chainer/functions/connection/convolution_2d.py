@@ -7,7 +7,7 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 import mkldnn
-from mkldnn.chainer.convolution_2d import *
+from mkldnn.chainer.convolution_2d import Convolution2DFunctionMKLDNN
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -319,9 +319,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
 
     """
     # XXX: Switch the route, work on the critera
-    if (isinstance(x.data, mkldnn.mdarray) \
-            or (x.dtype == numpy.dtype('float32') and W.dtype == numpy.dtype('float32') \
-                and chainer.should_use_mkldnn('>=auto'))):
+    if (isinstance(x.data, mkldnn.mdarray) or
+        (x.dtype == numpy.dtype('float32') and W.dtype == numpy.dtype('float32') and
+         chainer.should_use_mkldnn('>=auto'))):
         func = Convolution2DFunctionMKLDNN(
             stride, pad, cover_all, deterministic)
         if chainer.is_cosim():
