@@ -1,27 +1,31 @@
-import collections
-from chainer import function
 from chainer import configuration
-from chainer.utils import type_check
-from chainer.utils import conv
-
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import *
+from mkldnn.compute_complex import reorder_if_must
+from mkldnn.compute_complex import reuse_buffer
+from mkldnn.compute_complex import array
+from mkldnn.compute_complex import ComputeComplex
+import numpy
 
 # Most important thing
-from mkldnn.api.support import *
+from mkldnn.api.support import use_scale_shift
+from mkldnn.api.support import forward_training
+from mkldnn.api.support import forward_scoring
+from mkldnn.api.support import use_global_stats
+from mkldnn.api.support import at
+from mkldnn.api.support import backward
 import mkldnn.api.memory as m
 import mkldnn.api.bn_forward as bn_forward
 import mkldnn.api.bn_backward as bn_backward
-from mkldnn.mdarray import *
+from mkldnn.mdarray import mdarray
+
 
 class BnForward(ComputeComplex):
     cc_type = 'f'
 
     def __init__(self, inputs, eps=2e-5, mean=None, var=None,
-            pos=None, e=Engine()):
+                 pos=None, e=Engine()):
         super(BnForward, self).__init__()
 
-        x = inputs[0]
         if self.new:
             self._create_cc(inputs, eps, mean, var, e)
         else:
@@ -70,8 +74,8 @@ class BnForward(ComputeComplex):
         cc_pd = bn_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
 
-        #TODO reorder weight
-        #if scale_shift is True:
+        # TODO reorder weight
+        # if scale_shift is True:
         #    w = mdarray(cc_pd.weights_primitive_desc())
         if scale_shift is True and global_stats is False:
             self.mean = mdarray(cc_pd.mean_primitive_desc())
@@ -85,17 +89,17 @@ class BnForward(ComputeComplex):
         elif global_stats is True:
             if scale_shift is True:
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), at(self.mean.memory),
-                        at(self.var.memory), at(self.w.memory), y.memory)
+                                                             at(self.var.memory), at(self.w.memory), y.memory)
             else:
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), self.mean.memory,
-                        self.var.memory, y.memory)
+                                                             self.var.memory, y.memory)
         else:
             if scale_shift is True:
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory), at(self.w.memory),
-                        y.memory, self.mean.memory, self.var.memory)
+                                                             y.memory, self.mean.memory, self.var.memory)
             else:
                 bnf = bn_forward.batch_normalization_forward(cc_pd, at(self.x.memory),
-                        y.memory, self.mean.memory, self.var.memory)
+                                                             y.memory, self.mean.memory, self.var.memory)
 
         self.dag_.push_back(bnf)
         self._hint = cc_pd
@@ -124,14 +128,14 @@ class BnForward(ComputeComplex):
             return False
         return True
 
+
 class BnBackward(ComputeComplex):
     cc_type = 'bd'
 
     def __init__(self, inputs, fwd_x, gy, hint, flags, eps, mean, var,
-            pos=None, e=Engine()):
+                 pos=None, e=Engine()):
         super(BnBackward, self).__init__()
 
-        x = inputs[0]
         if self.new:
             self._create_cc(inputs, fwd_x, gy, hint, flags, eps, mean, var, e)
         else:
@@ -167,10 +171,10 @@ class BnBackward(ComputeComplex):
             self.var = array(var, m.memory.x, e)
             self.gw = mdarray(cc_pd.diff_weights_primitive_desc())
             bwd_p = bn_backward.batch_normalization_backward(cc_pd, at(self.x.memory), at(self.mean.memory),
-                    at(self.var.memory), at(gy.memory), at(self.w.memory), gx.memory, self.gw.memory)
+                                                             at(self.var.memory), at(gy.memory), at(self.w.memory), gx.memory, self.gw.memory)
         else:
             bwd_p = bn_backward.batch_normalization_backward(cc_pd, at(self.x.memory), at(self.mean.memory),
-                    at(self.var.memory), at(gy.memory), gx.memory)
+                                                             at(self.var.memory), at(gy.memory), gx.memory)
 
         self.dag_.push_back(bwd_p)
         self._hint = hint
