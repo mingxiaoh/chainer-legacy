@@ -132,7 +132,7 @@ public:
       int ndims = md.data.ndims;
 
       ndims_ = ndims;
-      switch(md.data.data_type) {
+      switch(static_cast<mkldnn::memory::data_type>(md.data.data_type)) {
         case mkldnn::memory::f32:
           strcpy(format_, "f");
           itemsize_ = 4;
@@ -862,7 +862,7 @@ public:
     implementation::mdarray *m = self->get();
     PyArray_Descr *pd;
     // Translate our data_type to numpy one
-    switch (m->desc().data.data_type) {
+    switch (static_cast<mkldnn::memory::data_type>(m->desc().data.data_type)) {
       case mkldnn::memory::f32:
         pd = PyArray_DescrFromType(NPY_FLOAT);
         break;
