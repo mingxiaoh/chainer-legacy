@@ -14,8 +14,8 @@ from chainer import testing
 from mkldnn.chainer.runtime import Engine
 import mkldnn.api.memory as m
 import mkldnn.chainer.fanout
-import mkldnn.mdarray
-# from mkldnn.mdarray import *
+# import mkldnn.mdarray
+from mkldnn.mdarray import mdarray
 
 
 @testing.parameterize(*testing.product({
@@ -39,8 +39,8 @@ class TestReLU(unittest.TestCase):
             self.x.setbuffer(x)
             self.gy.setbuffer(gy)
         except AttributeError:
-            self.x = mkldnn.mdarray.mdarray(x, m.memory.nc, Engine())
-            self.gy = mkldnn.mdarray.mdarray(gy, m.memory.nc, Engine())
+            self.x = mkldnn.mdarray(x, m.memory.nc, Engine())
+            self.gy = mkldnn.mdarray(gy, m.memory.nc, Engine())
 
         self.check_backward_options = {}
 
