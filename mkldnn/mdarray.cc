@@ -85,6 +85,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 
     PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
         , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
+    assert(Py_p_engine != nullptr);
 
     PyObject *argList = Py_BuildValue("(OiO)", o
         , reorderer::public_format(
@@ -160,6 +161,7 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
 
     PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
         , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
+    assert(Py_p_engine != nullptr);
 
     PyObject *argList = Py_BuildValue("(OiO)", o
         , reorderer::public_format(
@@ -331,7 +333,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
   int ret;
 
   if (surrogate == nullptr)
-    ret = -1;
+    return -1;
 
   if (op == nullptr)
     ret = PyObject_DelItem(surrogate, ind);
