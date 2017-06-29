@@ -6,11 +6,8 @@
 
 # Chainer: a neural network framework
 # Intel® Software Optimization
-##### This is a fast implementation of integration Chainer with Intel® Math Kernel Library for Deep Neural Networks (Intel® MKL-DNN). It accelerates Chainer on CPU, esp. Intel® Xeon® and Intel® Xeon Phi™ processors. 
+##### This is a quick implementation of integration Chainer with Intel® Math Kernel Library for Deep Neural Networks (Intel® MKL-DNN). It accelerates Chainer on CPU, esp. Intel® Xeon® and Intel® Xeon Phi™ processors. A newer and faster implementation based on mdarray is available on branch 'master_v2' (https://github.com/intel/chainer/tree/master_v2).
 
-2017-05-09: ResNets (ResNet-50, ResNet-101, and ResNet-152)) and GoogleNet V2 are accelerated on Intel Chainer with native Batch Normalization support. Condisitonal import of mkldpy.mkldnn is enabled. A new module cosim (co-simulation) is introduced to validate the layer by layer correctness between numpy and mmkldpy.
-
-2017-04-28: Current optimized layers (operations) includes convolution (2D), local response normalization, ReLU, linear (inner product), pooling, concat, sum and gradient accumulation. Validated topologies includes Alexnet, Overfeat, VGGA, VGG-16, VGG-19 and GoogLeNet-v1 with performance gain from 50-250X on Xeon and Xeon Phi.
 
 ## Requirements
 
