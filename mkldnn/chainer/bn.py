@@ -40,8 +40,8 @@ class BnForward(ComputeComplex):
         x, gamma, beta = inputs[:3]
 
         fmt_desired = m.get_desired_format(x.shape[1])
-        # self.x = array(x, m.memory.nchw, e)
-        x = array(x, fmt_desired, e)
+        x = array(x, m.memory.nchw, e)
+        # x = array(x, fmt_desired, e)
 
         assert x.dtype == numpy.dtype('float32')
         x_desired_md = m.desc(x.shape, m.memory.f32, fmt_desired)
