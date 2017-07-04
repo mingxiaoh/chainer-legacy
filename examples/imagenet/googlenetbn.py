@@ -45,9 +45,9 @@ class GoogLeNetBN(chainer.Chain):
 
     def __call__(self, x, t):
         h = F.max_pooling_2d(
-            F.relu(self.norm1(self.conv1(x))),  3, stride=2, pad=1)
+            F.relu(self.norm1(self.conv1(x))),  3, stride=2, pad=1, cover_all=False)
         h = F.max_pooling_2d(
-            F.relu(self.norm2(self.conv2(h))), 3, stride=2, pad=1)
+            F.relu(self.norm2(self.conv2(h))), 3, stride=2, pad=1, cover_all=False)
 
         h = self.inc3a(h)
         h = self.inc3b(h)
