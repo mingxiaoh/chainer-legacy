@@ -1,6 +1,7 @@
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+import chainer
 
 import numpy
 
@@ -87,12 +88,12 @@ class Linear(link.Link):
             self._initialize_params(x.shape[1:])
             self.mkl_reshaped = True
         # we only support ndim of x 2 , 4
-        elif (self.mkl_reshaped is False) and \
+        elif (chainer.should_use_mkldnn('>=auto')) and \
+             (self.mkl_reshaped is False) and \
              (x.ndim == 2 or x.ndim == 4) and \
              (x.dtype == numpy.dtype('float32')) and \
              (self.W.dtype == numpy.dtype('float32')) and \
              (self.W.ndim != x.ndim):
-            # set_trace()
             w_shape = (self.out_size,) + x.shape[1:]
             if self.W.shape != w_shape:
                 self.W.mkl_reshape(w_shape)

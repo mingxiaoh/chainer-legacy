@@ -100,5 +100,6 @@ def relu(x):
             func.cpu_cosim_verify_result(ret, numpy_result)
         return ret
     else:
-        print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
+        if chainer.should_use_mkldnn('>=auto'):
+            print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
         return ReLU()(x)
