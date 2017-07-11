@@ -114,10 +114,12 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
+
     @attr.mkldnn
     @condition.retry(3)
     def test_backward_mkldnn_nobias(self):
         self.check_backward_mkldnn(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            None, cuda.to_gpu(self.gy))
+                                   None, cuda.to_gpu(self.gy))
+
 
 testing.run_module(__name__, __file__)
