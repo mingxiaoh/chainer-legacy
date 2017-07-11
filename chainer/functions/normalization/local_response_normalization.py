@@ -132,7 +132,8 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    if (isinstance(x.data, mkldnn.mdarray) or
+    if not isinstance(x.data, cuda.ndarray) and \
+       (isinstance(x.data, mkldnn.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = LrnMKLDNN(n, k, alpha, beta)

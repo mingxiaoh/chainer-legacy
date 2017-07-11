@@ -395,7 +395,8 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
     """
 
-    if (isinstance(x.data, mkldnn.mdarray) or
+    if not isinstance(x.data, cuda.ndarray) and \
+       (isinstance(x.data, mkldnn.mdarray) or
         (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
        and (x.ndim == 4 or x.ndim == 2):
         return BnMKLDNN(
@@ -429,7 +430,8 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
 
     """
     with configuration.using_config('train', False):
-        if ((isinstance(x.data, mkldnn.mdarray) or
+        if not isinstance(x.data, cuda.ndarray) and \
+           ((isinstance(x.data, mkldnn.mdarray) or
             (x.dtype == numpy.dtype('float32') and
              chainer.should_use_mkldnn('>=auto'))) and
            (x.ndim == 4 or x.ndim == 2)):
