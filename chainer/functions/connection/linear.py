@@ -1,6 +1,7 @@
 from chainer import function
 from chainer.utils import type_check
 import chainer
+from chainer import cuda
 
 import numpy
 import mkldnn
@@ -144,11 +145,12 @@ def linear(x, W, b=None):
     """
     # XXX: switch the route, work on the critera
 
-    if chainer.should_use_mkldnn('>=auto') and \
+    if not isinstance(x.data, cuda.ndarray) and \
        (isinstance(x.data, mkldnn.mdarray) or
         isinstance(x, mkldnn.mdarray) or
         (x.dtype == numpy.dtype('float32') and
-         W.dtype == numpy.dtype('float32'))) and \
+         W.dtype == numpy.dtype('float32') and
+         chainer.should_use_mkldnn('>=auto'))) and \
        (x.ndim == 2 or x.ndim == 4):
         if b is None:
             return LinearFunctionMKLDNN()(x, W)

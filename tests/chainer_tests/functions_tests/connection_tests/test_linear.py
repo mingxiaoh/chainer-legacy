@@ -74,7 +74,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), None,
             cuda.to_gpu(self.x.dot(self.W.T)))
 
-    def check_backward(self, x_data, W_data, b_data, y_grad):
+    def check_backward_mkldnn(self, x_data, W_data, b_data, y_grad):
         args = (x_data, W_data)
         if b_data is not None:
             args = args + (b_data,)
@@ -85,10 +85,15 @@ class TestNonparameterizedLinear(unittest.TestCase):
             gradient_check.check_backward(
                 linear.LinearFunctionMKLDNN(), args, y_grad,
                 eps=1e-2, **self.check_backward_options)
-        else:
-            gradient_check.check_backward(
-                linear.LinearFunction(), args, y_grad,
-                eps=1e-2, **self.check_backward_options)
+
+    def check_backward(self, x_data, W_data, b_data, y_grad):
+        args = (x_data, W_data)
+        if b_data is not None:
+            args = args + (b_data,)
+
+        gradient_check.check_backward(
+            linear.LinearFunction(), args, y_grad,
+            eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -109,6 +114,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
-
+    @attr.mkldnn
+    @condition.retry(3)
+    def test_backward_mkldnn_nobias(self):
+        self.check_backward_mkldnn(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                            None, cuda.to_gpu(self.gy))
 
 testing.run_module(__name__, __file__)
