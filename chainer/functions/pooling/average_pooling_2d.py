@@ -136,7 +136,9 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    if (isinstance(x.data, mkldnn.mdarray) or
+    if not isinstance(x, cuda.ndarray) and \
+       not isinstance(x.data, cuda.ndarray) and \
+       (isinstance(x.data, mkldnn.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = AvgPooling2DMKLDNN(ksize, stride, pad, False)
