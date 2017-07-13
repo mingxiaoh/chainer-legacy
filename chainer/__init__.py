@@ -84,7 +84,8 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
-global_config.cosim = False
+#export CHAINER_ENABLE_COSIM=0
+global_config.cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
@@ -170,7 +171,7 @@ def is_cosim():
     Returns:
         bool: Return ``True`` if Chainer is in cosim mode.
     """
-    return False
+    return config.cosim 
 
 
 def enable_cosim():

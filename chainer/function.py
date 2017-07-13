@@ -439,8 +439,14 @@ class Function(object):
             if mkl_x is None:
                 if numpy_y is not None:
                     raise KeyError('cosim mismatch!')
-            mkl_x_nd = np.array(mkl_x.data)
-            numpy_y_nd = np.array(numpy_y.data)
+            if isinstance(mkl_x, variable.Variable):
+                mkl_x_nd = np.array(mkl_x.data)
+            else:
+                mkl_x_nd = np.array(mkl_x)
+            if isinstance(numpy_y, variable.Variable):
+                numpy_y_nd = np.array(numpy_y.data)
+            else:
+                numpy_y_nd = np.array(numpy_y)
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):
                 testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
