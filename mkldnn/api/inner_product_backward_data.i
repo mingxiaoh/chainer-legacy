@@ -56,13 +56,13 @@ namespace mkldnn {
 
 struct inner_product_backward_data: public primitive {
     struct desc {
-        c_api::mkldnn_inner_product_desc_t data;
+        mkldnn_inner_product_desc_t data;
         desc(const memory::desc &diff_src_desc,
                 const memory::desc &weights_desc,
                 const memory::desc &diff_dst_desc);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine,
                 const inner_product_forward::primitive_desc
                     &hint_fwd_primitive_desc);

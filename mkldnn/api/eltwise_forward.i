@@ -52,13 +52,13 @@ namespace c_api {
 
 struct eltwise_forward : public primitive {
     struct desc {
-        c_api::mkldnn_relu_desc_t data;
+        mkldnn_relu_desc_t data;
         // template <typename T>
         desc(prop_kind aprop_kind, algorithm alg_kind
             , const memory::desc &src_desc, double alpha, double beta);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
         memory::primitive_desc dst_primitive_desc() const;
     };

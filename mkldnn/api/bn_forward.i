@@ -57,7 +57,7 @@ namespace c_api {
 %rename (primitive_desc) batch_normalization_forward::primitive_desc;
 struct batch_normalization_forward : public primitive {
     struct desc {
-        c_api::mkldnn_batch_normalization_desc_t data;
+        mkldnn_batch_normalization_desc_t data;
         //template <typename T>
         //desc(prop_kind aprop_kind, const memory::desc &src_desc, T epsilon,
         //        unsigned flags);
@@ -65,7 +65,7 @@ struct batch_normalization_forward : public primitive {
                 unsigned flags);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
 
         memory::primitive_desc weights_primitive_desc() const;

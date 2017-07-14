@@ -50,8 +50,8 @@ namespace c_api {
 
 %rename (primitive_desc) sum::primitive_desc;
 struct sum : public primitive {
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
-        std::vector<c_api::const_mkldnn_primitive_desc_t> cpp_to_c(
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
+        std::vector<const_mkldnn_primitive_desc_t> cpp_to_c(
                 std::vector<memory::primitive_desc> inputs);
 
         primitive_desc(const memory::desc &output, std::vector<double> scale,

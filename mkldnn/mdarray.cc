@@ -20,7 +20,7 @@ PyObject *queryPyTypeObject(const char *name) {
     return reinterpret_cast<PyObject *>(cd->pytype);
   }
 
-  throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+  throw mkldnn::error(mkldnn_invalid_arguments
       , "Failed to find reorderer object");
 }
 
@@ -38,7 +38,7 @@ void g_init() {
 #if PY_VERSION_HEX < 0x03000000
   if ((reinterpret_cast<PyTypeObject *>(PyType_mdarray)->tp_flags
     & Py_TPFLAGS_HAVE_NEWBUFFER) != Py_TPFLAGS_HAVE_NEWBUFFER)
-    throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+    throw mkldnn::error(mkldnn_invalid_arguments
     , "Python2 should have new buffer flag on!");
 #endif
 
@@ -46,7 +46,7 @@ void g_init() {
   SwigPyObject_stype = SWIG_MangledTypeQuery("_p_SwigPyObject");
 
   if (SwigPyObject_stype == nullptr)
-    throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+    throw mkldnn::error(mkldnn_invalid_arguments
         , "Failed to find SwigPyObject object");
 
   // Initiate static variables imported from numpy include

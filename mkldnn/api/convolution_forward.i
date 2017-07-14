@@ -60,7 +60,7 @@ namespace c_api {
 
 struct convolution_forward: public primitive {
     struct desc {
-        c_api::mkldnn_convolution_desc_t data;
+        mkldnn_convolution_desc_t data;
         desc(prop_kind aprop_kind, algorithm aalgorithm,
                 const memory::desc &src_desc,
                 const memory::desc &weights_desc,
@@ -80,7 +80,7 @@ struct convolution_forward: public primitive {
                 const padding_kind apadding_kind);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
         memory::primitive_desc src_primitive_desc() const;
         memory::primitive_desc weights_primitive_desc() const;

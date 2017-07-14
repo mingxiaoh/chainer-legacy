@@ -565,11 +565,11 @@ private:
       } else if (std::string::npos != format.find_last_of('i')) {
         dt = mkldnn::memory::s32;
       } else
-        throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+        throw mkldnn::error(mkldnn_invalid_arguments
             , std::string("MKLDNN does not support data type: ")
             + format);
     } else
-      throw mkldnn::error(mkldnn::c_api::mkldnn_invalid_arguments
+      throw mkldnn::error(mkldnn_invalid_arguments
           , "MKLDNN does not support itemsize other than 4");
 
     return mkldnn::memory::desc(dims, dt, order);

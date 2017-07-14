@@ -58,7 +58,7 @@ namespace c_api {
 
 struct pooling_forward : public primitive {
     struct desc {
-        c_api::mkldnn_pooling_desc_t data;
+        mkldnn_pooling_desc_t data;
         desc(prop_kind aprop_kind, algorithm aalgorithm,
                 const memory::desc &src_desc,
                 const memory::desc &dst_desc,
@@ -69,7 +69,7 @@ struct pooling_forward : public primitive {
                 const padding_kind apadding_kind);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
 
         memory::primitive_desc workspace_primitive_desc() const;

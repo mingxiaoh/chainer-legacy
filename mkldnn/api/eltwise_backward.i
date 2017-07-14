@@ -52,7 +52,7 @@ struct eltwise_backward : public primitive {
           , const memory::desc &data_desc, double alpha, double beta);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine
           ,const eltwise_forward::primitive_desc &hint_fwd_primitive_desc);
 

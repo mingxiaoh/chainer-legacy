@@ -55,7 +55,7 @@ namespace mkldnn {
 
 struct lrn_backward : public primitive {
     struct desc {
-        c_api::mkldnn_lrn_desc_t data;
+        mkldnn_lrn_desc_t data;
         desc(algorithm aalgorithm,
             const memory::desc &data_desc,
             const memory::desc &diff_data_desc,
@@ -66,7 +66,7 @@ struct lrn_backward : public primitive {
             int local_size, double alpha, double beta, double k);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine,
         const lrn_forward::primitive_desc &hint_fwd_primitive_desc);
 

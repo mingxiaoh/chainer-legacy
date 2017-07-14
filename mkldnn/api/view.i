@@ -45,7 +45,7 @@ namespace c_api {
 
 %rename (primitive_desc) view::primitive_desc;
 struct view : public primitive {
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const memory::primitive_desc &input, memory::dims dims,
                 memory::dims offsets);
 

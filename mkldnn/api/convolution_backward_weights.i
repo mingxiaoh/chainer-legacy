@@ -55,7 +55,7 @@ namespace mkldnn {
 
 struct convolution_backward_weights : public primitive {
     struct desc {
-        c_api::mkldnn_convolution_desc_t data;
+        mkldnn_convolution_desc_t data;
         desc(algorithm aalgorithm,
                 const memory::desc &src_desc,
                 const memory::desc &diff_weights_desc,
@@ -76,7 +76,7 @@ struct convolution_backward_weights : public primitive {
                 const padding_kind apadding_kind);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine,
                 const convolution_forward::primitive_desc
                     &hint_fwd_primitive_desc);

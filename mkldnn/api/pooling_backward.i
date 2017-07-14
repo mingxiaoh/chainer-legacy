@@ -55,7 +55,7 @@ namespace mkldnn {
 
 struct pooling_backward : public primitive {
     struct desc {
-        c_api::mkldnn_pooling_desc_t data;
+        mkldnn_pooling_desc_t data;
         desc(algorithm aalgorithm,
                 const memory::desc &diff_src_desc,
                 const memory::desc &diff_dst_desc,
@@ -66,7 +66,7 @@ struct pooling_backward : public primitive {
                 const padding_kind apadding_kind);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine,
         const pooling_forward::primitive_desc &hint_fwd_primitive_desc);
         

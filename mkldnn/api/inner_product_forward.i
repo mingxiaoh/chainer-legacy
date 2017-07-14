@@ -59,7 +59,7 @@ namespace c_api {
 
 struct inner_product_forward: public primitive {
     struct desc {
-        c_api::mkldnn_inner_product_desc_t data;
+        mkldnn_inner_product_desc_t data;
         desc(prop_kind aprop_kind, const memory::desc &src_desc,
                 const memory::desc &weights_desc,
                 const memory::desc &bias_desc,
@@ -70,7 +70,7 @@ struct inner_product_forward: public primitive {
                 const memory::desc &dst_desc);
     };
 
-    struct primitive_desc : public handle<c_api::mkldnn_primitive_desc_t> {
+    struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         primitive_desc(const desc &adesc, const engine &aengine);
 
         memory::primitive_desc src_primitive_desc() const;
