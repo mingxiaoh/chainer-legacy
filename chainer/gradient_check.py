@@ -8,7 +8,6 @@ from chainer import cuda
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
-from mkldnn import config as mkld_config
 from mkldnn.chainer.fanout import FanoutRecorder
 
 
@@ -231,8 +230,7 @@ def check_backward(func, x_data, y_grad, params=(),
 
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
-    with mkld_config.using_config('gx_opt', False):
-        y[0].backward()
+    y[0].backward()
 
     if dtype is None:
         casted_xs = [variable.Variable(x) for x in x_data]

@@ -1,4 +1,3 @@
-# from mkldnn import config as mkld_config
 from mkldnn.api.support import at, primitive_list
 from mkldnn.api import reorder as r
 # from mkldnn.api import memory as m

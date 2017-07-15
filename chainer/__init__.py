@@ -5,7 +5,6 @@ import sys
 import threading
 import warnings
 
-from mkldnn import config as mkld_config
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -86,6 +85,9 @@ global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
 #export CHAINER_ENABLE_COSIM=0
 global_config.cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
+
+if global_config.cosim is True:
+    variable.RANK_START = 1
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
@@ -171,7 +173,7 @@ def is_cosim():
     Returns:
         bool: Return ``True`` if Chainer is in cosim mode.
     """
-    return config.cosim 
+    return config.cosim
 
 
 def enable_cosim():
@@ -181,7 +183,6 @@ def enable_cosim():
         bool: Return ``True`` if Chainer is in cosim mode.
     """
     config.cosim = True
-    mkld_config.config.gx_opt = False
 
 
 def disable_cosim():
