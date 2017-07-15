@@ -3,12 +3,12 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
-from mkldnn.chainer.fanout import FanoutRecorder
 
 
 def _copy_arrays(xs):
@@ -244,7 +244,8 @@ def check_backward(func, x_data, y_grad, params=(),
                      for x in x_data]
 
     def f():
-        FanoutRecorder.clear()
+        if chainer.mkld.available:
+            chainer.mkld.fanout.FanoutRecorder.clear()
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         return tuple(y.data for y in ys)

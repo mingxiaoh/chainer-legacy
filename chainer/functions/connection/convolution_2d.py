@@ -2,12 +2,10 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
-
-import mkldnn
-from mkldnn.chainer.convolution_2d import Convolution2DFunctionMKLDNN
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -19,6 +17,9 @@ if cuda.cudnn_enabled:
             libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
         _bwd_data_pref = \
             libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+
+if mkld.available:
+    Convolution2DFunctionMKLDNN = mkld.convolution_2d.Convolution2DFunctionMKLDNN
 
 
 def _check_cudnn_acceptable_type(x_dtype, W_dtype):
@@ -320,7 +321,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
     """
     # XXX: Switch the route, work on the critera
     if not isinstance(x.data, cuda.ndarray) and \
-       (isinstance(x.data, mkldnn.mdarray) or
+       mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and W.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = Convolution2DFunctionMKLDNN(

@@ -11,7 +11,6 @@ from chainer.utils import type_check
 from chainer import variable
 
 # TODO: put it in cuda if success
-from mkldnn.chainer.fanout import FanoutRecorder
 import numpy as np
 import copy
 from chainer import testing
@@ -201,7 +200,8 @@ class Function(object):
         # Topological ordering
         self.rank = max([x.rank for x in inputs]) if inputs else variable.RANK_START
 
-        self.fanout = FanoutRecorder.new(self)
+        if chainer.mkld.available:
+            self.fanout = chainer.mkld.fanout.FanoutRecorder.new(self)
 
         # Forward prop
         with cuda.get_device(*in_data):

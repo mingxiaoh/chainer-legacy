@@ -2,10 +2,9 @@ import numpy
 import six
 
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer.utils import type_check
-
-from mkldnn import mdarray
 
 
 def _extract_gates(x):
@@ -74,7 +73,7 @@ class LSTM(function.Function):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, numpy.ndarray) or isinstance(x, mdarray):
+        if isinstance(x, numpy.ndarray) or isinstance(x, mkld.mdarray):
             self.a = numpy.tanh(a)
             self.i = _sigmoid(i)
             self.f = _sigmoid(f)

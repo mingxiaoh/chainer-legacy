@@ -1,11 +1,16 @@
 from chainer import function
 from chainer.utils import type_check
+
 import chainer
 from chainer import cuda
+from chainer import mkld
 
 import numpy
-import mkldnn
-from mkldnn.chainer.linear import LinearForward, LinearBackwardData, LinearBackwardWeighs
+
+if mkld.available:
+    LinearForward = mkld.linear.LinearForward
+    LinearBackwardData = mkld.linear.LinearBackwardData
+    LinearBackwardWeighs = mkld.linear.LinearBackwardWeighs
 
 
 def _as_mat(x):
@@ -146,8 +151,9 @@ def linear(x, W, b=None):
     # XXX: switch the route, work on the critera
 
     if not isinstance(x.data, cuda.ndarray) and \
-       (isinstance(x.data, mkldnn.mdarray) or
-        isinstance(x, mkldnn.mdarray) or
+       mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
+        isinstance(x, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          W.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))) and \

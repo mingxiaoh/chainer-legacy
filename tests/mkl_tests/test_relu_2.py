@@ -6,6 +6,7 @@ import numpy
 import chainer
 # from chainer import cuda
 from chainer import functions
+from chainer.functions.activation import relu
 from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
@@ -54,7 +55,7 @@ class TestReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-                functions.ReLUMKLDNN(), x_data, y_grad,
+                relu.ReLUMKLDNN(), x_data, y_grad,
                 **self.check_backward_options)
 
 #    @condition.retry(3)

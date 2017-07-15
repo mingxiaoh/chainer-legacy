@@ -30,7 +30,6 @@ import numpy
 import six
 
 import chainer
-import mkldnn
 
 available = False
 cudnn_enabled = False
@@ -258,7 +257,7 @@ def to_cpu(array, stream=None):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
-    elif isinstance(array, mkldnn.mdarray):
+    elif isinstance(array, chainer.mkld.mdarray):
         return numpy.array(array)
     else:
         raise TypeError(
@@ -443,9 +442,9 @@ def iscompatible(obj, class_or_tuple):
     if isinstance(obj, class_or_tuple):
         return True
 
-    if (isinstance(obj, mkldnn.mdarray) or
+    if (isinstance(obj, chainer.mkld.mdarray) or
         isinstance(obj, numpy.ndarray)) and \
-       (issubclass(class_or_tuple, mkldnn.mdarray) or
+       (issubclass(class_or_tuple, chainer.mkld.mdarray) or
             class_or_tuple is numpy.ndarray):
         return True
 

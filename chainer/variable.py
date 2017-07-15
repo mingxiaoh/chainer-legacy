@@ -13,11 +13,7 @@ from chainer import cuda
 from chainer import initializers
 from chainer import utils
 
-from mkldnn import mdarray
 from chainer.cuda import iscompatible
-from mkldnn.chainer.fanout import FanoutRecorder
-
-from mkldnn.chainer import sum
 
 # from nose.tools import set_trace
 
@@ -303,7 +299,7 @@ class Variable(object):
                 initializers.NaN() if initializer is None else initializer)
             dtype = getattr(self.initializer, 'dtype', numpy.float32)
             self._grad_initializer = initializers.NaN(dtype)
-        elif not isinstance(data, (mdarray, numpy.ndarray, cuda.ndarray)):
+        elif not isinstance(data, (chainer.mkld.mdarray, numpy.ndarray, cuda.ndarray)):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
@@ -628,7 +624,8 @@ Actual: {0}'''.format(type(data))
                 and therefore it is recommended to set this flag ``False``.
 
         """
-        FanoutRecorder.clear()
+        if chainer.mkld.available:
+            chainer.mkld.fanout.FanoutRecorder.clear()
         if self.creator is None:
             return
         initial_device = None
@@ -670,7 +667,8 @@ Actual: {0}'''.format(type(data))
             outputs_data = tuple([y.grad for y in outputs])
 
             out_grad = ()
-            if sum.mkl_sum_enabled(outputs_data):
+            if chainer.mkld.available and \
+               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
                 out_grad_tmp = tuple([None if y is None else y.grad for y in outputs])
                 acc_grad_tuple = tuple([None if y is None else y.acc_grad for y in outputs])
                 for grad_tmp, acc_grad in zip(out_grad_tmp, acc_grad_tuple):
@@ -683,7 +681,7 @@ Actual: {0}'''.format(type(data))
                         call native MKLDNN sum primitive
                         """
                         acc_grad += (grad_tmp,)
-                        y = sum.mkl_sum(acc_grad)
+                        y = chainer.mkld.sum.mkl_sum(acc_grad)
                         out_grad += (y,)
             else:
                 out_grad = tuple([None if y is None else y.grad for y in outputs])
@@ -744,14 +742,16 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
-                            if sum.mkl_sum_enabled(outputs_data):
+                            if chainer.mkld.available and \
+                               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:
                                 x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
-                            if sum.mkl_sum_enabled(outputs_data):
+                            if chainer.mkld.available and \
+                               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:

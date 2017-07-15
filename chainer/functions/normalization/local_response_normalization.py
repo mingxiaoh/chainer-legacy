@@ -3,11 +3,12 @@ import six
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer.utils import type_check
 
-import mkldnn
-from mkldnn.chainer.lrn import LrnMKLDNN
+if mkld.available:
+    LrnMKLDNN = mkld.lrn.LrnMKLDNN
 
 
 def _cu_conv_sum(y, x, n):
@@ -133,7 +134,8 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
 
     """
     if not isinstance(x.data, cuda.ndarray) and \
-       (isinstance(x.data, mkldnn.mdarray) or
+       mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = LrnMKLDNN(n, k, alpha, beta)

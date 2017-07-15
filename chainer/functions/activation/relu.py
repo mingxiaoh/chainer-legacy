@@ -2,12 +2,10 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
-
-import mkldnn
-from mkldnn.chainer.relu import ReLUMKLDNN
 
 
 if cuda.cudnn_enabled:
@@ -15,6 +13,9 @@ if cuda.cudnn_enabled:
     libcudnn = cudnn.cudnn
     _cudnn_version = libcudnn.getVersion()
     _mode = libcudnn.CUDNN_ACTIVATION_RELU
+
+if mkld.available:
+    ReLUMKLDNN = mkld.relu.ReLUMKLDNN
 
 
 class ReLU(function.Function):
@@ -88,8 +89,9 @@ def relu(x):
         (3, 2)
 
     """
-    if (isinstance(x.data, mkldnn.mdarray) or
-        isinstance(x, mkldnn.mdarray) or
+    if mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
+        isinstance(x, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
        and (x.ndim == 2 or x.ndim == 4):
         func = ReLUMKLDNN()
@@ -100,6 +102,7 @@ def relu(x):
             func.cpu_cosim_verify_result(ret, numpy_result)
         return ret
     else:
-        if chainer.should_use_mkldnn('>=auto'):
+        if chainer.mkld.available and \
+           chainer.should_use_mkldnn('>=auto'):
             print('WARNING, relu inputs is not mdarray ', x.rank, type(x.data))
         return ReLU()(x)

@@ -7,6 +7,7 @@ import warnings
 
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
+from chainer import mkld  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA

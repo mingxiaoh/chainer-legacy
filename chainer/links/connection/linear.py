@@ -85,10 +85,15 @@ class Linear(link.Link):
 
         """
         if self.W.data is None:
-            self._initialize_params(x.shape[1:])
-            self.mkl_reshaped = True
+            if chainer.mkld.available and \
+               chainer.should_use_mkldnn('>=auto'):
+                self._initialize_params(x.shape[1:])
+                self.mkl_reshaped = True
+            else:
+                self._initialize_params(x.size // x.shape[0])
         # we only support ndim of x 2 , 4
-        elif (chainer.should_use_mkldnn('>=auto')) and \
+        elif (chainer.mkld.available) and \
+             (chainer.should_use_mkldnn('>=auto')) and \
              (self.mkl_reshaped is False) and \
              (x.ndim == 2 or x.ndim == 4) and \
              (x.dtype == numpy.dtype('float32')) and \

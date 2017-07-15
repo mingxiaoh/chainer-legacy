@@ -2,15 +2,16 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-
-import mkldnn
-from mkldnn.chainer.avg_pooling_2d import AvgPooling2DMKLDNN
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
+
+if mkld.available:
+    AvgPooling2DMKLDNN = mkld.avg_pooling_2d.AvgPooling2DMKLDNN
 
 
 class AveragePooling2D(pooling_2d.Pooling2D):
@@ -138,7 +139,8 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
     """
     if not isinstance(x, cuda.ndarray) and \
        not isinstance(x.data, cuda.ndarray) and \
-       (isinstance(x.data, mkldnn.mdarray) or
+       mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = AvgPooling2DMKLDNN(ksize, stride, pad, False)

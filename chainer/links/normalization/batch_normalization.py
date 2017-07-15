@@ -3,11 +3,11 @@ import numpy
 import chainer
 from chainer import configuration
 from chainer import cuda
+from chainer import mkld
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
 from chainer import variable
-import mkldnn
 
 
 class BatchNormalization(link.Link):
@@ -122,7 +122,8 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            if (isinstance(x.data, mkldnn.mdarray) or
+            if mkld.available and \
+               (isinstance(x.data, mkld.mdarray) or
                 (x.dtype == numpy.dtype('float32') and
                  chainer.should_use_mkldnn('>=auto'))) and \
                (x.ndim == 4 or x.ndim == 2):

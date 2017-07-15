@@ -2,15 +2,16 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-
-import mkldnn
-from mkldnn.chainer.max_pooling_2d import MaxPooling2DMKLDNN
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
+
+if mkld.available:
+    MaxPooling2DMKLDNN = mkld.max_pooling_2d.MaxPooling2DMKLDNN
 
 
 class MaxPooling2D(pooling_2d.Pooling2D):
@@ -172,7 +173,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
     """
     # XXX: Switch the route, work on the critera
     if not isinstance(x.data, cuda.ndarray) and \
-       (isinstance(x.data, mkldnn.mdarray) or
+       mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and
          chainer.should_use_mkldnn('>=auto'))):
         func = MaxPooling2DMKLDNN(ksize, stride, pad, cover_all)

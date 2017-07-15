@@ -3,11 +3,12 @@ import six
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer.utils import type_check
 
-import mkldnn
-from mkldnn.chainer.concat import ConcatMKLDNN
+if mkld.available:
+    ConcatMKLDNN = mkld.concat.ConcatMKLDNN
 
 
 class Concat(function.Function):
@@ -92,8 +93,9 @@ def concat(xs, axis=1):
 
     """
     x = xs[0]
-    if (isinstance(x.data, mkldnn.mdarray) or
-        isinstance(x, mkldnn.mdarray) or
+    if mkld.available and \
+       (isinstance(x.data, mkld.mdarray) or
+        isinstance(x, mkld.mdarray) or
         (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
        and x.ndim == 4:
         func = ConcatMKLDNN(axis=axis)
