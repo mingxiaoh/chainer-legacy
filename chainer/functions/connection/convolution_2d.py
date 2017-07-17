@@ -321,10 +321,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
     """
     # XXX: Switch the route, work on the critera
     if not isinstance(x.data, cuda.ndarray) and \
-       mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and W.dtype == numpy.dtype('float32') and
-         chainer.should_use_mkldnn('>=auto'))):
+       mkld.check_with_mkld((x, W), ()):
         func = Convolution2DFunctionMKLDNN(
             stride, pad, cover_all, deterministic)
         if chainer.is_cosim():

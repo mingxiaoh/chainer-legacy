@@ -92,12 +92,8 @@ class Linear(link.Link):
             else:
                 self._initialize_params(x.size // x.shape[0])
         # we only support ndim of x 2 , 4
-        elif (chainer.mkld.available) and \
-             (chainer.should_use_mkldnn('>=auto')) and \
+        elif (chainer.mkld.check_with_mkld((x, self.W), (2, 4))) and \
              (self.mkl_reshaped is False) and \
-             (x.ndim == 2 or x.ndim == 4) and \
-             (x.dtype == numpy.dtype('float32')) and \
-             (self.W.dtype == numpy.dtype('float32')) and \
              (self.W.ndim != x.ndim):
             w_shape = (self.out_size,) + x.shape[1:]
             if self.W.shape != w_shape:

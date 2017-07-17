@@ -1,9 +1,13 @@
+import numpy
+
+import chainer
+
+
 available = False
 
 try:
     import mkldnn
     from mkldnn.mdarray import mdarray
-    from mkldnn import chainer
     from mkldnn.chainer import basic_math
     from mkldnn.chainer import fanout
     from mkldnn.chainer import runtime
@@ -25,3 +29,30 @@ except Exception as ex:
 
     class mdarray(object):
         pass
+
+
+def check_with_mkld(inputs, check_with_ndim):
+    # Check whether mkldnn installed
+    if not available:
+        return False
+
+    # Check whether mkldnn configured and used correctly
+    _should_use_mkldnn = chainer.should_use_mkldnn('>=auto')
+    for x in inputs:
+        _should_use_mkldnn = _should_use_mkldnn and \
+                             x.dtype == numpy.dtype('float32')
+
+    if not isinstance(x.data, mdarray) and \
+       not isinstance(x, mdarray) and \
+       not _should_use_mkldnn:
+        return False
+
+    # Check with mkldnn supported dimension of input data
+    valid_ndim = False
+    for ndim in check_with_ndim:
+        valid_ndim = valid_ndim or inputs[0].ndim == ndim
+
+    if check_with_ndim and not valid_ndim:
+        return False
+
+    return True

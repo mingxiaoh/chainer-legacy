@@ -89,11 +89,7 @@ def relu(x):
         (3, 2)
 
     """
-    if mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        isinstance(x, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
-       and (x.ndim == 2 or x.ndim == 4):
+    if mkld.check_with_mkld((x, ), (2, 4)):
         func = ReLUMKLDNN()
         ret = func(x)
         if chainer.is_cosim():

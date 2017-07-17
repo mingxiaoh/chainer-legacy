@@ -173,10 +173,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
     """
     # XXX: Switch the route, work on the critera
     if not isinstance(x.data, cuda.ndarray) and \
-       mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and
-         chainer.should_use_mkldnn('>=auto'))):
+       mkld.check_with_mkld((x, ), ()):
         func = MaxPooling2DMKLDNN(ksize, stride, pad, cover_all)
         ret = func(x)
         if chainer.is_cosim():

@@ -93,11 +93,7 @@ def concat(xs, axis=1):
 
     """
     x = xs[0]
-    if mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        isinstance(x, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and chainer.should_use_mkldnn('>=auto'))) \
-       and x.ndim == 4:
+    if mkld.check_with_mkld((x, ), (4, )):
         func = ConcatMKLDNN(axis=axis)
         ret = func(*xs)
         if chainer.is_cosim():

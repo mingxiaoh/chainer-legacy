@@ -139,10 +139,7 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
     """
     if not isinstance(x, cuda.ndarray) and \
        not isinstance(x.data, cuda.ndarray) and \
-       mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and
-         chainer.should_use_mkldnn('>=auto'))):
+       mkld.check_with_mkld((x, ), ()):
         func = AvgPooling2DMKLDNN(ksize, stride, pad, False)
         ret = func(x)
         if chainer.is_cosim():

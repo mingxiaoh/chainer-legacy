@@ -151,13 +151,7 @@ def linear(x, W, b=None):
     # XXX: switch the route, work on the critera
 
     if not isinstance(x.data, cuda.ndarray) and \
-       mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        isinstance(x, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and
-         W.dtype == numpy.dtype('float32') and
-         chainer.should_use_mkldnn('>=auto'))) and \
-       (x.ndim == 2 or x.ndim == 4):
+       mkld.check_with_mkld((x, W), (2, 4)):
         if b is None:
             return LinearFunctionMKLDNN()(x, W)
         else:

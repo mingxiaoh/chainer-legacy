@@ -134,10 +134,7 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
 
     """
     if not isinstance(x.data, cuda.ndarray) and \
-       mkld.available and \
-       (isinstance(x.data, mkld.mdarray) or
-        (x.dtype == numpy.dtype('float32') and
-         chainer.should_use_mkldnn('>=auto'))):
+       mkld.check_with_mkld((x, ), ()):
         func = LrnMKLDNN(n, k, alpha, beta)
         ret = func(x)
         if chainer.is_cosim():
