@@ -37,15 +37,18 @@ def check_with_mkld(inputs, check_with_ndim):
         return False
 
     # Check whether mkldnn configured and used correctly
-    _should_use_mkldnn = chainer.should_use_mkldnn('>=auto')
-    for x in inputs:
-        _should_use_mkldnn = _should_use_mkldnn and \
-                             x.dtype == numpy.dtype('float32')
+    if not isinstance(inputs[0], mdarray) and \
+       not isinstance(inputs[0].data, mdarray):
+        _should_use_mkldnn = True
 
-    if not isinstance(x.data, mdarray) and \
-       not isinstance(x, mdarray) and \
-       not _should_use_mkldnn:
-        return False
+        for x in inputs:
+            _should_use_mkldnn = _should_use_mkldnn and \
+                                 x.dtype == numpy.dtype('float32')
+        if _should_use_mkldnn:
+            _should_use_mkldnn = _should_use_mkldnn and \
+                                 chainer.should_use_mkldnn('>=auto')
+        if not _should_use_mkldnn:
+            return False
 
     # Check with mkldnn supported dimension of input data
     valid_ndim = False
