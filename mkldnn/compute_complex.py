@@ -107,6 +107,15 @@ class ComputeComplex(object):
     def matching(self, inputs):
         raise NotImplementedError
 
+    @staticmethod
+    def get_bd_cc(hint, pos=(0, 0)):
+        cc = ComputeComplex.cache_bd.get(pos)
+        if cc and (hint is cc._hint):
+            ret = cc
+        else:
+            ret = None
+        return ret
+        
     @property
     def hint(self):
         return self._hint

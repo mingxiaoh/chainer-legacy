@@ -8,6 +8,7 @@ import mkldnn.api.memory as m
 import mkldnn.api.sum as sum
 from mkldnn.mdarray import mdarray
 from mkldnn.chainer.runtime import Stream
+from mkldnn.compute_complex import ComputeComplex
 
 
 def mkl_sum_enabled(in_data):
@@ -29,7 +30,7 @@ def _x_format(ndim):
         return NotImplemented
 
 
-def mkl_sum(xs):
+def mkl_sum(xs, func=None):
     e = Engine()
 
     xarrays = ()  # prevent the obj from gc
@@ -60,8 +61,14 @@ def mkl_sum(xs):
         xs_pl += (at(xarray.memory), )
 
     cc_pd = sum.primitive_desc(scales, xs_mpdl)
-    y = mdarray(cc_pd.dst_primitive_desc())
-
+    if func is not None and hasattr(func, 'hint'):  # this is only used for grad accumulate currently
+        cc = ComputeComplex.get_bd_cc(func.hint, pos=(func.rank, func.fanout))
+        if cc is not None:
+            y = cc.gy
+        else:
+            y = mdarray(cc_pd.dst_primitive_desc())
+    else:
+        y = mdarray(cc_pd.dst_primitive_desc())
     pl.push_back(sum.sum(cc_pd, xs_pl, y.memory))
     s = Stream()
     s.submit(pl)

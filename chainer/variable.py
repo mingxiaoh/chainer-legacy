@@ -681,7 +681,7 @@ Actual: {0}'''.format(type(data))
                         call native MKLDNN sum primitive
                         """
                         acc_grad += (grad_tmp,)
-                        y = chainer.mkld.sum.mkl_sum(acc_grad)
+                        y = chainer.mkld.sum.mkl_sum(acc_grad, func)
                         out_grad += (y,)
             else:
                 out_grad = tuple([None if y is None else y.grad for y in outputs])
