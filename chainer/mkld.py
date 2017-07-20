@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import variable
 
 
 available = False
@@ -36,12 +37,14 @@ def check_with_mkld(inputs, check_with_ndim):
     if not available:
         return False
 
+    _inputs = [x.data if isinstance(x, variable.Variable)
+               else x for x in inputs]
+
     # Check whether mkldnn configured and used correctly
-    if not isinstance(inputs[0], mdarray) and \
-       not isinstance(inputs[0].data, mdarray):
+    if not isinstance(_inputs[0], mdarray):
         _should_use_mkldnn = True
 
-        for x in inputs:
+        for x in _inputs:
             _should_use_mkldnn = _should_use_mkldnn and \
                                  x.dtype == numpy.dtype('float32')
         if _should_use_mkldnn:
@@ -53,7 +56,7 @@ def check_with_mkld(inputs, check_with_ndim):
     # Check with mkldnn supported dimension of input data
     valid_ndim = False
     for ndim in check_with_ndim:
-        valid_ndim = valid_ndim or inputs[0].ndim == ndim
+        valid_ndim = valid_ndim or _inputs[0].ndim == ndim
 
     if check_with_ndim and not valid_ndim:
         return False
