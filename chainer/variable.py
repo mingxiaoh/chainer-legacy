@@ -846,7 +846,7 @@ Actual: {0}'''.format(type(data))
         self._data[0] = data
         self._node._grad = grad
 
-    def mkl_reshape(self, shape):
+    def mkld_reshape(self, shape):
         self._data[0] = self._data[0].reshape(shape)
         if self._node._grad is not None:
             self._node._grad = self._node._grad.reshape(shape)

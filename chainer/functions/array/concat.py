@@ -93,7 +93,8 @@ def concat(xs, axis=1):
 
     """
     x = xs[0]
-    if mkld.check_with_mkld((x, ), (4, )):
+    if not isinstance(x.data, cuda.ndarray) and \
+       mkld.check_with_mkld((x, ), (4, )):
         func = ConcatMKLDNN(axis=axis)
         ret = func(*xs)
         if chainer.is_cosim():
