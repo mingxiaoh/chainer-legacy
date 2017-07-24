@@ -14,6 +14,7 @@ Minimum requirements:
 - Python 2.7.6+, 3.4.3+, 3.5.1+, 3.6.0+
 - NumPy 1.9, 1.10, 1.11, 1.12
 - Six 1.9
+- Swig 3.0.9
 
 Requirements for some features:
 - CUDA support
