@@ -328,10 +328,12 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
                 stride, pad, cover_all, deterministic)
             if b is None:
                 ret = func(x, W)
+                x, W = mkld.to_plain_array((x, W))
                 numpy_result = func.cosim_func(x, W)
                 func.cpu_cosim_verify_result(ret, numpy_result, (x, W))
             else:
                 ret = func(x, W, b)
+                x, W, b = mkld.to_plain_array((x, W, b))
                 numpy_result = func.cosim_func(x, W, b)
                 func.cpu_cosim_verify_result(ret, numpy_result, (x, W, b))
             return ret

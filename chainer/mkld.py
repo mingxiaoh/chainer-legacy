@@ -24,6 +24,7 @@ try:
     from mkldnn.chainer import max_pooling_2d
     from mkldnn.chainer import pooling_2d
     from mkldnn.chainer import relu
+    from mkldnn.chainer.optimization import training_forward_optimization
 
     available = True
 except Exception as ex:
@@ -68,3 +69,17 @@ def all_ready(inputs, check_with_ndim):
         return False
 
     return True
+
+
+def to_plain_array(params):
+    assert(isinstance(params, tuple))
+
+    _params = ()
+
+    for p in params:
+        if isinstance(p, mdarray):
+            _params += (numpy.array(p), )
+        else:
+            _params += (p, )
+
+    return _params

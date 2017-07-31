@@ -88,7 +88,7 @@ ccxx_opts = ['-std=c++11']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack', '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
 includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils', mkldnn_root + '/include']
-libraries = ['mkldnn']
+libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':
     ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY']

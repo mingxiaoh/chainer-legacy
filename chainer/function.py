@@ -222,6 +222,9 @@ class Function(object):
         ret = tuple([variable.Variable(y) for y in outputs])
 
         if configuration.config.enable_backprop:
+            if chainer.mkld.available:
+                chainer.mkld.training_forward_optimization(self, inputs)
+
             # Backward edges
             for y in ret:
                 y.set_creator(self)
@@ -412,8 +415,12 @@ class Function(object):
         print(self)
         if not hasattr(self, 'cosim_func'):
             return
-        cosim_inputs = copy.copy(inputs)
-        cosim_grad_outputs = copy.copy(grad_outputs)
+
+        cosim_inputs = chainer.mkld.to_plain_array(inputs)
+        cosim_grad_outputs = chainer.mkld.to_plain_array(grad_outputs)
+        # cosim_inputs = copy.copy(inputs)
+        # cosim_grad_outputs = copy.copy(grad_outputs)
+
         chainer.disable_cosim()
         output_cosim = self.cosim_func.backward(cosim_inputs, cosim_grad_outputs)
         chainer.enable_cosim()

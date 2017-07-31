@@ -26,6 +26,8 @@ def _transpose(xs, length):
 
         outs = tuple([xp.empty((l,) + unit, dtype=dtype) for l in lengths])
         for i, x in enumerate(xs):
+            if not isinstance(x, numpy.ndarray):
+                x = numpy.array(x)
             for p, xi in enumerate(x):
                 outs[p][i] = xi
 

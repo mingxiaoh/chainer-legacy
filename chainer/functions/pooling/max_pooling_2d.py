@@ -177,6 +177,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
         ret = func(x)
         if chainer.is_cosim():
             func.cosim_func = MaxPooling2D(ksize, stride, pad, cover_all)
+            x, = mkld.to_plain_array((x, ))
             numpy_result = func.cosim_func(x)
             func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
         return ret

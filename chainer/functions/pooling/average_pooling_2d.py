@@ -142,6 +142,7 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
         ret = func(x)
         if chainer.is_cosim():
             func.cosim_func = AveragePooling2D(ksize, stride, pad, False)
+            x, = mkld.to_plain_array((x, ))
             numpy_result = func.cosim_func(x)
             func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
         return ret

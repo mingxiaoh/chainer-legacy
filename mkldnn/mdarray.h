@@ -68,8 +68,8 @@ namespace implementation {
 
 #define NPY_ARRAY_SURROGATE_EXIT()
 
-#define nb_unary_map(method) \
-  PyObject * m_ ## method (PyObject *self) {    \
+#define nb_unary_map_impl(method) \
+  PyObject * m_ ## method ## _map_impl(PyObject *self) { \
     NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
@@ -79,10 +79,16 @@ namespace implementation {
     Py_DECREF(surrogate);   \
     NPY_ARRAY_SURROGATE_EXIT(); \
     return res;   \
-  }
+  } \
 
-#define nb_binary_map(method) \
-  PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
+#define nb_unary_map(method) \
+  nb_unary_map_impl(method) \
+  PyObject * m_ ## method (PyObject *self) {    \
+    return m_ ## method ## _map_impl(self); \
+  } \
+
+#define nb_binary_map_impl(method) \
+  PyObject * m_ ## method ## _map_impl(PyObject *self, PyObject *o) {    \
     NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
@@ -94,8 +100,14 @@ namespace implementation {
     return res;   \
   }
 
-#define nb_ternary_map(method) \
-  PyObject * m_ ## method (PyObject *self, PyObject *o1, PyObject *o2) {    \
+#define nb_binary_map(method) \
+  nb_binary_map_impl(method) \
+  PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
+    return m_ ## method ## _map_impl(self, o); \
+  } \
+
+#define nb_ternary_map_impl(method) \
+  PyObject * m_ ## method ## _map_impl(PyObject *self, PyObject *o1, PyObject *o2) {    \
     NPY_ARRAY_SURROGATE_ENTRY(self); \
                                 \
     if (surrogate == nullptr)   \
@@ -106,6 +118,12 @@ namespace implementation {
     NPY_ARRAY_SURROGATE_EXIT(); \
     return res;   \
   }
+
+#define nb_ternary_map(method) \
+  nb_ternary_map_impl(method) \
+  PyObject * m_ ## method (PyObject *self, PyObject *o1, PyObject *o2) {    \
+    return m_ ## method ## _map_impl(self, o1, o2); \
+  } \
 
 class mdarray {
 public:
@@ -199,6 +217,14 @@ public:
 
     mkldnn::reorder fire(const mdarray *src) {
       mkldnn::reorder reorder(src->memory(), dst_);
+      mkldnn::stream s(mkldnn::stream::eager);
+
+      s.submit({reorder}).wait();
+      return reorder;
+    }
+
+    mkldnn::reorder sync(const mdarray *src) {
+      mkldnn::reorder reorder(dst_, src->memory());
       mkldnn::stream s(mkldnn::stream::eager);
 
       s.submit({reorder}).wait();
@@ -421,6 +447,12 @@ public:
     return -1;
   }
 
+  inline void unpickled_data(void *pdata) {
+    data_.reset(reinterpret_cast<avx::byte *>(pdata));
+    m_.set_data_handle(pdata);
+    return;
+  }
+
   inline void *data() const { return data_.get(); }
   inline size_type size() const { return size_; }
   inline size_type len() const { return m_.get_primitive_desc().get_size(); }
@@ -441,6 +473,23 @@ public:
     return m_.get_primitive_desc().desc();
   }
 
+  PyObject *__getstate__(void) const;
+
+  void __setstate__(PyObject *state);
+
+  PyObject *py_mdarray_from(PyObject *o) const;
+
+  /// d = a * x + b * y, using x's format
+  template<class T>
+  static void axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y);
+
+  /// Interface to directly contact python
+  template<class T>
+  PyObject *axpby(T a, T b, PyObject *o);
+
+  template<class T>
+  PyObject *inplace_axpby(T a, PyObject *self, T b, PyObject *o);
+
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
 
@@ -448,10 +497,17 @@ public:
 
   PyObject *getattro(PyObject *self, PyObject *name);
 
-  PyObject * m_Add(PyObject *self, PyObject *o);
-  PyObject * m_InPlaceAdd(PyObject *self, PyObject *o);
-  nb_binary_map(Subtract);
-  nb_binary_map(Multiply);
+  PyObject *m_Add(PyObject *self, PyObject *o);
+  nb_binary_map_impl(Add);
+  PyObject *m_InPlaceAdd(PyObject *self, PyObject *o);
+  nb_binary_map_impl(InPlaceAdd);
+  PyObject *m_Subtract(PyObject *self, PyObject *o);
+  nb_binary_map_impl(Subtract);
+  PyObject *m_InPlaceSubtract(PyObject *self, PyObject *o);
+  nb_binary_map_impl(InPlaceSubtract);
+  PyObject *m_Multiply(PyObject *self, PyObject *o);
+  nb_binary_map_impl(Multiply);
+
   nb_binary_map(Remainder);
   nb_binary_map(Divmod);
   nb_unary_map(Negative);
@@ -463,7 +519,6 @@ public:
   nb_binary_map(And);
   nb_binary_map(Xor);
   nb_binary_map(Or);
-  nb_binary_map(InPlaceSubtract);
   nb_binary_map(InPlaceMultiply);
   nb_binary_map(InPlaceRemainder);
   nb_ternary_map(InPlacePower);
@@ -505,6 +560,7 @@ protected:
   };
   mdarray_ty rtti;
   bool internal_order_;
+  reorderer *sync_reorder_;
 
   enum purpose {
     source, sink
@@ -866,7 +922,7 @@ public:
 
     for (int i = 0; i<ndim; i++) {
       PyObject *o = PyLong_FromLong(data.dims[i]);
-  
+
       if (!o) {
         Py_DECREF(intTuple);
         intTuple = NULL;
@@ -909,6 +965,10 @@ public:
 
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
     return new mkldnn::memory((*self)->memory());
+  }
+
+  static bool mdarray_is_mdarray_get(mdarray *self) {
+    return true;
   }
 };
 

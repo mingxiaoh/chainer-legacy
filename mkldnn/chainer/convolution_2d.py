@@ -16,6 +16,7 @@ import mkldnn.api.convolution_backward_weights as conv_backweights
 import mkldnn.api.cosim_dump as cdump
 from mkldnn.api.cosim_dump import *
 from mkldnn.mdarray import mdarray
+from mkldnn.chainer.optimization import WeightReorderOptimization, weight_optimization_trigger
 
 conv_f_op = conv_forward.conv_f_op
 conv_bd_op = conv_backdata.conv_bd_op
@@ -158,6 +159,15 @@ class ConvolutionForward(ComputeComplex):
         else:
             self.W = outputs[0]
 
+        # Record weight reorder primitive hint
+        if self.usr_w is not self.W:
+            wro = WeightReorderOptimization()
+            wro.reorder = self.dag_.size() - 1
+            wro.optimized = False
+            self.weight_reorder_opt = wro
+        else:
+            self.weight_reorder_opt = None
+
         # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
         if b is not None:
@@ -173,7 +183,16 @@ class ConvolutionForward(ComputeComplex):
 
     def _reuse_cc(self, x, W, b):
         reuse_buffer(self.x, x)
-        reuse_buffer(self.usr_w, W)
+        # Weight optimization starts from second iteration.
+        # check cc.W with W
+        if self.W is not W:
+            reuse_buffer(self.usr_w, W)
+        else:
+            if self.weight_reorder_opt is not None and \
+               self.weight_reorder_opt.optimized is False:
+                self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
+                self.weight_reorder_opt.optimized = True
+
         if b is not None:
             reuse_buffer(self.b, b)
 
@@ -319,6 +338,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
 
         self.hint = cc.hint
         self.W = cc.W
+        weight_optimization_trigger(self)
 
         y, = cc.execute_on()
         y.reset_buf_order()

@@ -98,6 +98,7 @@ def concat(xs, axis=1):
         ret = func(*xs)
         if chainer.is_cosim():
             func.cosim_func = Concat(axis=axis)
+            xs = mkld.to_plain_array(xs)
             numpy_result = func.cosim_func(*xs)
             func.cpu_cosim_verify_result(ret, numpy_result, xs)
         return ret

@@ -430,6 +430,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
             ret = func(x, gamma, beta, mean, var)
             if chainer.is_cosim():
                 func.cosim_func = BatchNormalizationFunction(eps, None, None, 0.0)
+                x, = mkld.to_plain_array((x, ))
                 numpy_result = func.cosim_func(x, gamma, beta, mean, var)
                 func.cpu_cosim_verify_result(ret, numpy_result, (x, gamma, beta, mean, var))
             return ret
