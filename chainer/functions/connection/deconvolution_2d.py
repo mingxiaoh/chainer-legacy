@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import function
 from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
@@ -18,6 +19,8 @@ if cuda.cudnn_enabled:
         _bwd_data_pref = \
             libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
+if mkld.available:
+    Deconvolution2DFunctionMKLDNN = mkld.deconvolution_2d.Deconvolution2DFunctionMKLDNN
 
 _check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
 
@@ -321,7 +324,24 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
        w_O &= s_X (w - 1) + k_W - 2p_W.
 
     """
-    func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+    # XXX: Switch the route
+    if not isinstance(x.data, cuda.ndarray) and \
+       mkld.check_with_mkld((x, W), ()):
+        func = Deconvolution2DFunctionMKLDNN(stride, pad, outsize, deterministic)
+        if chainer.is_cosim:
+            func.cosim_func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+            if b is None:
+                ret = func(x, W)
+                numpy_result = func.cosim_func(x, W)
+                func.cpu_cosim_verify_result(ret, numpy_result, (x, W))
+            else:
+                ret = func(x, W, b)
+                numpy_result = func.cosim_func(x, W, b)
+                func.cpu_cosim_verify_result(ret, numpy_result, (x, W, b))
+            return ret
+    else:
+        func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+
     if b is None:
         return func(x, W)
     else:

@@ -18,6 +18,7 @@ try:
     from mkldnn.chainer import bn
     from mkldnn.chainer import concat
     from mkldnn.chainer import convolution_2d
+    from mkldnn.chainer import deconvolution_2d
     from mkldnn.chainer import linear
     from mkldnn.chainer import lrn
     from mkldnn.chainer import max_pooling_2d
@@ -36,7 +37,6 @@ def check_with_mkld(inputs, check_with_ndim):
     # Check whether mkldnn installed
     if not available:
         return False
-
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
 
