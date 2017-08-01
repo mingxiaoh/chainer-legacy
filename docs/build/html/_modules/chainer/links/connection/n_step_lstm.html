@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.connection.n_step_lstm &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.connection.n_step_lstm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.connection.n_step_lstm</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">permutate</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">transpose_sequence</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.connection</span> <span class="k">import</span> <span class="n">n_step_lstm</span> <span class="k">as</span> <span class="n">rnn</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+
+
+<span class="k">def</span> <span class="nf">argsort_list_descent</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argsort</span><span class="p">([</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">permutate_list</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inv</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inv</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">lst</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lst</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<div class="viewcode-block" id="NStepLSTM"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.NStepLSTM">[docs]</a><span class="k">class</span> <span class="nc">NStepLSTM</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">ChainList</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Stacked LSTM for sequnces.</span>
+
+<span class="sd">    This link is stacked version of LSTM for sequences. It calculates hidden</span>
+<span class="sd">    and cell states of all layer at end-of-string, and all hidden states of</span>
+<span class="sd">    the last layer for each time.</span>
+
+<span class="sd">    Unlike :func:`chainer.functions.n_step_lstm`, this function automatically</span>
+<span class="sd">    sort inputs in descending order by length, and transpose the seuqnece.</span>
+<span class="sd">    Users just need to call the link with a list of :class:`chainer.Variable`</span>
+<span class="sd">    holding sequences.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n_layers (int): Number of layers.</span>
+<span class="sd">        in_size (int): Dimensionality of input vectors.</span>
+<span class="sd">        out_size (int): Dimensionality of hidden states and output vectors.</span>
+<span class="sd">        dropout (float): Dropout ratio.</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">        :func:`chainer.functions.n_step_lstm`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">dropout</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">):</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="n">w_in</span> <span class="o">=</span> <span class="n">in_size</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">w_in</span> <span class="o">=</span> <span class="n">out_size</span>
+                <span class="n">weight</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;w</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">w_in</span><span class="p">))</span>
+                <span class="n">weight</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;b</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">out_size</span><span class="p">,))</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="s1">&#39;w</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+                    <span class="mi">0</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">w_in</span><span class="p">),</span> <span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">w_in</span><span class="p">))</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="s1">&#39;b</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">NStepLSTM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">n_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_size</span> <span class="o">=</span> <span class="n">out_size</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hx</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate all hidden states and cell states.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hx (~chainer.Variable or None): Initial hidden states. If ``None``</span>
+<span class="sd">                is specified zero-vector is used.</span>
+<span class="sd">            cx (~chainer.Variable or None): Initial cell states. If ``None``</span>
+<span class="sd">                is specified zero-vector is used.</span>
+<span class="sd">            xs (list of ~chianer.Variable): List of input sequences.</span>
+<span class="sd">                Each element ``xs[i]`` is a :class:`chainer.Variable` holding</span>
+<span class="sd">                a sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">argsort_list_descent</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">permutate_list</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span><span class="p">):</span>
+                <span class="n">hx</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_size</span><span class="p">),</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hx</span> <span class="o">=</span> <span class="n">permutate</span><span class="o">.</span><span class="n">permutate</span><span class="p">(</span><span class="n">hx</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span><span class="p">):</span>
+                <span class="n">cx</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_size</span><span class="p">),</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cx</span> <span class="o">=</span> <span class="n">permutate</span><span class="o">.</span><span class="n">permutate</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">trans_x</span> <span class="o">=</span> <span class="n">transpose_sequence</span><span class="o">.</span><span class="n">transpose_sequence</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+
+        <span class="n">ws</span> <span class="o">=</span> <span class="p">[[</span><span class="n">w</span><span class="o">.</span><span class="n">w0</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w1</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w2</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w3</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w4</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w5</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w6</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">w7</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">w</span><span class="o">.</span><span class="n">b0</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b1</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b2</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b3</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b4</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b5</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b6</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">b7</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+
+        <span class="n">hy</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">trans_y</span> <span class="o">=</span> <span class="n">rnn</span><span class="o">.</span><span class="n">n_step_lstm</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">hx</span><span class="p">,</span> <span class="n">cx</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">trans_x</span><span class="p">)</span>
+
+        <span class="n">hy</span> <span class="o">=</span> <span class="n">permutate</span><span class="o">.</span><span class="n">permutate</span><span class="p">(</span><span class="n">hy</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">cy</span> <span class="o">=</span> <span class="n">permutate</span><span class="o">.</span><span class="n">permutate</span><span class="p">(</span><span class="n">cy</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">transpose_sequence</span><span class="o">.</span><span class="n">transpose_sequence</span><span class="p">(</span><span class="n">trans_y</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">permutate_list</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hy</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">ys</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

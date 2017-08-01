@@ -1,0 +1,456 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.loss.negative_sampling &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.loss.negative_sampling</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.loss.negative_sampling</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">type_check</span>
+
+
+<span class="k">class</span> <span class="nc">NegativeSamplingFunction</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="n">ignore_label</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span> <span class="o">=</span> <span class="n">sampler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">=</span> <span class="n">sample_size</span>
+
+    <span class="k">def</span> <span class="nf">_make_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;samples&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span>  <span class="c1"># for testing</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># first one is the positive, and others are sampled negatives</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">samples</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+
+    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">x_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="n">w_type</span> <span class="o">=</span> <span class="n">in_types</span>
+
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">t_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">t_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">t_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_samples</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">],</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">]):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">W</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+            <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># positive sample</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">logaddexp</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+
+    <span class="k">def</span> <span class="nf">forward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span>
+        <span class="n">n_in</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_samples</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wx</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="s1">&#39;raw T W, raw T x, bool mask, S k, int32 c, int32 m&#39;</span><span class="p">,</span> <span class="s1">&#39;T wx&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            T f = 0;</span>
+<span class="sd">            if (mask == 1) {</span>
+<span class="sd">                for (int j = 0; j &lt; c; ++j) {</span>
+<span class="sd">                  int x_ind[] = {(i / m), j};</span>
+<span class="sd">                  int w_ind[] = {k, j};</span>
+<span class="sd">                  f += x[x_ind] * W[w_ind];</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            wx = f;</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;negative_sampling_wx&#39;</span>
+        <span class="p">)(</span><span class="n">W</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="s1">&#39;T wx, int32 c, int32 m&#39;</span><span class="p">,</span> <span class="s1">&#39;T y&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            T f = wx;</span>
+<span class="sd">            if (i % m == 0) {</span>
+<span class="sd">              f = -f;</span>
+<span class="sd">            }</span>
+<span class="sd">            T loss;</span>
+<span class="sd">            if (f &lt; 0) {</span>
+<span class="sd">              loss = __logf(1 + __expf(f));</span>
+<span class="sd">            } else {</span>
+<span class="sd">              loss = f + __logf(1 + __expf(-f));</span>
+<span class="sd">            }</span>
+<span class="sd">            y = loss;</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;negative_sampling_forward&#39;</span>
+        <span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">wx</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># TODO(okuta): merge elementwise</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">backward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">gloss</span><span class="p">,</span> <span class="o">=</span> <span class="n">grads</span>
+
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">])):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">W</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+
+            <span class="c1"># g == -y * gloss / (1 + exp(yf))</span>
+            <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">gloss</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">f</span><span class="p">))</span>
+            <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+            <span class="n">gx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ig</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+                <span class="n">gW</span><span class="p">[</span><span class="n">ik</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ig</span> <span class="o">*</span> <span class="n">ix</span>
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gW</span>
+
+    <span class="k">def</span> <span class="nf">backward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
+        <span class="n">cupy</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">gloss</span><span class="p">,</span> <span class="o">=</span> <span class="n">grads</span>
+
+        <span class="n">n_in</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="s1">&#39;T wx, raw T gloss, int32 m&#39;</span><span class="p">,</span> <span class="s1">&#39;T g&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            T y;</span>
+<span class="sd">            if (i % m == 0) {</span>
+<span class="sd">              y = 1;</span>
+<span class="sd">            } else {</span>
+<span class="sd">              y = -1;</span>
+<span class="sd">            }</span>
+
+<span class="sd">            g = -y * gloss[0] / (1.0f + __expf(wx * y));</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;negative_sampling_calculate_g&#39;</span>
+        <span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">wx</span><span class="p">,</span> <span class="n">gloss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="s1">&#39;raw T g, raw T W, bool mask, raw S k, int32 c, int32 m&#39;</span><span class="p">,</span> <span class="s1">&#39;T gx&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            int d = i / c;</span>
+<span class="sd">            T w = 0;</span>
+<span class="sd">            if (mask == 1){</span>
+<span class="sd">                for (int j = 0; j &lt; m; ++j) {</span>
+<span class="sd">                  w += g[d * m + j] * W[k[d * m + j] * c + i % c];</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            gx = w;</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;negative_sampling_calculate_gx&#39;</span>
+        <span class="p">)(</span><span class="n">g</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gx</span><span class="p">)</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="s1">&#39;T g, raw T x, S k, bool mask, int32 c, int32 m&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;raw T gW&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            T gi = g;</span>
+<span class="sd">            if (mask == 1) {</span>
+<span class="sd">                for (int j = 0; j &lt; c; ++j) {</span>
+<span class="sd">                  atomicAdd(&amp;gW[k * c + j], gi * x[(i / m) * c + j]);</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;negative_sampling_calculate_gw&#39;</span>
+        <span class="p">)(</span><span class="n">g</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_mask</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">n_in</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">sample_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gW</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gW</span>
+
+
+<div class="viewcode-block" id="negative_sampling"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.negative_sampling">[docs]</a><span class="k">def</span> <span class="nf">negative_sampling</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">sampler</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Negative sampling loss function.</span>
+
+<span class="sd">    In natural language processing, especially language modeling, the number of</span>
+<span class="sd">    words in a vocabulary can be very large.</span>
+<span class="sd">    Therefore, you need to spend a lot of time calculating the gradient of the</span>
+<span class="sd">    embedding matrix.</span>
+
+<span class="sd">    By using the negative sampling trick you only need to calculate the</span>
+<span class="sd">    gradient for a few sampled negative examples.</span>
+
+<span class="sd">    The objective function is below:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       f(x, p) = \\log \\sigma(x^\\top w_p) +  \\</span>
+<span class="sd">       k E_{i \\sim P(i)}[\\log \\sigma(- x^\\top w_i)],</span>
+
+<span class="sd">    where :math:`\\sigma(\\cdot)` is a sigmoid function, :math:`w_i` is the</span>
+<span class="sd">    weight vector for the word :math:`i`, and :math:`p` is a positive example.</span>
+<span class="sd">    It is approximated with :math:`k` examples :math:`N` sampled from</span>
+<span class="sd">    probability :math:`P(i)`, like this:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       f(x, p) \\approx \\log \\sigma(x^\\top w_p) +  \\</span>
+<span class="sd">       \\sum_{n \\in N} \\log \\sigma(-x^\\top w_n).</span>
+
+<span class="sd">    Each sample of :math:`N` is drawn from the word distribution :math:`P(w)`.</span>
+<span class="sd">    This is calculated as :math:`P(w) = \\frac{1}{Z} c(w)^\\alpha`, where</span>
+<span class="sd">    :math:`c(w)` is the unigram count of the word :math:`w`, :math:`\\alpha` is</span>
+<span class="sd">    a hyper-parameter, and :math:`Z` is the normalization constant.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (~chainer.Variable): Batch of input vectors.</span>
+<span class="sd">        t (~chainer.Variable): Vector of ground truth labels.</span>
+<span class="sd">        W (~chainer.Variable): Weight matrix.</span>
+<span class="sd">        sampler (~types.FunctionType): Sampling function. It takes a shape and</span>
+<span class="sd">            returns an integer array of the shape. Each element of this array</span>
+<span class="sd">            is a sample from the word distribution.</span>
+<span class="sd">            A :class:`~chainer.utils.WalkerAlias` object built with the power</span>
+<span class="sd">            distribution of word frequency is recommended.</span>
+<span class="sd">        sample_size (int): Number of samples.</span>
+
+<span class="sd">    See: `Distributed Representations of Words and Phrases and their\</span>
+<span class="sd">         Compositionality &lt;https://arxiv.org/abs/1310.4546&gt;`_</span>
+
+<span class="sd">    .. seealso:: :class:`~chainer.links.NegativeSampling`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">NegativeSamplingFunction</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

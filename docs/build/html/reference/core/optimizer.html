@@ -1,0 +1,624 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Optimizer &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="Core functionalities" href="../core.html"/>
+        <link rel="next" title="Serializer" href="serializer.html"/>
+        <link rel="prev" title="Link and Chain" href="link.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../core.html">Core functionalities</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="variable.html">Variable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flag.html">Flag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="function.html">Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="link.html">Link and Chain</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hook-functions">Hook functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="serializer.html">Serializer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dataset.html">Dataset abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="training.html">Training loop abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="debug.html">Debug mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="configuration.html">Configuring Chainer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+          <li><a href="../core.html">Core functionalities</a> &raquo;</li>
+        
+      <li>Optimizer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/core/optimizer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="optimizer">
+<h1>Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="chainer.Optimizer">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Optimizer</code><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class of all numerical optimizers.</p>
+<p>This class provides basic features for all optimization methods. It
+optimizes parameters of a <em>target link</em>. The target link is registered via
+the <a class="reference internal" href="#chainer.Optimizer.setup" title="chainer.Optimizer.setup"><code class="xref py py-meth docutils literal"><span class="pre">setup()</span></code></a> method, and then the <a class="reference internal" href="#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> method updates its
+parameters based on a given loss function.</p>
+<p>Each optimizer implementation must be defined as a child class of
+Optimizer. It must override <a class="reference internal" href="#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> method.</p>
+<p>If the optimizer is based on single gradient computation (like
+most first-order methods), then it should inherit <a class="reference internal" href="#chainer.GradientMethod" title="chainer.GradientMethod"><code class="xref py py-class docutils literal"><span class="pre">GradientMethod</span></code></a>,
+which adds some features dedicated for the first order methods, including
+the support of <code class="xref py py-class docutils literal"><span class="pre">UpdateRule</span></code>.</p>
+<p>Optimizer instance also supports <em>hook functions</em>. Hook function is
+registered by the <a class="reference internal" href="#chainer.Optimizer.add_hook" title="chainer.Optimizer.add_hook"><code class="xref py py-meth docutils literal"><span class="pre">add_hook()</span></code></a> method. Each hook function is called
+in registration order in advance of the actual parameter update. If the
+hook function has an attribute <code class="docutils literal"><span class="pre">call_for_each_param</span></code> and its value is
+<code class="docutils literal"><span class="pre">True</span></code>, the hook function is used as a hook function of all update rules
+(i.e., it is invoked for every parameter by passing the corresponding
+update rule and the parameter).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> – Target link object. It is set by the <a class="reference internal" href="#chainer.Optimizer.setup" title="chainer.Optimizer.setup"><code class="xref py py-meth docutils literal"><span class="pre">setup()</span></code></a> method.</li>
+<li><strong>t</strong> – Number of update steps. It must be incremented by the
+<a class="reference internal" href="#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> method.</li>
+<li><strong>epoch</strong> – Current epoch. It is incremented by the <a class="reference internal" href="#chainer.Optimizer.new_epoch" title="chainer.Optimizer.new_epoch"><code class="xref py py-meth docutils literal"><span class="pre">new_epoch()</span></code></a>
+method.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.Optimizer.add_hook">
+<code class="descname">add_hook</code><span class="sig-paren">(</span><em>hook</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.add_hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.add_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a hook function.</p>
+<p>Hook function is typically called right after the gradient computation,
+though the timing depends on the optimization method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hook</strong> (<a class="reference internal" href="../function_hooks.html#module-chainer.function" title="chainer.function"><em>function</em></a>) – Hook function. If <code class="docutils literal"><span class="pre">hook.call_for_each_param</span></code> is
+true, this hook function is called for each parameter by
+passing the update rule and the parameter. Otherwise, this hook
+function is called only once each iteration by passing the
+optimizer.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the registration. If omitted, <code class="docutils literal"><span class="pre">hook.name</span></code> is
+used by default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.call_hooks">
+<code class="descname">call_hooks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.call_hooks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.call_hooks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invokes hook functions in registration order.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.new_epoch">
+<code class="descname">new_epoch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.new_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.new_epoch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts a new epoch.</p>
+<p>This method increments the <code class="xref py py-attr docutils literal"><span class="pre">epoch</span></code> count. Note that if the
+optimizer depends on the epoch count, then user should call this method
+appropriately at the beginning of each epoch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.remove_hook">
+<code class="descname">remove_hook</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.remove_hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.remove_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes a hook function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Registered name of the hook function to remove.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.serialize">
+<code class="descname">serialize</code><span class="sig-paren">(</span><em>serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes or deserializes the optimizer.</p>
+<p>It only saves or loads the following things:</p>
+<ul class="simple">
+<li>Optimizer states</li>
+<li>Global states (<code class="xref py py-attr docutils literal"><span class="pre">t</span></code> and <code class="xref py py-attr docutils literal"><span class="pre">epoch</span></code>)</li>
+</ul>
+<p><strong>It does not saves nor loads the parameters of the target link.</strong> They
+should be separately saved or loaded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>serializer</strong> (<a class="reference internal" href="serializer.html#chainer.AbstractSerializer" title="chainer.AbstractSerializer"><em>AbstractSerializer</em></a>) – Serializer or
+deserializer object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.setup">
+<code class="descname">setup</code><span class="sig-paren">(</span><em>link</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets a target link and initializes the optimizer states.</p>
+<p>Given link is set to the <code class="xref py py-attr docutils literal"><span class="pre">target</span></code> attribute. It also prepares the
+optimizer state dictionaries corresponding to all parameters in the
+link hierarchy. The existing states are discarded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>link</strong> (<a class="reference internal" href="link.html#chainer.Link" title="chainer.Link"><em>Link</em></a>) – Target link object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Optimizer.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>lossfun=None</em>, <em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Optimizer.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Optimizer.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the parameters.</p>
+<p>This method updates the parameters of the target link. The behavior of
+this method is different for the cases either <code class="docutils literal"><span class="pre">lossfun</span></code> is given or
+not.</p>
+<p>If <code class="docutils literal"><span class="pre">lossfun</span></code> is given, this method typically clears the gradients,
+calls the loss function with given extra arguments, and calls the
+<a class="reference internal" href="variable.html#chainer.Variable.backward" title="chainer.Variable.backward"><code class="xref py py-meth docutils literal"><span class="pre">backward()</span></code></a> method of its output to compute the
+gradients. The actual implementation might call <code class="docutils literal"><span class="pre">lossfun</span></code> more than
+once.</p>
+<p>If <code class="docutils literal"><span class="pre">lossfun</span></code> is not given, then this method assumes that the
+gradients of all parameters are already computed. An implementation
+that requires multiple gradient computations might raise an error on
+this case.</p>
+<p>In both cases, this method invokes the update procedure for all
+parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>lossfun</strong> (<a class="reference internal" href="../function_hooks.html#module-chainer.function" title="chainer.function"><em>function</em></a>) – Loss function. It accepts arbitrary arguments
+and returns one <a class="reference internal" href="variable.html#chainer.Variable" title="chainer.Variable"><code class="xref py py-class docutils literal"><span class="pre">Variable</span></code></a> object that
+represents the loss (or objective) value. This argument can be
+omitted for single gradient-based methods. In this case, this
+method assumes gradient arrays computed.</li>
+<li><strong>kwds</strong> (<em>args</em><em>,</em>) – Arguments for the loss function.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.GradientMethod">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">GradientMethod</code><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientMethod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.GradientMethod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class of all single gradient-based optimizers.</p>
+<p>This is an extension of the <a class="reference internal" href="#chainer.Optimizer" title="chainer.Optimizer"><code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code></a> class. Typical gradient
+methods that just require the gradient at the current parameter vector on
+an update can be implemented as its child class.</p>
+<p>This class uses <code class="xref py py-class docutils literal"><span class="pre">UpdateRule</span></code> to manage the update rule of
+each parameter. A child class of GradientMethod should override
+<a class="reference internal" href="#chainer.GradientMethod.create_update_rule" title="chainer.GradientMethod.create_update_rule"><code class="xref py py-meth docutils literal"><span class="pre">create_update_rule()</span></code></a> to create the default update rule of each
+parameter.</p>
+<p>This class also provides <code class="xref py py-attr docutils literal"><span class="pre">hyperparam</span></code>, which is the hyperparameter
+used as the default configuration of each update rule. All built-in
+gradient method implementations also provide proxy properties that act
+as aliases to the attributes of <code class="xref py py-attr docutils literal"><span class="pre">hyperparam</span></code>. It is recommended to
+provide such an alias to each attribute. It can be done by only adding one
+line for each attribute using <code class="xref py py-class docutils literal"><span class="pre">HyperparameterProxy</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>hyperparam</strong> (<em>Hyperparameter</em>) – The hyperparameter of the gradient
+method. It is used as the default configuration of each update
+rule (i.e., the hyperparameter of each update rule refers this
+hyperparameter as its parent).</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.GradientMethod.create_update_rule">
+<code class="descname">create_update_rule</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientMethod.create_update_rule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.GradientMethod.create_update_rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new update rule object.</p>
+<p>This method creates an update rule object. It is called by
+<code class="xref py py-meth docutils literal"><span class="pre">setup()</span></code> to set up an update rule of each parameter.
+Each implementation of the gradient method should override this method
+to provide the default update rule implementation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Update rule object.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">UpdateRule</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.GradientMethod.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>lossfun=None</em>, <em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientMethod.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.GradientMethod.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates parameters based on a loss function or computed gradients.</p>
+<p>This method runs in two ways.</p>
+<ul class="simple">
+<li>If <code class="docutils literal"><span class="pre">lossfun</span></code> is given, then it is used as a loss function to
+compute gradients.</li>
+<li>Otherwise, this method assumes that the gradients are already
+computed.</li>
+</ul>
+<p>In both cases, the computed gradients are used to update parameters.
+The actual update routines are defined by the update rule of each
+parameter.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.GradientMethod.use_cleargrads">
+<code class="descname">use_cleargrads</code><span class="sig-paren">(</span><em>use=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientMethod.use_cleargrads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.GradientMethod.use_cleargrads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enables or disables use of <a class="reference internal" href="link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-func docutils literal"><span class="pre">cleargrads()</span></code></a> in <cite>update</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>use</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, this function enables use of
+<cite>cleargrads</cite>. If <code class="docutils literal"><span class="pre">False</span></code>, disables use of <cite>cleargrads</cite>
+(<cite>zerograds</cite> is used).</td>
+</tr>
+</tbody>
+</table>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version v2.0: </span>Note that <a class="reference internal" href="#chainer.GradientMethod.update" title="chainer.GradientMethod.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> calls <a class="reference internal" href="link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> by default.
+<a class="reference internal" href="link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> is more efficient than
+<a class="reference internal" href="link.html#chainer.Link.zerograds" title="chainer.Link.zerograds"><code class="xref py py-meth docutils literal"><span class="pre">zerograds()</span></code></a>, so one does not have to call
+<a class="reference internal" href="#chainer.GradientMethod.use_cleargrads" title="chainer.GradientMethod.use_cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">use_cleargrads()</span></code></a>. This method remains for backward
+compatibility.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="hook-functions">
+<h2>Hook functions<a class="headerlink" href="#hook-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.optimizer.WeightDecay">
+<em class="property">class </em><code class="descclassname">chainer.optimizer.</code><code class="descname">WeightDecay</code><span class="sig-paren">(</span><em>rate</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#WeightDecay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.optimizer.WeightDecay" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizer/UpdateRule hook function for weight decay regularization.</p>
+<p>This hook function adds a scaled parameter to the corresponding gradient.
+It can be used as a regularization.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Coefficient for the weight decay.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><strong>rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Coefficient for the weight decay.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.optimizer.Lasso">
+<em class="property">class </em><code class="descclassname">chainer.optimizer.</code><code class="descname">Lasso</code><span class="sig-paren">(</span><em>rate</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#Lasso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.optimizer.Lasso" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizer/UpdateRule hook function for Lasso regularization.</p>
+<p>This hook function adds a scaled parameter to the sign of each weight.
+It can be used as a regularization.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Coefficient for the weight decay.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><strong>rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Coefficient for the weight decay.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.optimizer.GradientClipping">
+<em class="property">class </em><code class="descclassname">chainer.optimizer.</code><code class="descname">GradientClipping</code><span class="sig-paren">(</span><em>threshold</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientClipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.optimizer.GradientClipping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizer hook function for gradient clipping.</p>
+<p>This hook function scales all gradient arrays to fit to the defined L2 norm
+threshold.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – L2 norm threshold.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><strong>threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – L2 norm threshold of gradient norm.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.optimizer.GradientNoise">
+<em class="property">class </em><code class="descclassname">chainer.optimizer.</code><code class="descname">GradientNoise</code><span class="sig-paren">(</span><em>eta</em>, <em>noise_func=&lt;function exponential_decay_noise&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/optimizer.html#GradientNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.optimizer.GradientNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizer/UpdateRule hook function for adding gradient noise.</p>
+<p>This hook function simply adds noise generated by the <code class="docutils literal"><span class="pre">noise_func</span></code>
+to the gradient. By default it adds time-dependent annealed Gaussian
+noise to the gradient at every training step:</p>
+<div class="math">
+\[g_t \leftarrow g_t + N(0, \sigma_t^2)\]</div>
+<p>where</p>
+<div class="math">
+\[\sigma_t^2 = \frac{\eta}{(1+t)^\gamma}\]</div>
+<p>with <span class="math">\(\eta\)</span> selected from {0.01, 0.3, 1.0} and
+<span class="math">\(\gamma = 0.55\)</span>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>eta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Parameter that defines the scale of the noise, which for
+the default noise function is recommended to be either 0.01, 0.3
+or 1.0.</li>
+<li><strong>noise_func</strong> (<a class="reference internal" href="../function_hooks.html#module-chainer.function" title="chainer.function"><em>function</em></a>) – Noise generating function which by default
+is given by <a class="reference external" href="https://arxiv.org/pdf/1511.06807">Adding Gradient Noise Improves Learning for Very Deep            Networks</a>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="serializer.html" class="btn btn-neutral float-right" title="Serializer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="link.html" class="btn btn-neutral" title="Link and Chain" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

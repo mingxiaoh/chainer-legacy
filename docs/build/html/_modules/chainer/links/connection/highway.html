@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.connection.highway &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.connection.highway</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.connection.highway</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">chainer.functions.activation</span> <span class="k">import</span> <span class="n">relu</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.activation</span> <span class="k">import</span> <span class="n">sigmoid</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer.links.connection</span> <span class="k">import</span> <span class="n">linear</span>
+
+
+<div class="viewcode-block" id="Highway"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.Highway">[docs]</a><span class="k">class</span> <span class="nc">Highway</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Highway module.</span>
+
+<span class="sd">    In highway network, two gates are added to the ordinal non-linear</span>
+<span class="sd">    transformation (:math:`H(x) = activate(W_h x + b_h)`).</span>
+<span class="sd">    One gate is the transform gate :math:`T(x) = \\sigma(W_t x + b_t)`, and the</span>
+<span class="sd">    other is the carry gate :math:`C(x)`.</span>
+<span class="sd">    For simplicity, the author defined :math:`C = 1 - T`.</span>
+<span class="sd">    Highway module returns :math:`y` defined as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y = activate(W_h x + b_h) \\odot \\sigma(W_t x + b_t) +</span>
+<span class="sd">        x \\odot(1 - \\sigma(W_t x + b_t))</span>
+
+<span class="sd">    The output array has the same spatial size as the input. In order to</span>
+<span class="sd">    satisfy this, :math:`W_h` and :math:`W_t` must be square matrices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_out_size (int): Dimension of input and output vectors.</span>
+<span class="sd">        nobias (bool): If ``True``, then this function does not use the bias.</span>
+<span class="sd">        activate: Activation function of plain array. :math:`tanh` is also</span>
+<span class="sd">            available.</span>
+<span class="sd">        init_Wh (2-D array): Initial weight value of plain array.</span>
+<span class="sd">            If ``None``, the default initializer is used to</span>
+<span class="sd">            initialize the weight matrix.</span>
+<span class="sd">            May also be a callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">        init_bh (1-D array): Initial bias value of plain array. If ``None``,</span>
+<span class="sd">            then this function uses it to initialize zero vector.</span>
+<span class="sd">            May also be a callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">        init_Wt (2-D array): Initial weight value of transform array.</span>
+<span class="sd">            If ``None``, the default initializer is used to</span>
+<span class="sd">            initialize the weight matrix.</span>
+<span class="sd">            May also be a callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">        init_bt (1-D array): Initial bias value of transform array.</span>
+<span class="sd">            Default value is -1 vector.</span>
+<span class="sd">            May also be a callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">            Negative value is recommended by the author of the paper.</span>
+<span class="sd">            (e.g. -1, -3, ...).</span>
+
+<span class="sd">    See:</span>
+<span class="sd">        `Highway Networks &lt;https://arxiv.org/abs/1505.00387&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">activate</span><span class="o">=</span><span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+                 <span class="n">init_Wh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_Wt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_bh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_bt</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Highway</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">plain</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_out_size</span><span class="p">,</span> <span class="n">in_out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="n">nobias</span><span class="p">,</span>
+                                <span class="n">initialW</span><span class="o">=</span><span class="n">init_Wh</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="n">init_bh</span><span class="p">),</span>
+            <span class="n">transform</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_out_size</span><span class="p">,</span> <span class="n">in_out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="n">nobias</span><span class="p">,</span>
+                                    <span class="n">initialW</span><span class="o">=</span><span class="n">init_Wt</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="n">init_bt</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activate</span> <span class="o">=</span> <span class="n">activate</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes the output of the Highway module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (~chainer.Variable): Input variable.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Variable: Output variable. Its array has the same spatial size and</span>
+<span class="sd">            the same minibatch size as the input array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out_plain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plain</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">out_transform</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">out_plain</span> <span class="o">*</span> <span class="n">out_transform</span> <span class="o">+</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">out_transform</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

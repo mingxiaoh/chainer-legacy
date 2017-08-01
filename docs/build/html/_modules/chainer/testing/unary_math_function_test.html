@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.testing.unary_math_function_test &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../index.html"/>
+        <link rel="up" title="chainer" href="../../chainer.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.testing.unary_math_function_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.testing.unary_math_function_test</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.testing</span> <span class="k">import</span> <span class="n">attr</span>
+<span class="kn">from</span> <span class="nn">chainer.testing</span> <span class="k">import</span> <span class="n">condition</span>
+
+
+<span class="k">def</span> <span class="nf">_make_data_default</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">gy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">gy</span>
+
+
+<div class="viewcode-block" id="unary_math_function_unittest"><a class="viewcode-back" href="../../../reference/check.html#chainer.testing.unary_math_function_unittest">[docs]</a><span class="k">def</span> <span class="nf">unary_math_function_unittest</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">func_expected</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label_expected</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">make_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator for testing unary mathematical Chainer functions.</span>
+
+<span class="sd">    This decorator makes test classes test unary mathematical Chainer</span>
+<span class="sd">    functions. Tested are forward and backward computations on CPU and GPU</span>
+<span class="sd">    across parameterized ``shape`` and ``dtype``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        func(~chainer.Function): Chainer function to be tested by the decorated</span>
+<span class="sd">            test class.</span>
+<span class="sd">        func_expected: Function used to provide expected values for</span>
+<span class="sd">            testing forward computation. If not given, a corresponsing numpy</span>
+<span class="sd">            function for ``func`` is implicitly picked up by its class name.</span>
+<span class="sd">        label_expected(string): String used to test labels of Chainer</span>
+<span class="sd">            functions. If not given, the class name of ``func`` lowered is</span>
+<span class="sd">            implicitly used.</span>
+<span class="sd">        make_data: Function to customize input and gradient data used</span>
+<span class="sd">            in the tests. It takes ``shape`` and ``dtype`` as its arguments,</span>
+<span class="sd">            and returns a tuple of input and gradient data. By default, uniform</span>
+<span class="sd">            destribution ranged ``[-1, 1]`` is used for both.</span>
+
+<span class="sd">    The decorated test class tests forward and backward computations on CPU and</span>
+<span class="sd">    GPU across the following :func:`~chainer.testing.parameterize` ed</span>
+<span class="sd">    parameters:</span>
+
+<span class="sd">    - shape: rank of zero, and rank of more than zero</span>
+<span class="sd">    - dtype: ``numpy.float16``, ``numpy.float32`` and ``numpy.float64``</span>
+
+<span class="sd">    Additionally, it tests the label of the Chainer function.</span>
+
+<span class="sd">    Chainer functions tested by the test class decorated with the decorator</span>
+<span class="sd">    should have the following properties:</span>
+
+<span class="sd">    - Unary, taking one parameter and returning one value</span>
+<span class="sd">    - ``dtype`` of input and output are the same</span>
+<span class="sd">    - Elementwise operation for the supplied ndarray</span>
+
+<span class="sd">    .. admonition:: Example</span>
+
+<span class="sd">       The following code defines a test class that tests</span>
+<span class="sd">       :func:`~chainer.functions.sin` Chainer function, which takes a parameter</span>
+<span class="sd">       with ``dtype`` of float and returns a value with the same ``dtype``.</span>
+
+<span class="sd">       .. doctest::</span>
+
+<span class="sd">          &gt;&gt;&gt; import unittest</span>
+<span class="sd">          &gt;&gt;&gt; from chainer import testing</span>
+<span class="sd">          &gt;&gt;&gt; from chainer import functions as F</span>
+<span class="sd">          &gt;&gt;&gt;</span>
+<span class="sd">          &gt;&gt;&gt; @testing.unary_math_function_unittest(F.Sin())</span>
+<span class="sd">          ... class TestSin(unittest.TestCase):</span>
+<span class="sd">          ...     pass</span>
+
+<span class="sd">       Because the test methods are implicitly injected to ``TestSin`` class by</span>
+<span class="sd">       the decorator, it is enough to place ``pass`` in the class definition.</span>
+
+<span class="sd">       Now the test is run with ``nose`` module.</span>
+
+<span class="sd">       .. doctest::</span>
+
+<span class="sd">          &gt;&gt;&gt; import nose</span>
+<span class="sd">          &gt;&gt;&gt; nose.run(</span>
+<span class="sd">          ...     defaultTest=__name__, argv=[&#39;&#39;, &#39;-a&#39;, &#39;!gpu&#39;], exit=False)</span>
+<span class="sd">          True</span>
+
+<span class="sd">       To customize test data, ``make_data`` optional parameter can be used.</span>
+<span class="sd">       The following is an example of testing ``sqrt`` Chainer function, which</span>
+<span class="sd">       is tested in positive value domain here instead of the default input.</span>
+
+<span class="sd">       .. doctest::</span>
+
+<span class="sd">          &gt;&gt;&gt; import numpy</span>
+<span class="sd">          &gt;&gt;&gt;</span>
+<span class="sd">          &gt;&gt;&gt; def make_data(shape, dtype):</span>
+<span class="sd">          ...     x = numpy.random.uniform(0.1, 1, shape).astype(dtype)</span>
+<span class="sd">          ...     gy = numpy.random.uniform(-1, 1, shape).astype(dtype)</span>
+<span class="sd">          ...     return x, gy</span>
+<span class="sd">          ...</span>
+<span class="sd">          &gt;&gt;&gt; @testing.unary_math_function_unittest(F.Sqrt(),</span>
+<span class="sd">          ...                                       make_data=make_data)</span>
+<span class="sd">          ... class TestSqrt(unittest.TestCase):</span>
+<span class="sd">          ...     pass</span>
+<span class="sd">          ...</span>
+<span class="sd">          &gt;&gt;&gt; nose.run(</span>
+<span class="sd">          ...     defaultTest=__name__, argv=[&#39;&#39;, &#39;-a&#39;, &#39;!gpu&#39;], exit=False)</span>
+<span class="sd">          True</span>
+
+<span class="sd">       ``make_data`` function which returns input and gradient data generated</span>
+<span class="sd">       in proper value domains with given ``shape`` and ``dtype`` parameters is</span>
+<span class="sd">       defined, then passed to the decorator&#39;s ``make_data`` parameter.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO(takagi) In the future, the Chainer functions that could be tested</span>
+    <span class="c1">#     with the decorator would be extended as:</span>
+    <span class="c1">#</span>
+    <span class="c1">#     - Multiple input parameters</span>
+    <span class="c1">#     - Multiple output values</span>
+    <span class="c1">#     - Other types than float: integer</span>
+    <span class="c1">#     - Other operators other than analytic math: basic math</span>
+
+    <span class="c1"># Import here to avoid mutual import.</span>
+    <span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">gradient_check</span>
+    <span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">testing</span>
+
+    <span class="k">if</span> <span class="n">func_expected</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">func_expected</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">numpy</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;NumPy has no functions corresponding &quot;</span>
+                             <span class="s2">&quot;to Chainer function &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">label_expected</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">label_expected</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">make_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">make_data</span> <span class="o">=</span> <span class="n">_make_data_default</span>
+
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">klass</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gy</span> <span class="o">=</span> <span class="n">make_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float16</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">backward_options</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;eps&#39;</span><span class="p">:</span> <span class="mi">2</span> <span class="o">**</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;atol&#39;</span><span class="p">:</span> <span class="mi">2</span> <span class="o">**</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;rtol&#39;</span><span class="p">:</span> <span class="mi">2</span> <span class="o">**</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span>
+                    <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">backward_options</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atol&#39;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s1">&#39;rtol&#39;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">}</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;setUp&quot;</span><span class="p">,</span> <span class="n">setUp</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">x_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">y_expected</span> <span class="o">=</span> <span class="n">func_expected</span><span class="p">(</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="n">x_data</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">y_expected</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;check_forward&quot;</span><span class="p">,</span> <span class="n">check_forward</span><span class="p">)</span>
+
+        <span class="nd">@condition</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">test_forward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;test_forward_cpu&quot;</span><span class="p">,</span> <span class="n">test_forward_cpu</span><span class="p">)</span>
+
+        <span class="nd">@attr</span><span class="o">.</span><span class="n">gpu</span>
+        <span class="nd">@condition</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">test_forward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_forward</span><span class="p">(</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;test_forward_gpu&quot;</span><span class="p">,</span> <span class="n">test_forward_gpu</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check_backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_grad</span><span class="p">):</span>
+            <span class="n">gradient_check</span><span class="o">.</span><span class="n">check_backward</span><span class="p">(</span>
+                <span class="n">func</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_grad</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">backward_options</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;check_backward&quot;</span><span class="p">,</span> <span class="n">check_backward</span><span class="p">)</span>
+
+        <span class="nd">@condition</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">test_backward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_backward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gy</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;test_backward_cpu&quot;</span><span class="p">,</span> <span class="n">test_backward_cpu</span><span class="p">)</span>
+
+        <span class="nd">@attr</span><span class="o">.</span><span class="n">gpu</span>
+        <span class="nd">@condition</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">test_backward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_backward</span><span class="p">(</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">),</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gy</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;test_backward_gpu&quot;</span><span class="p">,</span> <span class="n">test_backward_gpu</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">test_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">label_expected</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="s2">&quot;test_label&quot;</span><span class="p">,</span> <span class="n">test_label</span><span class="p">)</span>
+
+        <span class="c1"># Return parameterized class.</span>
+        <span class="k">return</span> <span class="n">testing</span><span class="o">.</span><span class="n">parameterize</span><span class="p">(</span><span class="o">*</span><span class="n">testing</span><span class="o">.</span><span class="n">product</span><span class="p">({</span>
+            <span class="s1">&#39;shape&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">()],</span>
+            <span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+        <span class="p">}))(</span><span class="n">klass</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

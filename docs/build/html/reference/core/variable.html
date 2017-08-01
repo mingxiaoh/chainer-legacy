@@ -1,0 +1,554 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Variable &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="Core functionalities" href="../core.html"/>
+        <link rel="next" title="Flag" href="flag.html"/>
+        <link rel="prev" title="Core functionalities" href="../core.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../core.html">Core functionalities</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Variable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flag.html">Flag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="function.html">Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="link.html">Link and Chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimizer.html">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="serializer.html">Serializer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dataset.html">Dataset abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="training.html">Training loop abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="debug.html">Debug mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="configuration.html">Configuring Chainer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+          <li><a href="../core.html">Core functionalities</a> &raquo;</li>
+        
+      <li>Variable</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/core/variable.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="variable">
+<h1>Variable<a class="headerlink" href="#variable" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="chainer.Variable">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Variable</code><span class="sig-paren">(</span><em>data=None</em>, <em>name=None</em>, <em>grad=None</em>, <em>initializer=None</em>, <em>update_rule=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array with a structure to keep track of computation.</p>
+<p>Every variable holds a data array of type either <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a> or
+<code class="xref py py-class docutils literal"><span class="pre">cupy.ndarray</span></code>.</p>
+<p>A variable object holds a data array and a <code class="xref py py-class docutils literal"><span class="pre">VariableNode</span></code> object of
+a computational graph. If the variable is constructed by the user, the node
+is _root_ and does not hold any parent. If the variable is constructed by a
+<a class="reference internal" href="function.html#chainer.Function" title="chainer.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> object, the node holds a reference to its parent called
+<cite>creator</cite>. This reference is used in backpropagation to backtrack the
+graph.</p>
+<p>Users can disable (resp. enable) this chaining behavior by calling
+<a class="reference internal" href="function.html#chainer.no_backprop_mode" title="chainer.no_backprop_mode"><code class="xref py py-func docutils literal"><span class="pre">no_backprop_mode()</span></code></a> (resp.
+<a class="reference internal" href="function.html#chainer.force_backprop_mode" title="chainer.force_backprop_mode"><code class="xref py py-func docutils literal"><span class="pre">force_backprop_mode()</span></code></a>).
+In the former context, a variable never creates a computational graph,
+whereas in the latter context, it is forced to create.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/array.html#module-array" title="(in Python v3.6)"><em>array</em></a>) – Initial data array.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the variable.</li>
+<li><strong>grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/array.html#module-array" title="(in Python v3.6)"><em>array</em></a>) – Initial gradient array.</li>
+<li><strong>initializer</strong> (<em>Initializer</em>) – Initializer of the data array.
+If <cite>data</cite> is None, this object is used for initializing the data
+array in the <a class="reference internal" href="#chainer.Variable.initialize" title="chainer.Variable.initialize"><code class="xref py py-meth docutils literal"><span class="pre">initialize()</span></code></a> method.</li>
+<li><strong>update_rule</strong> – <code class="xref py py-class docutils literal"><span class="pre">UpdateRule</span></code> instance that
+updates this variable as a parameter. This argument is set to
+<code class="xref py py-attr docutils literal"><span class="pre">update_rule</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> – Data array of type either <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a> or
+<code class="xref py py-class docutils literal"><span class="pre">cupy.ndarray</span></code>. If it is None, the variable is left in an
+uninitialized state.</li>
+<li><strong>grad</strong> – Gradient array.</li>
+<li><strong>creator</strong> – The function who creates this variable. It is <code class="docutils literal"><span class="pre">None</span></code> if the
+variable is not created by any function.</li>
+<li><a class="reference internal" href="../initializers.html#module-chainer.initializer" title="chainer.initializer"><strong>initializer</strong></a> – Initializer of the data array. It is used for initializing
+the data array of an uninitialized variable.</li>
+<li><strong>update_rule</strong> – <code class="xref py py-class docutils literal"><span class="pre">UpdateRule</span></code> instance that
+updates this variable as a parameter. This argument is set to
+<code class="xref py py-attr docutils literal"><span class="pre">update_rule</span></code>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.Variable.addgrad">
+<code class="descname">addgrad</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.addgrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.addgrad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulates the gradient array from given source variable.</p>
+<p>This method adds the gradient of a given variable to the gradient of
+this variable. The accumulation is even done across the host and
+different devices. If this variable has uninitialized data/grad arrays,
+this method initializes it with the shape of the given varaible and
+then accumulates the gradient.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var</strong> (<a class="reference internal" href="#chainer.Variable" title="chainer.Variable"><em>Variable</em></a>) – Source variable.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.backward">
+<code class="descname">backward</code><span class="sig-paren">(</span><em>retain_grad=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs error backpropagation (a.k.a. backprop) from this variable.</p>
+<p>On backprop, <a class="reference internal" href="function.html#chainer.Function.backward" title="chainer.Function.backward"><code class="xref py py-meth docutils literal"><span class="pre">Function.backward()</span></code></a> is called on each
+<a class="reference internal" href="function.html#chainer.Function" title="chainer.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> object appearing in the backward graph starting from
+this variable. The backward graph is represented by backward references
+from variable nodes to their creators, and from functions to their
+input variable nodes. The backprop stops at all root nodes. Some
+functions set <code class="docutils literal"><span class="pre">None</span></code> as gradients of some inputs, where further
+backprop does not take place at such inputs.</p>
+<p>This method uses <code class="xref py py-data docutils literal"><span class="pre">grad</span></code> as the initial error array. User can
+manually set a gradient array before calling this method. If
+<code class="xref py py-data docutils literal"><span class="pre">data</span></code> contains only one element (i.e., it is scalar) and
+<code class="xref py py-data docutils literal"><span class="pre">grad</span></code> is <code class="docutils literal"><span class="pre">None</span></code>, then this method automatically complements
+1.0 as the initial error. This is useful on starting backprop from
+some scalar loss value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>retain_grad</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – <p>If <code class="docutils literal"><span class="pre">True</span></code>, the gradient arrays of all
+intermediate variables are kept. Otherwise, <code class="xref py py-data docutils literal"><span class="pre">grad</span></code> of the
+intermediate variables are set to <code class="docutils literal"><span class="pre">None</span></code> on appropriate
+timing, which may reduce the maximum memory consumption.</p>
+<p>In most cases of training some models, the purpose of backprop
+is to compute gradients of parameters, not of all variables,
+and therefore it is recommended to set this flag <code class="docutils literal"><span class="pre">False</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.cleargrad">
+<code class="descname">cleargrad</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.cleargrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.cleargrad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears the gradient array.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.copydata">
+<code class="descname">copydata</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.copydata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.copydata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies the data array from given source variable.</p>
+<p>This method copies the data array from given variable to this variable.
+The copy is done even if the arrays reside on different devices,
+including across the host and a GPU device. If this variable has an
+uninitialized data array, this method initializes it by the data array
+of the given variable. Similarly, if the given variable has an
+uninitialized data array, this method initializes it by the data array
+of this variable (<code class="docutils literal"><span class="pre">self</span></code>). If both are uninitialized, this method
+does nothing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var</strong> (<a class="reference internal" href="#chainer.Variable" title="chainer.Variable"><em>Variable</em></a>) – Source variable.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.debug_print">
+<code class="descname">debug_print</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.debug_print"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.debug_print" title="Permalink to this definition">¶</a></dt>
+<dd><p>Display a summary of the stored data and location of the Variable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.initialize">
+<code class="descname">initialize</code><span class="sig-paren">(</span><em>shape</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the uninitialized variable.</p>
+<p>Uninitialized variable is a variable created with the data array set to
+None. This method creates and initializes the data array. The shape of
+the variable can be left unknown until this method is called.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>shape</strong> (<em>tuple of int</em>) – Shape of the data array.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="chainer.Variable.label">
+<code class="descname">label</code><a class="headerlink" href="#chainer.Variable.label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Short text that represents the variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.reshape">
+<code class="descname">reshape</code><span class="sig-paren">(</span><em>*shape</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.reshape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.reshape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a variable of a different shape and the same content.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="../functions.html#chainer.functions.reshape" title="chainer.functions.reshape"><code class="xref py py-func docutils literal"><span class="pre">chainer.functions.reshape()</span></code></a> for full documentation,</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.retain_data">
+<code class="descname">retain_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.retain_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.retain_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lets the corresponding variable node keep the underlying array.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.set_creator">
+<code class="descname">set_creator</code><span class="sig-paren">(</span><em>gen_func</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.set_creator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.set_creator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notifies the variable that the given function is its creator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>gen_func</strong> (<a class="reference internal" href="function.html#chainer.Function" title="chainer.Function"><em>Function</em></a>) – Function object that creates this variable as
+one of its outputs.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.set_rank">
+<code class="descname">set_rank</code><span class="sig-paren">(</span><em>val</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.set_rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.set_rank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notifies the variable to update its rank.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>val</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – New rank value</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.to_cpu">
+<code class="descname">to_cpu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.to_cpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.to_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies the data and gradient arrays to CPU.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.to_gpu">
+<code class="descname">to_gpu</code><span class="sig-paren">(</span><em>device=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.to_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.to_gpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies the data and gradient arrays to specified GPU.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>device</strong> – Target device specifier. If omitted, the current device is
+used.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.transpose">
+<code class="descname">transpose</code><span class="sig-paren">(</span><em>*axes</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Permute the dimensions of an input variable without copy.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="../functions.html#chainer.functions.transpose" title="chainer.functions.transpose"><code class="xref py py-func docutils literal"><span class="pre">chainer.functions.transpose()</span></code></a> for full documentation.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.unchain">
+<code class="descname">unchain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.unchain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.unchain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the reference to the creator of this variable.</p>
+<p>This method deletes the reference to the creator from the corresponding
+variable node. Unlike <a class="reference internal" href="#chainer.Variable.unchain_backward" title="chainer.Variable.unchain_backward"><code class="xref py py-meth docutils literal"><span class="pre">unchain_backward()</span></code></a>, it does not backtrack
+the graph.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.unchain_backward">
+<code class="descname">unchain_backward</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.unchain_backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.unchain_backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes references between variable nodes and functions backward.</p>
+<p>After this method completes, intermediate variable nodes and functions
+that are not referenced from anywhere are deallocated by reference
+count GC. Also this variable itself deletes the reference to its
+creator function from the node, i.e. the node becomes root in the
+computation graph. It indicates that backprop after unchaining stops at
+this variable. This behavior is useful to implement truncated BPTT.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the data array using the gradient and the update rule.</p>
+<p>This method updates the variable using the update rule attached to this
+variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Variable.zerograd">
+<code class="descname">zerograd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/variable.html#Variable.zerograd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Variable.zerograd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the gradient array by zeros.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version v1.15: </span>Use <a class="reference internal" href="#chainer.Variable.cleargrad" title="chainer.Variable.cleargrad"><code class="xref py py-meth docutils literal"><span class="pre">cleargrad()</span></code></a> instead.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="flag.html" class="btn btn-neutral float-right" title="Flag" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../core.html" class="btn btn-neutral" title="Core functionalities" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

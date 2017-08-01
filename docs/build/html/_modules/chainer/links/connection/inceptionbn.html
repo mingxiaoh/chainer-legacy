@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.connection.inceptionbn &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.connection.inceptionbn</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.connection.inceptionbn</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">chainer.functions.activation</span> <span class="k">import</span> <span class="n">relu</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">concat</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.pooling</span> <span class="k">import</span> <span class="n">average_pooling_2d</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.pooling</span> <span class="k">import</span> <span class="n">max_pooling_2d</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer.links.connection</span> <span class="k">import</span> <span class="n">convolution_2d</span>
+<span class="kn">from</span> <span class="nn">chainer.links.normalization</span> <span class="k">import</span> <span class="n">batch_normalization</span>
+
+
+<div class="viewcode-block" id="InceptionBN"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.InceptionBN">[docs]</a><span class="k">class</span> <span class="nc">InceptionBN</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Inception module of the new GoogLeNet with BatchNormalization.</span>
+
+<span class="sd">    This chain acts like :class:`Inception`, while InceptionBN uses the</span>
+<span class="sd">    :class:`BatchNormalization` on top of each convolution, the 5x5 convolution</span>
+<span class="sd">    path is replaced by two consecutive 3x3 convolution applications, and the</span>
+<span class="sd">    pooling method is configurable.</span>
+
+<span class="sd">    See: `Batch Normalization: Accelerating Deep Network Training by Reducing \</span>
+<span class="sd">    Internal Covariate Shift &lt;https://arxiv.org/abs/1502.03167&gt;`_.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_channels (int): Number of channels of input arrays.</span>
+<span class="sd">        out1 (int): Output size of the 1x1 convolution path.</span>
+<span class="sd">        proj3 (int): Projection size of the single 3x3 convolution path.</span>
+<span class="sd">        out3 (int): Output size of the single 3x3 convolution path.</span>
+<span class="sd">        proj33 (int): Projection size of the double 3x3 convolutions path.</span>
+<span class="sd">        out33 (int): Output size of the double 3x3 convolutions path.</span>
+<span class="sd">        pooltype (str): Pooling type. It must be either ``&#39;max&#39;`` or ``&#39;avg&#39;``.</span>
+<span class="sd">        proj_pool (bool): If ``True``, do projection in the pooling path.</span>
+<span class="sd">        stride (int): Stride parameter of the last convolution of each path.</span>
+<span class="sd">        conv_init: A callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">            It is used for initialization of the convolution matrix weights.</span>
+<span class="sd">            Maybe be ``None`` to use default initialization.</span>
+<span class="sd">        dtype (numpy.dtype): Type to use in</span>
+<span class="sd">            ``~batch_normalization.BatchNormalization``.</span>
+
+<span class="sd">    .. seealso:: :class:`Inception`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out1</span><span class="p">,</span> <span class="n">proj3</span><span class="p">,</span> <span class="n">out3</span><span class="p">,</span> <span class="n">proj33</span><span class="p">,</span> <span class="n">out33</span><span class="p">,</span>
+                 <span class="n">pooltype</span><span class="p">,</span> <span class="n">proj_pool</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InceptionBN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">proj3</span><span class="o">=</span><span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="p">,</span> <span class="n">proj3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">),</span>
+            <span class="n">conv3</span><span class="o">=</span><span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">proj3</span><span class="p">,</span> <span class="n">out3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">),</span>
+            <span class="n">proj33</span><span class="o">=</span><span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="p">,</span> <span class="n">proj33</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">),</span>
+            <span class="n">conv33a</span><span class="o">=</span><span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">proj33</span><span class="p">,</span> <span class="n">out33</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">),</span>
+            <span class="n">conv33b</span><span class="o">=</span><span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">out33</span><span class="p">,</span> <span class="n">out33</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">),</span>
+            <span class="n">proj3n</span><span class="o">=</span><span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span><span class="n">proj3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">conv3n</span><span class="o">=</span><span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span><span class="n">out3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">proj33n</span><span class="o">=</span><span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span><span class="n">proj33</span><span class="p">,</span>
+                                                           <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">conv33an</span><span class="o">=</span><span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span><span class="n">out33</span><span class="p">,</span>
+                                                            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">conv33bn</span><span class="o">=</span><span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span><span class="n">out33</span><span class="p">,</span>
+                                                            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="n">proj_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="s1">&#39;conv1&#39;</span><span class="p">,</span>
+                          <span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                                                       <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                                                       <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                       <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="s1">&#39;conv1n&#39;</span><span class="p">,</span> <span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span>
+                <span class="n">out1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out1</span> <span class="o">=</span> <span class="n">out1</span>
+
+        <span class="k">if</span> <span class="n">proj_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="s1">&#39;poolp&#39;</span><span class="p">,</span> <span class="n">convolution_2d</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="p">,</span> <span class="n">proj_pool</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="n">conv_init</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="s1">&#39;poolpn&#39;</span><span class="p">,</span> <span class="n">batch_normalization</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">(</span>
+                <span class="n">proj_pool</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj_pool</span> <span class="o">=</span> <span class="n">proj_pool</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pooltype</span> <span class="o">=</span> <span class="n">pooltype</span>
+        <span class="k">if</span> <span class="n">pooltype</span> <span class="o">!=</span> <span class="s1">&#39;max&#39;</span> <span class="ow">and</span> <span class="n">pooltype</span> <span class="o">!=</span> <span class="s1">&#39;avg&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">out1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1n</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+            <span class="n">h1</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+            <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+
+        <span class="n">h3</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj3n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj3</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv3n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">h3</span><span class="p">)))</span>
+        <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
+
+        <span class="n">h33</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj33n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj33</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+        <span class="n">h33</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv33an</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv33a</span><span class="p">(</span><span class="n">h33</span><span class="p">)))</span>
+        <span class="n">h33</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv33bn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv33b</span><span class="p">(</span><span class="n">h33</span><span class="p">)))</span>
+        <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h33</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pooltype</span> <span class="o">==</span> <span class="s1">&#39;max&#39;</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">max_pooling_2d</span><span class="o">.</span><span class="n">max_pooling_2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                              <span class="n">cover_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">average_pooling_2d</span><span class="o">.</span><span class="n">average_pooling_2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+                                                      <span class="n">pad</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">relu</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">poolpn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">poolp</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+        <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">concat</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

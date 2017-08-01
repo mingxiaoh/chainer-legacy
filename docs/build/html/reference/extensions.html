@@ -1,0 +1,751 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Trainer extensions &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../index.html"/>
+        <link rel="up" title="Chainer Reference Manual" href="index.html"/>
+        <link rel="next" title="Trainer triggers" href="triggers.html"/>
+        <link rel="prev" title="Iterator examples" href="iterators.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="core.html">Core functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iterators.html">Iterator examples</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Trainer extensions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dump-graph">dump_graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#evaluator">Evaluator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exponentialshift">ExponentialShift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linearshift">LinearShift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logreport">LogReport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#snapshot">snapshot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#snapshot-object">snapshot_object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plotreport">PlotReport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#printreport">PrintReport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#progressbar">ProgressBar</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+      <li>Trainer extensions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/reference/extensions.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-chainer.training.extensions"></span><div class="section" id="trainer-extensions">
+<span id="extensions"></span><h1>Trainer extensions<a class="headerlink" href="#trainer-extensions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dump-graph">
+<h2>dump_graph<a class="headerlink" href="#dump-graph" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="chainer.training.extensions.dump_graph">
+<code class="descclassname">chainer.training.extensions.</code><code class="descname">dump_graph</code><span class="sig-paren">(</span><em>root_name</em>, <em>out_name='cg.dot'</em>, <em>variable_style=None</em>, <em>function_style=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/computational_graph.html#dump_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.dump_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a trainer extension to dump a computational graph.</p>
+<p>This extension dumps a computational graph. The graph is output in DOT
+language.</p>
+<p>It only dumps a graph at the first iteration by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>root_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the root of the computational graph. The
+root variable is retrieved by this name from the observation
+dictionary of the trainer.</li>
+<li><strong>out_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Output file name.</li>
+<li><strong>variable_style</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Dot node style for variables. Each variable is
+rendered by an octagon by default.</li>
+<li><strong>function_style</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Dot node style for functions. Each function is
+rendered by a rectangular by default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">See <a class="reference internal" href="graph.html#chainer.computational_graph.build_computational_graph" title="chainer.computational_graph.build_computational_graph"><code class="xref py py-func docutils literal"><span class="pre">build_computational_graph()</span></code></a>
+for the <code class="docutils literal"><span class="pre">variable_style</span></code> and <code class="docutils literal"><span class="pre">function_style</span></code> arguments.</p>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="evaluator">
+<h2>Evaluator<a class="headerlink" href="#evaluator" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.Evaluator">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">Evaluator</code><span class="sig-paren">(</span><em>iterator</em>, <em>target</em>, <em>converter=&lt;function concat_examples&gt;</em>, <em>device=None</em>, <em>eval_hook=None</em>, <em>eval_func=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to evaluate models on a validation set.</p>
+<p>This extension evaluates the current models by a given evaluation function.
+It creates a <a class="reference internal" href="util/reporter.html#chainer.Reporter" title="chainer.Reporter"><code class="xref py py-class docutils literal"><span class="pre">Reporter</span></code></a> object to store values observed in
+the evaluation function on each iteration. The report for all iterations
+are aggregated to <a class="reference internal" href="util/reporter.html#chainer.DictSummary" title="chainer.DictSummary"><code class="xref py py-class docutils literal"><span class="pre">DictSummary</span></code></a>. The collected mean values
+are further reported to the reporter object of the trainer, where the name
+of each observation is prefixed by the evaluator name. See
+<a class="reference internal" href="util/reporter.html#chainer.Reporter" title="chainer.Reporter"><code class="xref py py-class docutils literal"><span class="pre">Reporter</span></code></a> for details in naming rules of the reports.</p>
+<p>Evaluator has a structure to customize similar to that of
+<a class="reference internal" href="core/training.html#chainer.training.StandardUpdater" title="chainer.training.StandardUpdater"><code class="xref py py-class docutils literal"><span class="pre">StandardUpdater</span></code></a>. The main differences are:</p>
+<ul class="simple">
+<li>There are no optimizers in an evaluator. Instead, it holds links
+to evaluate.</li>
+<li>An evaluation loop function is used instead of an update function.</li>
+<li>Preparation routine can be customized, which is called before each
+evaluation. It can be used, e.g., to initialize the state of stateful
+recurrent networks.</li>
+</ul>
+<p>There are two ways to modify the evaluation behavior besides setting a
+custom evaluation function. One is by setting a custom evaluation loop via
+the <code class="docutils literal"><span class="pre">eval_func</span></code> argument. The other is by inheriting this class and
+overriding the <a class="reference internal" href="#chainer.training.extensions.Evaluator.evaluate" title="chainer.training.extensions.Evaluator.evaluate"><code class="xref py py-meth docutils literal"><span class="pre">evaluate()</span></code></a> method. In latter case, users have to
+create and handle a reporter object manually. Users also have to copy the
+iterators before using them, in order to reuse them at the next time of
+evaluation. In both cases, the functions are called in testing mode
+(i.e., <code class="docutils literal"><span class="pre">chainer.config.train</span></code> is set to <code class="docutils literal"><span class="pre">False</span></code>).</p>
+<p>This extension is called at the end of each epoch by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>iterator</strong> – Dataset iterator for the validation dataset. It can also be
+a dictionary of iterators. If this is just an iterator, the
+iterator is registered by the name <code class="docutils literal"><span class="pre">'main'</span></code>.</li>
+<li><strong>target</strong> – Link object or a dictionary of links to evaluate. If this is
+just a link object, the link is registered by the name <code class="docutils literal"><span class="pre">'main'</span></code>.</li>
+<li><strong>converter</strong> – Converter function to build input arrays.
+<a class="reference internal" href="core/dataset.html#chainer.dataset.concat_examples" title="chainer.dataset.concat_examples"><code class="xref py py-func docutils literal"><span class="pre">concat_examples()</span></code></a> is used by default.</li>
+<li><strong>device</strong> – Device to which the training data is sent. Negative value
+indicates the host memory (CPU).</li>
+<li><strong>eval_hook</strong> – Function to prepare for each evaluation process. It is
+called at the beginning of the evaluation. The evaluator extension
+object is passed at each call.</li>
+<li><strong>eval_func</strong> – Evaluation function called at each iteration. The target
+link to evaluate as a callable is used by default.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>converter</strong> – Converter function.</li>
+<li><strong>device</strong> – Device to which the training data is sent.</li>
+<li><strong>eval_hook</strong> – Function to prepare for each evaluation process.</li>
+<li><strong>eval_func</strong> – Evaluation function called at each iteration.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.training.extensions.Evaluator.evaluate">
+<code class="descname">evaluate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the model and returns a result dictionary.</p>
+<p>This method runs the evaluation loop over the validation dataset. It
+accumulates the reported values to <a class="reference internal" href="util/reporter.html#chainer.DictSummary" title="chainer.DictSummary"><code class="xref py py-class docutils literal"><span class="pre">DictSummary</span></code></a> and
+returns a dictionary whose values are means computed by the summary.</p>
+<p>Users can override this method to customize the evaluation routine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Result dictionary. This dictionary is further reported via</dt>
+<dd><a class="reference internal" href="util/reporter.html#chainer.report" title="chainer.report"><code class="xref py py-func docutils literal"><span class="pre">report()</span></code></a> without specifying any observer.</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.training.extensions.Evaluator.get_all_iterators">
+<code class="descname">get_all_iterators</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator.get_all_iterators"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator.get_all_iterators" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of all iterators.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.training.extensions.Evaluator.get_all_targets">
+<code class="descname">get_all_targets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator.get_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator.get_all_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of all target links.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.training.extensions.Evaluator.get_iterator">
+<code class="descname">get_iterator</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator.get_iterator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator.get_iterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the iterator of the given name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.training.extensions.Evaluator.get_target">
+<code class="descname">get_target</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/evaluator.html#Evaluator.get_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.Evaluator.get_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the target link of the given name.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="exponentialshift">
+<h2>ExponentialShift<a class="headerlink" href="#exponentialshift" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.ExponentialShift">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">ExponentialShift</code><span class="sig-paren">(</span><em>attr</em>, <em>rate</em>, <em>init=None</em>, <em>target=None</em>, <em>optimizer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/exponential_shift.html#ExponentialShift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.ExponentialShift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to exponentially shift an optimizer attribute.</p>
+<p>This extension exponentially increases or decreases the specified attribute
+of the optimizer. The typical use case is an exponential decay of the
+learning rate.</p>
+<p>This extension is also called before the training loop starts by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the attribute to shift.</li>
+<li><strong>rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Rate of the exponential shift. This value is multiplied
+to the attribute at each call.</li>
+<li><strong>init</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Initial value of the attribute. If it is <code class="docutils literal"><span class="pre">None</span></code>, the
+extension extracts the attribute at the first call and uses it as
+the initial value.</li>
+<li><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.6)"><em>float</em></a>) – Target value of the attribute. If the attribute reaches
+this value, the shift stops.</li>
+<li><strong>optimizer</strong> (<a class="reference internal" href="core/optimizer.html#chainer.Optimizer" title="chainer.Optimizer"><em>Optimizer</em></a>) – Target optimizer to adjust the
+attribute. If it is <code class="docutils literal"><span class="pre">None</span></code>, the main optimizer of the updater is
+used.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="linearshift">
+<h2>LinearShift<a class="headerlink" href="#linearshift" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.LinearShift">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">LinearShift</code><span class="sig-paren">(</span><em>attr</em>, <em>value_range</em>, <em>time_range</em>, <em>optimizer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/linear_shift.html#LinearShift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.LinearShift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to change an optimizer attribute linearly.</p>
+<p>This extension changes an optimizer attribute from the first value to the
+last value linearly within a specified duration. The typical use case is
+warming up of the momentum coefficient.</p>
+<p>For example, suppose that this extension is called at every iteration, and
+<code class="docutils literal"><span class="pre">value_range</span> <span class="pre">==</span> <span class="pre">(x,</span> <span class="pre">y)</span></code> and <code class="docutils literal"><span class="pre">time_range</span> <span class="pre">==</span> <span class="pre">(i,</span> <span class="pre">j)</span></code>. Then, this
+extension keeps the attribute to be <code class="docutils literal"><span class="pre">x</span></code> up to the <code class="docutils literal"><span class="pre">i</span></code>-th iteration,
+linearly shifts the value to <code class="docutils literal"><span class="pre">y</span></code> by the <code class="docutils literal"><span class="pre">j</span></code>-th iteration, and then
+keeps the value to be <code class="docutils literal"><span class="pre">y</span></code> after the <code class="docutils literal"><span class="pre">j</span></code>-th iteration.</p>
+<p>This extension is also called before the training loop starts by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the optimizer attribute to adjust.</li>
+<li><strong>value_range</strong> (<em>tuple of float</em>) – The first and the last values of the
+attribute.</li>
+<li><strong>time_range</strong> (<em>tuple of ints</em>) – The first and last counts of calls in which
+the attribute is adjusted.</li>
+<li><strong>optimizer</strong> (<a class="reference internal" href="core/optimizer.html#chainer.Optimizer" title="chainer.Optimizer"><em>Optimizer</em></a>) – Target optimizer object. If it is None,
+the main optimizer of the trainer is used.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="logreport">
+<h2>LogReport<a class="headerlink" href="#logreport" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.LogReport">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">LogReport</code><span class="sig-paren">(</span><em>keys=None</em>, <em>trigger=(1</em>, <em>'epoch')</em>, <em>postprocess=None</em>, <em>log_name='log'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/log_report.html#LogReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.LogReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to output the accumulated results to a log file.</p>
+<p>This extension accumulates the observations of the trainer to
+<a class="reference internal" href="util/reporter.html#chainer.DictSummary" title="chainer.DictSummary"><code class="xref py py-class docutils literal"><span class="pre">DictSummary</span></code></a> at a regular interval specified by a supplied
+trigger, and writes them into a log file in JSON format.</p>
+<p>There are two triggers to handle this extension. One is the trigger to
+invoke this extension, which is used to handle the timing of accumulating
+the results. It is set to <code class="docutils literal"><span class="pre">1,</span> <span class="pre">'iteration'</span></code> by default. The other is the
+trigger to determine when to emit the result. When this trigger returns
+True, this extension appends the summary of accumulated values to the list
+of past summaries, and writes the list to the log file. Then, this
+extension makes a new fresh summary object which is used until the next
+time that the trigger fires.</p>
+<p>It also adds some entries to each result dictionary.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">'epoch'</span></code> and <code class="docutils literal"><span class="pre">'iteration'</span></code> are the epoch and iteration counts at the
+output, respectively.</li>
+<li><code class="docutils literal"><span class="pre">'elapsed_time'</span></code> is the elapsed time in seconds since the training
+begins. The value is taken from <code class="xref py py-attr docutils literal"><span class="pre">Trainer.elapsed_time</span></code>.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>keys</strong> (<em>iterable of strs</em>) – Keys of values to accumulate. If this is None,
+all the values are accumulated and output to the log file.</li>
+<li><strong>trigger</strong> – Trigger that decides when to aggregate the result and output
+the values. This is distinct from the trigger of this extension
+itself. If it is a tuple in the form <code class="docutils literal"><span class="pre">&lt;int&gt;,</span> <span class="pre">'epoch'</span></code> or
+<code class="docutils literal"><span class="pre">&lt;int&gt;,</span> <span class="pre">'iteration'</span></code>, it is passed to <code class="xref py py-class docutils literal"><span class="pre">IntervalTrigger</span></code>.</li>
+<li><strong>postprocess</strong> – Callback to postprocess the result dictionaries. Each
+result dictionary is passed to this callback on the output. This
+callback can modify the result dictionaries, which are used to
+output to the log file.</li>
+<li><strong>log_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the log file under the output directory. It can
+be a format string: the last result dictionary is passed for the
+formatting. For example, users can use ‘{iteration}’ to separate
+the log files for different iterations. If the log name is None, it
+does not output the log to any file.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="chainer.training.extensions.LogReport.log">
+<code class="descname">log</code><a class="headerlink" href="#chainer.training.extensions.LogReport.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current list of observation dictionaries.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="snapshot">
+<h2>snapshot<a class="headerlink" href="#snapshot" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="chainer.training.extensions.snapshot">
+<code class="descclassname">chainer.training.extensions.</code><code class="descname">snapshot</code><span class="sig-paren">(</span><em>savefun=&lt;function save_npz&gt;</em>, <em>filename='snapshot_iter_{.updater.iteration}'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/_snapshot.html#snapshot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a trainer extension to take snapshots of the trainer.</p>
+<p>This extension serializes the trainer object and saves it to the output
+directory. It is used to support resuming the training loop from the saved
+state.</p>
+<p>This extension is called once per epoch by default. To take a
+snapshot at a different interval, a trigger object specifying the
+required interval can be passed along with this extension
+to the <cite>extend()</cite> method of the trainer.</p>
+<p>The default priority is -100, which is lower than that of most
+built-in extensions.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This extension first writes the serialized object to a temporary file
+and then rename it to the target file name. Thus, if the program stops
+right before the renaming, the temporary file might be left in the
+output directory.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>savefun</strong> – Function to save the trainer. It takes two arguments: the
+output file path and the trainer object.</li>
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the file into which the trainer is serialized.
+It can be a format string, where the trainer object is passed to
+the <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str.format" title="(in Python v3.6)"><code class="xref py py-meth docutils literal"><span class="pre">str.format()</span></code></a> method.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="snapshot-object">
+<h2>snapshot_object<a class="headerlink" href="#snapshot-object" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="chainer.training.extensions.snapshot_object">
+<code class="descclassname">chainer.training.extensions.</code><code class="descname">snapshot_object</code><span class="sig-paren">(</span><em>target</em>, <em>filename</em>, <em>savefun=&lt;function save_npz&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/_snapshot.html#snapshot_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.snapshot_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a trainer extension to take snapshots of a given object.</p>
+<p>This extension serializes the given object and saves it to the output
+directory.</p>
+<p>This extension is called once per epoch by default. To take a
+snapshot at a different interval, a trigger object specifying the
+required interval can be passed along with this extension
+to the <cite>extend()</cite> method of the trainer.</p>
+<p>The default priority is -100, which is lower than that of most
+built-in extensions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> – Object to serialize.</li>
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the file into which the object is serialized.
+It can be a format string, where the trainer object is passed to
+the <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str.format" title="(in Python v3.6)"><code class="xref py py-meth docutils literal"><span class="pre">str.format()</span></code></a> method. For example,
+<code class="docutils literal"><span class="pre">'snapshot_{.updater.iteration}'</span></code> is converted to
+<code class="docutils literal"><span class="pre">'snapshot_10000'</span></code> at the 10,000th iteration.</li>
+<li><strong>savefun</strong> – Function to save the object. It takes two arguments: the
+output file path and the object to serialize.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An extension function.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="plotreport">
+<h2>PlotReport<a class="headerlink" href="#plotreport" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.PlotReport">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">PlotReport</code><span class="sig-paren">(</span><em>y_keys</em>, <em>x_key='iteration'</em>, <em>trigger=(1</em>, <em>'epoch')</em>, <em>postprocess=None</em>, <em>file_name='plot.png'</em>, <em>marker='x'</em>, <em>grid=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/plot_report.html#PlotReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.PlotReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to output plots.</p>
+<p>This extension accumulates the observations of the trainer to
+<a class="reference internal" href="util/reporter.html#chainer.DictSummary" title="chainer.DictSummary"><code class="xref py py-class docutils literal"><span class="pre">DictSummary</span></code></a> at a regular interval specified by a supplied
+trigger, and plot a graph with using them.</p>
+<p>There are two triggers to handle this extension. One is the trigger to
+invoke this extension, which is used to handle the timing of accumulating
+the results. It is set to <code class="docutils literal"><span class="pre">1,</span> <span class="pre">'iteration'</span></code> by default. The other is the
+trigger to determine when to emit the result. When this trigger returns
+True, this extension appends the summary of accumulated values to the list
+of past summaries, and writes the list to the log file. Then, this
+extension makes a new fresh summary object which is used until the next
+time that the trigger fires.</p>
+<p>It also adds <code class="docutils literal"><span class="pre">'epoch'</span></code> and <code class="docutils literal"><span class="pre">'iteration'</span></code> entries to each result
+dictionary, which are the epoch and iteration counts at the output.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>If your environment needs to specify a backend of matplotlib
+explicitly, please call <code class="docutils literal"><span class="pre">matplotlib.use</span></code> before importing Chainer.
+For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Agg&#39;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+</pre></div>
+</div>
+<p class="last">Then, once <code class="docutils literal"><span class="pre">chainer.training.extensions</span></code> is imported,
+<code class="docutils literal"><span class="pre">matplotlib.use</span></code> will have no effect.</p>
+</div>
+<p>For the details, please see here:
+<a class="reference external" href="http://matplotlib.org/faq/usage_faq.html#what-is-a-backend">http://matplotlib.org/faq/usage_faq.html#what-is-a-backend</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>y_keys</strong> (<em>iterable of strs</em>) – Keys of values regarded as y. If this is
+None, nothing is output to the graph.</li>
+<li><strong>x_key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Keys of values regarded as x. The default value is
+‘iteration’.</li>
+<li><strong>trigger</strong> – Trigger that decides when to aggregate the result and output
+the values. This is distinct from the trigger of this extension
+itself. If it is a tuple in the form <code class="docutils literal"><span class="pre">&lt;int&gt;,</span> <span class="pre">'epoch'</span></code> or <code class="docutils literal"><span class="pre">&lt;int&gt;,</span>
+<span class="pre">'iteration'</span></code>, it is passed to <code class="xref py py-class docutils literal"><span class="pre">IntervalTrigger</span></code>.</li>
+<li><strong>postprocess</strong> – Callback to postprocess the result dictionaries. Figure
+object, Axes object, and all plot data are passed to this callback
+in this order. This callback can modify the figure.</li>
+<li><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the figure file under the output directory.
+It can be a format string.</li>
+<li><strong>marker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The marker used to plot the graph. Default is <code class="docutils literal"><span class="pre">'x'</span></code>. If
+<code class="docutils literal"><span class="pre">None</span></code> is given, it draws with no markers.</li>
+<li><strong>grid</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Set the axis grid on if True. Default is True.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="printreport">
+<h2>PrintReport<a class="headerlink" href="#printreport" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.PrintReport">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">PrintReport</code><span class="sig-paren">(</span><em>entries</em>, <em>log_report='LogReport'</em>, <em>out=&lt;open file '&lt;stdout&gt;'</em>, <em>mode 'w'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/print_report.html#PrintReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.PrintReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to print the accumulated results.</p>
+<p>This extension uses the log accumulated by a <a class="reference internal" href="#chainer.training.extensions.LogReport" title="chainer.training.extensions.LogReport"><code class="xref py py-class docutils literal"><span class="pre">LogReport</span></code></a> extension
+to print specified entries of the log in a human-readable format.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>entries</strong> (<em>list of str</em>) – List of keys of observations to print.</li>
+<li><strong>log_report</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em> or </em><a class="reference internal" href="#chainer.training.extensions.LogReport" title="chainer.training.extensions.LogReport"><em>LogReport</em></a>) – Log report to accumulate the
+observations. This is either the name of a LogReport extensions
+registered to the trainer, or a LogReport instance to use
+internally.</li>
+<li><strong>out</strong> – Stream to print the bar. Standard output is used by default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="progressbar">
+<h2>ProgressBar<a class="headerlink" href="#progressbar" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.training.extensions.ProgressBar">
+<em class="property">class </em><code class="descclassname">chainer.training.extensions.</code><code class="descname">ProgressBar</code><span class="sig-paren">(</span><em>training_length=None</em>, <em>update_interval=100</em>, <em>bar_length=50</em>, <em>out=&lt;open file '&lt;stdout&gt;'</em>, <em>mode 'w'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/training/extensions/progress_bar.html#ProgressBar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.training.extensions.ProgressBar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trainer extension to print a progress bar and recent training status.</p>
+<p>This extension prints a progress bar at every call. It watches the current
+iteration and epoch to print the bar.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>training_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.6)"><em>tuple</em></a>) – Length of whole training. It consists of an
+integer and either <code class="docutils literal"><span class="pre">'epoch'</span></code> or <code class="docutils literal"><span class="pre">'iteration'</span></code>. If this value is
+omitted and the stop trigger of the trainer is
+<code class="xref py py-class docutils literal"><span class="pre">IntervalTrigger</span></code>, this extension uses its attributes to
+determine the length of the training.</li>
+<li><strong>update_interval</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – Number of iterations to skip printing the
+progress bar.</li>
+<li><strong>bar_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – Length of the progress bar in characters.</li>
+<li><strong>out</strong> – Stream to print the bar. Standard output is used by default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="triggers.html" class="btn btn-neutral float-right" title="Trainer triggers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="iterators.html" class="btn btn-neutral" title="Iterator examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

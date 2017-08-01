@@ -1,0 +1,505 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.gradient_check &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="chainer" href="../chainer.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.gradient_check</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.gradient_check</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">configuration</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.math</span> <span class="k">import</span> <span class="n">identity</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">testing</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">variable</span>
+
+
+<span class="k">def</span> <span class="nf">_copy_arrays</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="numerical_grad"><a class="viewcode-back" href="../../reference/check.html#chainer.gradient_check.numerical_grad">[docs]</a><span class="k">def</span> <span class="nf">numerical_grad</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes numerical gradient by finite differences.</span>
+
+<span class="sd">    This function is used to implement gradient check. For usage example, see</span>
+<span class="sd">    unit tests of :mod:`chainer.functions`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        f (function): Python function with no arguments that runs forward</span>
+<span class="sd">            computation and returns the result.</span>
+<span class="sd">        inputs (tuple of arrays): Tuple of arrays that should be treated as</span>
+<span class="sd">            inputs. Each element of them is slightly modified to realize</span>
+<span class="sd">            numerical gradient by finite differences.</span>
+<span class="sd">        grad_outputs (tuple of arrays): Tuple of arrays that are treated as</span>
+<span class="sd">            output gradients.</span>
+<span class="sd">        eps (float): Epsilon value of finite differences.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Numerical gradient arrays corresponding to ``inputs``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">eps</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">grad_outputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">grad_outputs</span><span class="p">)</span>
+    <span class="n">gpu</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">grad_outputs</span><span class="p">)</span>
+    <span class="n">cpu</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">grad_outputs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gpu</span> <span class="ow">and</span> <span class="n">cpu</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Do not mix GPU and CPU arrays in `numerical_grad`&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gpu</span><span class="p">:</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">numpy</span>
+    <span class="n">grads</span> <span class="o">=</span> <span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="n">configuration</span><span class="o">.</span><span class="n">using_config</span><span class="p">(</span><span class="s1">&#39;type_check&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">gx</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndindex</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+                <span class="n">orig</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># hold original value</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig</span> <span class="o">+</span> <span class="n">eps</span>
+                <span class="n">ys1</span> <span class="o">=</span> <span class="n">_copy_arrays</span><span class="p">(</span><span class="n">f</span><span class="p">())</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig</span> <span class="o">-</span> <span class="n">eps</span>
+                <span class="n">ys2</span> <span class="o">=</span> <span class="n">_copy_arrays</span><span class="p">(</span><span class="n">f</span><span class="p">())</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig</span>
+                <span class="k">for</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">gy</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">ys1</span><span class="p">,</span> <span class="n">ys2</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">gy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">dot</span> <span class="o">=</span> <span class="p">((</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">*</span> <span class="n">gy</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                        <span class="n">gx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">dot</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">grads</span></div>
+
+
+<span class="k">def</span> <span class="nf">assert_allclose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Asserts if some corresponding element of x and y differs too much.</span>
+
+<span class="sd">    This function can handle both CPU and GPU arrays simultaneously.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: Left-hand-side array.</span>
+<span class="sd">        y: Right-hand-side array.</span>
+<span class="sd">        atol (float): Absolute tolerance.</span>
+<span class="sd">        rtol (float): Relative tolerance.</span>
+<span class="sd">        verbose (bool): If ``True``, it outputs verbose messages on error.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s1">&#39;chainer.gradient_check.assert_allclose is deprecated.&#39;</span>
+        <span class="s1">&#39;Use chainer.testing.assert_allclose instead.&#39;</span><span class="p">,</span>
+        <span class="ne">DeprecationWarning</span><span class="p">)</span>
+    <span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">atol</span><span class="p">,</span> <span class="n">rtol</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_as_tuple</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span>
+
+
+<div class="viewcode-block" id="check_backward"><a class="viewcode-back" href="../../reference/check.html#chainer.gradient_check.check_backward">[docs]</a><span class="k">def</span> <span class="nf">check_backward</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_grad</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">(),</span>
+                   <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">no_grads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test backward procedure of a given function.</span>
+
+<span class="sd">    This function automatically check backward-process of given function.</span>
+<span class="sd">    For example, when you have a :class:`~chainer.Function` class ``MyFunc``,</span>
+<span class="sd">    that gets two arguments and returns one value, you can make its test like</span>
+<span class="sd">    this::</span>
+
+<span class="sd">    &gt;&gt; def test_my_func(self):</span>
+<span class="sd">    &gt;&gt;   func = MyFunc()</span>
+<span class="sd">    &gt;&gt;   x1_data = xp.array(...)</span>
+<span class="sd">    &gt;&gt;   x2_data = xp.array(...)</span>
+<span class="sd">    &gt;&gt;   gy_data = xp.array(...)</span>
+<span class="sd">    &gt;&gt;   check_backward(func, (x1_data, x2_data), gy_data)</span>
+
+<span class="sd">    This method creates :class:`~chainer.Variable` objects with ``x_data``</span>
+<span class="sd">    and calls ``func`` with the :class:`~chainer.Variable` s to get its result</span>
+<span class="sd">    as :class:`~chainer.Variable`.</span>
+<span class="sd">    Then, it sets ``y_grad`` array to ``grad`` attribute of the result and</span>
+<span class="sd">    calls ``backward`` method to get gradients of the inputs.</span>
+<span class="sd">    To check correctness of the gradients, the function calls</span>
+<span class="sd">    :func:`numerical_grad` to calculate numerically the gradients and compares</span>
+<span class="sd">    the types of gradients with :func:`chainer.testing.assert_allclose`.</span>
+<span class="sd">    If input objects (``x1_data`` or/and ``x2_data`` in this example) represent</span>
+<span class="sd">    integer variables, their gradients are ignored.</span>
+
+<span class="sd">    You can simplify a test when ``MyFunc`` gets only one argument::</span>
+
+<span class="sd">    &gt;&gt;   check_backward(func, x1_data, gy_data)</span>
+
+<span class="sd">    If ``MyFunc`` is a loss function which returns a zero-dimensional</span>
+<span class="sd">    array, pass ``None`` to ``gy_data``. In this case, it sets ``1`` to</span>
+<span class="sd">    ``grad`` attribute of the result::</span>
+
+<span class="sd">    &gt;&gt;   check_backward(my_loss_func, (x1_data, x2_data), None)</span>
+
+<span class="sd">    If ``MyFunc`` returns multiple outputs, pass all gradients for outputs</span>
+<span class="sd">    as a tuple::</span>
+
+<span class="sd">    &gt;&gt;   gy1_data = xp.array(...)</span>
+<span class="sd">    &gt;&gt;   gy2_data = xp.array(...)</span>
+<span class="sd">    &gt;&gt;   check_backward(func, x1_data, (gy1_data, gy2_data))</span>
+
+<span class="sd">    You can also test a :class:`~chainer.Link`.</span>
+<span class="sd">    To check gradients of parameters of the link, set a tuple of the parameters</span>
+<span class="sd">    to ``params`` arguments::</span>
+
+<span class="sd">    &gt;&gt;   check_backward(my_link, (x1_data, x2_data), gy_data,</span>
+<span class="sd">    &gt;&gt;                  (my_link.W, my_link.b))</span>
+
+<span class="sd">    Note that ``params`` are not ``ndarray`` s,</span>
+<span class="sd">    but :class:`~chainer.Variables` s.</span>
+
+<span class="sd">    Function objects are acceptable as ``func`` argument::</span>
+
+<span class="sd">    &gt;&gt;   check_backward(lambda x1, x2: f(x1, x2),</span>
+<span class="sd">    &gt;&gt;                  (x1_data, x2_data), gy_data)</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">       ``func`` is called many times to get numerical gradients for all inputs.</span>
+<span class="sd">       This function doesn&#39;t work correctly when ``func`` behaves randomly as</span>
+<span class="sd">       it gets different gradients.</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        func (callable): A function which gets :class:`~chainer.Variable` s</span>
+<span class="sd">            and returns :class:`~chainer.Variable` s. ``func`` must returns</span>
+<span class="sd">            a tuple of :class:`~chainer.Variable` s or one</span>
+<span class="sd">            :class:`~chainer.Variable`. You can use :class:`~chainer.Function`</span>
+<span class="sd">            object, :class:`~chainer.Link` object or a function satisfying the</span>
+<span class="sd">            condition.</span>
+<span class="sd">        x_data (ndarray or tuple of ndarrays): A set of ``ndarray`` s to be</span>
+<span class="sd">            passed to ``func``. If ``x_data`` is one ``ndarray`` object, it is</span>
+<span class="sd">            treated as ``(x_data,)``.</span>
+<span class="sd">        y_grad (ndarray or tuple of ndarrays or None):</span>
+<span class="sd">            A set of ``ndarray`` s representing gradients of return-values of</span>
+<span class="sd">            ``func``. If ``y_grad`` is one ``ndarray`` object, it is</span>
+<span class="sd">            treated as ``(y_grad,)``. If ``func`` is a loss-function,</span>
+<span class="sd">            ``y_grad`` should be set to ``None``.</span>
+<span class="sd">        params (~chainer.Variable or tuple of ~chainder.Variable):</span>
+<span class="sd">            A set of :class:`~chainer.Variable` s whose gradients are checked.</span>
+<span class="sd">            When ``func`` is a :class:`~chainer.Link` object,</span>
+<span class="sd">            set its parameters as ``params``.</span>
+<span class="sd">            If ``params`` is one :class:`~chainer.Variable` object,</span>
+<span class="sd">            it is treated as ``(params,)``.</span>
+<span class="sd">        eps (float): Epsilon value to be passed to :func:`numerical_grad`.</span>
+<span class="sd">        atol (float): Absolute tolerance to be passed to</span>
+<span class="sd">            :func:`chainer.testing.assert_allclose`.</span>
+<span class="sd">        rtol (float): Relative tolerance to be passed to</span>
+<span class="sd">            :func:`chainer.testing.assert_allclose`.</span>
+<span class="sd">        no_grads (list of bool): Flag to skip variable for gradient assertion.</span>
+<span class="sd">            It should be same length as ``x_data``.</span>
+<span class="sd">        dtype (~numpy.dtype): ``x_data`` and ``y_grad`` are casted to this</span>
+<span class="sd">            dtype when calculating numerical gradients. Only float types and</span>
+<span class="sd">            ``None`` are allowed.</span>
+
+<span class="sd">    See:</span>
+<span class="sd">       :func:`numerical_grad`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_data</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">y_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">y_grad</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">y_grad</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_data</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># All creators of `y` need to be the same because we only call</span>
+    <span class="c1"># `y[0].backward` to call `backward` method of the creator.</span>
+    <span class="c1"># To do so we need to insert a dummy function `Ident` to the</span>
+    <span class="c1"># computational graph.</span>
+    <span class="c1"># Note that `func` may not be a `Function` object.</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">identity</span><span class="o">.</span><span class="n">Identity</span><span class="p">()(</span><span class="o">*</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">y_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_grad</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;`y_grad` must have the same length of output values&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">iy</span><span class="p">,</span> <span class="n">igy</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_grad</span><span class="p">):</span>
+            <span class="n">iy</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">igy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;When `y_grad` is `None`, the function must return a&#39;</span>
+                <span class="s1">&#39;zero-dimentional array&#39;</span><span class="p">)</span>
+        <span class="n">y_grad</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
+
+    <span class="c1"># We only need to call `backward` for one result `Variable`.</span>
+    <span class="c1"># `Variable.backward` method calls `Function.backward` of its creator.</span>
+    <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">casted_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_data</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s1">&#39;f&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`dtype` is allowed only float type&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`dtype` is available only if `params` is empty&#39;</span><span class="p">)</span>
+        <span class="n">casted_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                                       <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;f&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_data</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">f</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">chainer</span><span class="o">.</span><span class="n">mkld</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+            <span class="n">chainer</span><span class="o">.</span><span class="n">mkld</span><span class="o">.</span><span class="n">fanout</span><span class="o">.</span><span class="n">FanoutRecorder</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">casted_xs</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">_as_tuple</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">no_grads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">no_grads</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s1">&#39;f&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">no_grads</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Length of no_grads param and xs should be same.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">skip</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cx</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">no_grads</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">casted_xs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">skip</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">continue</span>
+        <span class="n">gx</span><span class="p">,</span> <span class="o">=</span> <span class="n">numerical_grad</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">cx</span><span class="o">.</span><span class="n">data</span><span class="p">,),</span> <span class="n">y_grad</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">gx</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">gx</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">x</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">gx</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;f&#39;</span> <span class="ow">and</span> <span class="n">gx</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">dtype</span>
+
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+        <span class="n">gp</span><span class="p">,</span> <span class="o">=</span> <span class="n">numerical_grad</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">,),</span> <span class="n">y_grad</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">gp</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">dtype</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

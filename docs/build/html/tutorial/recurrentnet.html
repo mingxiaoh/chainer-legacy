@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Recurrent Nets and their Computational Graph &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../index.html"/>
+        <link rel="up" title="Chainer Tutorial" href="index.html"/>
+        <link rel="next" title="Using GPU(s) in Chainer" href="gpu.html"/>
+        <link rel="prev" title="Introduction to Chainer" href="basic.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Chainer Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="basic.html">Introduction to Chainer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Recurrent Nets and their Computational Graph</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#recurrent-nets">Recurrent Nets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#truncate-the-graph-by-unchaining">Truncate the Graph by Unchaining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#network-evaluation-without-storing-the-computation-history">Network Evaluation without Storing the Computation History</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#making-it-with-trainer">Making it with Trainer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gpu.html">Using GPU(s) in Chainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="function.html">Define your own function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="type_check.html">Type check</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Chainer Tutorial</a> &raquo;</li>
+        
+      <li>Recurrent Nets and their Computational Graph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorial/recurrentnet.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="recurrent-nets-and-their-computational-graph">
+<h1>Recurrent Nets and their Computational Graph<a class="headerlink" href="#recurrent-nets-and-their-computational-graph" title="Permalink to this headline">¶</a></h1>
+<p>In this section, you will learn how to write</p>
+<ul class="simple">
+<li>recurrent nets with full backprop,</li>
+<li>recurrent nets with truncated backprop,</li>
+<li>evaluation of networks with few memory.</li>
+</ul>
+<p>After reading this section, you will be able to:</p>
+<ul class="simple">
+<li>Handle input sequences of variable length</li>
+<li>Truncate upper stream of the network during forward computation</li>
+<li>Use no-backprop mode to prevent network construction</li>
+</ul>
+<div class="section" id="recurrent-nets">
+<h2>Recurrent Nets<a class="headerlink" href="#recurrent-nets" title="Permalink to this headline">¶</a></h2>
+<p>Recurrent nets are neural networks with loops.
+They are often used to learn from sequential input/output.
+Given an input stream <span class="math">\(x_1, x_2, \dots, x_t, \dots\)</span> and the initial state <span class="math">\(h_0\)</span>, a recurrent net iteratively updates its state by <span class="math">\(h_t = f(x_t, h_{t-1})\)</span>, and at some or every point in time <span class="math">\(t\)</span>, it outputs <span class="math">\(y_t = g(h_t)\)</span>.
+If we expand the procedure along the time axis, it looks like a regular feed-forward network except that same parameters are repeatedly used within the network.</p>
+<p>Here we learn how to write a simple one-layer recurrent net.
+The task is language modeling: given a finite sequence of words, we want to predict the next word at each position without peeking the successive words.
+Suppose there are 1,000 different word types, and that we use 100 dimensional real vectors to represent each word (a.k.a. word embedding).</p>
+<p>Let’s start from defining the recurrent neural net language model (RNNLM) as a chain.
+We can use the <a class="reference internal" href="../reference/links.html#chainer.links.LSTM" title="chainer.links.LSTM"><code class="xref py py-class docutils literal"><span class="pre">chainer.links.LSTM</span></code></a> link that implements a fully-connected stateful LSTM layer.
+This link looks like an ordinary fully-connected layer.
+On construction, you pass the input and output size to the constructor:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, call on this instance <code class="docutils literal"><span class="pre">l(x)</span></code> executes <em>one step of LSTM layer</em>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Do not forget to reset the internal state of the LSTM layer before the forward computation!
+Every recurrent layer holds its internal state (i.e. the output of the previous call).
+At the first application of the recurrent layer, you must reset the internal state.
+Then, the next input can be directly fed to the LSTM instance:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x2</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Based on this LSTM link, let’s write our recurrent network as a new chain:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">RNN</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">embed</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">EmbedID</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>  <span class="c1"># word embedding</span>
+            <span class="n">mid</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>  <span class="c1"># the first LSTM layer</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span>  <span class="c1"># the feed-forward output layer</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mid</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cur_word</span><span class="p">):</span>
+        <span class="c1"># Given the current word ID, predict the next word.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">cur_word</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mid</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>
+
+<span class="n">rnn</span> <span class="o">=</span> <span class="n">RNN</span><span class="p">()</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Classifier</span><span class="p">(</span><span class="n">rnn</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here <a class="reference internal" href="../reference/links.html#chainer.links.EmbedID" title="chainer.links.EmbedID"><code class="xref py py-class docutils literal"><span class="pre">EmbedID</span></code></a> is a link for word embedding.
+It converts input integers into corresponding fixed-dimensional embedding vectors.
+The last linear link <code class="docutils literal"><span class="pre">out</span></code> represents the feed-forward output layer.</p>
+<p>The <code class="docutils literal"><span class="pre">RNN</span></code> chain implements a <em>one-step-forward computation</em>.
+It does not handle sequences by itself, but we can use it to process sequences by just feeding items in a sequence straight to the chain.</p>
+<p>Suppose we have a list of word variables <code class="docutils literal"><span class="pre">x_list</span></code>.
+Then, we can compute loss values for the word sequence by simple <code class="docutils literal"><span class="pre">for</span></code> loop.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="n">x_list</span><span class="p">):</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">cur_word</span><span class="p">,</span> <span class="n">next_word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">x_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">loss</span> <span class="o">+=</span> <span class="n">model</span><span class="p">(</span><span class="n">cur_word</span><span class="p">,</span> <span class="n">next_word</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss</span>
+</pre></div>
+</div>
+<p>Of course, the accumulated loss is a Variable object with the full history of computation.
+So we can just call its <a class="reference internal" href="../reference/core/variable.html#chainer.Variable.backward" title="chainer.Variable.backward"><code class="xref py py-meth docutils literal"><span class="pre">backward()</span></code></a> method to compute gradients of the total loss according to the model parameters:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Suppose we have a list of word variables x_list.</span>
+<span class="n">rnn</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">x_list</span><span class="p">)</span>
+<span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Or equivalently we can use the <code class="docutils literal"><span class="pre">compute_loss</span></code> as a loss function:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">rnn</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">compute_loss</span><span class="p">,</span> <span class="n">x_list</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="truncate-the-graph-by-unchaining">
+<h2>Truncate the Graph by Unchaining<a class="headerlink" href="#truncate-the-graph-by-unchaining" title="Permalink to this headline">¶</a></h2>
+<p>Learning from very long sequences is also a typical use case of recurrent nets.
+Suppose the input and state sequence is too long to fit into memory.
+In such cases, we often truncate the backpropagation into a short time range.
+This technique is called <em>truncated backprop</em>.
+It is heuristic, and it makes the gradients biased.
+However, this technique works well in practice if the time range is long enough.</p>
+<p>How to implement truncated backprop in Chainer?
+Chainer has a smart mechanism to achieve truncation, called <strong>backward unchaining</strong>.
+It is implemented in the <a class="reference internal" href="../reference/core/variable.html#chainer.Variable.unchain_backward" title="chainer.Variable.unchain_backward"><code class="xref py py-meth docutils literal"><span class="pre">Variable.unchain_backward()</span></code></a> method.
+Backward unchaining starts from the Variable object, and it chops the computation history backwards from the variable.
+The chopped variables are disposed automatically (if they are not referenced explicitly from any other user object).
+As a result, they are no longer a part of computation history, and are not involved in backprop anymore.</p>
+<p>Let’s write an example of truncated backprop.
+Here we use the same network as the one used in the previous subsection.
+Suppose we are given a very long sequence, and we want to run backprop truncated at every 30 time steps.
+We can write truncated backprop using the model defined above:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">seqlen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+<span class="n">rnn</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">cur_word</span><span class="p">,</span> <span class="n">next_word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">x_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+    <span class="n">loss</span> <span class="o">+=</span> <span class="n">model</span><span class="p">(</span><span class="n">cur_word</span><span class="p">,</span> <span class="n">next_word</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">30</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">count</span> <span class="o">==</span> <span class="n">seqlen</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">unchain_backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>State is updated at <code class="docutils literal"><span class="pre">model()</span></code>, and the losses are accumulated to <code class="docutils literal"><span class="pre">loss</span></code> variable.
+At each 30 steps, backprop takes place at the accumulated loss.
+Then, the <a class="reference internal" href="../reference/core/variable.html#chainer.Variable.unchain_backward" title="chainer.Variable.unchain_backward"><code class="xref py py-meth docutils literal"><span class="pre">unchain_backward()</span></code></a> method is called, which deletes the computation history backward from the accumulated loss.
+Note that the last state of <code class="docutils literal"><span class="pre">model</span></code> is not lost, since the RNN instance holds a reference to it.</p>
+<p>The implementation of truncated backprop is simple, and since there is no complicated trick on it, we can generalize this method to different situations.
+For example, we can easily extend the above code to use different schedules between backprop timing and truncation length.</p>
+</div>
+<div class="section" id="network-evaluation-without-storing-the-computation-history">
+<h2>Network Evaluation without Storing the Computation History<a class="headerlink" href="#network-evaluation-without-storing-the-computation-history" title="Permalink to this headline">¶</a></h2>
+<p>On evaluation of recurrent nets, there is typically no need to store the computation history.
+While unchaining enables us to walk through unlimited length of sequences with limited memory, it is a bit of a work-around.</p>
+<p>As an alternative, Chainer provides an evaluation mode of forward computation which does not store the computation history.
+This is enabled by just calling <a class="reference internal" href="../reference/core/function.html#chainer.no_backprop_mode" title="chainer.no_backprop_mode"><code class="xref py py-func docutils literal"><span class="pre">no_backprop_mode()</span></code></a> context:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+    <span class="n">x_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">Variable</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>  <span class="c1"># list of 100 words</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">x_list</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that we cannot call <code class="docutils literal"><span class="pre">loss.backward()</span></code> to compute the gradient here, since the variable created in the no-backprop context does not remember the computation history.</p>
+<p>No-backprop context is also useful to evaluate feed-forward networks to reduce the memory footprint.</p>
+<p>We can combine a fixed feature extractor network and a trainable predictor network using <a class="reference internal" href="../reference/core/function.html#chainer.no_backprop_mode" title="chainer.no_backprop_mode"><code class="xref py py-func docutils literal"><span class="pre">no_backprop_mode()</span></code></a>.
+For example, suppose we want to train a feed-forward network <code class="docutils literal"><span class="pre">predictor_func</span></code>, which is located on top of another fixed pre-trained network <code class="docutils literal"><span class="pre">fixed_func</span></code>.
+We want to train <code class="docutils literal"><span class="pre">predictor_func</span></code> without storing the computation history for <code class="docutils literal"><span class="pre">fixed_func</span></code>.
+This is simply done by following code snippets (suppose <code class="docutils literal"><span class="pre">x_data</span></code> and <code class="docutils literal"><span class="pre">y_data</span></code> indicate input data and label, respectively):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+    <span class="n">feat</span> <span class="o">=</span> <span class="n">fixed_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">predictor_func</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
+<span class="n">y</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>At first, the input variable <code class="docutils literal"><span class="pre">x</span></code> is in no-backprop mode, so <code class="docutils literal"><span class="pre">fixed_func</span></code> does not memorize the computation history.
+Then <code class="docutils literal"><span class="pre">predictor_func</span></code> is executed in backprop mode, i.e., with memorizing the history of computation.
+Since the history of computation is only memorized between variables <code class="docutils literal"><span class="pre">feat</span></code> and <code class="docutils literal"><span class="pre">y</span></code>, the backward computation stops at the <code class="docutils literal"><span class="pre">feat</span></code> variable.</p>
+</div>
+<div class="section" id="making-it-with-trainer">
+<h2>Making it with Trainer<a class="headerlink" href="#making-it-with-trainer" title="Permalink to this headline">¶</a></h2>
+<p>The above codes are written with plain Function/Variable APIs.
+When we write a training loop, it is better to use Trainer, since we can then easily add functionalities by extensions.</p>
+<p>Before implementing it on Trainer, let’s clarify the training settings.
+We here use Penn Tree Bank dataset as a set of sentences.
+Each sentence is represented as a word sequence.
+We concatenate all sentences into one long word sequence, in which each sentence is separated by a special word <code class="docutils literal"><span class="pre">&lt;eos&gt;</span></code>, which stands for “End of Sequence”.
+This dataset is easily obtained by <a class="reference internal" href="../reference/datasets.html#chainer.datasets.get_ptb_words" title="chainer.datasets.get_ptb_words"><code class="xref py py-func docutils literal"><span class="pre">chainer.datasets.get_ptb_words()</span></code></a>.
+This function returns train, validation, and test dataset, each of which is represented as a long array of integers.
+Each integer represents a word ID.</p>
+<p>Our task is to learn a recurrent neural net language model from the long word sequence.
+We use words in different locations to form mini-batches.
+It means we maintain <span class="math">\(B\)</span> indices pointing to different locations in the sequence, read from these indices at each iteration, and increment all indices after the read.
+Of course, when one index reaches the end of the whole sequence, we turn the index back to 0.</p>
+<p>In order to implement this training procedure, we have to customize the following components of Trainer:</p>
+<ul class="simple">
+<li>Iterator.
+Built-in iterators do not support reading from different locations and aggregating them into a mini-batch.</li>
+<li>Update function.
+The default update function does not support truncated BPTT.</li>
+</ul>
+<p>When we write a dataset iterator dedicated to the dataset, the dataset implementation can be arbitrary; even the interface is not fixed.
+On the other hand, the iterator must support the <a class="reference internal" href="../reference/core/dataset.html#chainer.dataset.Iterator" title="chainer.dataset.Iterator"><code class="xref py py-class docutils literal"><span class="pre">Iterator</span></code></a> interface.
+The important methods and attributes to implement are <code class="docutils literal"><span class="pre">batch_size</span></code>, <code class="docutils literal"><span class="pre">epoch</span></code>, <code class="docutils literal"><span class="pre">epoch_detail</span></code>, <code class="docutils literal"><span class="pre">is_new_epoch</span></code>, <code class="docutils literal"><span class="pre">iteration</span></code>, <code class="docutils literal"><span class="pre">__next__</span></code>, and <code class="docutils literal"><span class="pre">serialize</span></code>.
+Following is a code from the official example in the <code class="docutils literal"><span class="pre">examples/ptb</span></code> directory.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
+<span class="k">class</span> <span class="nc">ParallelSequentialIterator</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Iterator</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_new_epoch</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span> <span class="o">=</span> <span class="n">repeat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="o">//</span> <span class="n">batch_size</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+        <span class="n">cur_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_words</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">next_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_words</span><span class="p">()</span>
+
+        <span class="n">epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">//</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_new_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">&lt;</span> <span class="n">epoch</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_new_epoch</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">epoch</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cur_words</span><span class="p">,</span> <span class="n">next_words</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">epoch_detail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_words</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[(</span><span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s1">&#39;iteration&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s1">&#39;epoch&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+
+<span class="n">train_iter</span> <span class="o">=</span> <span class="n">ParallelSequentialIterator</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<span class="n">val_iter</span> <span class="o">=</span> <span class="n">ParallelSequentialIterator</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Although the code is slightly long, the idea is simple.
+First, this iterator creates <code class="docutils literal"><span class="pre">offsets</span></code> pointing to positions equally spaced within the whole sequence.
+The i-th examples of mini-batches refer the sequence with the i-th offset.
+The iterator returns a list of tuples of the current words and the next words.
+Each mini-batch is converted to a tuple of integer arrays by the <code class="docutils literal"><span class="pre">concat_examples</span></code> function in the standard updater (see the previous tutorial).</p>
+<p>Backprop Through Time is implemented as follows.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">update_bptt</span><span class="p">(</span><span class="n">updater</span><span class="p">):</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">35</span><span class="p">):</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">train_iter</span><span class="o">.</span><span class="n">__next__</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">concat_examples</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">+=</span> <span class="n">model</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">unchain_backward</span><span class="p">()</span>  <span class="c1"># truncate</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+<span class="n">updater</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">(</span><span class="n">train_iter</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">update_bptt</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case, we update the parameters on every 35 consecutive words.
+The call of <code class="docutils literal"><span class="pre">unchain_backward</span></code> cuts the history of computation accumulated to the LSTM links.
+The rest of the code for setting up Trainer is almost same as one given in the previous tutorial.</p>
+<hr class="docutils" />
+<p>In this section we have demonstrated how to write recurrent nets in Chainer and some fundamental techniques to manage the history of computation (a.k.a. computational graph).
+The example in the <code class="docutils literal"><span class="pre">examples/ptb</span></code> directory implements truncated backprop learning of a LSTM language model from the Penn Treebank corpus.
+In the next section, we will review how to use GPU(s) in Chainer.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="gpu.html" class="btn btn-neutral float-right" title="Using GPU(s) in Chainer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="basic.html" class="btn btn-neutral" title="Introduction to Chainer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,683 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.cuda &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="chainer" href="../chainer.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.cuda</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.cuda</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Device, context and memory management on CuPy.</span>
+
+<span class="sd">Chainer uses CuPy (with very thin wrapper) to exploit the speed of GPU</span>
+<span class="sd">computation. Following modules and classes are imported to :mod:`cuda`</span>
+<span class="sd">module for convenience (refer to this table when reading chainer&#39;s source</span>
+<span class="sd">codes).</span>
+
+<span class="sd">============================ =================================</span>
+<span class="sd"> imported name                original name</span>
+<span class="sd">============================ =================================</span>
+<span class="sd"> ``chainer.cuda.cupy``        :mod:`cupy`</span>
+<span class="sd"> ``chainer.cuda.ndarray``     :class:`cupy.ndarray`</span>
+<span class="sd"> ``chainer.cuda.cupy.cuda``   :mod:`cupy.cuda`</span>
+<span class="sd"> ``chainer.cuda.Device``      :class:`cupy.cuda.Device`</span>
+<span class="sd"> ``chainer.cuda.Event``       :class:`cupy.cuda.Event`</span>
+<span class="sd"> ``chainer.cuda.Stream``      :class:`cupy.cuda.Stream`</span>
+<span class="sd">============================ =================================</span>
+
+<span class="sd">Chainer replaces the default allocator of CuPy by its memory pool</span>
+<span class="sd">implementation. It enables us to reuse the device memory over multiple</span>
+<span class="sd">forward/backward computations, and temporary arrays for consecutive elementwise</span>
+<span class="sd">operations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+
+<span class="n">available</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">cudnn_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cupy</span>
+    <span class="kn">from</span> <span class="nn">cupy</span> <span class="k">import</span> <span class="n">cuda</span>  <span class="c1"># NOQA</span>
+    <span class="kn">from</span> <span class="nn">cupy.cuda</span> <span class="k">import</span> <span class="n">cublas</span>  <span class="c1"># NOQA</span>
+
+    <span class="kn">from</span> <span class="nn">cupy</span> <span class="k">import</span> <span class="n">ndarray</span>  <span class="c1"># NOQA</span>
+
+    <span class="kn">from</span> <span class="nn">cupy.cuda</span> <span class="k">import</span> <span class="n">Device</span>  <span class="c1"># NOQA</span>
+    <span class="kn">from</span> <span class="nn">cupy.cuda</span> <span class="k">import</span> <span class="n">Event</span>  <span class="c1"># NOQA</span>
+    <span class="kn">from</span> <span class="nn">cupy.cuda</span> <span class="k">import</span> <span class="n">Stream</span>  <span class="c1"># NOQA</span>
+
+    <span class="n">available</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">_resolution_error</span> <span class="o">=</span> <span class="n">e</span>
+
+    <span class="k">class</span> <span class="nc">ndarray</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="k">pass</span>  <span class="c1"># for type testing</span>
+
+<span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+    <span class="n">_cudnn_disabled_by_user</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CHAINER_CUDNN&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cupy.cudnn</span>
+        <span class="n">cudnn</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">cudnn</span>
+        <span class="n">cudnn_enabled</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">_cudnn_disabled_by_user</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_resolution_error</span> <span class="o">=</span> <span class="n">e</span>
+
+
+<span class="k">def</span> <span class="nf">check_cuda_available</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Checks if CUDA is available.</span>
+
+<span class="sd">    When CUDA is correctly set up, nothing happens.</span>
+<span class="sd">    Otherwise it raises ``RuntimeError``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;CUDA environment is not correctly set up</span><span class="se">\n</span><span class="s1">&#39;</span>
+               <span class="s1">&#39;(see https://github.com/pfnet/chainer#installation).&#39;</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_resolution_error</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">cudnn_enabled</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="n">_cudnn_disabled_by_user</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">check_cuda_available</span><span class="p">,</span> <span class="s1">&#39;_already_warned&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s1">&#39;cuDNN is not enabled.</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;Please reinstall chainer after you install cudnn</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;(see https://github.com/pfnet/chainer#installation).&#39;</span><span class="p">)</span>
+        <span class="n">check_cuda_available</span><span class="o">.</span><span class="n">_already_warned</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<span class="k">class</span> <span class="nc">DummyDeviceType</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Dummy device class that does nothing with cupy.cuda.Device interface.</span>
+
+<span class="sd">    This class is used to represent CPU device.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__int__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">use</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">synchronize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">DummyDeviceType</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span> <span class="o">==</span> <span class="n">other</span><span class="p">)</span>
+
+
+<span class="n">DummyDevice</span> <span class="o">=</span> <span class="n">DummyDeviceType</span><span class="p">()</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Global states</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+    <span class="n">memory_pool</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">MemoryPool</span><span class="p">()</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">set_allocator</span><span class="p">(</span><span class="n">memory_pool</span><span class="o">.</span><span class="n">malloc</span><span class="p">)</span>
+    <span class="n">pinned_memory_pool</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">PinnedMemoryPool</span><span class="p">()</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">set_pinned_memory_allocator</span><span class="p">(</span><span class="n">pinned_memory_pool</span><span class="o">.</span><span class="n">malloc</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY2</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">future.types.newint</span> <span class="k">import</span> <span class="n">newint</span> <span class="k">as</span> <span class="n">_newint</span>
+        <span class="n">_integer_types</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span> <span class="o">+</span> <span class="p">(</span><span class="n">_newint</span><span class="p">,)</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">_integer_types</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">_integer_types</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Global states</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="get_device"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.get_device">[docs]</a><span class="k">def</span> <span class="nf">get_device</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the device from a device object, an ID integer or an array object.</span>
+
+<span class="sd">    This is a convenient utility to select a correct device if the type of</span>
+<span class="sd">    ``arg`` is unknown (i.e., one can use this function on arrays that may be</span>
+<span class="sd">    on CPU or GPU). The returned device object supports the context management</span>
+<span class="sd">    protocol of Python for the *with* statement.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args: Values to specify a GPU device. The first device object, integer</span>
+<span class="sd">            or :class:`cupy.ndarray` object is used to select a device.</span>
+<span class="sd">            If it is a device object, it is returned. If it is an integer,</span>
+<span class="sd">            the corresponding device is returned. If it is a CuPy array,</span>
+<span class="sd">            the device on which this array reside is returned. If any</span>
+<span class="sd">            arguments are neither integers nor CuPy arrays, a dummy device</span>
+<span class="sd">            object representing CPU is returned.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Device object specified by given ``args``.</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">       See :class:`cupy.cuda.Device` for the device selection not by arrays.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_integer_types</span><span class="p">:</span>
+            <span class="n">check_cuda_available</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">Device</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">return</span> <span class="n">arg</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">if</span> <span class="n">available</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">Device</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+    <span class="k">return</span> <span class="n">DummyDevice</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># cupy.ndarray allocation and copy</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="to_gpu"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.to_gpu">[docs]</a><span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Copies the given CPU array to specified device.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        array: Array to be sent to GPU.</span>
+<span class="sd">        device: Device specifier.</span>
+<span class="sd">        stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs</span>
+<span class="sd">            asynchronously.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        cupy.ndarray: Array on GPU.</span>
+
+<span class="sd">        If ``array`` is already on GPU, then this function just returns</span>
+<span class="sd">        ``array`` without performing any copy. Note that this function does not</span>
+<span class="sd">        copy :class:`cupy.ndarray` into specified device.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_cuda_available</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">array_dev</span> <span class="o">=</span> <span class="n">get_device</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">array_dev</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">cupy</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">get_device_id</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">array</span>
+
+        <span class="k">if</span> <span class="n">stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+            <span class="n">mem</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">array_dev</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># cpu to gpu</span>
+                <span class="n">mem</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">alloc_pinned_memory</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">nbytes</span><span class="p">)</span>
+                <span class="n">src</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span>
+                    <span class="n">mem</span><span class="p">,</span> <span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">array</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">src</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># gpu to gpu</span>
+                <span class="k">with</span> <span class="n">array_dev</span><span class="p">:</span>
+                    <span class="n">src</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">event</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+                    <span class="n">event</span><span class="o">.</span><span class="n">record</span><span class="p">()</span>
+                <span class="n">stream</span><span class="o">.</span><span class="n">wait_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_from_device_async</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">nbytes</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span>
+
+            <span class="c1"># to hold a reference until the end of the asynchronous memcpy</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">x</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">mem</span><span class="p">,</span> <span class="n">ret</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">ret</span>
+
+        <span class="k">if</span> <span class="n">array_dev</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="c1"># Need to make a copy when an array is copied to another device</span>
+        <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="to_cpu"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.to_cpu">[docs]</a><span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Copies the given GPU array to host CPU.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        array: Array to be sent to CPU.</span>
+<span class="sd">        stream (cupy.cuda.Stream): CUDA stream.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Array on CPU.</span>
+
+<span class="sd">        If given ``array`` is already on CPU, then this function just returns</span>
+<span class="sd">        ``array`` without performing any copy.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">check_cuda_available</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">get_device</span><span class="p">(</span><span class="n">array</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">array</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">mkld</span><span class="o">.</span><span class="n">mdarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s1">&#39;The array sent to cpu must be numpy.ndarray or cupy.ndarray.&#39;</span>
+            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Actual type: </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">array</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="copy"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.copy">[docs]</a><span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Copies a :class:`cupy.ndarray` object using the default stream.</span>
+
+<span class="sd">    This function can copy the device array to the destination array on another</span>
+<span class="sd">    device.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        array (cupy.ndarray): Array to be copied.</span>
+<span class="sd">        out (cupy.ndarray): Destination array.</span>
+<span class="sd">            If it is not ``None``, then ``out_device`` argument is ignored.</span>
+<span class="sd">        out_device: Destination device specifier. Actual device object is</span>
+<span class="sd">            obtained by passing this value to :func:`get_device`.</span>
+<span class="sd">        stream (cupy.cuda.Stream): CUDA stream.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        cupy.ndarray: Copied array.</span>
+
+<span class="sd">        If ``out`` is not specified, then the array is allocated on the device</span>
+<span class="sd">        specified by ``out_device`` argument.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_cuda_available</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">stream</span> <span class="ow">is</span> <span class="kc">None</span>  <span class="c1"># TODO(beam2d): FIX IT</span>
+
+    <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">out_device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out_device</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="k">with</span> <span class="n">get_device</span><span class="p">(</span><span class="n">out_device</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">get_device</span><span class="p">(</span><span class="n">array</span><span class="p">):</span>
+        <span class="n">cupy</span><span class="o">.</span><span class="n">copyto</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">array</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Function result memoization</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="memoize"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.memoize">[docs]</a><span class="k">def</span> <span class="nf">memoize</span><span class="p">(</span><span class="n">for_each_device</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Makes a function memoizing the result for each argument and device.</span>
+
+<span class="sd">    This is a similar version of :func:`cupy.memoize`. The difference is that</span>
+<span class="sd">    this function can be used in the global scope even if CUDA is not</span>
+<span class="sd">    available. In such case, this function does nothing.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">       This decorator acts as a dummy if CUDA is not available. It cannot be</span>
+<span class="sd">       used for general purpose memoization even if ``for_each_device`` is set</span>
+<span class="sd">       to False.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">memoize</span><span class="p">(</span><span class="n">for_each_device</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">dummy_decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">return</span> <span class="n">dummy_decorator</span></div>
+
+
+<div class="viewcode-block" id="clear_memo"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.clear_memo">[docs]</a><span class="k">def</span> <span class="nf">clear_memo</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Clears the memoized results for all functions decorated by memoize.</span>
+
+<span class="sd">    This function works like :func:`cupy.clear_memo` as a counterpart for</span>
+<span class="sd">    :func:`chainer.cuda.memoize`. It can be used even if CUDA is not available.</span>
+<span class="sd">    In such a case, this function does nothing.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+        <span class="n">cupy</span><span class="o">.</span><span class="n">clear_memo</span><span class="p">()</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Kernel definition utility</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="elementwise"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.elementwise">[docs]</a><span class="nd">@memoize</span><span class="p">(</span><span class="n">for_each_device</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">elementwise</span><span class="p">(</span><span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates an elementwise kernel function.</span>
+
+<span class="sd">    This function uses :func:`~chainer.cuda.memoize` to cache the</span>
+<span class="sd">    kernel object, i.e. the resulting kernel object is cached for each argument</span>
+<span class="sd">    combination and CUDA device.</span>
+
+<span class="sd">    The arguments are the same as those for</span>
+<span class="sd">    :class:`cupy.ElementwiseKernel`, except that the ``name`` argument is</span>
+<span class="sd">    mandatory.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_cuda_available</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">ElementwiseKernel</span><span class="p">(</span>
+        <span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="reduce"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.reduce">[docs]</a><span class="nd">@memoize</span><span class="p">(</span><span class="n">for_each_device</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">reduce</span><span class="p">(</span><span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">map_expr</span><span class="p">,</span> <span class="n">reduce_expr</span><span class="p">,</span> <span class="n">post_map_expr</span><span class="p">,</span>
+           <span class="n">identity</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a global reduction kernel function.</span>
+
+<span class="sd">    This function uses :func:`~chainer.cuda.memoize` to cache the resulting</span>
+<span class="sd">    kernel object, i.e. the resulting kernel object is cached for each argument</span>
+<span class="sd">    combination and CUDA device.</span>
+
+<span class="sd">    The arguments are the same as those for</span>
+<span class="sd">    :class:`cupy.ReductionKernel`, except that the ``name`` argument is</span>
+<span class="sd">    mandatory.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_cuda_available</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">ReductionKernel</span><span class="p">(</span>
+        <span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">map_expr</span><span class="p">,</span> <span class="n">reduce_expr</span><span class="p">,</span> <span class="n">post_map_expr</span><span class="p">,</span>
+        <span class="n">identity</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># numpy/cupy compatible coding</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="get_array_module"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.get_array_module">[docs]</a><span class="k">def</span> <span class="nf">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets an appropriate one from :mod:`numpy` or :mod:`cupy`.</span>
+
+<span class="sd">    This is almost equivalent to :func:`cupy.get_array_module`. The differences</span>
+<span class="sd">    are that this function can be used even if CUDA is not available and that</span>
+<span class="sd">    it will return their data arrays&#39; array module for</span>
+<span class="sd">    :class:`~chainer.Variable` arguments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args: Values to determine whether NumPy or CuPy should be used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        module: :mod:`cupy` or :mod:`numpy` is returned based on the types of</span>
+<span class="sd">        the arguments.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="o">.</span><span class="n">data</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span> <span class="k">else</span> <span class="n">arg</span>
+                <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cupy</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span></div>
+
+
+<span class="n">_max_workspace_size</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+
+
+<div class="viewcode-block" id="get_max_workspace_size"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.get_max_workspace_size">[docs]</a><span class="k">def</span> <span class="nf">get_max_workspace_size</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Gets the workspace size for cuDNN.</span>
+
+<span class="sd">    Check &quot;cuDNN Library User Guide&quot; for detail.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The workspace size for cuDNN.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_max_workspace_size</span></div>
+
+
+<div class="viewcode-block" id="set_max_workspace_size"><a class="viewcode-back" href="../../reference/util/cuda.html#chainer.cuda.set_max_workspace_size">[docs]</a><span class="k">def</span> <span class="nf">set_max_workspace_size</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the workspace size for cuDNN.</span>
+
+<span class="sd">    Check &quot;cuDNN Library User Guide&quot; for detail.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        size: The workspace size for cuDNN.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_max_workspace_size</span>
+    <span class="n">_max_workspace_size</span> <span class="o">=</span> <span class="n">size</span></div>
+
+
+<span class="k">def</span> <span class="nf">iscompatible</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">class_or_tuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; TODO: FIX IT SERIOUSLY</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">class_or_tuple</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">mkld</span><span class="o">.</span><span class="n">mdarray</span><span class="p">)</span> <span class="ow">or</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">))</span> <span class="ow">and</span> \
+       <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">class_or_tuple</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">mkld</span><span class="o">.</span><span class="n">mdarray</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="n">class_or_tuple</span> <span class="ow">is</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

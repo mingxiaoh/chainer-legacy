@@ -1,0 +1,472 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.activation.slstm &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.activation.slstm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.activation.slstm</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">type_check</span>
+
+
+<span class="k">def</span> <span class="nf">_extract_gates</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">r</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">half</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">half</span><span class="p">)</span> <span class="o">*</span> <span class="n">half</span> <span class="o">+</span> <span class="n">half</span>
+
+
+<span class="k">def</span> <span class="nf">_grad_sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_grad_tanh</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+
+
+<span class="n">_preamble</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">template &lt;typename T&gt; __device__ T sigmoid(T x) {</span>
+<span class="s1">    const T half = 0.5;</span>
+<span class="s1">    return tanh(x * half) * half + half;</span>
+<span class="s1">}</span>
+<span class="s1">template &lt;typename T&gt; __device__ T grad_sigmoid(T y) { return y * (1 - y); }</span>
+<span class="s1">template &lt;typename T&gt; __device__ T grad_tanh(T y) { return 1 - y * y; }</span>
+
+<span class="s1">#define COMMON_ROUTINE </span><span class="se">\</span>
+<span class="s1">    T aa1 = tanh(a1); </span><span class="se">\</span>
+<span class="s1">    T ai1 = sigmoid(i1); </span><span class="se">\</span>
+<span class="s1">    T af1 = sigmoid(f1); </span><span class="se">\</span>
+<span class="s1">    T aa2 = tanh(a2); </span><span class="se">\</span>
+<span class="s1">    T ai2 = sigmoid(i2); </span><span class="se">\</span>
+<span class="s1">    T af2 = sigmoid(f2); </span><span class="se">\</span>
+<span class="s1">    T ao = sigmoid(o1 + o2);</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">SLSTM</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;S-LSTM unit.</span>
+
+<span class="sd">    It has four inputs (c1, c2, x1, x2) and two outputs (c, h), where c</span>
+<span class="sd">    indicates the cell state. x1 and x2 must have four times channels compared</span>
+<span class="sd">    to the number of units.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">c1_type</span><span class="p">,</span> <span class="n">c2_type</span><span class="p">,</span> <span class="n">x1_type</span><span class="p">,</span> <span class="n">x2_type</span> <span class="o">=</span> <span class="n">in_types</span>
+
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span>
+            <span class="n">c2_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">c1_type</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">x1_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">c1_type</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">x2_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">c1_type</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">c2_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">x1_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">x2_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="n">x1_type</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="n">c2_type</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="n">x2_type</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">x1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">c2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">c1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">x2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">x1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">c1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">x2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">c2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">type_check</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">c1_type</span><span class="o">.</span><span class="n">ndim</span><span class="p">)):</span>
+            <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">x1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">c1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">x2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">c2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">x1_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">x2_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">c_prev1</span><span class="p">,</span> <span class="n">c_prev2</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">a1</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">o1</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+        <span class="n">a2</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">o2</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">a1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i1</span> <span class="o">=</span> <span class="n">_sigmoid</span><span class="p">(</span><span class="n">i1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f1</span> <span class="o">=</span> <span class="n">_sigmoid</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">a2</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2</span> <span class="o">=</span> <span class="n">_sigmoid</span><span class="p">(</span><span class="n">i2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f2</span> <span class="o">=</span> <span class="n">_sigmoid</span><span class="p">(</span><span class="n">f2</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">o</span> <span class="o">=</span> <span class="n">_sigmoid</span><span class="p">(</span><span class="n">o1</span> <span class="o">+</span> <span class="n">o2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">i1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">i2</span> <span class="o">+</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">f1</span> <span class="o">*</span> <span class="n">c_prev1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">f2</span> <span class="o">*</span> <span class="n">c_prev2</span>
+
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">o</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+                <span class="sd">&#39;&#39;&#39;T c_prev1, T a1, T i1, T f1, T o1,</span>
+<span class="sd">                   T c_prev2, T a2, T i2, T f2, T o2&#39;&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;T c, T h&#39;</span><span class="p">,</span>
+                <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                    COMMON_ROUTINE;</span>
+<span class="sd">                    c = aa1 * ai1 + af1 * c_prev1 + aa2 * ai2 + af2 * c_prev2;</span>
+<span class="sd">                    h = ao * tanh(c);</span>
+<span class="sd">                &#39;&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;slstm_fwd&#39;</span><span class="p">,</span> <span class="n">preamble</span><span class="o">=</span><span class="n">_preamble</span><span class="p">)(</span>
+                    <span class="n">c_prev1</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">o1</span><span class="p">,</span> <span class="n">c_prev2</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">o2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">h</span>
+
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">c_prev1</span><span class="p">,</span> <span class="n">c_prev2</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">gc</span><span class="p">,</span> <span class="n">gh</span> <span class="o">=</span> <span class="n">grad_outputs</span>
+
+        <span class="n">gx1</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+        <span class="n">gx2</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+        <span class="n">ga1</span><span class="p">,</span> <span class="n">gi1</span><span class="p">,</span> <span class="n">gf1</span><span class="p">,</span> <span class="n">go1</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">gx1</span><span class="p">)</span>
+        <span class="n">ga2</span><span class="p">,</span> <span class="n">gi2</span><span class="p">,</span> <span class="n">gf2</span><span class="p">,</span> <span class="n">go2</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">gx2</span><span class="p">)</span>
+
+        <span class="c1"># Consider the case that either gradient is not given</span>
+        <span class="k">if</span> <span class="n">gc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gc</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">gh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gh</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="n">co</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+            <span class="c1"># multiply f later</span>
+            <span class="n">gc_prev</span> <span class="o">=</span> <span class="n">gh</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">o</span> <span class="o">*</span> <span class="n">_grad_tanh</span><span class="p">(</span><span class="n">co</span><span class="p">)</span> <span class="o">+</span> <span class="n">gc</span>
+            <span class="n">ga1</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">i1</span> <span class="o">*</span> <span class="n">_grad_tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a1</span><span class="p">)</span>
+            <span class="n">gi1</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a1</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">i1</span><span class="p">)</span>
+            <span class="n">gf1</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="n">c_prev1</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f1</span><span class="p">)</span>
+            <span class="n">go1</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gh</span> <span class="o">*</span> <span class="n">co</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">o</span><span class="p">)</span>
+            <span class="n">ga2</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">i2</span> <span class="o">*</span> <span class="n">_grad_tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a2</span><span class="p">)</span>
+            <span class="n">gi2</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a2</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">i2</span><span class="p">)</span>
+            <span class="n">gf2</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="n">c_prev2</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f2</span><span class="p">)</span>
+            <span class="n">go2</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">gh</span> <span class="o">*</span> <span class="n">co</span> <span class="o">*</span> <span class="n">_grad_sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">o</span><span class="p">)</span>
+            <span class="c1"># multiply f here</span>
+            <span class="n">gc_prev1</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">f1</span>
+            <span class="n">gc_prev2</span> <span class="o">=</span> <span class="n">gc_prev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">f2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a1</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">o1</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+            <span class="n">a2</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">o2</span> <span class="o">=</span> <span class="n">_extract_gates</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+            <span class="n">gc_prev1</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">c_prev1</span><span class="p">)</span>
+            <span class="n">gc_prev2</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">c_prev2</span><span class="p">)</span>
+            <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+                <span class="sd">&#39;&#39;&#39;T c_prev1, T a1, T i1, T f1, T o1,</span>
+<span class="sd">                T c_prev2, T a2, T i2, T f2, T o2,</span>
+<span class="sd">                T c, T gc, T gh&#39;&#39;&#39;</span><span class="p">,</span>
+                <span class="sd">&#39;&#39;&#39;T gc_prev1, T ga1, T gi1, T gf1, T go1,</span>
+<span class="sd">                T gc_prev2, T ga2, T gi2, T gf2, T go2&#39;&#39;&#39;</span><span class="p">,</span>
+                <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                    COMMON_ROUTINE;</span>
+<span class="sd">                    T co = tanh(c);</span>
+<span class="sd">                    T temp = gh * ao * grad_tanh(co) + gc;</span>
+<span class="sd">                    ga1 = temp * ai1 * grad_tanh(aa1);</span>
+<span class="sd">                    gi1 = temp * aa1 * grad_sigmoid(ai1);</span>
+<span class="sd">                    gf1 = temp * c_prev1 * grad_sigmoid(af1);</span>
+<span class="sd">                    go1 = gh * co * grad_sigmoid(ao);</span>
+<span class="sd">                    gc_prev1 = temp * af1;</span>
+<span class="sd">                    ga2 = temp * ai2 * grad_tanh(aa2);</span>
+<span class="sd">                    gi2 = temp * aa2 * grad_sigmoid(ai2);</span>
+<span class="sd">                    gf2 = temp * c_prev2 * grad_sigmoid(af2);</span>
+<span class="sd">                    go2 = gh * co * grad_sigmoid(ao);</span>
+<span class="sd">                    gc_prev2 = temp * af2;</span>
+<span class="sd">                &#39;&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;lstm_bwd&#39;</span><span class="p">,</span> <span class="n">preamble</span><span class="o">=</span><span class="n">_preamble</span><span class="p">)(</span>
+                    <span class="n">c_prev1</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">o1</span><span class="p">,</span>
+                    <span class="n">c_prev2</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">o2</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">gc</span><span class="p">,</span> <span class="n">gh</span><span class="p">,</span>
+                    <span class="n">gc_prev1</span><span class="p">,</span> <span class="n">ga1</span><span class="p">,</span> <span class="n">gi1</span><span class="p">,</span> <span class="n">gf1</span><span class="p">,</span> <span class="n">go1</span><span class="p">,</span>
+                    <span class="n">gc_prev2</span><span class="p">,</span> <span class="n">ga2</span><span class="p">,</span> <span class="n">gi2</span><span class="p">,</span> <span class="n">gf2</span><span class="p">,</span> <span class="n">go2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">gc_prev1</span><span class="p">,</span> <span class="n">gc_prev2</span><span class="p">,</span> <span class="n">gx1</span><span class="p">,</span> <span class="n">gx2</span>
+
+
+<div class="viewcode-block" id="slstm"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.slstm">[docs]</a><span class="k">def</span> <span class="nf">slstm</span><span class="p">(</span><span class="n">c_prev1</span><span class="p">,</span> <span class="n">c_prev2</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;S-LSTM units as an activation function.</span>
+
+<span class="sd">    This function implements S-LSTM unit. It is an extension of LSTM unit</span>
+<span class="sd">    applied to tree structures.</span>
+<span class="sd">    The function is applied to binary trees. Each node has two child nodes.</span>
+<span class="sd">    It gets four arguments, previous cell states :math:`c_1` and</span>
+<span class="sd">    :math:`c_2`, and incoming signals :math:`x_1` and :math:`x_2`.</span>
+
+<span class="sd">    First both input signals :math:`x_1` and :math:`x_2` are split into</span>
+<span class="sd">    eight arrays :math:`a_1, i_1, f_1, o_1`, and :math:`a_2, i_2, f_2, o_2`.</span>
+<span class="sd">    They have the same shape along the second axis.</span>
+<span class="sd">    It means that :math:`x_1` and :math:`x_2` &#39;s second axis must have 4 times</span>
+<span class="sd">    the length of :math:`c_{1 \\text{prev}}` and :math:`c_{2 \\text{prev}}`.</span>
+
+<span class="sd">    The split input signals are corresponding to:</span>
+
+<span class="sd">        - :math:`a_i` : sources of cell input</span>
+<span class="sd">        - :math:`i_i` : sources of input gate</span>
+<span class="sd">        - :math:`f_i` : sources of forget gate</span>
+<span class="sd">        - :math:`o_i` : sources of output gate</span>
+
+<span class="sd">    It computes outputs as:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        c &amp;= \\tanh(a_1 + a_2) \\sigma(i_1 + i_2)</span>
+<span class="sd">           + c_{1 \\text{prev}} \\sigma(f_1)</span>
+<span class="sd">           + c_{2 \\text{prev}} \\sigma(f_2), \\\\</span>
+<span class="sd">        h &amp;= \\tanh(c) \\sigma(o_1 + o_2),</span>
+
+<span class="sd">    where :math:`\\sigma` is the elementwise sigmoid function.</span>
+<span class="sd">    The function returns :math:`c` and :math:`h` as a tuple.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        c_prev1 (~chainer.Variable): Variable that holds the previous cell</span>
+<span class="sd">            state of the first child node. The cell state should be a zero</span>
+<span class="sd">            array or the output of the  previous call of LSTM.</span>
+<span class="sd">        c_prev2 (~chainer.Variable): Variable that holds the previous cell</span>
+<span class="sd">            state of the second child node.</span>
+<span class="sd">        x1 (~chainer.Variable): Variable that holds the incoming signal from</span>
+<span class="sd">            the first child node. It must have the second dimension four times</span>
+<span class="sd">            of that of the cell state,</span>
+<span class="sd">        x2 (~chainer.Variable): Variable that holds the incoming signal from</span>
+<span class="sd">            the second child node.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is</span>
+<span class="sd">            the cell state. ``h`` indicates the outgoing signal.</span>
+
+<span class="sd">    See detail in paper: `Long Short-Term Memory Over Tree Structures \</span>
+<span class="sd">    &lt;https://arxiv.org/abs/1503.04881&gt;`_.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">SLSTM</span><span class="p">()(</span><span class="n">c_prev1</span><span class="p">,</span> <span class="n">c_prev2</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

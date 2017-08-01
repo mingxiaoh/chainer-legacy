@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tips and FAQs &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="index.html"/>
+        <link rel="next" title="Comparison with Other Frameworks" href="comparison.html"/>
+        <link rel="prev" title="API Compatibility Policy" href="compatibility.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tips and FAQs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#it-takes-too-long-time-to-compile-a-computational-graph-can-i-skip-it">It takes too long time to compile a computational graph. Can I skip it?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x">mnist example does not converge in CPU mode on Mac OS X</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Tips and FAQs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/tips.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tips-and-faqs">
+<h1>Tips and FAQs<a class="headerlink" href="#tips-and-faqs" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="it-takes-too-long-time-to-compile-a-computational-graph-can-i-skip-it">
+<h2>It takes too long time to compile a computational graph. Can I skip it?<a class="headerlink" href="#it-takes-too-long-time-to-compile-a-computational-graph-can-i-skip-it" title="Permalink to this headline">¶</a></h2>
+<p>Chainer does not compile computational graphs, so you cannot skip it, or, I mean, you have already skipped it :).</p>
+<p>It seems you have actually seen on-the-fly compilations of CUDA kernels.
+CuPy compiles kernels on demand to make kernels optimized to the number of dimensions and element types of input arguments.
+Pre-compilation is not available, because we have to compile an exponential number of kernels to support all CuPy functionalities.
+This restriction is unavoidable because Python cannot call CUDA/C++ template functions in generic way.
+Note that every framework using CUDA require compilation at some point; the difference between other statically-compiled frameworks (such as cutorch) and Chainer is whether a kernel is compiled at installation or at the first use.</p>
+<p>These compilations should run only at the first use of the kernels.
+The compiled binaries are cached to the <code class="docutils literal"><span class="pre">$(HOME)/.cupy/kernel_cache</span></code> directory by default.
+If you see that compilations run every time you run the same script, then the caching is failed.
+Please check that the directory is kept as is between multiple executions of the script.
+If your home directory is not suited to caching the kernels (e.g. in case that it uses NFS), change the kernel caching directory by setting the <code class="docutils literal"><span class="pre">CUPY_CACHE_DIR</span></code> environment variable to an appropriate path.
+See <span class="xref std std-ref">cupy-overview</span> for more details.</p>
+</div>
+<div class="section" id="mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x">
+<h2>mnist example does not converge in CPU mode on Mac OS X<a class="headerlink" href="#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x" title="Permalink to this headline">¶</a></h2>
+<p>Many users reported that mnist example does not work correctly on Mac OS X.
+We are suspecting it is caused by vecLib, that is a default BLAS library installed on Mac OS X.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Mac OS X is not officially supported.
+I mean it is not tested continuously on our test server.</p>
+</div>
+<p>We recommend to use other BLAS libraries such as <a class="reference external" href="http://www.openblas.net/">OpenBLAS</a>.
+We empirically found that it fixes this problem.
+It is necessary to reinstall NumPy to use replaced BLAS library.
+Here is an instruction to install NumPy with OpenBLAS using <a class="reference external" href="http://brew.sh/">Homebrew</a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ brew tap homebrew/science
+$ brew install openblas
+$ brew install numpy --with-openblas
+</pre></div>
+</div>
+<p>If you want to install NumPy with pip, use <a class="reference external" href="https://github.com/numpy/numpy/blob/master/site.cfg.example">site.cfg</a> file.</p>
+<p>You can check if NumPy uses OpenBLAS with <code class="docutils literal"><span class="pre">numpy.show_config</span></code> method.
+Check if <cite>blas_opt_info</cite> refers to <cite>openblas</cite>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">numpy</span><span class="o">.</span><span class="n">show_config</span><span class="p">()</span>
+<span class="go">lapack_opt_info:</span>
+<span class="go">    libraries = [&#39;openblas&#39;, &#39;openblas&#39;]</span>
+<span class="go">    library_dirs = [&#39;/usr/local/opt/openblas/lib&#39;]</span>
+<span class="go">    define_macros = [(&#39;HAVE_CBLAS&#39;, None)]</span>
+<span class="go">    language = c</span>
+<span class="go">blas_opt_info:</span>
+<span class="go">    libraries = [&#39;openblas&#39;, &#39;openblas&#39;]</span>
+<span class="go">    library_dirs = [&#39;/usr/local/opt/openblas/lib&#39;]</span>
+<span class="go">    define_macros = [(&#39;HAVE_CBLAS&#39;, None)]</span>
+<span class="go">    language = c</span>
+<span class="go">openblas_info:</span>
+<span class="go">    libraries = [&#39;openblas&#39;, &#39;openblas&#39;]</span>
+<span class="go">    library_dirs = [&#39;/usr/local/opt/openblas/lib&#39;]</span>
+<span class="go">    define_macros = [(&#39;HAVE_CBLAS&#39;, None)]</span>
+<span class="go">    language = c</span>
+<span class="go">openblas_lapack_info:</span>
+<span class="go">    libraries = [&#39;openblas&#39;, &#39;openblas&#39;]</span>
+<span class="go">    library_dirs = [&#39;/usr/local/opt/openblas/lib&#39;]</span>
+<span class="go">    define_macros = [(&#39;HAVE_CBLAS&#39;, None)]</span>
+<span class="go">    language = c</span>
+<span class="go">blas_mkl_info:</span>
+<span class="go">    NOT AVAILABLE</span>
+</pre></div>
+</div>
+<p>See detail about this problem in <a class="reference external" href="https://github.com/pfnet/chainer/issues/704">issue #704</a>.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="comparison.html" class="btn btn-neutral float-right" title="Comparison with Other Frameworks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="compatibility.html" class="btn btn-neutral" title="API Compatibility Policy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

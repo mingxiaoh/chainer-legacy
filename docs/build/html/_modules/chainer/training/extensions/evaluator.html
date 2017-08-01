@@ -1,0 +1,411 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.training.extensions.evaluator &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.training.extensions.evaluator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.training.extensions.evaluator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">configuration</span>
+<span class="kn">from</span> <span class="nn">chainer.dataset</span> <span class="k">import</span> <span class="n">convert</span>
+<span class="kn">from</span> <span class="nn">chainer.dataset</span> <span class="k">import</span> <span class="n">iterator</span> <span class="k">as</span> <span class="n">iterator_module</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">reporter</span> <span class="k">as</span> <span class="n">reporter_module</span>
+<span class="kn">from</span> <span class="nn">chainer.training</span> <span class="k">import</span> <span class="n">extension</span>
+
+
+<div class="viewcode-block" id="Evaluator"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator">[docs]</a><span class="k">class</span> <span class="nc">Evaluator</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Trainer extension to evaluate models on a validation set.</span>
+
+<span class="sd">    This extension evaluates the current models by a given evaluation function.</span>
+<span class="sd">    It creates a :class:`~chainer.Reporter` object to store values observed in</span>
+<span class="sd">    the evaluation function on each iteration. The report for all iterations</span>
+<span class="sd">    are aggregated to :class:`~chainer.DictSummary`. The collected mean values</span>
+<span class="sd">    are further reported to the reporter object of the trainer, where the name</span>
+<span class="sd">    of each observation is prefixed by the evaluator name. See</span>
+<span class="sd">    :class:`~chainer.Reporter` for details in naming rules of the reports.</span>
+
+<span class="sd">    Evaluator has a structure to customize similar to that of</span>
+<span class="sd">    :class:`~chainer.training.StandardUpdater`. The main differences are:</span>
+
+<span class="sd">    - There are no optimizers in an evaluator. Instead, it holds links</span>
+<span class="sd">      to evaluate.</span>
+<span class="sd">    - An evaluation loop function is used instead of an update function.</span>
+<span class="sd">    - Preparation routine can be customized, which is called before each</span>
+<span class="sd">      evaluation. It can be used, e.g., to initialize the state of stateful</span>
+<span class="sd">      recurrent networks.</span>
+
+<span class="sd">    There are two ways to modify the evaluation behavior besides setting a</span>
+<span class="sd">    custom evaluation function. One is by setting a custom evaluation loop via</span>
+<span class="sd">    the ``eval_func`` argument. The other is by inheriting this class and</span>
+<span class="sd">    overriding the :meth:`evaluate` method. In latter case, users have to</span>
+<span class="sd">    create and handle a reporter object manually. Users also have to copy the</span>
+<span class="sd">    iterators before using them, in order to reuse them at the next time of</span>
+<span class="sd">    evaluation. In both cases, the functions are called in testing mode</span>
+<span class="sd">    (i.e., ``chainer.config.train`` is set to ``False``).</span>
+
+<span class="sd">    This extension is called at the end of each epoch by default.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        iterator: Dataset iterator for the validation dataset. It can also be</span>
+<span class="sd">            a dictionary of iterators. If this is just an iterator, the</span>
+<span class="sd">            iterator is registered by the name ``&#39;main&#39;``.</span>
+<span class="sd">        target: Link object or a dictionary of links to evaluate. If this is</span>
+<span class="sd">            just a link object, the link is registered by the name ``&#39;main&#39;``.</span>
+<span class="sd">        converter: Converter function to build input arrays.</span>
+<span class="sd">            :func:`~chainer.dataset.concat_examples` is used by default.</span>
+<span class="sd">        device: Device to which the training data is sent. Negative value</span>
+<span class="sd">            indicates the host memory (CPU).</span>
+<span class="sd">        eval_hook: Function to prepare for each evaluation process. It is</span>
+<span class="sd">            called at the beginning of the evaluation. The evaluator extension</span>
+<span class="sd">            object is passed at each call.</span>
+<span class="sd">        eval_func: Evaluation function called at each iteration. The target</span>
+<span class="sd">            link to evaluate as a callable is used by default.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        converter: Converter function.</span>
+<span class="sd">        device: Device to which the training data is sent.</span>
+<span class="sd">        eval_hook: Function to prepare for each evaluation process.</span>
+<span class="sd">        eval_func: Evaluation function called at each iteration.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trigger</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="n">default_name</span> <span class="o">=</span> <span class="s1">&#39;validation&#39;</span>
+    <span class="n">priority</span> <span class="o">=</span> <span class="n">extension</span><span class="o">.</span><span class="n">PRIORITY_WRITER</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterator</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="n">convert</span><span class="o">.</span><span class="n">concat_examples</span><span class="p">,</span>
+                 <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eval_hook</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eval_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">iterator_module</span><span class="o">.</span><span class="n">Iterator</span><span class="p">):</span>
+            <span class="n">iterator</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;main&#39;</span><span class="p">:</span> <span class="n">iterator</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iterators</span> <span class="o">=</span> <span class="n">iterator</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;main&#39;</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_targets</span> <span class="o">=</span> <span class="n">target</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_hook</span> <span class="o">=</span> <span class="n">eval_hook</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_func</span> <span class="o">=</span> <span class="n">eval_func</span>
+
+<div class="viewcode-block" id="Evaluator.get_iterator"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator.get_iterator">[docs]</a>    <span class="k">def</span> <span class="nf">get_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the iterator of the given name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterators</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Evaluator.get_all_iterators"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator.get_all_iterators">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_iterators</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a dictionary of all iterators.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterators</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.get_target"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator.get_target">[docs]</a>    <span class="k">def</span> <span class="nf">get_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the target link of the given name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_targets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Evaluator.get_all_targets"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator.get_all_targets">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a dictionary of all target links.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_targets</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Executes the evaluator extension.</span>
+
+<span class="sd">        Unlike usual extensions, this extension can be executed without passing</span>
+<span class="sd">        a trainer object. This extension reports the performance on validation</span>
+<span class="sd">        dataset using the :func:`~chainer.report` function. Thus, users can use</span>
+<span class="sd">        this extension independently from any trainer by manually configuring</span>
+<span class="sd">        a :class:`~chainer.Reporter` object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trainer (~chainer.training.Trainer): Trainer object that invokes</span>
+<span class="sd">                this extension. It can be omitted in case of calling this</span>
+<span class="sd">                extension manually.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Result dictionary that contains mean statistics of values</span>
+<span class="sd">                reported by the evaluation function.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set up a reporter</span>
+        <span class="n">reporter</span> <span class="o">=</span> <span class="n">reporter_module</span><span class="o">.</span><span class="n">Reporter</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_targets</span><span class="p">):</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">add_observer</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">add_observers</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span>
+                                   <span class="n">target</span><span class="o">.</span><span class="n">namedlinks</span><span class="p">(</span><span class="n">skipself</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="k">with</span> <span class="n">reporter</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">configuration</span><span class="o">.</span><span class="n">using_config</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+
+        <span class="n">reporter_module</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="Evaluator.evaluate"><a class="viewcode-back" href="../../../../reference/extensions.html#chainer.training.extensions.Evaluator.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evaluates the model and returns a result dictionary.</span>
+
+<span class="sd">        This method runs the evaluation loop over the validation dataset. It</span>
+<span class="sd">        accumulates the reported values to :class:`~chainer.DictSummary` and</span>
+<span class="sd">        returns a dictionary whose values are means computed by the summary.</span>
+
+<span class="sd">        Users can override this method to customize the evaluation routine.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Result dictionary. This dictionary is further reported via</span>
+<span class="sd">                :func:`~chainer.report` without specifying any observer.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterators</span><span class="p">[</span><span class="s1">&#39;main&#39;</span><span class="p">]</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_targets</span><span class="p">[</span><span class="s1">&#39;main&#39;</span><span class="p">]</span>
+        <span class="n">eval_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_func</span> <span class="ow">or</span> <span class="n">target</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_hook</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">reporter_module</span><span class="o">.</span><span class="n">DictSummary</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">with</span> <span class="n">reporter_module</span><span class="o">.</span><span class="n">report_scope</span><span class="p">(</span><span class="n">observation</span><span class="p">):</span>
+                <span class="n">in_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">function</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_arrays</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">eval_func</span><span class="p">(</span><span class="o">*</span><span class="n">in_arrays</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_arrays</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="n">eval_func</span><span class="p">(</span><span class="o">**</span><span class="n">in_arrays</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">eval_func</span><span class="p">(</span><span class="n">in_arrays</span><span class="p">)</span>
+
+            <span class="n">summary</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">observation</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">summary</span><span class="o">.</span><span class="n">compute_mean</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

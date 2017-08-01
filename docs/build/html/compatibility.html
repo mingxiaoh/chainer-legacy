@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API Compatibility Policy &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="index.html"/>
+        <link rel="next" title="Tips and FAQs" href="tips.html"/>
+        <link rel="prev" title="Chainer Contribution Guide" href="contribution.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Compatibility Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#targeted-versions">Targeted Versions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#versioning-and-backward-compatibilities">Versioning and Backward Compatibilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processes-to-break-backward-compatibilities">Processes to Break Backward Compatibilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deprecation-dropping-and-its-preparation">Deprecation, Dropping, and Its Preparation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-changes-and-its-preparation">API Changes and Its Preparation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#experimental-apis">Experimental APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-backward-compatibility">Supported Backward Compatibility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#documented-interface">Documented Interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#undocumented-behaviors">Undocumented behaviors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation-error">Documentation Error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#object-attributes-and-properties">Object Attributes and Properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#functions-and-methods">Functions and Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exceptions-and-warnings">Exceptions and Warnings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#model-format-compatibility">Model Format Compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-compatibility">Installation Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>API Compatibility Policy</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/compatibility.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api-compatibility-policy">
+<h1>API Compatibility Policy<a class="headerlink" href="#api-compatibility-policy" title="Permalink to this headline">¶</a></h1>
+<p>This document expresses the design policy on compatibilities of Chainer APIs.
+Development team should obey this policy on deciding to add, extend, and change APIs and their behaviors.</p>
+<p>This document is written for both users and developers.
+Users can decide the level of dependencies on Chainer’s implementations in their codes based on this document.
+Developers should read through this document before creating pull requests that contain changes on the interface.
+Note that this document may contain ambiguities on the level of supported compatibilities.</p>
+<div class="section" id="targeted-versions">
+<h2>Targeted Versions<a class="headerlink" href="#targeted-versions" title="Permalink to this headline">¶</a></h2>
+<p>This policy is applied to Chainer of versions v1.5.1 and higher.
+Note that this policy is not applied to Chainer of lower versions.</p>
+</div>
+<div class="section" id="versioning-and-backward-compatibilities">
+<h2>Versioning and Backward Compatibilities<a class="headerlink" href="#versioning-and-backward-compatibilities" title="Permalink to this headline">¶</a></h2>
+<p>The updates of Chainer are classified into three levels: major, minor, and revision.
+These types have distinct levels of backward compatibilities.</p>
+<ul class="simple">
+<li><strong>Major update</strong> contains disruptive changes that break the backward compatibility.</li>
+<li><strong>Minor update</strong> contains addition and extension to the APIs keeping the supported backward compatibility.</li>
+<li><strong>Revision update</strong> contains improvements on the API implementations without changing any API specifications.</li>
+</ul>
+<p>Note that we do not support full backward compatibility, which is almost infeasible for Python-based APIs, since there is no way to completely hide the implementation details.</p>
+</div>
+<div class="section" id="processes-to-break-backward-compatibilities">
+<h2>Processes to Break Backward Compatibilities<a class="headerlink" href="#processes-to-break-backward-compatibilities" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="deprecation-dropping-and-its-preparation">
+<h3>Deprecation, Dropping, and Its Preparation<a class="headerlink" href="#deprecation-dropping-and-its-preparation" title="Permalink to this headline">¶</a></h3>
+<p>Any APIs may be <em>deprecated</em> at some minor updates.
+In such a case, the deprecation note is added to the API documentation, and the API implementation is changed to fire deprecation warning (if possible).
+There should be another way to reimplement the same things previously written with the deprecated APIs.</p>
+<p>Any APIs may be marked as <em>to be dropped in the future</em>.
+In such a case, the dropping is stated in the documentation with the major version number on which the API is planned to be dropped, and the API implementation is changed to fire the future warning (if possible).</p>
+<p>The actual dropping should be done through the following steps:</p>
+<ul class="simple">
+<li>Make the API deprecated.
+At this point, users should not need the deprecated API in their new application codes.</li>
+<li>After that, mark the API as <em>to be dropped in the future</em>.
+It must be done in the minor update different from that of the deprecation.</li>
+<li>At the major version announced in the above update, drop the API.</li>
+</ul>
+<p>Consequently, it takes at least two minor versions to drop any APIs after the first deprecation.</p>
+</div>
+<div class="section" id="api-changes-and-its-preparation">
+<h3>API Changes and Its Preparation<a class="headerlink" href="#api-changes-and-its-preparation" title="Permalink to this headline">¶</a></h3>
+<p>Any APIs may be marked as <em>to be changed in the future</em> for changes without backward compatibility.
+In such a case, the change is stated in the documentation with the version number on which the API is planned to be changed, and the API implementation is changed to fire the future warning on the certain usages.</p>
+<p>The actual change should be done in the following steps:</p>
+<ul class="simple">
+<li>Announce that the API will be changed in the future.
+At this point, the actual version of change need not be accurate.</li>
+<li>After the announcement, mark the API as <em>to be changed in the future</em> with version number of planned changes.
+At this point, users should not use the marked API in their new application codes.</li>
+<li>At the major update announced in the above update, change the API.</li>
+</ul>
+<span class="target" id="module-chainer.utils"></span></div>
+</div>
+<div class="section" id="experimental-apis">
+<h2>Experimental APIs<a class="headerlink" href="#experimental-apis" title="Permalink to this headline">¶</a></h2>
+<p>Thanks to many contributors, we have introduced many new features to Chainer.</p>
+<p>However, we have sometimes released new features only to later notice that their APIs are not appropriate.
+The objective of experimental APIs is to avoid such issues by allowing the developer to mark any newly added API as experimental.</p>
+<p>Any newly added API can be marked as <em>experimental</em>.
+Any API that is not experimental is called <em>stable</em> in this document.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Undocumented behaviors are not considered as APIs. So they are not experimental nor stable.
+The treatment of undocumented behaviors are descibed in <a class="reference internal" href="#undocumented-behavior"><span class="std std-ref">Undocumented behaviors</span></a> section.</p>
+</div>
+<p>Chainer can change the interfaces and documents of experimental APIs at <strong>any</strong> version up.
+This change is not considered as a break of backward compatibility.
+Chainer can promote an experimental API to become stable at any <strong>minor</strong> or <strong>major</strong> version up.
+Once experimental APIs become stable, they cannot revert to experimental again.</p>
+<p>When users use experimental APIs for the first time, warnings are raised once for each experimental API,
+unless users explicitly disable the emission of the warnings in advance.</p>
+<p>See the document of <a class="reference internal" href="reference/util/experimental.html#chainer.utils.experimental" title="chainer.utils.experimental"><code class="xref py py-meth docutils literal"><span class="pre">chainer.utils.experimental()</span></code></a> how developers mark APIs as experimental
+and how users enable or disable the warnings practically.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is up to developers if APIs should be annotated as experimental or not.
+We recommend to make the APIs experimental if they implement large modules or
+make a decision from several design choices.</p>
+</div>
+</div>
+<div class="section" id="supported-backward-compatibility">
+<h2>Supported Backward Compatibility<a class="headerlink" href="#supported-backward-compatibility" title="Permalink to this headline">¶</a></h2>
+<p>This section defines backward compatibilities that minor updates must maintain.</p>
+<div class="section" id="documented-interface">
+<h3>Documented Interface<a class="headerlink" href="#documented-interface" title="Permalink to this headline">¶</a></h3>
+<p>Chainer has the official API documentation.
+Many applications can be written based on the documented features.
+We support backward compatibilities of documented features.
+In other words, codes only based on the documented features run correctly with minor/revision-updated versions.</p>
+<p>Developers are encouraged to use apparent names for objects of implementation details.
+For example, attributes outside of the documented APIs should have one or more underscores at the prefix of their names.</p>
+</div>
+<div class="section" id="undocumented-behaviors">
+<span id="undocumented-behavior"></span><h3>Undocumented behaviors<a class="headerlink" href="#undocumented-behaviors" title="Permalink to this headline">¶</a></h3>
+<p>Behaviors of Chainer implementation not stated in the documentation are undefined.
+Undocumented behaviors are not guaranteed to be stable between different minor/revision versions.</p>
+<p>Minor update may contain changes to undocumented behaviors.
+For example, suppose an API X is added at the minor update.
+In the previous version, attempts to use X cause AttributeError.
+This behavior is not stated in the documentation, so this is undefined.
+Thus, adding the API X in minor version is permissible.</p>
+<p>Revision update may also contain changes to undefined behaviors.
+Typical example is a bug fix.
+Another example is an improvement on implementation, which may change the internal object structures not shown in the documentation.
+As a consequence, <strong>even revision updates do not support compatibility of pickling, unless the full layout of pickled objects is clearly documented.</strong></p>
+</div>
+<div class="section" id="documentation-error">
+<h3>Documentation Error<a class="headerlink" href="#documentation-error" title="Permalink to this headline">¶</a></h3>
+<p>Compatibility is basically determined based on the documentation, though it sometimes contains errors.
+It may make the APIs confusing to assume the documentation always stronger than the implementations.
+We therefore may fix the documentation errors in any updates that may break the compatibility in regard to the documentation.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Developers MUST NOT fix the documentation and implementation of the same functionality at the same time in revision updates as “bug fix”.
+Such a change completely breaks the backward compatibility.
+If you want to fix the bugs in both sides, first fix the documentation to fit it into the implementation, and start the API changing procedure described above.</p>
+</div>
+</div>
+<div class="section" id="object-attributes-and-properties">
+<h3>Object Attributes and Properties<a class="headerlink" href="#object-attributes-and-properties" title="Permalink to this headline">¶</a></h3>
+<p>Object attributes and properties are sometimes replaced by each other at minor updates.
+It does not break the user codes, except the codes depend on how the attributes and properties are implemented.</p>
+</div>
+<div class="section" id="functions-and-methods">
+<h3>Functions and Methods<a class="headerlink" href="#functions-and-methods" title="Permalink to this headline">¶</a></h3>
+<p>Methods may be replaced by callable attributes keeping the compatibility of parameters and return values in minor updates.
+It does not break the user codes, except the codes depend on how the methods and callable attributes are implemented.</p>
+</div>
+<div class="section" id="exceptions-and-warnings">
+<h3>Exceptions and Warnings<a class="headerlink" href="#exceptions-and-warnings" title="Permalink to this headline">¶</a></h3>
+<p>The specifications of raising exceptions are considered as a part of standard backward compatibilities.
+No exception is raised in the future versions with correct usages that the documentation allows, unless the API changing process is completed.</p>
+<p>On the other hand, warnings may be added at any minor updates for any APIs.
+It means minor updates do not keep backward compatibility of warnings.</p>
+</div>
+</div>
+<div class="section" id="model-format-compatibility">
+<h2>Model Format Compatibility<a class="headerlink" href="#model-format-compatibility" title="Permalink to this headline">¶</a></h2>
+<p>Objects serialized by official serializers that Chainer provides are correctly loaded with the higher (future) versions.
+They might not be correctly loaded with Chainer of the lower versions.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Current serialization APIs do not support versioning (at least in v1.6.1).
+It prevents us from introducing changes in the layout of objects that support serialization.
+We are discussing about introducing versioning in serialization APIs.</p>
+</div>
+</div>
+<div class="section" id="installation-compatibility">
+<h2>Installation Compatibility<a class="headerlink" href="#installation-compatibility" title="Permalink to this headline">¶</a></h2>
+<p>The installation process is another concern of compatibilities.
+We support environmental compatibilities in the following ways.</p>
+<ul class="simple">
+<li>Any changes of dependent libraries that force modifications on the existing environments must be done in major updates.
+Such changes include following cases:<ul>
+<li>dropping supported versions of dependent libraries (e.g. dropping cuDNN v2)</li>
+<li>adding new mandatory dependencies (e.g. adding h5py to setup_requires)</li>
+</ul>
+</li>
+<li>Supporting optional packages/libraries may be done in minor updates (e.g. supporting h5py in optional features).</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The installation compatibility does not guarantee that all the features of Chainer correctly run on supported environments.
+It may contain bugs that only occurs in certain environments.
+Such bugs should be fixed in some updates.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tips.html" class="btn btn-neutral float-right" title="Tips and FAQs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="contribution.html" class="btn btn-neutral" title="Chainer Contribution Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

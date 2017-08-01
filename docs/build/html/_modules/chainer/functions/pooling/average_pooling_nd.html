@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.pooling.average_pooling_nd &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.pooling.average_pooling_nd</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.pooling.average_pooling_nd</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.pooling</span> <span class="k">import</span> <span class="n">average_pooling_nd_kernel</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.pooling</span> <span class="k">import</span> <span class="n">pooling_nd</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">conv_nd</span>
+
+
+<span class="k">if</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cudnn_enabled</span><span class="p">:</span>
+    <span class="n">cudnn</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cudnn</span>
+    <span class="n">libcudnn</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">cudnn</span>
+    <span class="n">_cudnn_version</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">getVersion</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">AveragePoolingND</span><span class="p">(</span><span class="n">pooling_nd</span><span class="o">.</span><span class="n">_PoolingND</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Average pooling over a set of N-dimensional planes.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cover_all</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">experimental</span><span class="p">(</span><span class="s1">&#39;chainer.functions.pooling.AveragePoolingND&#39;</span><span class="p">)</span>
+
+        <span class="c1"># TODO(takagi) Support cover_all mode.</span>
+        <span class="k">if</span> <span class="n">cover_all</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`cover_all` mode is not supported yet.&#39;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">AveragePoolingND</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">ndim</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="n">pad</span><span class="p">,</span> <span class="n">cover_all</span><span class="o">=</span><span class="n">cover_all</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">im2col_nd_cpu</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span> <span class="n">cover_all</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cover_all</span><span class="p">)</span>
+
+        <span class="c1"># mean along (_, _, k_1, k_2, ..., k_N, _, ..., _)</span>
+        <span class="n">y_axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">)))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">y_axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">forward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">should_use_cudnn</span><span class="p">(</span><span class="s1">&#39;&gt;=auto&#39;</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="n">pooling_nd</span><span class="o">.</span><span class="n">_check_cudnn_acceptable_type</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)):</span>
+            <span class="c1"># With cuDNN v3 or greater, use cuDNN implementation for inputs</span>
+            <span class="c1"># with spatial dimensions of two or more.</span>
+            <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">3000</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">AveragePoolingND</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forward_gpu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="c1"># With cuDNN v2, use cuDNN implementation only for inputs with</span>
+            <span class="c1"># spatial dimensions of two.</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">AveragePoolingND</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">forward_gpu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">n</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">conv_nd</span><span class="o">.</span><span class="n">get_conv_outsize</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span>
+                                            <span class="n">cover_all</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cover_all</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span>
+                       <span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">))</span>
+        <span class="c1"># (n, c, y_1, y_2, ..., y_N)</span>
+        <span class="n">y_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">+</span> <span class="n">ys</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">y_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">)</span>
+
+        <span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> \
+            <span class="n">average_pooling_nd_kernel</span><span class="o">.</span><span class="n">AveragePoolingNDKernelForward</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span><span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span><span class="p">)(</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reduced_view</span><span class="p">(),</span>
+            <span class="o">*</span><span class="p">(</span><span class="n">dims</span> <span class="o">+</span> <span class="n">ys</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">+</span> <span class="p">(</span><span class="n">coeff</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">backward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gy</span><span class="p">):</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">colon</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">gy_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">colon</span><span class="p">,</span> <span class="n">colon</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+        <span class="n">gcol_reps</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
+        <span class="n">gcol</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">gy_index</span><span class="p">],</span> <span class="n">gcol_reps</span><span class="p">)</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">col2im_nd_cpu</span><span class="p">(</span><span class="n">gcol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="n">gx</span> <span class="o">/=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">backward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gy</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_used_cudnn</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">AveragePoolingND</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">backward_gpu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
+
+        <span class="n">n</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">)</span>
+
+        <span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> \
+            <span class="n">average_pooling_nd_kernel</span><span class="o">.</span><span class="n">AveragePoolingNDKernelBackward</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span><span class="n">in_params</span><span class="p">,</span> <span class="n">out_params</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">name</span><span class="p">)(</span>
+            <span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reduced_view</span><span class="p">(),</span>
+            <span class="o">*</span><span class="p">(</span><span class="n">dims</span> <span class="o">+</span> <span class="n">ys</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">+</span> <span class="p">(</span><span class="n">coeff</span><span class="p">,</span> <span class="n">gx</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">create_pool_desc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_pooling_descriptor</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ksize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span>
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="average_pooling_nd"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.average_pooling_nd">[docs]</a><span class="k">def</span> <span class="nf">average_pooling_nd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;N-dimensionally spatial average pooling function.</span>
+
+<span class="sd">    This function provides a N-dimensionally generalized version of</span>
+<span class="sd">    :func:`~functions.average_pooling_2d`. This acts similarly to</span>
+<span class="sd">    :class:`~functions.ConvolutionND`, but it computes the average of input</span>
+<span class="sd">    spatial patch for each channel without any parameter instead of computing</span>
+<span class="sd">    the inner products.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x(~chainer.Variable): Input variable.</span>
+<span class="sd">        ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and</span>
+<span class="sd">            ``ksize=(k, k, ..., k)`` are equivalent.</span>
+<span class="sd">        stride (int or tuple of ints or None): Stride of pooling applications.</span>
+<span class="sd">            ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent. If</span>
+<span class="sd">            ``None`` is specified, then it uses same stride as the pooling</span>
+<span class="sd">            window size.</span>
+<span class="sd">        pad (int or tuple of ints): Spatial padding width for the input array.</span>
+<span class="sd">            ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ~chainer.Variable: Output variable.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">       This function currently does not support ``cover_all`` mode as</span>
+<span class="sd">       :func:`max_pooling_nd`. Average pooling runs in non-cover-all mode.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">AveragePoolingND</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="n">pad</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

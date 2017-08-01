@@ -1,0 +1,572 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.reporter &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="chainer" href="../chainer.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.reporter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.reporter</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">variable</span>
+
+
+<div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Reporter">[docs]</a><span class="k">class</span> <span class="nc">Reporter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Object to which observed values are reported.</span>
+
+<span class="sd">    Reporter is used to collect values that users want to watch. The reporter</span>
+<span class="sd">    object holds a mapping from value names to the actually observed values.</span>
+<span class="sd">    We call this mapping `observations`.</span>
+
+<span class="sd">    When a value is passed to the reporter, an object called `observer` can be</span>
+<span class="sd">    optionally attached. In this case, the name of the observer is added as the</span>
+<span class="sd">    prefix of the value name. The observer name should be registered</span>
+<span class="sd">    beforehand.</span>
+
+<span class="sd">    See the following example::</span>
+
+<span class="sd">       &gt;&gt;&gt; from chainer import Reporter, report, report_scope</span>
+<span class="sd">       &gt;&gt;&gt;</span>
+<span class="sd">       &gt;&gt;&gt; reporter = Reporter()</span>
+<span class="sd">       &gt;&gt;&gt; observer = object()  # it can be an arbitrary (reference) object</span>
+<span class="sd">       &gt;&gt;&gt; reporter.add_observer(&#39;my_observer:&#39;, observer)</span>
+<span class="sd">       &gt;&gt;&gt; observation = {}</span>
+<span class="sd">       &gt;&gt;&gt; with reporter.scope(observation):</span>
+<span class="sd">       ...     reporter.report({&#39;x&#39;: 1}, observer)</span>
+<span class="sd">       ...</span>
+<span class="sd">       &gt;&gt;&gt; observation</span>
+<span class="sd">       {&#39;my_observer:x&#39;: 1}</span>
+
+<span class="sd">    There are also a global API to add values::</span>
+
+<span class="sd">       &gt;&gt;&gt; observation = {}</span>
+<span class="sd">       &gt;&gt;&gt; with report_scope(observation):</span>
+<span class="sd">       ...     report({&#39;x&#39;: 1}, observer)</span>
+<span class="sd">       ...</span>
+<span class="sd">       &gt;&gt;&gt; observation</span>
+<span class="sd">       {&#39;my_observer:x&#39;: 1}</span>
+
+<span class="sd">    The most important application of Reporter is to report observed values</span>
+<span class="sd">    from each link or chain in the training and validation procedures.</span>
+<span class="sd">    :class:`~chainer.training.Trainer` and some extensions prepare their own</span>
+<span class="sd">    Reporter object with the hierarchy of the target link registered as</span>
+<span class="sd">    observers. We can use :func:`report` function inside any links and chains</span>
+<span class="sd">    to report the observed values (e.g., training loss, accuracy, activation</span>
+<span class="sd">    statistics, etc.).</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        observation: Dictionary of observed values.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_observer_names</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes this reporter object current.&quot;&quot;&quot;</span>
+        <span class="n">_reporters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Recovers the previous reporter object to the current.&quot;&quot;&quot;</span>
+        <span class="n">_reporters</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Reporter.scope"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Reporter.scope">[docs]</a>    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span> <span class="nf">scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a scope to report observed values to ``observation``.</span>
+
+<span class="sd">        This is a context manager to be passed to ``with`` statements. In this</span>
+<span class="sd">        scope, the observation dictionary is changed to the given one.</span>
+
+<span class="sd">        It also makes this reporter object current.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observation (dict): Observation dictionary. All observations</span>
+<span class="sd">                reported inside of the ``with`` statement are written to this</span>
+<span class="sd">                dictionary.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="k">yield</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation</span> <span class="o">=</span> <span class="n">old</span></div>
+
+<div class="viewcode-block" id="Reporter.add_observer"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Reporter.add_observer">[docs]</a>    <span class="k">def</span> <span class="nf">add_observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">observer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers an observer of values.</span>
+
+<span class="sd">        Observer defines a scope of names for observed values. Values observed</span>
+<span class="sd">        with the observer are registered with names prefixed by the observer</span>
+<span class="sd">        name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): Name of the observer.</span>
+<span class="sd">            observer: The observer object. Note that the reporter distinguishes</span>
+<span class="sd">                the observers by their object ids (i.e., ``id(owner)``), rather</span>
+<span class="sd">                than the object equality.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_observer_names</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">observer</span><span class="p">)]</span> <span class="o">=</span> <span class="n">name</span></div>
+
+<div class="viewcode-block" id="Reporter.add_observers"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Reporter.add_observers">[docs]</a>    <span class="k">def</span> <span class="nf">add_observers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">observers</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers multiple observers at once.</span>
+
+<span class="sd">        This is a convenient method to register multiple objects at once.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prefix (str): Prefix of each name of observers.</span>
+<span class="sd">            observers: Iterator of name and observer pairs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">observer</span> <span class="ow">in</span> <span class="n">observers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_observer_names</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">observer</span><span class="p">)]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">name</span></div>
+
+<div class="viewcode-block" id="Reporter.report"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Reporter.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">observer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reports observed values.</span>
+
+<span class="sd">        The values are written with the key, prefixed by the name of the</span>
+<span class="sd">        observer object if given.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            values (dict): Dictionary of observed values.</span>
+<span class="sd">            observer: Observer object. Its object ID is used to retrieve the</span>
+<span class="sd">                observer name, which is used as the prefix of the registration</span>
+<span class="sd">                name of the observed value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">observer_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">observer_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer_names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s1">&#39;Given observer is not registered to the reporter.&#39;</span><span class="p">)</span>
+            <span class="n">observer_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer_names</span><span class="p">[</span><span class="n">observer_id</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">observer_name</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">observation</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div></div>
+
+
+<span class="n">_reporters</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="get_current_reporter"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.get_current_reporter">[docs]</a><span class="k">def</span> <span class="nf">get_current_reporter</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current reporter object.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_reporters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="report"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.report">[docs]</a><span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">observer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reports observed values with the current reporter object.</span>
+
+<span class="sd">    Any reporter object can be set current by the ``with`` statement. This</span>
+<span class="sd">    function calls the :meth:`Report.report` method of the current reporter.</span>
+<span class="sd">    If no reporter object is current, this function does nothing.</span>
+
+<span class="sd">    .. admonition:: Example</span>
+
+<span class="sd">       The most typical example is a use within links and chains. Suppose that</span>
+<span class="sd">       a link is registered to the current reporter as an observer (for</span>
+<span class="sd">       example, the target link of the optimizer is automatically registered to</span>
+<span class="sd">       the reporter of the :class:`~chainer.training.Trainer`). We can report</span>
+<span class="sd">       some values from the link as follows::</span>
+
+<span class="sd">          class MyRegressor(chainer.Chain):</span>
+<span class="sd">              def __init__(self, predictor):</span>
+<span class="sd">                  super(MyRegressor, self).__init__(predictor=predictor)</span>
+
+<span class="sd">              def __call__(self, x, y):</span>
+<span class="sd">                  # This chain just computes the mean absolute and squared</span>
+<span class="sd">                  # errors between the prediction and y.</span>
+<span class="sd">                  pred = self.predictor(x)</span>
+<span class="sd">                  abs_error = F.sum(F.abs(pred - y)) / len(x.data)</span>
+<span class="sd">                  loss = F.mean_squared_error(pred, y)</span>
+
+<span class="sd">                  # Report the mean absolute and squared errors.</span>
+<span class="sd">                  report({&#39;abs_error&#39;: abs_error, &#39;squared_error&#39;: loss}, self)</span>
+
+<span class="sd">                  return loss</span>
+
+<span class="sd">       If the link is named ``&#39;main&#39;`` in the hierarchy (which is the default</span>
+<span class="sd">       name of the target link in the</span>
+<span class="sd">       :class:`~chainer.training.StandardUpdater`), these reported values are</span>
+<span class="sd">       named ``&#39;main/abs_error&#39;`` and ``&#39;main/squared_error&#39;``. If these values</span>
+<span class="sd">       are reported inside the :class:`~chainer.training.extension.Evaluator`</span>
+<span class="sd">       extension, ``&#39;validation/&#39;`` is added at the head of the link name, thus</span>
+<span class="sd">       the item names are changed to ``&#39;validation/main/abs_error&#39;`` and</span>
+<span class="sd">       ``&#39;validation/main/squared_error&#39;`` (``&#39;validation&#39;`` is the default</span>
+<span class="sd">       name of the Evaluator extension).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        values (dict): Dictionary of observed values.</span>
+<span class="sd">        observer: Observer object. Its object ID is used to retrieve the</span>
+<span class="sd">            observer name, which is used as the prefix of the registration name</span>
+<span class="sd">            of the observed value.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_reporters</span><span class="p">:</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">_reporters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">current</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">observer</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="report_scope"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.report_scope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">report_scope</span><span class="p">(</span><span class="n">observation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a report scope with the current reporter.</span>
+
+<span class="sd">    This is equivalent to ``get_current_reporter().scope(observation)``,</span>
+<span class="sd">    except that it does not make the reporter current redundantly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">_reporters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">old</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">observation</span>
+    <span class="n">current</span><span class="o">.</span><span class="n">observation</span> <span class="o">=</span> <span class="n">observation</span>
+    <span class="k">yield</span>
+    <span class="n">current</span><span class="o">.</span><span class="n">observation</span> <span class="o">=</span> <span class="n">old</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_device</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cuda</span><span class="o">.</span><span class="n">DummyDevice</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Summary"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Summary">[docs]</a><span class="k">class</span> <span class="nc">Summary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Online summarization of a sequence of scalars.</span>
+
+<span class="sd">    Summary computes the statistics of given scalars online.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x2</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Summary.add"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Summary.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a scalar value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value: Scalar value to accumulate. It is either a NumPy scalar or</span>
+<span class="sd">                a zero-dimensional array (on CPU or GPU).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">_get_device</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">+=</span> <span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_x2</span> <span class="o">+=</span> <span class="n">value</span> <span class="o">*</span> <span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Summary.compute_mean"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Summary.compute_mean">[docs]</a>    <span class="k">def</span> <span class="nf">compute_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes the mean.&quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span>
+        <span class="k">with</span> <span class="n">_get_device</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">n</span></div>
+
+<div class="viewcode-block" id="Summary.make_statistics"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.Summary.make_statistics">[docs]</a>    <span class="k">def</span> <span class="nf">make_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes and returns the mean and standard deviation values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Mean and standard deviation values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_get_device</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">n</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x2</span> <span class="o">/</span> <span class="n">n</span> <span class="o">-</span> <span class="n">mean</span> <span class="o">*</span> <span class="n">mean</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span></div></div>
+
+
+<div class="viewcode-block" id="DictSummary"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.DictSummary">[docs]</a><span class="k">class</span> <span class="nc">DictSummary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Online summarization of a sequence of dictionaries.</span>
+
+<span class="sd">    ``DictSummary`` computes the statistics of a given set of scalars online.</span>
+<span class="sd">    It only computes the statistics for scalar values and variables of scalar</span>
+<span class="sd">    values in the dictionaries.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summaries</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="n">Summary</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DictSummary.add"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.DictSummary.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a dictionary of scalars.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            d (dict): Dictionary of scalars to accumulate. Only elements of</span>
+<span class="sd">               scalars, zero-dimensional arrays, and variables of</span>
+<span class="sd">               zero-dimensional arrays are accumulated.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summaries</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;ndim&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">summaries</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DictSummary.compute_mean"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.DictSummary.compute_mean">[docs]</a>    <span class="k">def</span> <span class="nf">compute_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a dictionary of mean values.</span>
+
+<span class="sd">        It returns a single dictionary that holds a mean value for each entry</span>
+<span class="sd">        added to the summary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Dictionary of mean values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">summary</span><span class="o">.</span><span class="n">compute_mean</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_summaries</span><span class="p">)}</span></div>
+
+<div class="viewcode-block" id="DictSummary.make_statistics"><a class="viewcode-back" href="../../reference/util/reporter.html#chainer.DictSummary.make_statistics">[docs]</a>    <span class="k">def</span> <span class="nf">make_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a dictionary of statistics.</span>
+
+<span class="sd">        It returns a single dictionary that holds mean and standard deviation</span>
+<span class="sd">        values for every entry added to the summary. For an entry of name</span>
+<span class="sd">        ``&#39;key&#39;``, these values are added to the dictionary by names ``&#39;key&#39;``</span>
+<span class="sd">        and ``&#39;key.std&#39;``, respectively.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Dictionary of statistics of all entries.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_summaries</span><span class="p">):</span>
+            <span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">make_statistics</span><span class="p">()</span>
+            <span class="n">stats</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span>
+            <span class="n">stats</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.std&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">std</span>
+
+        <span class="k">return</span> <span class="n">stats</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

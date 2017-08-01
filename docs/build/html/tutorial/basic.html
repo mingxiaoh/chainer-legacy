@@ -1,0 +1,727 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Introduction to Chainer &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../index.html"/>
+        <link rel="up" title="Chainer Tutorial" href="index.html"/>
+        <link rel="next" title="Recurrent Nets and their Computational Graph" href="recurrentnet.html"/>
+        <link rel="prev" title="Chainer Tutorial" href="index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Chainer Tutorial</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Introduction to Chainer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core-concept">Core Concept</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#forward-backward-computation">Forward/Backward Computation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#links">Links</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#write-a-model-as-a-chain">Write a model as a chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optimizer">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trainer">Trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#serializer">Serializer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-multi-layer-perceptron-on-mnist">Example: Multi-layer Perceptron on MNIST</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="recurrentnet.html">Recurrent Nets and their Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gpu.html">Using GPU(s) in Chainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="function.html">Define your own function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="type_check.html">Type check</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Chainer Tutorial</a> &raquo;</li>
+        
+      <li>Introduction to Chainer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorial/basic.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="introduction-to-chainer">
+<h1>Introduction to Chainer<a class="headerlink" href="#introduction-to-chainer" title="Permalink to this headline">¶</a></h1>
+<p>This is the first section of the Chainer Tutorial.
+In this section, you will learn about the following things:</p>
+<ul class="simple">
+<li>Pros and cons of existing frameworks and why we are developing Chainer</li>
+<li>Simple example of forward and backward computation</li>
+<li>Usage of links and their gradient computation</li>
+<li>Construction of chains (a.k.a. “model” in most frameworks)</li>
+<li>Parameter optimization</li>
+<li>Serialization of links and optimizers</li>
+</ul>
+<p>After reading this section, you will be able to:</p>
+<ul class="simple">
+<li>Compute gradients of some arithmetics</li>
+<li>Write a multi-layer perceptron with Chainer</li>
+</ul>
+<div class="section" id="core-concept">
+<h2>Core Concept<a class="headerlink" href="#core-concept" title="Permalink to this headline">¶</a></h2>
+<p>As mentioned on the front page, Chainer is a flexible framework for neural networks.
+One major goal is flexibility, so it must enable us to write complex architectures simply and intuitively.</p>
+<p>Most existing deep learning frameworks are based on the <strong>“Define-and-Run”</strong> scheme.
+That is, first a network is defined and fixed, and then the user periodically feeds it with mini-batches.
+Since the network is statically defined before any forward/backward computation, all the logic must be embedded into the network architecture as <em>data</em>.
+Consequently, defining a network architecture in such systems (e.g. Caffe) follows a declarative approach.
+Note that one can still produce such a static network definition using imperative languages (e.g. torch.nn, Theano-based frameworks, and TensorFlow).</p>
+<p>In contrast, Chainer adopts a <strong>“Define-by-Run”</strong> scheme, i.e., the network is defined on-the-fly via the actual forward computation.
+More precisely, Chainer stores the history of computation instead of programming logic.
+This strategy enables us to fully leverage the power of programming logic in Python.
+For example, Chainer does not need any magic to introduce conditionals and loops into the network definitions.
+The Define-by-Run scheme is the core concept of Chainer.
+We will show in this tutorial how to define networks dynamically.</p>
+<p>This strategy also makes it easy to write multi-GPU parallelization, since logic comes closer to network manipulation.
+We will review such amenities in later sections of this tutorial.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>In the example code of this tutorial, we assume for simplicity that the following symbols are already imported:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span><span class="p">,</span> <span class="n">Function</span><span class="p">,</span> <span class="n">gradient_check</span><span class="p">,</span> <span class="n">report</span><span class="p">,</span> <span class="n">training</span><span class="p">,</span> <span class="n">utils</span><span class="p">,</span> <span class="n">Variable</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">iterators</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">serializers</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">Link</span><span class="p">,</span> <span class="n">Chain</span><span class="p">,</span> <span class="n">ChainList</span>
+<span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
+<span class="kn">from</span> <span class="nn">chainer.training</span> <span class="k">import</span> <span class="n">extensions</span>
+</pre></div>
+</div>
+<p class="last">These imports appear widely in Chainer code and examples. For simplicity, we omit these imports in this tutorial.</p>
+</div>
+</div>
+<div class="section" id="forward-backward-computation">
+<h2>Forward/Backward Computation<a class="headerlink" href="#forward-backward-computation" title="Permalink to this headline">¶</a></h2>
+<p>As described above, Chainer uses the “Define-by-Run” scheme, so forward computation itself <em>defines</em> the network.
+In order to start forward computation, we have to set the input array to a <a class="reference internal" href="../reference/core/variable.html#chainer.Variable" title="chainer.Variable"><code class="xref py py-class docutils literal"><span class="pre">Variable</span></code></a> object.
+Here we start with a simple <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">ndarray</span></code></a> with only one element:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A Variable object has basic arithmetic operators.
+In order to compute <span class="math">\(y = x^2 - 2x + 1\)</span>, just write:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>The resulting <code class="docutils literal"><span class="pre">y</span></code> is also a Variable object, whose value can be extracted by accessing the <code class="xref py py-attr docutils literal"><span class="pre">data</span></code> attribute:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([ 16.], dtype=float32)</span>
+</pre></div>
+</div>
+<p>What <code class="docutils literal"><span class="pre">y</span></code> holds is not only the result value.
+It also holds the history of computation (or computational graph), which enables us to compute its differentiation.
+This is done by calling its <a class="reference internal" href="../reference/core/variable.html#chainer.Variable.backward" title="chainer.Variable.backward"><code class="xref py py-meth docutils literal"><span class="pre">backward()</span></code></a> method:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This runs <em>error backpropagation</em> (a.k.a. <em>backprop</em> or <em>reverse-mode automatic differentiation</em>).
+Then, the gradient is computed and stored in the <code class="xref py py-attr docutils literal"><span class="pre">grad</span></code> attribute of the input variable <code class="docutils literal"><span class="pre">x</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">grad</span>
+<span class="go">array([ 8.], dtype=float32)</span>
+</pre></div>
+</div>
+<p>Also we can compute gradients of intermediate variables.
+Note that Chainer, by default, releases the gradient arrays of intermediate variables for memory efficiency.
+In order to preserve gradient information, pass the <code class="docutils literal"><span class="pre">retain_grad</span></code> argument to the backward method:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">z</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">retain_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span><span class="o">.</span><span class="n">grad</span>
+<span class="go">array([-1.], dtype=float32)</span>
+</pre></div>
+</div>
+<p>All these computations are easily generalized to a multi-element array input.
+Note that if we want to start backward computation from a variable holding a multi-element array, we must set the <em>initial error</em> manually.
+This is done simply by setting the <code class="xref py py-attr docutils literal"><span class="pre">grad</span></code> attribute of the output variable:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">grad</span>
+<span class="go">array([[  0.,   2.,   4.],</span>
+<span class="go">       [  6.,   8.,  10.]], dtype=float32)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Many functions taking <a class="reference internal" href="../reference/core/variable.html#chainer.Variable" title="chainer.Variable"><code class="xref py py-class docutils literal"><span class="pre">Variable</span></code></a> object(s) are defined in the <a class="reference internal" href="../reference/functions.html#module-chainer.functions" title="chainer.functions"><code class="xref py py-mod docutils literal"><span class="pre">functions</span></code></a> module.
+You can combine them to realize complicated functions with automatic backward computation.</p>
+</div>
+</div>
+<div class="section" id="links">
+<h2>Links<a class="headerlink" href="#links" title="Permalink to this headline">¶</a></h2>
+<p>In order to write neural networks, we have to combine functions with <em>parameters</em> and optimize the parameters.
+You can use <strong>links</strong> to do this.
+A link is an object that holds parameters (i.e. optimization targets).</p>
+<p>The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
+We will introduce higher level links, but here think of links as simply functions with parameters.</p>
+<p>One of the most frequently used links is the <code class="xref py py-class docutils literal"><span class="pre">Linear</span></code> link (a.k.a. <em>fully-connected layer</em> or <em>affine transformation</em>).
+It represents a mathematical function <span class="math">\(f(x) = Wx + b\)</span>, where the matrix <span class="math">\(W\)</span> and the vector <span class="math">\(b\)</span> are parameters.
+This link corresponds to its pure counterpart <a class="reference internal" href="../reference/functions.html#chainer.functions.linear" title="chainer.functions.linear"><code class="xref py py-func docutils literal"><span class="pre">linear()</span></code></a>, which accepts <span class="math">\(x, W, b\)</span> as arguments.
+A linear link from three-dimensional space to two-dimensional space is defined by the following line:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Most functions and links only accept mini-batch input, where the first dimension of the input array is considered as the <em>batch dimension</em>.
+In the above Linear link case, input must have shape of (N, 3), where N is the mini-batch size.</p>
+</div>
+<p>The parameters of a link are stored as attributes.
+Each parameter is an instance of <a class="reference internal" href="../reference/core/variable.html#chainer.Variable" title="chainer.Variable"><code class="xref py py-class docutils literal"><span class="pre">Variable</span></code></a>.
+In the case of the Linear link, two parameters, <code class="docutils literal"><span class="pre">W</span></code> and <code class="docutils literal"><span class="pre">b</span></code>, are stored.
+By default, the matrix <code class="docutils literal"><span class="pre">W</span></code> is initialized randomly, while the vector <code class="docutils literal"><span class="pre">b</span></code> is initialized with zeros.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([[ 1.01847613,  0.23103087,  0.56507462],</span>
+<span class="go">       [ 1.29378033,  1.07823515, -0.56423163]], dtype=float32)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([ 0.,  0.], dtype=float32)</span>
+</pre></div>
+</div>
+<p>An instance of the Linear link acts like a usual function:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Variable</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([[ 3.1757617 ,  1.75755572],</span>
+<span class="go">       [ 8.61950684,  7.18090773]], dtype=float32)</span>
+</pre></div>
+</div>
+<p>Gradients of parameters are computed by the <a class="reference internal" href="../reference/core/variable.html#chainer.Variable.backward" title="chainer.Variable.backward"><code class="xref py py-meth docutils literal"><span class="pre">backward()</span></code></a> method.
+Note that gradients are <strong>accumulated</strong> by the method rather than overwritten.
+So first you must clear gradients to renew the computation.
+It can be done by calling the <a class="reference internal" href="../reference/core/link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> method.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><a class="reference internal" href="../reference/core/link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> is introduced in v1.15 to replace <a class="reference internal" href="../reference/core/link.html#chainer.Link.zerograds" title="chainer.Link.zerograds"><code class="xref py py-meth docutils literal"><span class="pre">zerograds()</span></code></a> for efficiency.
+<a class="reference internal" href="../reference/core/link.html#chainer.Link.zerograds" title="chainer.Link.zerograds"><code class="xref py py-meth docutils literal"><span class="pre">zerograds()</span></code></a> is left only for backward compatibility.</p>
+</div>
+<p>Now we can compute the gradients of parameters by simply calling the backward method.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">grad</span>
+<span class="go">array([[ 5.,  7.,  9.],</span>
+<span class="go">       [ 5.,  7.,  9.]], dtype=float32)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">grad</span>
+<span class="go">array([ 2.,  2.], dtype=float32)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="write-a-model-as-a-chain">
+<h2>Write a model as a chain<a class="headerlink" href="#write-a-model-as-a-chain" title="Permalink to this headline">¶</a></h2>
+<p>Most neural network architectures contain multiple links.
+For example, a multi-layer perceptron consists of multiple linear layers.
+We can write complex procedures with parameters by combining multiple links like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">l1</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l2</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_forward</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">h</span> <span class="o">=</span> <span class="n">l1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">l2</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here the <code class="docutils literal"><span class="pre">L</span></code> indicates the <a class="reference internal" href="../reference/links.html#module-chainer.links" title="chainer.links"><code class="xref py py-mod docutils literal"><span class="pre">links</span></code></a> module.
+A procedure with parameters defined in this way is hard to reuse.
+More Pythonic way is combining the links and procedures into a class:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyProc</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">l1</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In order to make it more reusable, we want to support parameter management, CPU/GPU migration, robust and flexible save/load features, etc.
+These features are all supported by the <a class="reference internal" href="../reference/core/link.html#chainer.Chain" title="chainer.Chain"><code class="xref py py-class docutils literal"><span class="pre">Chain</span></code></a> class in Chainer.
+Then, what we have to do here is just define the above class as a subclass of Chain:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyChain</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">super</span><span class="p">(</span><span class="n">MyChain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="n">l1</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">l2</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">We often define a single forward method of a link by <code class="docutils literal"><span class="pre">__call__</span></code> operator.
+Such links and chains are callable and behave like regular functions of Variables.</p>
+</div>
+<p>It shows how a complex chain is constructed by simpler links.
+Links like <code class="docutils literal"><span class="pre">l1</span></code> and <code class="docutils literal"><span class="pre">l2</span></code> are called <em>child links</em> of MyChain.
+<strong>Note that Chain itself inherits Link</strong>.
+It means we can define more complex chains that hold MyChain objects as their child links.</p>
+<p>Another way to define a chain is using the <a class="reference internal" href="../reference/core/link.html#chainer.ChainList" title="chainer.ChainList"><code class="xref py py-class docutils literal"><span class="pre">ChainList</span></code></a> class, which behaves like a list of links:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyChain2</span><span class="p">(</span><span class="n">ChainList</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">super</span><span class="p">(</span><span class="n">MyChain2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="mi">1</span><span class="p">](</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>ChainList can conveniently use an arbitrary number of links, however if the number of links is fixed like in the above case, the Chain class is recommended as a base class.</p>
+</div>
+<div class="section" id="optimizer">
+<h2>Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline">¶</a></h2>
+<p>In order to get good values for parameters, we have to optimize them by the <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer" title="chainer.Optimizer"><code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code></a> class.
+It runs a numerical optimization algorithm on a given link.
+Many algorithms are implemented in the <code class="xref py py-mod docutils literal"><span class="pre">optimizers</span></code> module.
+Here we use the simplest one, called Stochastic Gradient Descent (SGD):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">MyChain</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">use_cleargrads</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The method <a class="reference internal" href="../reference/core/optimizer.html#chainer.GradientMethod.use_cleargrads" title="chainer.GradientMethod.use_cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">use_cleargrads()</span></code></a> is for efficiency. See <a class="reference internal" href="../reference/core/optimizer.html#chainer.GradientMethod.use_cleargrads" title="chainer.GradientMethod.use_cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">use_cleargrads()</span></code></a> for detail.</p>
+<p>The method <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer.setup" title="chainer.Optimizer.setup"><code class="xref py py-meth docutils literal"><span class="pre">setup()</span></code></a> prepares for the optimization given a link.</p>
+<p>Some parameter/gradient manipulations, e.g. weight decay and gradient clipping, can be done by setting <em>hook functions</em> to the optimizer.
+Hook functions are called after the gradient computation and right before the actual update of parameters.
+For example, we can set weight decay regularization by running the next line beforehand:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">add_hook</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">WeightDecay</span><span class="p">(</span><span class="mf">0.0005</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Of course, you can write your own hook functions.
+It should be a function or a callable object, taking the optimizer as the argument.</p>
+<p>There are two ways to use the optimizer.
+One is using it via <a class="reference internal" href="../reference/core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a>, which we will see in the following sections.
+The other way is using it directly.
+We here review the latter case.
+<em>If you are interested in getting able to use the optimizer in a simple way, skip this section and go to the next one.</em></p>
+<p>There are two further ways to use the optimizer directly.
+One is manually computing gradients and then calling the <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> method with no arguments.
+Do not forget to clear the gradients beforehand!</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># compute gradient here...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The other way is just passing a loss function to the <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">update()</span></code></a> method.
+In this case, <a class="reference internal" href="../reference/core/link.html#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> is automatically called by the update method, so the user does not have to call it manually.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">lossfun</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># calculate loss</span>
+<span class="gp">... </span>    <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">arg1</span> <span class="o">-</span> <span class="n">arg2</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">loss</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arg1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arg2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lossfun</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">arg1</span><span class="p">),</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">arg2</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer.update" title="chainer.Optimizer.update"><code class="xref py py-meth docutils literal"><span class="pre">Optimizer.update()</span></code></a> for the full specification.</p>
+</div>
+<div class="section" id="trainer">
+<h2>Trainer<a class="headerlink" href="#trainer" title="Permalink to this headline">¶</a></h2>
+<p>When we want to train neural networks, we have to run <em>training loops</em> that update the parameters many times.
+A typical training loop consists of the following procedures:</p>
+<ol class="arabic simple">
+<li>Iterations over training datasets</li>
+<li>Preprocessing of extracted mini-batches</li>
+<li>Forward/backward computations of the neural networks</li>
+<li>Parameter updates</li>
+<li>Evaluations of the current parameters on validation datasets</li>
+<li>Logging and printing of the intermediate results</li>
+</ol>
+<p>Chainer provides a simple yet powerful way to make it easy to write such training processes.
+The training loop abstraction mainly consists of two components:</p>
+<ul class="simple">
+<li><strong>Dataset abstraction</strong>.
+It implements 1 and 2 in the above list.
+The core components are defined in the <code class="xref py py-mod docutils literal"><span class="pre">dataset</span></code> module.
+There are also many implementations of datasets and iterators in <a class="reference internal" href="../reference/datasets.html#module-chainer.datasets" title="chainer.datasets"><code class="xref py py-mod docutils literal"><span class="pre">datasets</span></code></a> and <a class="reference internal" href="../reference/iterators.html#module-chainer.iterators" title="chainer.iterators"><code class="xref py py-mod docutils literal"><span class="pre">iterators</span></code></a> modules, respectively.</li>
+<li><strong>Trainer</strong>.
+It implements 3, 4, 5, and 6 in the above list.
+The whole procedure is implemented by <a class="reference internal" href="../reference/core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a>.
+The way to update parameters (3 and 4) is defined by <a class="reference internal" href="../reference/core/training.html#chainer.training.Updater" title="chainer.training.Updater"><code class="xref py py-class docutils literal"><span class="pre">Updater</span></code></a>, which can be freely customized.
+5 and 6 are implemented by instances of <a class="reference internal" href="../reference/core/training.html#chainer.training.Extension" title="chainer.training.Extension"><code class="xref py py-class docutils literal"><span class="pre">Extension</span></code></a>, which appends an extra procedure to the training loop.
+Users can freely customize the training procedure by adding extensions. Users can also implement their own extensions.</li>
+</ul>
+<p>We will see how to use Trainer in the example section below.</p>
+</div>
+<div class="section" id="serializer">
+<h2>Serializer<a class="headerlink" href="#serializer" title="Permalink to this headline">¶</a></h2>
+<p>Before proceeding to the first example, we introduce Serializer, which is the last core feature described in this page.
+Serializer is a simple interface to serialize or deserialize an object.
+<a class="reference internal" href="../reference/core/link.html#chainer.Link" title="chainer.Link"><code class="xref py py-class docutils literal"><span class="pre">Link</span></code></a>, <a class="reference internal" href="../reference/core/optimizer.html#chainer.Optimizer" title="chainer.Optimizer"><code class="xref py py-class docutils literal"><span class="pre">Optimizer</span></code></a>, and <a class="reference internal" href="../reference/core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a> supports serialization.</p>
+<p>Concrete serializers are defined in the <code class="xref py py-mod docutils literal"><span class="pre">serializers</span></code> module.
+It supports NumPy NPZ and HDF5 formats.</p>
+<p>For example, we can serialize a link object into NPZ file by the <a class="reference internal" href="../reference/serializers.html#chainer.serializers.save_npz" title="chainer.serializers.save_npz"><code class="xref py py-func docutils literal"><span class="pre">serializers.save_npz()</span></code></a> function:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">serializers</span><span class="o">.</span><span class="n">save_npz</span><span class="p">(</span><span class="s1">&#39;my.model&#39;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It saves the parameters of <code class="docutils literal"><span class="pre">model</span></code> into the file <code class="docutils literal"><span class="pre">'my.model'</span></code> in NPZ format.
+The saved model can be read by the <a class="reference internal" href="../reference/serializers.html#chainer.serializers.load_npz" title="chainer.serializers.load_npz"><code class="xref py py-func docutils literal"><span class="pre">serializers.load_npz()</span></code></a> function:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span><span class="p">(</span><span class="s1">&#39;my.model&#39;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Note that only the parameters and the <em>persistent values</em> are serialized by this serialization code.
+Other attributes are not saved automatically.
+You can register arrays, scalars, or any serializable objects as persistent values by the <a class="reference internal" href="../reference/core/link.html#chainer.Link.add_persistent" title="chainer.Link.add_persistent"><code class="xref py py-meth docutils literal"><span class="pre">Link.add_persistent()</span></code></a> method.
+The registered values can be accessed by attributes of the name passed to the add_persistent method.</p>
+</div>
+<p>The state of an optimizer can also be saved by the same functions:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">serializers</span><span class="o">.</span><span class="n">save_npz</span><span class="p">(</span><span class="s1">&#39;my.state&#39;</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span><span class="p">(</span><span class="s1">&#39;my.state&#39;</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Note that serialization of optimizer only saves its internal states including number of iterations, momentum vectors of MomentumSGD, etc.
+It does not save the parameters and persistent values of the target link.
+We have to explicitly save the target link with the optimizer to resume the optimization from saved states.</p>
+</div>
+<p>Support of the HDF5 format is enabled if the h5py package is installed.
+Serialization and deserialization with the HDF5 format are almost identical to those with the NPZ format;
+just replace <a class="reference internal" href="../reference/serializers.html#chainer.serializers.save_npz" title="chainer.serializers.save_npz"><code class="xref py py-func docutils literal"><span class="pre">save_npz()</span></code></a> and <a class="reference internal" href="../reference/serializers.html#chainer.serializers.load_npz" title="chainer.serializers.load_npz"><code class="xref py py-func docutils literal"><span class="pre">load_npz()</span></code></a> by <a class="reference internal" href="../reference/serializers.html#chainer.serializers.save_hdf5" title="chainer.serializers.save_hdf5"><code class="xref py py-func docutils literal"><span class="pre">save_hdf5()</span></code></a> and <a class="reference internal" href="../reference/serializers.html#chainer.serializers.load_hdf5" title="chainer.serializers.load_hdf5"><code class="xref py py-func docutils literal"><span class="pre">load_hdf5()</span></code></a>, respectively.</p>
+</div>
+<div class="section" id="example-multi-layer-perceptron-on-mnist">
+<span id="mnist-mlp-example"></span><h2>Example: Multi-layer Perceptron on MNIST<a class="headerlink" href="#example-multi-layer-perceptron-on-mnist" title="Permalink to this headline">¶</a></h2>
+<p>Now you can solve a multiclass classification task using a multi-layer perceptron (MLP).
+We use a hand-written digits dataset called <a class="reference external" href="http://yann.lecun.com/exdb/mnist/">MNIST</a>, which is one of the long-standing de facto “hello world” examples used in machine learning.
+This MNIST example is also found in the <a class="reference external" href="https://github.com/pfnet/chainer/tree/master/examples/mnist">examples/mnist</a> directory of the official repository.
+We show how to use <a class="reference internal" href="../reference/core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a> to construct and run the training loop in this section.</p>
+<p>We first have to prepare the MNIST dataset.
+The MNIST dataset consists of 70,000 greyscale images of size 28x28 (i.e. 784 pixels) and corresponding digit labels.
+The dataset is divided into 60,000 training images and 10,000 test images by default.
+We can obtain the vectorized version (i.e., a set of 784 dimensional vectors) by <a class="reference internal" href="../reference/datasets.html#chainer.datasets.get_mnist" title="chainer.datasets.get_mnist"><code class="xref py py-func docutils literal"><span class="pre">datasets.get_mnist()</span></code></a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">get_mnist</span><span class="p">()</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>This code automatically downloads the MNIST dataset and saves the NumPy arrays to the <code class="docutils literal"><span class="pre">$(HOME)/.chainer</span></code> directory.
+The returned <code class="docutils literal"><span class="pre">train</span></code> and <code class="docutils literal"><span class="pre">test</span></code> can be seen as lists of image-label pairs (strictly speaking, they are instances of <a class="reference internal" href="../reference/datasets.html#chainer.datasets.TupleDataset" title="chainer.datasets.TupleDataset"><code class="xref py py-class docutils literal"><span class="pre">TupleDataset</span></code></a>).</p>
+<p>We also have to define how to iterate over these datasets.
+We want to shuffle the training dataset for every <em>epoch</em>, i.e. at the beginning of every sweep over the dataset.
+In this case, we can use <a class="reference internal" href="../reference/iterators.html#chainer.iterators.SerialIterator" title="chainer.iterators.SerialIterator"><code class="xref py py-class docutils literal"><span class="pre">iterators.SerialIterator</span></code></a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">train_iter</span> <span class="o">=</span> <span class="n">iterators</span><span class="o">.</span><span class="n">SerialIterator</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>On the other hand, we do not have to shuffle the test dataset.
+In this case, we can pass <code class="docutils literal"><span class="pre">shuffle=False</span></code> argument to disable the shuffling.
+It makes the iteration faster when the underlying dataset supports fast slicing.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">test_iter</span> <span class="o">=</span> <span class="n">iterators</span><span class="o">.</span><span class="n">SerialIterator</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We also pass <code class="docutils literal"><span class="pre">repeat=False</span></code>, which means we stop iteration when all examples are visited.
+This option is usually required for the test/validation datasets; without this option, the iteration enters an infinite loop.</p>
+<p>Next, we define the architecture.
+We use a simple three-layer rectifier network with 100 units per layer as an example.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MLP</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_units</span><span class="p">,</span> <span class="n">n_out</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">super</span><span class="p">(</span><span class="n">MLP</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="c1"># the size of the inputs to each layer will be inferred</span>
+<span class="gp">... </span>            <span class="n">l1</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_units</span><span class="p">),</span>  <span class="c1"># n_in -&gt; n_units</span>
+<span class="gp">... </span>            <span class="n">l2</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_units</span><span class="p">),</span>  <span class="c1"># n_units -&gt; n_units</span>
+<span class="gp">... </span>            <span class="n">l3</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_out</span><span class="p">),</span>    <span class="c1"># n_units -&gt; n_out</span>
+<span class="gp">... </span>        <span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">h1</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">... </span>        <span class="n">h2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2</span><span class="p">(</span><span class="n">h1</span><span class="p">))</span>
+<span class="gp">... </span>        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l3</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">y</span>
+</pre></div>
+</div>
+<p>This link uses <a class="reference internal" href="../reference/functions.html#chainer.functions.relu" title="chainer.functions.relu"><code class="xref py py-func docutils literal"><span class="pre">relu()</span></code></a> as an activation function.
+Note that the <code class="docutils literal"><span class="pre">'l3'</span></code> link is the final linear layer whose output corresponds to scores for the ten digits.</p>
+<p>In order to compute loss values or evaluate the accuracy of the predictions, we define a classifier chain on top of the above MLP chain:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Classifier</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictor</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">super</span><span class="p">(</span><span class="n">Classifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">predictor</span><span class="o">=</span><span class="n">predictor</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax_cross_entropy</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">accuracy</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">report</span><span class="p">({</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span> <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">accuracy</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">loss</span>
+</pre></div>
+</div>
+<p>This Classifier class computes accuracy and loss, and returns the loss value.
+The pair of arguments <code class="docutils literal"><span class="pre">x</span></code> and <code class="docutils literal"><span class="pre">t</span></code> corresponds to each example in the datasets (a tuple of an image and a label).
+<a class="reference internal" href="../reference/functions.html#chainer.functions.softmax_cross_entropy" title="chainer.functions.softmax_cross_entropy"><code class="xref py py-func docutils literal"><span class="pre">softmax_cross_entropy()</span></code></a> computes the loss value given prediction and ground truth labels.
+<a class="reference internal" href="../reference/functions.html#chainer.functions.accuracy" title="chainer.functions.accuracy"><code class="xref py py-func docutils literal"><span class="pre">accuracy()</span></code></a> computes the prediction accuracy.
+We can set an arbitrary predictor link to an instance of the classifier.</p>
+<p>The <a class="reference internal" href="../reference/util/reporter.html#chainer.report" title="chainer.report"><code class="xref py py-func docutils literal"><span class="pre">report()</span></code></a> function reports the loss and accuracy values to the trainer.
+For the detailed mechanism of collecting training statistics, see <a class="reference internal" href="../reference/util/reporter.html#reporter"><span class="std std-ref">Reporter</span></a>.
+You can also collect other types of observations like activation statistics in a similar ways.</p>
+<p>Note that a class similar to the Classifier above is defined as <a class="reference internal" href="../reference/links.html#chainer.links.Classifier" title="chainer.links.Classifier"><code class="xref py py-class docutils literal"><span class="pre">chainer.links.Classifier</span></code></a>.
+So instead of using the above example, we will use this predefined Classifier chain.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Classifier</span><span class="p">(</span><span class="n">MLP</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>  <span class="c1"># the input size, 784, is inferred</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can build a trainer object.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">updater</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">(</span><span class="n">train_iter</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">updater</span><span class="p">,</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;epoch&#39;</span><span class="p">),</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;result&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second argument <code class="docutils literal"><span class="pre">(20,</span> <span class="pre">'epoch')</span></code> represents the duration of training.
+We can use either <code class="docutils literal"><span class="pre">epoch</span></code> or <code class="docutils literal"><span class="pre">iteration</span></code> as the unit.
+In this case, we train the multi-layer perceptron by iterating over the training set 20 times.</p>
+<p>In order to invoke the training loop, we just call the <a class="reference internal" href="../reference/core/training.html#chainer.training.Trainer.run" title="chainer.training.Trainer.run"><code class="xref py py-meth docutils literal"><span class="pre">run()</span></code></a> method.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This method executes the whole training sequence.</p>
+<p>The above code just optimizes the parameters.
+In most cases, we want to see how the training proceeds, where we can use extensions inserted before calling the <code class="docutils literal"><span class="pre">run</span></code> method.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extensions</span><span class="o">.</span><span class="n">Evaluator</span><span class="p">(</span><span class="n">test_iter</span><span class="p">,</span> <span class="n">model</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extensions</span><span class="o">.</span><span class="n">LogReport</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extensions</span><span class="o">.</span><span class="n">PrintReport</span><span class="p">([</span><span class="s1">&#39;epoch&#39;</span><span class="p">,</span> <span class="s1">&#39;main/accuracy&#39;</span><span class="p">,</span> <span class="s1">&#39;validation/main/accuracy&#39;</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extensions</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>  
+</pre></div>
+</div>
+<p>These extensions perform the following tasks:</p>
+<dl class="docutils">
+<dt><a class="reference internal" href="../reference/extensions.html#chainer.training.extensions.Evaluator" title="chainer.training.extensions.Evaluator"><code class="xref py py-class docutils literal"><span class="pre">Evaluator</span></code></a></dt>
+<dd>Evaluates the current model on the test dataset at the end of every epoch.
+It automatically switches to the test mode (see <a class="reference internal" href="../reference/core/configuration.html#configuration"><span class="std std-ref">Configuring Chainer</span></a> for details), and so we do not have to take any special function for functions that behave differently in training/test modes (e.g. <a class="reference internal" href="../reference/functions.html#chainer.functions.dropout" title="chainer.functions.dropout"><code class="xref py py-func docutils literal"><span class="pre">dropout()</span></code></a>, <a class="reference internal" href="../reference/links.html#chainer.links.BatchNormalization" title="chainer.links.BatchNormalization"><code class="xref py py-class docutils literal"><span class="pre">BatchNormalization</span></code></a>).</dd>
+<dt><a class="reference internal" href="../reference/extensions.html#chainer.training.extensions.LogReport" title="chainer.training.extensions.LogReport"><code class="xref py py-class docutils literal"><span class="pre">LogReport</span></code></a></dt>
+<dd>Accumulates the reported values and emits them to the log file in the output directory.</dd>
+<dt><a class="reference internal" href="../reference/extensions.html#chainer.training.extensions.PrintReport" title="chainer.training.extensions.PrintReport"><code class="xref py py-class docutils literal"><span class="pre">PrintReport</span></code></a></dt>
+<dd>Prints the selected items in the LogReport.</dd>
+<dt><a class="reference internal" href="../reference/extensions.html#chainer.training.extensions.ProgressBar" title="chainer.training.extensions.ProgressBar"><code class="xref py py-class docutils literal"><span class="pre">ProgressBar</span></code></a></dt>
+<dd>Shows the progress bar.</dd>
+</dl>
+<p>There are many extensions implemented in the <a class="reference internal" href="../reference/extensions.html#module-chainer.training.extensions" title="chainer.training.extensions"><code class="xref py py-mod docutils literal"><span class="pre">chainer.training.extensions</span></code></a> module.
+The most important one that is not included above is <a class="reference internal" href="../reference/extensions.html#chainer.training.extensions.snapshot" title="chainer.training.extensions.snapshot"><code class="xref py py-func docutils literal"><span class="pre">snapshot()</span></code></a>, which saves the snapshot of the training procedure (i.e., the Trainer object) to a file in the output directory.</p>
+<p>The <a class="reference external" href="https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist.py">example code</a> in the <cite>examples/mnist</cite> directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="recurrentnet.html" class="btn btn-neutral float-right" title="Recurrent Nets and their Computational Graph" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Chainer Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

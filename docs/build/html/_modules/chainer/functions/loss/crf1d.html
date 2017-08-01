@@ -1,0 +1,427 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.loss.crf1d &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.loss.crf1d</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.loss.crf1d</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">broadcast</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">concat</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">reshape</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">select_item</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">split_axis</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.connection</span> <span class="k">import</span> <span class="n">embed_id</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.math</span> <span class="k">import</span> <span class="n">logsumexp</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.math</span> <span class="k">import</span> <span class="n">minmax</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.math</span> <span class="k">import</span> <span class="nb">sum</span> <span class="k">as</span> <span class="n">_sum</span>
+
+
+<div class="viewcode-block" id="crf1d"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.crf1d">[docs]</a><span class="k">def</span> <span class="nf">crf1d</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculates negative log-likelihood of linear-chain CRF.</span>
+
+<span class="sd">    It takes a transition cost matrix, a sequence of costs, and a sequence of</span>
+<span class="sd">    labels. Let :math:`c_{st}` be a transition cost from a label :math:`s` to</span>
+<span class="sd">    a label :math:`t`, :math:`x_{it}` be a cost of a label :math:`t` at</span>
+<span class="sd">    position :math:`i`, and :math:`y_i` be an expected label at position</span>
+<span class="sd">    :math:`i`. The negative log-likelihood of linear-chain CRF is defined as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        L = -\\left( \\sum_{i=1}^l x_{iy_i} + \\</span>
+<span class="sd">             \\sum_{i=1}^{l-1} c_{y_i y_{i+1}} - {\\log(Z)} \\right) ,</span>
+
+<span class="sd">    where :math:`l` is the length of the input sequence and :math:`Z` is the</span>
+<span class="sd">    normalizing constant called partition function.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">       When you want to calculate the negative log-likelihood of sequences</span>
+<span class="sd">       which have different lengths, sort the sequences in descending order of</span>
+<span class="sd">       lengths and transpose the sequences.</span>
+<span class="sd">       For example, you have three input seuqnces:</span>
+
+<span class="sd">       &gt;&gt;&gt; a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype(&#39;f&#39;)</span>
+<span class="sd">       &gt;&gt;&gt; b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype(&#39;f&#39;)</span>
+<span class="sd">       &gt;&gt;&gt; c1 = c2 = np.random.uniform(-1, 1, 3).astype(&#39;f&#39;)</span>
+
+<span class="sd">       &gt;&gt;&gt; a = [a1, a2, a3, a4]</span>
+<span class="sd">       &gt;&gt;&gt; b = [b1, b2, b3]</span>
+<span class="sd">       &gt;&gt;&gt; c = [c1, c2]</span>
+
+<span class="sd">       where ``a1`` and all other variables are arrays with ``(K,)`` shape.</span>
+<span class="sd">       Make a transpose of the sequences:</span>
+
+<span class="sd">       &gt;&gt;&gt; x1 = np.stack([a1, b1, c1])</span>
+<span class="sd">       &gt;&gt;&gt; x2 = np.stack([a2, b2, c2])</span>
+<span class="sd">       &gt;&gt;&gt; x3 = np.stack([a3, b3])</span>
+<span class="sd">       &gt;&gt;&gt; x4 = np.stack([a4])</span>
+
+<span class="sd">       and make a list of the arrays:</span>
+
+<span class="sd">       &gt;&gt;&gt; xs = [x1, x2, x3, x4]</span>
+
+<span class="sd">       You need to make label sequences in the same fashion.</span>
+<span class="sd">       And then, call the function:</span>
+
+<span class="sd">       &gt;&gt;&gt; cost = chainer.Variable(</span>
+<span class="sd">       ...     np.random.uniform(-1, 1, (3, 3)).astype(&#39;f&#39;))</span>
+<span class="sd">       &gt;&gt;&gt; ys = [np.zeros(x.shape[0:1], dtype=&#39;i&#39;) for x in xs]</span>
+<span class="sd">       &gt;&gt;&gt; loss = F.crf1d(cost, xs, ys)</span>
+
+<span class="sd">       It calculates sum of the negative log-likelihood of the three sequences.</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        cost (Variable): A :math:`K \\times K` matrix which holds transition</span>
+<span class="sd">            cost between two labels, where :math:`K` is the number of labels.</span>
+<span class="sd">        xs (list of Variable): Input vector for each label.</span>
+<span class="sd">            ``len(xs)`` denotes the length of the sequence,</span>
+<span class="sd">            and each :class:`~chainer.Variable` holds a :math:`B \\times K`</span>
+<span class="sd">            matrix, where :math:`B` is mini-batch size, :math:`K` is the number</span>
+<span class="sd">            of labels.</span>
+<span class="sd">            Note that :math:`B` s in all the variables are not necessary</span>
+<span class="sd">            the same, i.e., it accepts the input sequences with different</span>
+<span class="sd">            lengths.</span>
+<span class="sd">        ys (list of Variable): Expected output labels. It needs to have the</span>
+<span class="sd">            same length as ``xs``. Each :class:`~chainer.Variable` holds a</span>
+<span class="sd">            :math:`B` integer vector.</span>
+<span class="sd">            When ``x`` in ``xs`` has the different :math:`B`, correspoding</span>
+<span class="sd">            ``y`` has the same :math:`B`. In other words, ``ys`` must satisfy</span>
+<span class="sd">            ``ys[i].shape == xs[i].shape[0:1]`` for all ``i``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ~chainer.Variable: A variable holding the average negative</span>
+<span class="sd">            log-likelihood of the input sequences.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        See detail in the original paper: `Conditional Random Fields:</span>
+<span class="sd">        Probabilistic Models for Segmenting and Labeling Sequence Data</span>
+<span class="sd">        &lt;http://repository.upenn.edu/cis_papers/159/&gt;`_.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">n_label</span> <span class="o">=</span> <span class="n">cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_batch</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">alphas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">alpha</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_rest</span> <span class="o">=</span> <span class="n">split_axis</span><span class="o">.</span><span class="n">split_axis</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha_rest</span><span class="p">)</span>
+        <span class="n">b_alpha</span><span class="p">,</span> <span class="n">b_cost</span> <span class="o">=</span> <span class="n">broadcast</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cost</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">logsumexp</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">b_alpha</span> <span class="o">+</span> <span class="n">b_cost</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">concat</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">alphas</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">logz</span> <span class="o">=</span> <span class="n">logsumexp</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="p">(</span><span class="n">cost</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">select_item</span><span class="o">.</span><span class="n">select_item</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_prev</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">ys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">y_prev</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">split_axis</span><span class="o">.</span><span class="n">split_axis</span><span class="p">(</span><span class="n">y_prev</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">score</span><span class="p">,</span> <span class="n">score_rest</span> <span class="o">=</span> <span class="n">split_axis</span><span class="o">.</span><span class="n">split_axis</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score_rest</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">+=</span> <span class="p">(</span><span class="n">select_item</span><span class="o">.</span><span class="n">select_item</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                  <span class="o">+</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                      <span class="n">embed_id</span><span class="o">.</span><span class="n">embed_id</span><span class="p">(</span><span class="n">y_prev</span> <span class="o">*</span> <span class="n">n_label</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="n">cost</span><span class="p">),</span> <span class="p">(</span><span class="n">batch</span><span class="p">,)))</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">concat</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">scores</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_sum</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">logz</span> <span class="o">-</span> <span class="n">score</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_batch</span></div>
+
+
+<div class="viewcode-block" id="argmax_crf1d"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.argmax_crf1d">[docs]</a><span class="k">def</span> <span class="nf">argmax_crf1d</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes a state that maximizes a joint probability of the given CRF.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cost (Variable): A :math:`K \\times K` matrix which holds transition</span>
+<span class="sd">            cost between two labels, where :math:`K` is the number of labels.</span>
+<span class="sd">        xs (list of Variable): Input vector for each label.</span>
+<span class="sd">            ``len(xs)`` denotes the length of the sequence,</span>
+<span class="sd">            and each :class:`~chainer.Variable` holds a :math:`B \\times K`</span>
+<span class="sd">            matrix, where :math:`B` is mini-batch size, :math:`K` is the number</span>
+<span class="sd">            of labels.</span>
+<span class="sd">            Note that :math:`B` s in all the variables are not necessary</span>
+<span class="sd">            the same, i.e., it accepts the input sequences with different</span>
+<span class="sd">            lengths.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple of :class:`~chainer.Variable` object ``s`` and a</span>
+<span class="sd">            :class:`list` ``ps``.</span>
+<span class="sd">            The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.</span>
+<span class="sd">            i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th</span>
+<span class="sd">            data.</span>
+<span class="sd">            ``ps`` is a list of :class:`numpy.ndarray` or</span>
+<span class="sd">            :class:`cupy.ndarray`, and denotes the state that maximizes the</span>
+<span class="sd">            point probability.</span>
+<span class="sd">            ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is</span>
+<span class="sd">            the mini-batch size of the corresponding ``xs[i]``. That means,</span>
+<span class="sd">            ``ps[i].shape == xs[i].shape[0:1]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">alphas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">max_inds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">alpha</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">alpha</span><span class="p">,</span> <span class="n">alpha_rest</span> <span class="o">=</span> <span class="n">split_axis</span><span class="o">.</span><span class="n">split_axis</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha_rest</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">b_alpha</span><span class="p">,</span> <span class="n">b_cost</span> <span class="o">=</span> <span class="n">broadcast</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cost</span><span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">b_alpha</span> <span class="o">+</span> <span class="n">b_cost</span>
+        <span class="n">max_ind</span> <span class="o">=</span> <span class="n">minmax</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">max_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_ind</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">minmax</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+
+    <span class="n">inds</span> <span class="o">=</span> <span class="n">minmax</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="n">inds</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">max_inds</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">alphas</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">select_item</span><span class="o">.</span><span class="n">select_item</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">inds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="n">concat</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">inds</span><span class="p">,</span> <span class="n">minmax</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inds</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+
+    <span class="n">score</span> <span class="o">=</span> <span class="n">minmax</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">alphas</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">concat</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">score</span><span class="p">,</span> <span class="n">minmax</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">path</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

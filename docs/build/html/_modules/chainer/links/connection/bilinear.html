@@ -1,0 +1,349 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.connection.bilinear &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.connection.bilinear</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.connection.bilinear</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.connection</span> <span class="k">import</span> <span class="n">bilinear</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">initializers</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+
+
+<div class="viewcode-block" id="Bilinear"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.Bilinear">[docs]</a><span class="k">class</span> <span class="nc">Bilinear</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Bilinear layer that performs tensor multiplication.</span>
+
+<span class="sd">    Bilinear is a primitive link that wraps the</span>
+<span class="sd">    :func:`~chainer.functions.bilinear` functions. It holds parameters ``W``,</span>
+<span class="sd">    ``V1``, ``V2``, and ``b`` corresponding to the arguments of</span>
+<span class="sd">    :func:`~chainer.functions.bilinear`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        left_size (int): Dimension of input vector :math:`e^1` (:math:`J`)</span>
+<span class="sd">        right_size (int): Dimension of input vector :math:`e^2` (:math:`K`)</span>
+<span class="sd">        out_size (int): Dimension of output vector :math:`y` (:math:`L`)</span>
+<span class="sd">        nobias (bool): If ``True``, parameters ``V1``, ``V2``, and ``b`` are</span>
+<span class="sd">            omitted.</span>
+<span class="sd">        initialW (callable): Initializer for :math:`W`.</span>
+<span class="sd">            It should be a callable that takes ``numpy.ndarray`` or</span>
+<span class="sd">            ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">            If it is ``None``, the default initializer is used.</span>
+<span class="sd">            If it is `numpy.ndarray`, the array is used as initial</span>
+<span class="sd">            weight value.</span>
+<span class="sd">            Shape of the array must be ``(left_size, right_size, out_size)``.</span>
+<span class="sd">        initial_bias (tuple): Bias initializers.</span>
+<span class="sd">            It should be a 3-tuple of callables that takes ``numpy.ndarray``</span>
+<span class="sd">            or ``cupy.ndarray`` and edits its value.</span>
+<span class="sd">            They initialize :math:`V^1`, :math:`V^2`,  and :math:`b`,</span>
+<span class="sd">            respectively.</span>
+<span class="sd">            If it is ``None``, the default initializer is used.</span>
+<span class="sd">            If it is a tuple of `numpy.ndarray`, the arrays are used as initial</span>
+<span class="sd">            bias value.</span>
+<span class="sd">            Each element of this tuple must have the shapes of</span>
+<span class="sd">            ``(left_size, output_size)``, ``(right_size, output_size)``,</span>
+<span class="sd">            and ``(output_size,)``, respectively.</span>
+
+<span class="sd">    .. seealso:: See :func:`chainer.functions.bilinear` for details.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        W (~chainer.Variable): Bilinear weight parameter.</span>
+<span class="sd">        V1 (~chainer.Variable): Linear weight parameter for the first argument.</span>
+<span class="sd">        V2 (~chainer.Variable): Linear weight parameter for the second</span>
+<span class="sd">            argument.</span>
+<span class="sd">        b (~chainer.Variable): Bias parameter.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left_size</span><span class="p">,</span> <span class="n">right_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Bilinear</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">left_size</span><span class="p">,</span> <span class="n">right_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nobias</span> <span class="o">=</span> <span class="n">nobias</span>
+
+        <span class="c1"># TODO(Kenta OONO): I do not know appropriate way of</span>
+        <span class="c1"># initializing weights in tensor network.</span>
+        <span class="c1"># This initialization is a modification of</span>
+        <span class="c1"># that of Linear function.</span>
+
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">left_size</span><span class="p">,</span> <span class="n">right_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initialW</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="n">initialW</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">shape</span>
+        <span class="k">if</span> <span class="n">initialW</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initialW</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">HeNormal</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;W&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span>
+                       <span class="n">initializer</span><span class="o">=</span><span class="n">initializers</span><span class="o">.</span><span class="n">_get_initializer</span><span class="p">(</span><span class="n">initialW</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobias</span><span class="p">:</span>
+            <span class="n">V1_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">left_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">)</span>
+            <span class="n">V2_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">right_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">)</span>
+            <span class="n">b_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">out_size</span><span class="p">,)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initial_bias</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">initialV1</span><span class="p">,</span> <span class="n">initialV2</span><span class="p">,</span> <span class="n">initialb</span> <span class="o">=</span> <span class="n">initial_bias</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initialV1</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+                    <span class="k">assert</span> <span class="n">initialV1</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">V1_shape</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initialV2</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+                    <span class="k">assert</span> <span class="n">initialV2</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">V2_shape</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initialb</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+                    <span class="k">assert</span> <span class="n">initialb</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">b_shape</span>
+                <span class="n">initialV1</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">_get_initializer</span><span class="p">(</span><span class="n">initialV1</span><span class="p">)</span>
+                <span class="n">initialV2</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">_get_initializer</span><span class="p">(</span><span class="n">initialV2</span><span class="p">)</span>
+                <span class="n">initialb</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">_get_initializer</span><span class="p">(</span><span class="n">initialb</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">initial_bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">initialV1</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">HeNormal</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+                <span class="n">initialV2</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">HeNormal</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+                <span class="n">initialb</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;initial_bias must be tuple or None&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;V1&#39;</span><span class="p">,</span> <span class="n">V1_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">initialV1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;V2&#39;</span><span class="p">,</span> <span class="n">V2_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">initialV2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">initialb</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Applies the bilinear function to inputs and the internal parameters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            e1 (~chainer.Variable): Left input.</span>
+<span class="sd">            e2 (~chainer.Variable): Right input.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~chainer.Variable: Output variable.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nobias</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bilinear</span><span class="o">.</span><span class="n">bilinear</span><span class="p">(</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bilinear</span><span class="o">.</span><span class="n">bilinear</span><span class="p">(</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">zero_grads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Left for backward compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zerograds</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

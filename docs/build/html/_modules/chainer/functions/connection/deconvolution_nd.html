@@ -1,0 +1,587 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.connection.deconvolution_nd &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.connection.deconvolution_nd</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.connection.deconvolution_nd</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.connection</span> <span class="k">import</span> <span class="n">convolution_2d</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">conv</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">conv_nd</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">type_check</span>
+
+
+<span class="k">if</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cudnn_enabled</span><span class="p">:</span>
+    <span class="n">cudnn</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cudnn</span>
+    <span class="n">libcudnn</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">cudnn</span>
+    <span class="n">_cudnn_version</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">getVersion</span><span class="p">()</span>
+    <span class="n">_fwd_pref</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT</span>
+    <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">4000</span><span class="p">:</span>
+        <span class="n">_bwd_filter_pref</span> <span class="o">=</span> \
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT</span>
+        <span class="n">_bwd_data_pref</span> <span class="o">=</span> \
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT</span>
+
+
+<span class="n">_check_cudnn_acceptable_type</span> <span class="o">=</span> <span class="n">convolution_2d</span><span class="o">.</span><span class="n">_check_cudnn_acceptable_type</span>
+
+
+<span class="k">class</span> <span class="nc">DeconvolutionND</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">outsize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="n">ndim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">(</span><span class="n">stride</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">(</span><span class="n">pad</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">outsize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">outsize</span><span class="p">)</span> <span class="o">==</span> <span class="n">ndim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="o">=</span> <span class="n">outsize</span>
+
+    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">n_in</span> <span class="o">=</span> <span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="mi">2</span> <span class="o">&lt;=</span> <span class="n">n_in</span><span class="p">,</span> <span class="n">n_in</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">x_type</span><span class="p">,</span> <span class="n">w_type</span> <span class="o">=</span> <span class="n">in_types</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">w_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">outs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)):</span>
+                <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+                    <span class="n">x_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">==</span>
+                    <span class="n">conv</span><span class="o">.</span><span class="n">get_conv_outsize</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">w_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">],</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">type_check</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">n_in</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">b_type</span> <span class="o">=</span> <span class="n">in_types</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+                <span class="n">b_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">b_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">b_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">w_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_use_cudnn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">should_use_cudnn</span><span class="p">(</span><span class="s1">&#39;&gt;=auto&#39;</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span>
+                <span class="n">_check_cudnn_acceptable_type</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">W</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_forward_xp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">xp</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="n">ksize</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>     <span class="c1"># W: C_I, C_O, k_1, k_2, ..., k_N</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>      <span class="c1"># x: n, C_I, d_1, d_2, ..., d_N</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span>
+
+        <span class="c1"># gcol: C_O, k_1, ..., k_N, n, d_1, ..., d_N</span>
+        <span class="n">gcol</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Roll n, which is batch size, before the first.</span>
+        <span class="n">gcol</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">gcol</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">conv</span><span class="o">.</span><span class="n">get_deconv_outsize</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">out</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">out</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span><span class="p">),</span> \
+                <span class="s1">&#39;Output sizes should be positive.&#39;</span>
+        <span class="c1"># y: n, C_O, d_1, d_2, ..., d_N</span>
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">col2im_nd_cpu</span><span class="p">(</span><span class="n">gcol</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">col2im_nd_gpu</span><span class="p">(</span><span class="n">gcol</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">b_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="n">ndim</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="n">b</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b_shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">_forward_cudnn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>          <span class="c1"># W: C_I, C_O, k_1, k_2, ..., k_N</span>
+        <span class="n">ksize</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">in_c</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>   <span class="c1"># x: n, C_I, d_1, d_2, ..., d_N</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="n">colon</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># Make empty array for output.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">conv</span><span class="o">.</span><span class="n">get_deconv_outsize</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">out</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">out</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span><span class="p">),</span> \
+                <span class="s1">&#39;Output sizes should be positive.&#39;</span>
+        <span class="n">y_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">outs</span>  <span class="c1"># (n, c_O, out_1, out_2, ..., out_N)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">y_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># Convert to C-contiguous arrays.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+        <span class="c1"># Get cuDNN handler and descriptors.</span>
+        <span class="n">handle</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">get_handle</span><span class="p">()</span>
+        <span class="n">x_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_tensor_descriptor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_tensor_descriptor</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_filter_descriptor</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_convolution_descriptor</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">b_index</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">colon</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="n">ndim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_tensor_descriptor</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="n">b_index</span><span class="p">])</span>
+
+        <span class="c1"># cuDNN forward computation.</span>
+        <span class="n">oz_dtype</span> <span class="o">=</span> <span class="s1">&#39;d&#39;</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="k">else</span> <span class="s1">&#39;f&#39;</span>
+        <span class="n">one</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">oz_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">ctypes</span>
+        <span class="n">zero</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">oz_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">ctypes</span>
+        <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">4000</span><span class="p">:</span>
+            <span class="n">workspace_size</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_max_workspace_size</span><span class="p">()</span>
+            <span class="n">workspace</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">workspace_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+            <span class="n">algo</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">getConvolutionBackwardDataAlgorithm</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">y_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">_bwd_data_pref</span><span class="p">,</span>
+                <span class="n">workspace_size</span><span class="p">)</span>
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionBackwardData_v3</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">W</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                <span class="n">x_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">algo</span><span class="p">,</span> <span class="n">workspace</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="n">workspace_size</span><span class="p">,</span>
+                <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">y_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionBackwardData_v2</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">W</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                <span class="n">x_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">y_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+
+        <span class="c1"># Add bias if given.</span>
+        <span class="c1"># TODO(takagi) Support unshared bias</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">3000</span> <span class="ow">or</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">cudnn</span><span class="o">.</span><span class="n">add_tensor</span><span class="p">(</span>
+                    <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                    <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">y_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># cuDNN v2 does not seem to support bias addition in spatial</span>
+                <span class="c1"># dimensions other than two.</span>
+                <span class="n">b_index</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">colon</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="n">ndim</span>
+                <span class="n">y</span> <span class="o">+=</span> <span class="n">b</span><span class="p">[</span><span class="n">b_index</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_xp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">numpy</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_cudnn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_cudnn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_xp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_backward_xp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gy</span><span class="p">,</span> <span class="n">xp</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="n">ksize</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span>
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">im2col_nd_cpu</span><span class="p">(</span><span class="n">gy</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="o">.</span><span class="n">im2col_nd_gpu</span><span class="p">(</span><span class="n">gy</span><span class="p">,</span> <span class="n">ksize</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">)</span>
+
+        <span class="c1"># x  : n, C_I, d_1, d_2, ..., d_N</span>
+        <span class="c1"># col: n, C_I, k_1, k_2, ..., k_N, d_1, d_2, ..., d_N</span>
+        <span class="n">x_axes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">col_axes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="p">(</span><span class="n">x_axes</span><span class="p">,</span> <span class="n">col_axes</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># col: n, C_I, k_1, k_2, ..., k_N, d_1, d_2, ..., d_N</span>
+        <span class="c1"># W  : C_I, C_O, k_1, k_2, ..., k_N</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">gx</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="n">gW</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sum_axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">gb</span> <span class="o">=</span> <span class="n">gy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">sum_axis</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="n">gW</span><span class="p">,</span> <span class="n">gb</span>
+
+    <span class="k">def</span> <span class="nf">_backward_cudnn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gy</span><span class="p">):</span>
+        <span class="c1"># Convert to C-contiguous arrays.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">gy</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">gy</span><span class="p">)</span>
+
+        <span class="c1"># Make empty arrays for results.</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+
+        <span class="c1"># Get cuDNN handler and descriptors.</span>
+        <span class="n">handle</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">get_handle</span><span class="p">()</span>
+        <span class="n">gy_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_tensor_descriptor</span><span class="p">(</span><span class="n">gy</span><span class="p">)</span>
+        <span class="n">gx_desc</span> <span class="o">=</span> <span class="n">cudnn</span><span class="o">.</span><span class="n">create_tensor_descriptor</span><span class="p">(</span><span class="n">gx</span><span class="p">)</span>
+
+        <span class="c1"># Chance to choose implicit-precom-gemm algorithm.</span>
+        <span class="n">workspace_size</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_max_workspace_size</span><span class="p">()</span>
+        <span class="n">algo</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">getConvolutionForwardAlgorithm</span><span class="p">(</span>
+            <span class="n">handle</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gx_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">_fwd_pref</span><span class="p">,</span>
+            <span class="n">workspace_size</span><span class="p">)</span>
+        <span class="n">workspace</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">workspace_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Compute input gradient.</span>
+        <span class="n">oz_dtype</span> <span class="o">=</span> <span class="s1">&#39;d&#39;</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="k">else</span> <span class="s1">&#39;f&#39;</span>
+        <span class="n">one</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">oz_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">ctypes</span>
+        <span class="n">zero</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">oz_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">ctypes</span>
+        <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionForward</span><span class="p">(</span>
+            <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">W</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">algo</span><span class="p">,</span> <span class="n">workspace</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="n">workspace_size</span><span class="p">,</span>
+            <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">gx_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gx</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+
+        <span class="c1"># Compute bias gradient.</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">3000</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">gb</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+                <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionBackwardBias</span><span class="p">(</span>
+                    <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                    <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gb</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># cuDNN v2 does not seem to support bias backward in spatial</span>
+                <span class="c1"># dimensions other than two.</span>
+
+                <span class="c1"># (n, _, out_1, out_2, ..., out_N)</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="n">gb</span> <span class="o">=</span> <span class="n">gy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+        <span class="c1"># Compute filter gradient.</span>
+        <span class="k">if</span> <span class="n">_cudnn_version</span> <span class="o">&gt;=</span> <span class="mi">4000</span><span class="p">:</span>
+            <span class="n">algo</span> <span class="o">=</span> <span class="n">libcudnn</span><span class="o">.</span><span class="n">getConvolutionBackwardFilterAlgorithm</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gx_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">_bwd_filter_pref</span><span class="p">,</span> <span class="n">workspace_size</span><span class="p">)</span>
+
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionBackwardFilter_v3</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                <span class="n">gx_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">algo</span><span class="p">,</span> <span class="n">workspace</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="n">workspace_size</span><span class="p">,</span>
+                <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gW</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">libcudnn</span><span class="o">.</span><span class="n">convolutionBackwardFilter_v2</span><span class="p">(</span>
+                <span class="n">handle</span><span class="p">,</span> <span class="n">one</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">gy_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span>
+                <span class="n">gx_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">zero</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_desc</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">gW</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="n">gW</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="n">gW</span><span class="p">,</span> <span class="n">gb</span>
+
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">gy</span> <span class="o">=</span> <span class="n">grad_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward_xp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gy</span><span class="p">,</span> <span class="n">numpy</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_cudnn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward_cudnn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gy</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward_xp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">gy</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="deconvolution_nd"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.deconvolution_nd">[docs]</a><span class="k">def</span> <span class="nf">deconvolution_nd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">outsize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;N-dimensional deconvolution function.</span>
+
+<span class="sd">    This is an implementation of N-dimensional deconvolution which generalizes</span>
+<span class="sd">    two-dimensional one. It takes three variables: input ``x``, the filter</span>
+<span class="sd">    weight ``W``, and the bias vector ``b``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):</span>
+<span class="sd">            Input data of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.</span>
+<span class="sd">        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):</span>
+<span class="sd">            Weight data of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.</span>
+<span class="sd">        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):</span>
+<span class="sd">            Bias vector of length :math:`c_O` (optional).</span>
+<span class="sd">        stride (int or tuple of ints): Stride of filter applications</span>
+<span class="sd">            :math:`(s_1, s_2, ..., s_N)`. ``stride=s`` is equivalent to</span>
+<span class="sd">            ``(s, s, ..., s)``.</span>
+<span class="sd">        pad (int or tuple of ints): Spatial padding size for input arrays</span>
+<span class="sd">            :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to</span>
+<span class="sd">            ``(p, p, ..., p)``.</span>
+<span class="sd">        outsize (tuple of ints): Expected output size of deconvolutional</span>
+<span class="sd">            operation. It should be a tuple of ints</span>
+<span class="sd">            :math:`(out_1, out_2, ..., out_N)`. Default value is ``None`` and</span>
+<span class="sd">            the outsize is estimated by input size, stride and pad.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ~chainer.Variable: Output variable.</span>
+
+<span class="sd">    The filter weight has the following dimensions</span>
+<span class="sd">    :math:`(c_I, c_O, k_1, k_2, ..., k_N)` which indicate the number of input</span>
+<span class="sd">    channels, that of output channels and the filter&#39;s spatial sizes,</span>
+<span class="sd">    respectively.</span>
+
+<span class="sd">    The one-dimensional bias vector is of size :math:`c_O`.</span>
+
+<span class="sd">    Let :math:`X` be the input tensor of dimensions</span>
+<span class="sd">    :math:`(n, c_I, d_1, d_2, ..., d_N)`, :math:`(s_1, s_2, ..., s_N)` the</span>
+<span class="sd">    stride of filter applications, and :math:`(p_1, p_2, ..., p_N)` the spacial</span>
+<span class="sd">    padding size. Then the output size :math:`(out_1, out_2, ..., out_N)` is</span>
+<span class="sd">    determined by the following equations:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        out_1 &amp;= s_1 (d_1 - 1) + k_1 - 2 p_1,\\\\</span>
+<span class="sd">        out_2 &amp;= s_2 (d_2 - 1) + k_2 - 2 p_2,\\\\</span>
+<span class="sd">        ...,\\\\</span>
+<span class="sd">        out_N &amp;= s_N (d_N - 1) + k_N - 2 p_N.</span>
+
+<span class="sd">    .. seealso:: :class:`links.DeconvolutionND`, :func:`deconvolution_2d`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="n">DeconvolutionND</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="n">outsize</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

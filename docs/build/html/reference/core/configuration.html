@@ -1,0 +1,457 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Configuring Chainer &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="Core functionalities" href="../core.html"/>
+        <link rel="next" title="Utilities" href="../util.html"/>
+        <link rel="prev" title="Debug mode" href="debug.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../core.html">Core functionalities</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="variable.html">Variable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flag.html">Flag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="function.html">Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="link.html">Link and Chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimizer.html">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="serializer.html">Serializer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dataset.html">Dataset abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="training.html">Training loop abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="debug.html">Debug mode</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Configuring Chainer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+          <li><a href="../core.html">Core functionalities</a> &raquo;</li>
+        
+      <li>Configuring Chainer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/core/configuration.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="configuring-chainer">
+<span id="configuration"></span><h1>Configuring Chainer<a class="headerlink" href="#configuring-chainer" title="Permalink to this headline">¶</a></h1>
+<p>Chainer provides some global settings that affect the behavior of some functionalities.
+Such settings can be configured using the <em>unified configuration system</em>.
+The system provides a transparent way to manage the configuration for each process and for each thread.</p>
+<p>The configuration is managed by two global objects: <a class="reference internal" href="#chainer.global_config" title="chainer.global_config"><code class="xref py py-data docutils literal"><span class="pre">chainer.global_config</span></code></a> and <a class="reference internal" href="#chainer.config" title="chainer.config"><code class="xref py py-data docutils literal"><span class="pre">chainer.config</span></code></a>.</p>
+<ul class="simple">
+<li>The <a class="reference internal" href="#chainer.global_config" title="chainer.global_config"><code class="xref py py-data docutils literal"><span class="pre">global_config</span></code></a> object maintains the configuration shared in the Python process.
+This is an instance of the <a class="reference internal" href="#chainer.configuration.GlobalConfig" title="chainer.configuration.GlobalConfig"><code class="xref py py-class docutils literal"><span class="pre">GlobalConfig</span></code></a> class.
+It can be used just as a plain object, and users can freely set any attributes on it.</li>
+<li>The <a class="reference internal" href="#chainer.config" title="chainer.config"><code class="xref py py-data docutils literal"><span class="pre">config</span></code></a> object, on the other hand, maintains the configuration for the current thread.
+This is an instance of the <a class="reference internal" href="#chainer.configuration.LocalConfig" title="chainer.configuration.LocalConfig"><code class="xref py py-class docutils literal"><span class="pre">LocalConfig</span></code></a> class.
+It behaves like a thread-local object, and any attribute modifications are only visible to the current thread.</li>
+</ul>
+<p>If no value is set to <a class="reference internal" href="#chainer.config" title="chainer.config"><code class="xref py py-data docutils literal"><span class="pre">config</span></code></a> for a given key, <a class="reference internal" href="#chainer.global_config" title="chainer.global_config"><code class="xref py py-data docutils literal"><span class="pre">global_config</span></code></a> is transparently referred.
+Thanks to this transparent lookup, users can always use <a class="reference internal" href="#chainer.config" title="chainer.config"><code class="xref py py-data docutils literal"><span class="pre">config</span></code></a> to read any configuration so that the thread-local configuration is used if available and otherwise the default global setting is used.</p>
+<p>The following entries of the configuration are currently provided by Chainer.
+Some entries support environment variables to set the default values.
+Note that the default values are set in the global config.</p>
+<dl class="docutils">
+<dt><code class="docutils literal"><span class="pre">chainer.config.debug</span></code></dt>
+<dd>Debug mode flag.
+If it is <code class="docutils literal"><span class="pre">True</span></code>, Chainer runs in the debug mode.
+See <a class="reference internal" href="debug.html#debug"><span class="std std-ref">Debug mode</span></a> for more information of the debug mode.
+The default value is given by <code class="docutils literal"><span class="pre">CHAINER_DEBUG</span></code> environment variable (set to 0 or 1) if available, otherwise uses <code class="docutils literal"><span class="pre">False</span></code>.</dd>
+<dt><code class="docutils literal"><span class="pre">chainer.config.enable_backprop</span></code></dt>
+<dd>Flag to enable backpropagation support.
+If it is <code class="docutils literal"><span class="pre">True</span></code>, <a class="reference internal" href="function.html#chainer.Function" title="chainer.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> makes a computaitonal graph of <a class="reference internal" href="variable.html#chainer.Variable" title="chainer.Variable"><code class="xref py py-class docutils literal"><span class="pre">Variable</span></code></a> for back-propagation.
+Otherwise, it does not make a computational graph.
+So a user cannot call <a class="reference internal" href="variable.html#chainer.Variable.backward" title="chainer.Variable.backward"><code class="xref py py-func docutils literal"><span class="pre">backward()</span></code></a> method to results of the function.
+The default value is <code class="docutils literal"><span class="pre">True</span></code>.</dd>
+<dt><code class="docutils literal"><span class="pre">chainer.config.train</span></code></dt>
+<dd>Training mode flag.
+If it is <code class="docutils literal"><span class="pre">True</span></code>, Chainer runs in the training mode.
+Otherwise, it runs in the testing (evaluation) mode.
+The default value is <code class="docutils literal"><span class="pre">True</span></code>.</dd>
+<dt><code class="docutils literal"><span class="pre">chainer.config.type_check</span></code></dt>
+<dd>Type checking mode flag.
+If it is <code class="docutils literal"><span class="pre">True</span></code>, Chainer checks the types (data types and shapes) of inputs on <a class="reference internal" href="function.html#chainer.Function" title="chainer.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> applications.
+Otherwise, it skips type checking.
+The default value is given by <code class="docutils literal"><span class="pre">CHAINER_TYPE_CHECK</span></code> environment variable (set to 0 or 1) if available, otherwise uses <code class="docutils literal"><span class="pre">True</span></code>.</dd>
+</dl>
+<p>Users can also define their own configurations.
+There are two ways:</p>
+<ol class="arabic simple">
+<li>Use Chainer’s configuration objects.
+In this case, <strong>it is strongly recommended to prefix the name by “user_”</strong> to avoid name conflicts with configurations introduced to Chainer in the future.</li>
+<li>Use your own configuration objects.
+Users can define their own configuration objects using <a class="reference internal" href="#chainer.configuration.GlobalConfig" title="chainer.configuration.GlobalConfig"><code class="xref py py-class docutils literal"><span class="pre">chainer.configuration.GlobalConfig</span></code></a> and <a class="reference internal" href="#chainer.configuration.LocalConfig" title="chainer.configuration.LocalConfig"><code class="xref py py-class docutils literal"><span class="pre">chainer.configuration.LocalConfig</span></code></a>.
+In this case, there is no need to take care of the name conflicts.</li>
+</ol>
+<div class="admonition-example admonition">
+<p class="first admonition-title">Example</p>
+<p>If you want to share a setting within the process, set an attribute to the global configuration.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chainer</span><span class="o">.</span><span class="n">global_config</span><span class="o">.</span><span class="n">user_my_setting</span> <span class="o">=</span> <span class="mi">123</span>
+</pre></div>
+</div>
+<p>This value is automatically extracted by referring to the local config.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chainer</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">user_my_setting</span>
+<span class="go">123</span>
+</pre></div>
+</div>
+<p>If you set an attribute to the local configuration, the value is only visible to the current thread.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chainer</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">user_my_setting</span> <span class="o">=</span> <span class="mi">123</span>
+</pre></div>
+</div>
+<p>We often want to temporarily modify the configuration for the current thread.
+It can be done by using <a class="reference internal" href="#chainer.using_config" title="chainer.using_config"><code class="xref py py-func docutils literal"><span class="pre">using_config()</span></code></a>.
+For example, if you only want to enable debug mode in a fragment of code, write as follows.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">using_config</span><span class="p">(</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">pass</span>  <span class="c1"># code running in the debug mode</span>
+</pre></div>
+</div>
+<p>We often want to switch to the test mode for an evaluation.
+This is also done in the same way.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">using_config</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">pass</span>  <span class="c1"># code running in the test mode</span>
+</pre></div>
+</div>
+<p>Note that <a class="reference internal" href="../extensions.html#chainer.training.extensions.Evaluator" title="chainer.training.extensions.Evaluator"><code class="xref py py-class docutils literal"><span class="pre">Evaluator</span></code></a> automatically switches to the test mode, and thus you do not need to manually switch in the loss function for the evaluation.</p>
+<p>You can also make your own code behave differently in training and test modes as follows.</p>
+<div class="last highlight-python"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">chainer</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">train</span><span class="p">:</span>
+    <span class="k">pass</span>  <span class="c1"># code only running in the training mode</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">pass</span>  <span class="c1"># code only running in the test mode</span>
+</pre></div>
+</div>
+</div>
+<dl class="data">
+<dt id="chainer.global_config">
+<code class="descclassname">chainer.</code><code class="descname">global_config</code><em class="property"> = &lt;chainer.configuration.GlobalConfig object&gt;</em><a class="headerlink" href="#chainer.global_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The plain object that represents the global configuration of Chainer.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="chainer.config">
+<code class="descclassname">chainer.</code><code class="descname">config</code><em class="property"> = &lt;chainer.configuration.LocalConfig object&gt;</em><a class="headerlink" href="#chainer.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread-local configuration of Chainer.</p>
+<p>This class implements the local configuration. When a value is set to this
+object, the configuration is only updated in the current thread. When a
+user tries to access an attribute and there is no local value, it
+automatically retrieves a value from the global configuration.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.using_config">
+<code class="descclassname">chainer.</code><code class="descname">using_config</code><span class="sig-paren">(</span><em>name</em>, <em>value</em>, <em>config=chainer.config</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/configuration.html#using_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.using_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context manager to temporarily change the thread-local configuration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the configuration to change.</li>
+<li><strong>value</strong> – Temporary value of the configuration entry.</li>
+<li><strong>config</strong> (<a class="reference internal" href="#chainer.configuration.LocalConfig" title="chainer.configuration.LocalConfig"><em>LocalConfig</em></a>) – Configuration object.
+Chainer’s thread-local configuration is used by default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.configuration.GlobalConfig">
+<em class="property">class </em><code class="descclassname">chainer.configuration.</code><code class="descname">GlobalConfig</code><a class="reference internal" href="../../_modules/chainer/configuration.html#GlobalConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.configuration.GlobalConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>The plain object that represents the global configuration of Chainer.</p>
+<dl class="method">
+<dt id="chainer.configuration.GlobalConfig.show">
+<code class="descname">show</code><span class="sig-paren">(</span><em>file=sys.stdout</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/configuration.html#GlobalConfig.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.configuration.GlobalConfig.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the global config entries.</p>
+<p>The entries are sorted in the lexicographical order of the entry name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file</strong> – Output file-like object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.configuration.LocalConfig">
+<em class="property">class </em><code class="descclassname">chainer.configuration.</code><code class="descname">LocalConfig</code><span class="sig-paren">(</span><em>global_config</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/configuration.html#LocalConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.configuration.LocalConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread-local configuration of Chainer.</p>
+<p>This class implements the local configuration. When a value is set to this
+object, the configuration is only updated in the current thread. When a
+user tries to access an attribute and there is no local value, it
+automatically retrieves a value from the global configuration.</p>
+<dl class="method">
+<dt id="chainer.configuration.LocalConfig.show">
+<code class="descname">show</code><span class="sig-paren">(</span><em>file=sys.stdout</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/configuration.html#LocalConfig.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.configuration.LocalConfig.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the config entries.</p>
+<p>The entries are sorted in the lexicographical order of the entry names.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file</strong> – Output file-like object.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition-example admonition">
+<p class="first admonition-title">Example</p>
+<p>You can easily print the list of configurations used in
+the current thread.</p>
+<div class="last highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chainer</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>  
+<span class="go">debug           False</span>
+<span class="go">enable_backprop True</span>
+<span class="go">train           True</span>
+<span class="go">type_check      True</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../util.html" class="btn btn-neutral float-right" title="Utilities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="debug.html" class="btn btn-neutral" title="Debug mode" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,354 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.connection.peephole &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.connection.peephole</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.connection.peephole</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.activation</span> <span class="k">import</span> <span class="n">sigmoid</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.activation</span> <span class="k">import</span> <span class="n">tanh</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">reshape</span>
+<span class="kn">from</span> <span class="nn">chainer.functions.array</span> <span class="k">import</span> <span class="n">split_axis</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer.links.connection</span> <span class="k">import</span> <span class="n">linear</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">variable</span>
+
+
+<div class="viewcode-block" id="StatefulPeepholeLSTM"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.StatefulPeepholeLSTM">[docs]</a><span class="k">class</span> <span class="nc">StatefulPeepholeLSTM</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Fully-connected LSTM layer with peephole connections.</span>
+
+<span class="sd">    This is a fully-connected LSTM layer with peephole connections as a chain.</span>
+<span class="sd">    Unlike the :class:`~chainer.links.LSTM` link, this chain holds ``peep_i``,</span>
+<span class="sd">    ``peep_f`` and ``peep_o`` as child links besides ``upward`` and</span>
+<span class="sd">    ``lateral``.</span>
+
+<span class="sd">    Given a input vector :math:`x`, Peephole returns the next hidden vector</span>
+<span class="sd">    :math:`h&#39;` defined as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       a &amp;=&amp; \\tanh(upward x + lateral h), \\\\</span>
+<span class="sd">       i &amp;=&amp; \\sigma(upward x + lateral h + peep_i c), \\\\</span>
+<span class="sd">       f &amp;=&amp; \\sigma(upward x + lateral h + peep_f c), \\\\</span>
+<span class="sd">       c&#39; &amp;=&amp; a \\odot i + f \\odot c, \\\\</span>
+<span class="sd">       o &amp;=&amp; \\sigma(upward x + lateral h + peep_o c&#39;), \\\\</span>
+<span class="sd">       h&#39; &amp;=&amp; o \\tanh(c&#39;),</span>
+
+<span class="sd">    where :math:`\\sigma` is the sigmoid function, :math:`\\odot` is the</span>
+<span class="sd">    element-wise product, :math:`c` is the current cell state, :math:`c&#39;`</span>
+<span class="sd">    is the next cell state and :math:`h` is the current hidden vector.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_size(int): Dimension of the input vector :math:`x`.</span>
+<span class="sd">        out_size(int): Dimension of the hidden vector :math:`h`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        upward (~chainer.links.Linear): Linear layer of upward connections.</span>
+<span class="sd">        lateral (~chainer.links.Linear): Linear layer of lateral connections.</span>
+<span class="sd">        peep_i (~chainer.links.Linear): Linear layer of peephole connections</span>
+<span class="sd">                                        to the input gate.</span>
+<span class="sd">        peep_f (~chainer.links.Linear): Linear layer of peephole connections</span>
+<span class="sd">                                        to the forget gate.</span>
+<span class="sd">        peep_o (~chainer.links.Linear): Linear layer of peephole connections</span>
+<span class="sd">                                        to the output gate.</span>
+<span class="sd">        c (~chainer.Variable): Cell states of LSTM units.</span>
+<span class="sd">        h (~chainer.Variable): Output at the current time step.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StatefulPeepholeLSTM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">upward</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_size</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">out_size</span><span class="p">),</span>
+            <span class="n">lateral</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">peep_i</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">peep_f</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">peep_o</span><span class="o">=</span><span class="n">linear</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_size</span> <span class="o">=</span> <span class="n">out_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StatefulPeepholeLSTM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StatefulPeepholeLSTM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StatefulPeepholeLSTM.reset_state"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.StatefulPeepholeLSTM.reset_state">[docs]</a>    <span class="k">def</span> <span class="nf">reset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resets the internal states.</span>
+
+<span class="sd">        It sets ``None`` to the :attr:`c` and :attr:`h` attributes.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the internal state and returns the LSTM outputs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (~chainer.Variable): A new batch from the input sequence.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~chainer.Variable: Outputs of updated LSTM units.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lstm_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upward</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lstm_in</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lateral</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span>
+            <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                    <span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="n">lstm_in</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">lstm_in</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lstm_in</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
+                                            <span class="n">lstm_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span>
+                                            <span class="mi">4</span><span class="p">))</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">o</span> <span class="o">=</span> <span class="n">split_axis</span><span class="o">.</span><span class="n">split_axis</span><span class="p">(</span><span class="n">lstm_in</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">i</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="n">reshape</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">o</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">peep_in_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peep_i</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">peep_in_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peep_f</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">tanh</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">peep_in_i</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="n">peep_in_f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="n">f</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span>
+        <span class="n">peep_in_o</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peep_o</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">o</span> <span class="o">+</span> <span class="n">peep_in_o</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">o</span> <span class="o">*</span> <span class="n">tanh</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

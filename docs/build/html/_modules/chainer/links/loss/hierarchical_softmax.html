@@ -1,0 +1,592 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.links.loss.hierarchical_softmax &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.links.loss.hierarchical_softmax</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.links.loss.hierarchical_softmax</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">type_check</span>
+
+
+<span class="k">class</span> <span class="nc">TreeParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span>
+
+    <span class="k">def</span> <span class="nf">get_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span>
+
+    <span class="k">def</span> <span class="nf">get_codes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tree</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">codes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="c1"># internal node</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;All internal nodes must have two child nodes&#39;</span><span class="p">)</span>
+            <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">next_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">right</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># leaf node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">BinaryHierarchicalSoftmaxFunction</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Hierarchical softmax function based on a binary tree.</span>
+
+<span class="sd">    This function object should be allocated beforehand, and be copied on every</span>
+<span class="sd">    forward computation, since the initializer parses the given tree. See the</span>
+<span class="sd">    implementation of :class:`BinaryHierarchicalSoftmax` for details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tree: A binary tree made with tuples like ``((1, 2), 3)``.</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">       See :class:`BinaryHierarchicalSoftmax` for details.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tree</span><span class="p">):</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">TreeParser</span><span class="p">()</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_paths</span><span class="p">()</span>
+        <span class="n">codes</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_codes</span><span class="p">()</span>
+        <span class="n">n_vocab</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_vocab</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">codes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">codes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_vocab</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">codes</span><span class="p">])</span>
+        <span class="n">begins</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_vocab</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">begins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_vocab</span><span class="p">):</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">paths</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">begins</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">begins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">begins</span> <span class="o">=</span> <span class="n">begins</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser_size</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">x_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="n">w_type</span> <span class="o">=</span> <span class="n">in_types</span>
+
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">t_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">t_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">t_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser_size</span><span class="p">,</span>
+            <span class="n">w_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">x_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">codes</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">begins</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">codes</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">begins</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_cpu_one</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss</span><span class="p">),</span>
+
+    <span class="k">def</span> <span class="nf">_forward_cpu_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="n">begin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">W</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]]</span>
+        <span class="n">wxy</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">logaddexp</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">wxy</span><span class="p">)</span>  <span class="c1"># == log(1 + exp(-wxy))</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">backward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">gloss</span><span class="p">,</span> <span class="o">=</span> <span class="n">grad_outputs</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">)):</span>
+            <span class="n">gx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward_cpu_one</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">gloss</span><span class="p">,</span> <span class="n">gW</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gW</span>
+
+    <span class="k">def</span> <span class="nf">_backward_cpu_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">gloss</span><span class="p">,</span> <span class="n">gW</span><span class="p">):</span>
+        <span class="n">begin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">W</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+        <span class="n">wxy</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="o">-</span><span class="n">gloss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">wxy</span><span class="p">))</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">gw</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">g</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">gW</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">+=</span> <span class="n">gw</span>
+        <span class="k">return</span> <span class="n">gx</span>
+
+    <span class="k">def</span> <span class="nf">forward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+            <span class="s1">&#39;T t, raw T begins&#39;</span><span class="p">,</span> <span class="s1">&#39;T out&#39;</span><span class="p">,</span> <span class="s1">&#39;begins[t + 1] - begins[t]&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;max(a, b)&#39;</span><span class="p">,</span> <span class="s1">&#39;out = a&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;binary_hierarchical_softmax_max_length&#39;</span><span class="p">)(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">)</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="n">max_length</span><span class="p">)[()]</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">max_length</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">length</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">n_in</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">wxy</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="sd">&#39;&#39;&#39;raw T x, raw T w, raw int32 ts, raw int32 paths,</span>
+<span class="sd">            raw T codes, raw int32 begins, int32 c, int32 max_length&#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;T ls, T wxy&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            int ind = i / max_length;</span>
+<span class="sd">            int offset = i - ind * max_length;</span>
+<span class="sd">            int t = ts[ind];</span>
+
+<span class="sd">            int begin = begins[t];</span>
+<span class="sd">            int length = begins[t + 1] - begins[t];</span>
+
+<span class="sd">            if (offset &lt; length) {</span>
+<span class="sd">              int p = begin + offset;</span>
+<span class="sd">              int node = paths[p];</span>
+
+<span class="sd">              T wx = 0;</span>
+<span class="sd">              for (int j = 0; j &lt; c; ++j) {</span>
+<span class="sd">                int w_ind[] = {node, j};</span>
+<span class="sd">                int x_ind[] = {ind, j};</span>
+<span class="sd">                wx += w[w_ind] * x[x_ind];</span>
+<span class="sd">              }</span>
+<span class="sd">              wxy = wx * codes[p];</span>
+<span class="sd">              ls = log(1 + exp(-wxy));</span>
+<span class="sd">            } else {</span>
+<span class="sd">              ls = 0;</span>
+<span class="sd">            }</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;binary_hierarchical_softmax_forward&#39;</span>
+        <span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">ls</span><span class="p">,</span>
+          <span class="n">wxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wxy</span> <span class="o">=</span> <span class="n">wxy</span>
+        <span class="k">return</span> <span class="n">ls</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+
+    <span class="k">def</span> <span class="nf">backward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">gloss</span><span class="p">,</span> <span class="o">=</span> <span class="n">grad_outputs</span>
+
+        <span class="n">n_in</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">elementwise</span><span class="p">(</span>
+            <span class="sd">&#39;&#39;&#39;T wxy, raw T x, raw T w, raw int32 ts, raw int32 paths,</span>
+<span class="sd">            raw T codes, raw int32 begins, raw T gloss,</span>
+<span class="sd">            int32 c, int32 max_length&#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;raw T gx, raw T gw&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            int ind = i / max_length;</span>
+<span class="sd">            int offset = i - ind * max_length;</span>
+<span class="sd">            int t = ts[ind];</span>
+
+<span class="sd">            int begin = begins[t];</span>
+<span class="sd">            int length = begins[t + 1] - begins[t];</span>
+
+<span class="sd">            if (offset &lt; length) {</span>
+<span class="sd">              int p = begin + offset;</span>
+<span class="sd">              int node = paths[p];</span>
+<span class="sd">              T code = codes[p];</span>
+
+<span class="sd">              T g = -gloss[0] * code / (1.0 + exp(wxy));</span>
+<span class="sd">              for (int j = 0; j &lt; c; ++j) {</span>
+<span class="sd">                int w_ind[] = {node, j};</span>
+<span class="sd">                int x_ind[] = {ind, j};</span>
+<span class="sd">                atomicAdd(&amp;gx[x_ind], g * w[w_ind]);</span>
+<span class="sd">                atomicAdd(&amp;gw[w_ind], g * x[x_ind]);</span>
+<span class="sd">              }</span>
+<span class="sd">            }</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;binary_hierarchical_softmax_bwd&#39;</span>
+        <span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">wxy</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">codes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">begins</span><span class="p">,</span> <span class="n">gloss</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span> <span class="n">gx</span><span class="p">,</span> <span class="n">gW</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gx</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gW</span>
+
+
+<div class="viewcode-block" id="BinaryHierarchicalSoftmax"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.BinaryHierarchicalSoftmax">[docs]</a><span class="k">class</span> <span class="nc">BinaryHierarchicalSoftmax</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Hierarchical softmax layer over binary tree.</span>
+
+<span class="sd">    In natural language applications, vocabulary size is too large to use</span>
+<span class="sd">    softmax loss.</span>
+<span class="sd">    Instead, the hierarchical softmax uses product of sigmoid functions.</span>
+<span class="sd">    It costs only :math:`O(\\log(n))` time where :math:`n` is the vocabulary</span>
+<span class="sd">    size in average.</span>
+
+<span class="sd">    At first a user need to prepare a binary tree whose each leaf is</span>
+<span class="sd">    corresponding to a word in a vocabulary.</span>
+<span class="sd">    When a word :math:`x` is given, exactly one path from the root of the tree</span>
+<span class="sd">    to the leaf of the word exists.</span>
+<span class="sd">    Let :math:`\\mbox{path}(x) = ((e_1, b_1), \\dots, (e_m, b_m))` be the path</span>
+<span class="sd">    of :math:`x`, where :math:`e_i` is an index of :math:`i`-th internal node,</span>
+<span class="sd">    and :math:`b_i \\in \\{-1, 1\\}` indicates direction to move at</span>
+<span class="sd">    :math:`i`-th internal node (-1 is left, and 1 is right).</span>
+<span class="sd">    Then, the probability of :math:`x` is given as below:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       P(x) &amp;= \\prod_{(e_i, b_i) \\in \\mbox{path}(x)}P(b_i | e_i)  \\\\</span>
+<span class="sd">            &amp;= \\prod_{(e_i, b_i) \\in \\mbox{path}(x)}\\sigma(b_i x^\\top</span>
+<span class="sd">               w_{e_i}),</span>
+
+<span class="sd">    where :math:`\\sigma(\\cdot)` is a sigmoid function, and :math:`w` is a</span>
+<span class="sd">    weight matrix.</span>
+
+<span class="sd">    This function costs :math:`O(\\log(n))` time as an average length of paths</span>
+<span class="sd">    is :math:`O(\\log(n))`, and :math:`O(n)` memory as the number of internal</span>
+<span class="sd">    nodes equals :math:`n - 1`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_size (int): Dimension of input vectors.</span>
+<span class="sd">        tree: A binary tree made with tuples like `((1, 2), 3)`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        W (~chainer.Variable): Weight parameter matrix.</span>
+
+<span class="sd">    See: Hierarchical Probabilistic Neural Network Language Model [Morin+,</span>
+<span class="sd">    AISTAT2005].</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span> <span class="n">tree</span><span class="p">):</span>
+        <span class="c1"># This function object is copied on every forward computation.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="n">BinaryHierarchicalSoftmaxFunction</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BinaryHierarchicalSoftmax</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">W</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="o">.</span><span class="n">parser_size</span><span class="p">,</span> <span class="n">in_size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">BinaryHierarchicalSoftmax</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BinaryHierarchicalSoftmax</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BinaryHierarchicalSoftmax.create_huffman_tree"><a class="viewcode-back" href="../../../../reference/links.html#chainer.links.BinaryHierarchicalSoftmax.create_huffman_tree">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">create_huffman_tree</span><span class="p">(</span><span class="n">word_counts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes a Huffman tree from a dictionary containing word counts.</span>
+
+<span class="sd">        This method creates a binary Huffman tree, that is required for</span>
+<span class="sd">        :class:`BinaryHierarchicalSoftmax`.</span>
+<span class="sd">        For example, ``{0: 8, 1: 5, 2: 6, 3: 4}`` is converted to</span>
+<span class="sd">        ``((3, 1), (2, 0))``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            word_counts (dict of int key and int or float values):</span>
+<span class="sd">                Dictionary representing counts of words.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Binary Huffman tree with tuples and keys of ``word_coutns``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">word_counts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty vocabulary&#39;</span><span class="p">)</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">PriorityQueue</span><span class="p">()</span>
+        <span class="c1"># Add unique id to each entry so that we can compare two entries with</span>
+        <span class="c1"># same counts.</span>
+        <span class="c1"># Note that itreitems randomly order the entries.</span>
+        <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">word_counts</span><span class="p">)):</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">w</span><span class="p">))</span>
+
+        <span class="k">while</span> <span class="n">q</span><span class="o">.</span><span class="n">qsize</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">count1</span><span class="p">,</span> <span class="n">id1</span><span class="p">,</span> <span class="n">word1</span><span class="p">)</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="p">(</span><span class="n">count2</span><span class="p">,</span> <span class="n">id2</span><span class="p">,</span> <span class="n">word2</span><span class="p">)</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">count1</span> <span class="o">+</span> <span class="n">count2</span>
+            <span class="n">tree</span> <span class="o">=</span> <span class="p">(</span><span class="n">word1</span><span class="p">,</span> <span class="n">word2</span><span class="p">)</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">count</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">id1</span><span class="p">,</span> <span class="n">id2</span><span class="p">),</span> <span class="n">tree</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes the loss value for given input and ground truth labels.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (~chainer.Variable): Input to the classifier at each node.</span>
+<span class="sd">            t (~chainer.Variable): Batch of ground truth labels.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~chainer.Variable: Loss value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="p">)</span>  <span class="c1"># creates a copy of the function node</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

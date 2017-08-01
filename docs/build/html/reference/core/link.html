@@ -1,0 +1,788 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Link and Chain &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="Core functionalities" href="../core.html"/>
+        <link rel="next" title="Optimizer" href="optimizer.html"/>
+        <link rel="prev" title="Function" href="function.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../core.html">Core functionalities</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="variable.html">Variable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flag.html">Flag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="function.html">Function</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Link and Chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optimizer.html">Optimizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="serializer.html">Serializer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dataset.html">Dataset abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="training.html">Training loop abstraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="debug.html">Debug mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="configuration.html">Configuring Chainer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+          <li><a href="../core.html">Core functionalities</a> &raquo;</li>
+        
+      <li>Link and Chain</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/core/link.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="link-and-chain">
+<h1>Link and Chain<a class="headerlink" href="#link-and-chain" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="chainer.Link">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Link</code><span class="sig-paren">(</span><em>**params</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Building block of model definitions.</p>
+<p>Link is a building block of neural network models that support various
+features like handling parameters, defining network fragments,
+serialization, etc.</p>
+<p>Link is the primitive structure for the model definitions. It supports
+management of parameter variables and <em>persistent values</em> that should be
+incorporated to serialization. Parameters are variables registered via
+the <a class="reference internal" href="#chainer.Link.add_param" title="chainer.Link.add_param"><code class="xref py py-meth docutils literal"><span class="pre">add_param()</span></code></a> method, or given to the initializer method.
+Persistent values are arrays, scalars, or any other serializable values
+registered via the <a class="reference internal" href="#chainer.Link.add_persistent" title="chainer.Link.add_persistent"><code class="xref py py-meth docutils literal"><span class="pre">add_persistent()</span></code></a> method.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Whereas arbitrary serializable objects can be registered as persistent
+values, it is strongly recommended to just register values that should
+be treated as results of learning. A typical example of persistent
+values is ones computed during training and required for testing, e.g.
+running statistics for batch normalization.</p>
+</div>
+<p>Parameters and persistent values are referred by their names. They can be
+accessed as attributes of the links. Link class itself manages the lists
+of names of parameters and persistent values to distinguish parameters and
+persistent values from other attributes.</p>
+<p>Link can be composed into more complex models. This composition feature is
+supported by child classes like <a class="reference internal" href="#chainer.Chain" title="chainer.Chain"><code class="xref py py-class docutils literal"><span class="pre">Chain</span></code></a> and <a class="reference internal" href="#chainer.ChainList" title="chainer.ChainList"><code class="xref py py-class docutils literal"><span class="pre">ChainList</span></code></a>. One
+can create a chain by combining one or more links. See the documents for
+these classes for details.</p>
+<p>As noted above, Link supports the serialization protocol of the
+<a class="reference internal" href="serializer.html#chainer.Serializer" title="chainer.Serializer"><code class="xref py py-class docutils literal"><span class="pre">Serializer</span></code></a> class. <strong>Note that only parameters and
+persistent values are saved and loaded.</strong> Other attributes are considered
+as a part of user program (i.e. a part of network definition). In order to
+construct a link from saved file, other attributes must be identically
+reconstructed by user codes.</p>
+<div class="admonition-example admonition">
+<p class="first admonition-title">Example</p>
+<p>This is a simple example of custom link definition. Chainer itself also
+provides many links defined under the <a class="reference internal" href="../links.html#module-chainer.links" title="chainer.links"><code class="xref py py-mod docutils literal"><span class="pre">links</span></code></a> module. They
+might serve as examples, too.</p>
+<p>Consider we want to define a simple primitive link that implements a
+fully-connected layer based on the <a class="reference internal" href="../functions.html#chainer.functions.linear" title="chainer.functions.linear"><code class="xref py py-func docutils literal"><span class="pre">linear()</span></code></a> function.
+Note that this function takes input units, a weight variable, and a bias
+variable as arguments. Then, the fully-connected layer can be defined as
+follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">class</span> <span class="nc">LinearLayer</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span> <span class="n">n_out</span><span class="p">):</span>
+        <span class="c1"># Parameters are initialized as a numpy array of given shape.</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LinearLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">W</span><span class="o">=</span><span class="p">(</span><span class="n">n_out</span><span class="p">,</span> <span class="n">n_in</span><span class="p">),</span>
+            <span class="n">b</span><span class="o">=</span><span class="p">(</span><span class="n">n_out</span><span class="p">,),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n_out</span><span class="p">,</span> <span class="n">n_in</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="last">This example shows that a user can define arbitrary parameters and use
+them in any methods. Links typically implement the <code class="docutils literal"><span class="pre">__call__</span></code>
+operator.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Names, shapes, and optional dtypes of initial parameters. The
+keywords are used as the parameter names and the corresponding
+values consist either of the shape or a tuple of shape and a dtype
+<cite>(shape, dtype)</cite>. If only the shape is supplied, the default dtype
+will be used.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of this link, given by the parent chain (if exists).</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.Link.add_param">
+<code class="descname">add_param</code><span class="sig-paren">(</span><em>name</em>, <em>shape=None</em>, <em>dtype=&lt;type 'numpy.float32'&gt;</em>, <em>initializer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.add_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.add_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a parameter to the link.</p>
+<p>The registered parameter is saved and loaded on serialization and
+deserialization, and involved in the optimization. The data and
+gradient of the variable are initialized by NaN arrays.
+If <code class="docutils literal"><span class="pre">initializer</span></code> is not <code class="docutils literal"><span class="pre">None</span></code>, the data is initialized by
+<code class="docutils literal"><span class="pre">initializer</span></code>. The initializer can be an array, in which case the
+parameter array is directly initialized by it.</p>
+<p>If <code class="docutils literal"><span class="pre">shape</span></code> is None and the initializer is not an array, this method
+does not initialize the data and gradient arrays of the parameter
+variable. They should be initialized by calling the
+<a class="reference internal" href="variable.html#chainer.Variable.initialize" title="chainer.Variable.initialize"><code class="xref py py-meth docutils literal"><span class="pre">chainer.Variable.initialize()</span></code></a> method before using the parameter
+in the forward computation. The shape can be specified at the
+initialization.</p>
+<p>The parameter is set to an attribute of the link with the given name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the parameter. This name is also used as the
+attribute name.</li>
+<li><strong>shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em> or </em><em>tuple of ints</em>) – Shape of the parameter array. If it
+is omitted, the parameter variable is left uninitialized.</li>
+<li><strong>dtype</strong> – Data type of the parameter array.</li>
+<li><strong>initializer</strong> – If it is not <code class="docutils literal"><span class="pre">None</span></code>, the data is initialized with
+the given initializer. If it is an array, the data is directly
+initialized by it. If it is callable, it is used as a weight
+initializer. Note that in these cases, <code class="docutils literal"><span class="pre">dtype</span></code> argument is
+ignored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.add_persistent">
+<code class="descname">add_persistent</code><span class="sig-paren">(</span><em>name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.add_persistent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.add_persistent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a persistent value to the link.</p>
+<p>The registered value is saved and loaded on serialization and
+deserialization. The value is set to an attribute of the link.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the persistent value. This name is also used
+for the attribute name.</li>
+<li><strong>value</strong> – Value to be registered.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.addgrads">
+<code class="descname">addgrads</code><span class="sig-paren">(</span><em>link</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.addgrads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.addgrads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulates gradient values from given link.</p>
+<p>This method adds each gradient array of the given link to corresponding
+gradient array of this link. The accumulation is even done across
+host and different devices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>link</strong> (<a class="reference internal" href="#chainer.Link" title="chainer.Link"><em>Link</em></a>) – Source link object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.children">
+<code class="descname">children</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.children"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator of all child links.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A generator object that generates all child links.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.cleargrads">
+<code class="descname">cleargrads</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.cleargrads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.cleargrads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clears all gradient arrays.</p>
+<p>This method should be called before the backward computation at every
+iteration of the optimization.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies the link hierarchy to new one.</p>
+<p>The whole hierarchy rooted by this link is copied. The copy is
+basically shallow, except that the parameter variables are also
+shallowly copied. It means that the parameter variables of copied one
+are different from ones of original link, while they share the data and
+gradient arrays.</p>
+<p>The name of the link is reset on the copy, since the copied instance
+does not belong to the original parent chain (even if exists).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Copied link object.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#chainer.Link" title="chainer.Link">Link</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.copyparams">
+<code class="descname">copyparams</code><span class="sig-paren">(</span><em>link</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.copyparams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.copyparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies all parameters from given link.</p>
+<p>This method copies data arrays of all parameters in the hierarchy. The
+copy is even done across the host and devices. Note that this method
+does not copy the gradient arrays.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>link</strong> (<a class="reference internal" href="#chainer.Link" title="chainer.Link"><em>Link</em></a>) – Source link object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.disable_update">
+<code class="descname">disable_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.disable_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.disable_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables update rules of all parameters under the link hierarchy.</p>
+<p>This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+update rule of each parameter variable to <code class="docutils literal"><span class="pre">False</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.enable_update">
+<code class="descname">enable_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.enable_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.enable_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enables update rules of all parameters under the link hierarchy.</p>
+<p>This method sets the <code class="xref py py-attr docutils literal"><span class="pre">enabled</span></code> flag of the
+update rule of each parameter variable to <code class="docutils literal"><span class="pre">True</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.links">
+<code class="descname">links</code><span class="sig-paren">(</span><em>skipself=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.links"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator of all links under the hierarchy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>skipself</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, then the generator skips this link
+and starts with the first child link.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A generator object that generates all links.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.namedlinks">
+<code class="descname">namedlinks</code><span class="sig-paren">(</span><em>skipself=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.namedlinks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.namedlinks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator of all (path, link) pairs under the hierarchy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>skipself</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, then the generator skips this link
+and starts with the first child link.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A generator object that generates all (path, link) pairs.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.namedparams">
+<code class="descname">namedparams</code><span class="sig-paren">(</span><em>include_uninit=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.namedparams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.namedparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator of all (path, param) pairs under the hierarchy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>include_uninit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, it also generates uninitialized
+parameters.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A generator object that generates all (path, parameter) pairs. The
+paths are relative from this link.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.params">
+<code class="descname">params</code><span class="sig-paren">(</span><em>include_uninit=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator of all parameters under the link hierarchy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>include_uninit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, it also generates uninitialized
+parameters.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A generator object that generates all parameters.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.serialize">
+<code class="descname">serialize</code><span class="sig-paren">(</span><em>serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes the link object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>serializer</strong> (<a class="reference internal" href="serializer.html#chainer.AbstractSerializer" title="chainer.AbstractSerializer"><em>AbstractSerializer</em></a>) – Serializer object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.to_cpu">
+<code class="descname">to_cpu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.to_cpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.to_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies parameter variables and persistent values to CPU.</p>
+<p>This method does not handle non-registered attributes. If some of such
+attributes must be copied to CPU, the link implementation must
+override this method to do so.</p>
+<p>Returns: self</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.to_gpu">
+<code class="descname">to_gpu</code><span class="sig-paren">(</span><em>device=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.to_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.to_gpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies parameter variables and persistent values to GPU.</p>
+<p>This method does not handle non-registered attributes. If some of such
+attributes must be copied to GPU, the link implementation must
+override this method to do so.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>device</strong> – Target device specifier. If omitted, the current device is
+used.</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: self</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="chainer.Link.update_enabled">
+<code class="descname">update_enabled</code><a class="headerlink" href="#chainer.Link.update_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="docutils literal"><span class="pre">True</span></code> if at least one parameter has an update rule enabled.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="chainer.Link.xp">
+<code class="descname">xp</code><a class="headerlink" href="#chainer.Link.xp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array module for this link.</p>
+<p>Depending on which of CPU/GPU this link is on, this property returns
+<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/index.html#module-numpy" title="(in NumPy v1.13)"><code class="xref py py-mod docutils literal"><span class="pre">numpy</span></code></a> or <code class="xref py py-mod docutils literal"><span class="pre">cupy</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Link.zerograds">
+<code class="descname">zerograds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Link.zerograds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Link.zerograds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes all gradient arrays by zero.</p>
+<p>This method can be used for the same purpose of cleargrads, but less
+efficient. This method is left for backward compatibility.</p>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version v1.15: </span>Use <a class="reference internal" href="#chainer.Link.cleargrads" title="chainer.Link.cleargrads"><code class="xref py py-meth docutils literal"><span class="pre">cleargrads()</span></code></a> instead.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.Chain">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Chain</code><span class="sig-paren">(</span><em>**links</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Chain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Composable link with object-like interface.</p>
+<p>Composability is one of the most important features of neural nets. Neural
+net models consist of many reusable fragments, and each model itself might
+be embedded into a larger learnable system. Chain enables us to write a
+neural net based on composition, without bothering about routine works like
+collecting parameters, serialization, copying the structure with parameters
+shared, etc.</p>
+<p>This class actually provides a way to compose one or more links into one
+structure. A chain can contain one or more <em>child links</em>. Child link is a
+link registered to the chain with its own name. The child link is stored to
+an attribute of the chain with the name. User can write a whole model or a
+fragment of neural nets as a child class of Chain.</p>
+<p>Each chain itself is also a link. Therefore, one can combine chains into
+higher-level chains. In this way, links and chains construct a <em>link
+hierarchy</em>. Link hierarchy forms a tree structure, where each node is
+identified by the path from the root. The path is represented by a string
+like a file path in UNIX, consisting of names of nodes on the path, joined
+by slashes <code class="docutils literal"><span class="pre">/</span></code>.</p>
+<div class="admonition-example admonition">
+<p class="first admonition-title">Example</p>
+<p>This is a simple example of custom chain definition. Chainer itself also
+provides some chains defined under the <a class="reference internal" href="../links.html#module-chainer.links" title="chainer.links"><code class="xref py py-mod docutils literal"><span class="pre">links</span></code></a> module.
+They might serve as examples, too.</p>
+<p>Consider we want to define a multi-layer perceptron consisting of two
+hidden layers with rectifiers as activation functions. We can use the
+<a class="reference internal" href="../links.html#chainer.links.Linear" title="chainer.links.Linear"><code class="xref py py-class docutils literal"><span class="pre">Linear</span></code></a> link as a building block:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
+
+<span class="k">class</span> <span class="nc">MultiLayerPerceptron</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_in</span><span class="p">,</span> <span class="n">n_hidden</span><span class="p">,</span> <span class="n">n_out</span><span class="p">):</span>
+        <span class="c1"># Create and register three layers for this MLP</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MultiLayerPerceptron</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">layer1</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_in</span><span class="p">,</span> <span class="n">n_hidden</span><span class="p">),</span>
+            <span class="n">layer2</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_hidden</span><span class="p">,</span> <span class="n">n_hidden</span><span class="p">),</span>
+            <span class="n">layer3</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_hidden</span><span class="p">,</span> <span class="n">n_out</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Forward propagation</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">h1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="last">Child links are registered via the initializer method. They also can be
+registered by the <a class="reference internal" href="#chainer.Chain.add_link" title="chainer.Chain.add_link"><code class="xref py py-meth docutils literal"><span class="pre">add_link()</span></code></a> method. The forward propagation is
+often implemented as The <code class="docutils literal"><span class="pre">__call__</span></code> operator as the above example,
+though it is not mandatory.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>links</strong> – Child links. The keywords are used as their names. The names are
+also set to the links.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.Chain.add_link">
+<code class="descname">add_link</code><span class="sig-paren">(</span><em>name</em>, <em>link</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#Chain.add_link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Chain.add_link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a child link to this chain.</p>
+<p>The registered link is saved and loaded on serialization and
+deserialization, and involved in the optimization. The registered link
+is called a child. The child link is set to an attribute of the chain
+with the given name.</p>
+<p>This method also sets the <code class="xref py py-attr docutils literal"><span class="pre">name</span></code> attribute of the
+registered link. If the given link already has the name attribute set,
+then it raises an error.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the child link. This name is also used as the
+attribute name.</li>
+<li><strong>link</strong> (<a class="reference internal" href="#chainer.Link" title="chainer.Link"><em>Link</em></a>) – The link object to be registered.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.ChainList">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">ChainList</code><span class="sig-paren">(</span><em>*links</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#ChainList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.ChainList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Composable link with list-like interface.</p>
+<p>This is another example of compositional link. Unlike <a class="reference internal" href="#chainer.Chain" title="chainer.Chain"><code class="xref py py-class docutils literal"><span class="pre">Chain</span></code></a>, this
+class can be used like a list of child links. Each child link is indexed by
+a non-negative integer, and it maintains the current number of registered
+child links. The <a class="reference internal" href="#chainer.ChainList.add_link" title="chainer.ChainList.add_link"><code class="xref py py-meth docutils literal"><span class="pre">add_link()</span></code></a> method inserts a new link at the end of
+the list. It is useful to write a chain with arbitrary number of child
+links, e.g. an arbitrarily deep multi-layer perceptron.</p>
+<p>Note that this class does not implement all methods of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><code class="xref py py-class docutils literal"><span class="pre">list</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>links</strong> – Initial child links.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.ChainList.add_link">
+<code class="descname">add_link</code><span class="sig-paren">(</span><em>link</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/link.html#ChainList.add_link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.ChainList.add_link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a child link to this chain.</p>
+<p>The registered link is saved and loaded on serialization and
+deserialization, and involved in the optimization. The registered link
+is called a child. The child link is accessible via <code class="xref py py-meth docutils literal"><span class="pre">children()</span></code>
+generator, which returns a generator running through the children in
+registered order.</p>
+<p>This method also sets the <code class="xref py py-attr docutils literal"><span class="pre">name</span></code> attribute of the
+registered link. If the given link already has the name attribute set,
+then it raises an error.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>link</strong> (<a class="reference internal" href="#chainer.Link" title="chainer.Link"><em>Link</em></a>) – The link object to be registered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="optimizer.html" class="btn btn-neutral float-right" title="Optimizer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="function.html" class="btn btn-neutral" title="Function" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

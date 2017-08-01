@@ -1,0 +1,593 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Reporter &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="Utilities" href="../util.html"/>
+        <link rel="next" title="Experimental feature annotation" href="experimental.html"/>
+        <link rel="prev" title="Common algorithms" href="algorithm.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../core.html">Core functionalities</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../util.html">Utilities</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">CUDA utilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="algorithm.html">Common algorithms</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Reporter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Reporter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary-and-dictsummary">Summary and DictSummary</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="experimental.html">Experimental feature annotation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimizers.html">Optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../serializers.html">Serializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+          <li><a href="../util.html">Utilities</a> &raquo;</li>
+        
+      <li>Reporter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/util/reporter.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="reporter">
+<span id="id1"></span><h1>Reporter<a class="headerlink" href="#reporter" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id2">
+<h2>Reporter<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.Reporter">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Reporter</code><a class="reference internal" href="../../_modules/chainer/reporter.html#Reporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Reporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object to which observed values are reported.</p>
+<p>Reporter is used to collect values that users want to watch. The reporter
+object holds a mapping from value names to the actually observed values.
+We call this mapping <cite>observations</cite>.</p>
+<p>When a value is passed to the reporter, an object called <cite>observer</cite> can be
+optionally attached. In this case, the name of the observer is added as the
+prefix of the value name. The observer name should be registered
+beforehand.</p>
+<p>See the following example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">Reporter</span><span class="p">,</span> <span class="n">report</span><span class="p">,</span> <span class="n">report_scope</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">observer</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>  <span class="c1"># it can be an arbitrary (reference) object</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reporter</span><span class="o">.</span><span class="n">add_observer</span><span class="p">(</span><span class="s1">&#39;my_observer:&#39;</span><span class="p">,</span> <span class="n">observer</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">observation</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">scope</span><span class="p">(</span><span class="n">observation</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">observer</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">observation</span>
+<span class="go">{&#39;my_observer:x&#39;: 1}</span>
+</pre></div>
+</div>
+<p>There are also a global API to add values:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">observation</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">report_scope</span><span class="p">(</span><span class="n">observation</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">report</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">observer</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">observation</span>
+<span class="go">{&#39;my_observer:x&#39;: 1}</span>
+</pre></div>
+</div>
+<p>The most important application of Reporter is to report observed values
+from each link or chain in the training and validation procedures.
+<a class="reference internal" href="../core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a> and some extensions prepare their own
+Reporter object with the hierarchy of the target link registered as
+observers. We can use <a class="reference internal" href="#chainer.report" title="chainer.report"><code class="xref py py-func docutils literal"><span class="pre">report()</span></code></a> function inside any links and chains
+to report the observed values (e.g., training loss, accuracy, activation
+statistics, etc.).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>observation</strong> – Dictionary of observed values.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="chainer.Reporter.add_observer">
+<code class="descname">add_observer</code><span class="sig-paren">(</span><em>name</em>, <em>observer</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Reporter.add_observer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Reporter.add_observer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an observer of values.</p>
+<p>Observer defines a scope of names for observed values. Values observed
+with the observer are registered with names prefixed by the observer
+name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the observer.</li>
+<li><strong>observer</strong> – The observer object. Note that the reporter distinguishes
+the observers by their object ids (i.e., <code class="docutils literal"><span class="pre">id(owner)</span></code>), rather
+than the object equality.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Reporter.add_observers">
+<code class="descname">add_observers</code><span class="sig-paren">(</span><em>prefix</em>, <em>observers</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Reporter.add_observers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Reporter.add_observers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers multiple observers at once.</p>
+<p>This is a convenient method to register multiple objects at once.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Prefix of each name of observers.</li>
+<li><strong>observers</strong> – Iterator of name and observer pairs.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Reporter.report">
+<code class="descname">report</code><span class="sig-paren">(</span><em>values</em>, <em>observer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Reporter.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Reporter.report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reports observed values.</p>
+<p>The values are written with the key, prefixed by the name of the
+observer object if given.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>values</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Dictionary of observed values.</li>
+<li><strong>observer</strong> – Observer object. Its object ID is used to retrieve the
+observer name, which is used as the prefix of the registration
+name of the observed value.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Reporter.scope">
+<code class="descname">scope</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Reporter.scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Reporter.scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a scope to report observed values to <code class="docutils literal"><span class="pre">observation</span></code>.</p>
+<p>This is a context manager to be passed to <code class="docutils literal"><span class="pre">with</span></code> statements. In this
+scope, the observation dictionary is changed to the given one.</p>
+<p>It also makes this reporter object current.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>observation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Observation dictionary. All observations
+reported inside of the <code class="docutils literal"><span class="pre">with</span></code> statement are written to this
+dictionary.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.get_current_reporter">
+<code class="descclassname">chainer.</code><code class="descname">get_current_reporter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#get_current_reporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.get_current_reporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current reporter object.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.report">
+<code class="descclassname">chainer.</code><code class="descname">report</code><span class="sig-paren">(</span><em>values</em>, <em>observer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reports observed values with the current reporter object.</p>
+<p>Any reporter object can be set current by the <code class="docutils literal"><span class="pre">with</span></code> statement. This
+function calls the <code class="xref py py-meth docutils literal"><span class="pre">Report.report()</span></code> method of the current reporter.
+If no reporter object is current, this function does nothing.</p>
+<div class="admonition-example admonition">
+<p class="first admonition-title">Example</p>
+<p>The most typical example is a use within links and chains. Suppose that
+a link is registered to the current reporter as an observer (for
+example, the target link of the optimizer is automatically registered to
+the reporter of the <a class="reference internal" href="../core/training.html#chainer.training.Trainer" title="chainer.training.Trainer"><code class="xref py py-class docutils literal"><span class="pre">Trainer</span></code></a>). We can report
+some values from the link as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyRegressor</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictor</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyRegressor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">predictor</span><span class="o">=</span><span class="n">predictor</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="c1"># This chain just computes the mean absolute and squared</span>
+        <span class="c1"># errors between the prediction and y.</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">abs_error</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">y</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mean_squared_error</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># Report the mean absolute and squared errors.</span>
+        <span class="n">report</span><span class="p">({</span><span class="s1">&#39;abs_error&#39;</span><span class="p">:</span> <span class="n">abs_error</span><span class="p">,</span> <span class="s1">&#39;squared_error&#39;</span><span class="p">:</span> <span class="n">loss</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss</span>
+</pre></div>
+</div>
+<p class="last">If the link is named <code class="docutils literal"><span class="pre">'main'</span></code> in the hierarchy (which is the default
+name of the target link in the
+<a class="reference internal" href="../core/training.html#chainer.training.StandardUpdater" title="chainer.training.StandardUpdater"><code class="xref py py-class docutils literal"><span class="pre">StandardUpdater</span></code></a>), these reported values are
+named <code class="docutils literal"><span class="pre">'main/abs_error'</span></code> and <code class="docutils literal"><span class="pre">'main/squared_error'</span></code>. If these values
+are reported inside the <code class="xref py py-class docutils literal"><span class="pre">Evaluator</span></code>
+extension, <code class="docutils literal"><span class="pre">'validation/'</span></code> is added at the head of the link name, thus
+the item names are changed to <code class="docutils literal"><span class="pre">'validation/main/abs_error'</span></code> and
+<code class="docutils literal"><span class="pre">'validation/main/squared_error'</span></code> (<code class="docutils literal"><span class="pre">'validation'</span></code> is the default
+name of the Evaluator extension).</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>values</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Dictionary of observed values.</li>
+<li><strong>observer</strong> – Observer object. Its object ID is used to retrieve the
+observer name, which is used as the prefix of the registration name
+of the observed value.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.report_scope">
+<code class="descclassname">chainer.</code><code class="descname">report_scope</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#report_scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.report_scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a report scope with the current reporter.</p>
+<p>This is equivalent to <code class="docutils literal"><span class="pre">get_current_reporter().scope(observation)</span></code>,
+except that it does not make the reporter current redundantly.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="summary-and-dictsummary">
+<h2>Summary and DictSummary<a class="headerlink" href="#summary-and-dictsummary" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.Summary">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">Summary</code><a class="reference internal" href="../../_modules/chainer/reporter.html#Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Online summarization of a sequence of scalars.</p>
+<p>Summary computes the statistics of given scalars online.</p>
+<dl class="method">
+<dt id="chainer.Summary.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Summary.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Summary.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a scalar value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> – Scalar value to accumulate. It is either a NumPy scalar or
+a zero-dimensional array (on CPU or GPU).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Summary.compute_mean">
+<code class="descname">compute_mean</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Summary.compute_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Summary.compute_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mean.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.Summary.make_statistics">
+<code class="descname">make_statistics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#Summary.make_statistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.Summary.make_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes and returns the mean and standard deviation values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Mean and standard deviation values.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.6)">tuple</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.DictSummary">
+<em class="property">class </em><code class="descclassname">chainer.</code><code class="descname">DictSummary</code><a class="reference internal" href="../../_modules/chainer/reporter.html#DictSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.DictSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Online summarization of a sequence of dictionaries.</p>
+<p><code class="docutils literal"><span class="pre">DictSummary</span></code> computes the statistics of a given set of scalars online.
+It only computes the statistics for scalar values and variables of scalar
+values in the dictionaries.</p>
+<dl class="method">
+<dt id="chainer.DictSummary.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#DictSummary.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.DictSummary.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a dictionary of scalars.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>d</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Dictionary of scalars to accumulate. Only elements of
+scalars, zero-dimensional arrays, and variables of
+zero-dimensional arrays are accumulated.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.DictSummary.compute_mean">
+<code class="descname">compute_mean</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#DictSummary.compute_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.DictSummary.compute_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dictionary of mean values.</p>
+<p>It returns a single dictionary that holds a mean value for each entry
+added to the summary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of mean values.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="chainer.DictSummary.make_statistics">
+<code class="descname">make_statistics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/chainer/reporter.html#DictSummary.make_statistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.DictSummary.make_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dictionary of statistics.</p>
+<p>It returns a single dictionary that holds mean and standard deviation
+values for every entry added to the summary. For an entry of name
+<code class="docutils literal"><span class="pre">'key'</span></code>, these values are added to the dictionary by names <code class="docutils literal"><span class="pre">'key'</span></code>
+and <code class="docutils literal"><span class="pre">'key.std'</span></code>, respectively.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of statistics of all entries.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="experimental.html" class="btn btn-neutral float-right" title="Experimental feature annotation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="algorithm.html" class="btn btn-neutral" title="Common algorithms" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

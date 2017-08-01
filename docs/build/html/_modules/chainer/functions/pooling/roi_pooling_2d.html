@@ -1,0 +1,571 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.functions.pooling.roi_pooling_2d &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.functions.pooling.roi_pooling_2d</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.functions.pooling.roi_pooling_2d</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Modified work:</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Copyright (c) 2015 Preferred Infrastructure, Inc.</span>
+<span class="c1"># Copyright (c) 2015 Preferred Networks, Inc.</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="c1"># Original work of _roi_pooling_slice, forward_cpu and backward_cpu:</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Copyright 2014 Nervana Systems Inc.</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="c1"># Original work of forward_gpu and backward_gpu:</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Fast R-CNN</span>
+<span class="c1"># Copyright (c) 2015 Microsoft</span>
+<span class="c1"># Licensed under The MIT License [see fast-rcnn/LICENSE for details]</span>
+<span class="c1"># Written by Ross Girshick</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="k">import</span> <span class="n">type_check</span>
+
+
+<span class="k">def</span> <span class="nf">_roi_pooling_slice</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">max_size</span><span class="p">,</span> <span class="n">roi_offset</span><span class="p">):</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="n">stride</span><span class="p">))</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">stride</span><span class="p">))</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">roi_offset</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_size</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">end</span> <span class="o">+</span> <span class="n">roi_offset</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_size</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+
+
+<span class="k">class</span> <span class="nc">ROIPooling2D</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;RoI pooling over a set of 2d planes.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outh</span><span class="p">,</span> <span class="n">outw</span><span class="p">,</span> <span class="n">spatial_scale</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span> <span class="o">=</span> <span class="n">outh</span><span class="p">,</span> <span class="n">outw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span> <span class="o">=</span> <span class="n">spatial_scale</span>
+
+    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">x_type</span><span class="p">,</span> <span class="n">roi_type</span> <span class="o">=</span> <span class="n">in_types</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="n">roi_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">roi_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">roi_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">bottom_data</span><span class="p">,</span> <span class="n">bottom_rois</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">bottom_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">n_rois</span> <span class="o">=</span> <span class="n">bottom_rois</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">top_data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_rois</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">),</span>
+                               <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">top_data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i_roi</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_rois</span><span class="p">):</span>
+            <span class="n">idx</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">bottom_rois</span><span class="p">[</span><span class="n">i_roi</span><span class="p">]</span>
+            <span class="n">xmin</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">xmin</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">xmax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">xmax</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">ymin</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ymin</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">ymax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ymax</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">roi_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">roi_height</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">strideh</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="n">roi_height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span>
+            <span class="n">stridew</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="n">roi_width</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span>
+
+            <span class="k">for</span> <span class="n">outh</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">):</span>
+                <span class="n">sliceh</span><span class="p">,</span> <span class="n">lenh</span> <span class="o">=</span> <span class="n">_roi_pooling_slice</span><span class="p">(</span>
+                    <span class="n">outh</span><span class="p">,</span> <span class="n">strideh</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">ymin</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sliceh</span><span class="o">.</span><span class="n">stop</span> <span class="o">&lt;=</span> <span class="n">sliceh</span><span class="o">.</span><span class="n">start</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">outw</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">):</span>
+                    <span class="n">slicew</span><span class="p">,</span> <span class="n">lenw</span> <span class="o">=</span> <span class="n">_roi_pooling_slice</span><span class="p">(</span>
+                        <span class="n">outw</span><span class="p">,</span> <span class="n">stridew</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">xmin</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">slicew</span><span class="o">.</span><span class="n">stop</span> <span class="o">&lt;=</span> <span class="n">slicew</span><span class="o">.</span><span class="n">start</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="n">roi_data</span> <span class="o">=</span> <span class="n">bottom_data</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span> <span class="p">:,</span> <span class="n">sliceh</span><span class="p">,</span> <span class="n">slicew</span><span class="p">]</span>\
+                        <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">top_data</span><span class="p">[</span><span class="n">i_roi</span><span class="p">,</span> <span class="p">:,</span> <span class="n">outh</span><span class="p">,</span> <span class="n">outw</span><span class="p">]</span> <span class="o">=</span>\
+                        <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">roi_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+                    <span class="c1"># get the max idx respect to feature_maps coordinates</span>
+                    <span class="n">max_idx_slice</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span>
+                        <span class="n">numpy</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">roi_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">lenh</span><span class="p">,</span> <span class="n">lenw</span><span class="p">))</span>
+                    <span class="n">max_idx_slice_h</span> <span class="o">=</span> <span class="n">max_idx_slice</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">sliceh</span><span class="o">.</span><span class="n">start</span>
+                    <span class="n">max_idx_slice_w</span> <span class="o">=</span> <span class="n">max_idx_slice</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">slicew</span><span class="o">.</span><span class="n">start</span>
+                    <span class="n">max_idx_slice</span> <span class="o">=</span> <span class="n">max_idx_slice_h</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">max_idx_slice_w</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span><span class="p">[</span><span class="n">i_roi</span><span class="p">,</span> <span class="p">:,</span> <span class="n">outh</span><span class="p">,</span> <span class="n">outw</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_idx_slice</span>
+        <span class="k">return</span> <span class="n">top_data</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">forward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">bottom_data</span><span class="p">,</span> <span class="n">bottom_rois</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">bottom_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">n_rois</span> <span class="o">=</span> <span class="n">bottom_rois</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">top_data</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_rois</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">top_data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ElementwiseKernel</span><span class="p">(</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            raw float32 bottom_data, float32 spatial_scale, int32 channels,</span>
+<span class="sd">            int32 height, int32 width, int32 pooled_height, int32 pooled_width,</span>
+<span class="sd">            raw float32 bottom_rois</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;float32 top_data, int32 argmax_data&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            // pos in output filter</span>
+<span class="sd">            int pw = i % pooled_width;</span>
+<span class="sd">            int ph = (i / pooled_width) % pooled_height;</span>
+<span class="sd">            int c = (i / pooled_width / pooled_height) % channels;</span>
+<span class="sd">            int num = i / pooled_width / pooled_height / channels;</span>
+
+<span class="sd">            int roi_batch_ind = bottom_rois[num * 5 + 0];</span>
+<span class="sd">            int roi_start_w = round(bottom_rois[num * 5 + 1] * spatial_scale);</span>
+<span class="sd">            int roi_start_h = round(bottom_rois[num * 5 + 2] * spatial_scale);</span>
+<span class="sd">            int roi_end_w = round(bottom_rois[num * 5 + 3] * spatial_scale);</span>
+<span class="sd">            int roi_end_h = round(bottom_rois[num * 5 + 4] * spatial_scale);</span>
+
+<span class="sd">            // Force malformed ROIs to be 1x1</span>
+<span class="sd">            int roi_width = max(roi_end_w - roi_start_w + 1, 1);</span>
+<span class="sd">            int roi_height = max(roi_end_h - roi_start_h + 1, 1);</span>
+<span class="sd">            float bin_size_h = static_cast&lt;float&gt;(roi_height)</span>
+<span class="sd">                           / static_cast&lt;float&gt;(pooled_height);</span>
+<span class="sd">            float bin_size_w = static_cast&lt;float&gt;(roi_width)</span>
+<span class="sd">                           / static_cast&lt;float&gt;(pooled_width);</span>
+
+<span class="sd">            int hstart = static_cast&lt;int&gt;(floor(static_cast&lt;float&gt;(ph)</span>
+<span class="sd">                                          * bin_size_h));</span>
+<span class="sd">            int wstart = static_cast&lt;int&gt;(floor(static_cast&lt;float&gt;(pw)</span>
+<span class="sd">                                          * bin_size_w));</span>
+<span class="sd">            int hend = static_cast&lt;int&gt;(ceil(static_cast&lt;float&gt;(ph + 1)</span>
+<span class="sd">                                        * bin_size_h));</span>
+<span class="sd">            int wend = static_cast&lt;int&gt;(ceil(static_cast&lt;float&gt;(pw + 1)</span>
+<span class="sd">                                        * bin_size_w));</span>
+
+<span class="sd">            // Add roi offsets and clip to input boundaries</span>
+<span class="sd">            hstart = min(max(hstart + roi_start_h, 0), height);</span>
+<span class="sd">            hend = min(max(hend + roi_start_h, 0), height);</span>
+<span class="sd">            wstart = min(max(wstart + roi_start_w, 0), width);</span>
+<span class="sd">            wend = min(max(wend + roi_start_w, 0), width);</span>
+<span class="sd">            bool is_empty = (hend &lt;= hstart) || (wend &lt;= wstart);</span>
+
+<span class="sd">            // Define an empty pooling region to be zero</span>
+<span class="sd">            float maxval = is_empty ? 0 : -1E+37;</span>
+<span class="sd">            // If nothing is pooled, argmax=-1 causes nothing to be backprop&#39;d</span>
+<span class="sd">            int maxidx = -1;</span>
+<span class="sd">            int data_offset = (roi_batch_ind * channels + c) * height * width;</span>
+<span class="sd">            for (int h = hstart; h &lt; hend; ++h) {</span>
+<span class="sd">                for (int w = wstart; w &lt; wend; ++w) {</span>
+<span class="sd">                    int bottom_index = h * width + w;</span>
+<span class="sd">                    if (bottom_data[data_offset + bottom_index] &gt; maxval) {</span>
+<span class="sd">                        maxval = bottom_data[data_offset + bottom_index];</span>
+<span class="sd">                        maxidx = bottom_index;</span>
+<span class="sd">                    }</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            top_data = maxval;</span>
+<span class="sd">            argmax_data = maxidx;</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;roi_poolig_2d_fwd&#39;</span>
+        <span class="p">)(</span><span class="n">bottom_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">,</span> <span class="n">bottom_rois</span><span class="p">,</span> <span class="n">top_data</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">top_data</span><span class="p">,</span>
+
+    <span class="k">def</span> <span class="nf">backward_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">gy</span><span class="p">):</span>
+        <span class="n">bottom_data</span><span class="p">,</span> <span class="n">bottom_rois</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">bottom_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">n_rois</span> <span class="o">=</span> <span class="n">bottom_rois</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bottom_delta</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bottom_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i_roi</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_rois</span><span class="p">):</span>
+            <span class="n">idx</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">bottom_rois</span><span class="p">[</span><span class="n">i_roi</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+            <span class="n">xmin</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">xmin</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">xmax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">xmax</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">ymin</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ymin</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">ymax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ymax</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">))</span>
+            <span class="n">roi_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">roi_height</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">strideh</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">roi_height</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">)</span>
+            <span class="n">stridew</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">roi_width</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">)</span>
+
+            <span class="c1"># iterate all the w, h (from feature map) that fall into this ROIs</span>
+            <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">phstart</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="n">strideh</span><span class="p">))</span>
+                    <span class="n">phend</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">ymin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">strideh</span><span class="p">))</span>
+                    <span class="n">pwstart</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="n">stridew</span><span class="p">))</span>
+                    <span class="n">pwend</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">xmin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">stridew</span><span class="p">))</span>
+
+                    <span class="n">phstart</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">phstart</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">)</span>
+                    <span class="n">phend</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">phend</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">)</span>
+                    <span class="n">pwstart</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">pwstart</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">)</span>
+                    <span class="n">pwend</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">pwend</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">ph</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">phstart</span><span class="p">,</span> <span class="n">phend</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">pw</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">pwstart</span><span class="p">,</span> <span class="n">pwend</span><span class="p">):</span>
+                            <span class="n">max_idx_tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span><span class="p">[</span><span class="n">i_roi</span><span class="p">,</span> <span class="p">:,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">pw</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">channels</span><span class="p">):</span>
+                                <span class="k">if</span> <span class="n">max_idx_tmp</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">w</span><span class="p">):</span>
+                                    <span class="n">bottom_delta</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">]</span> <span class="o">+=</span> \
+                                        <span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i_roi</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">pw</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">bottom_delta</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">backward_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">gy</span><span class="p">):</span>
+        <span class="n">bottom_data</span><span class="p">,</span> <span class="n">bottom_rois</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">bottom_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">bottom_diff</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bottom_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">ElementwiseKernel</span><span class="p">(</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            raw float32 top_diff, raw int32 argmax_data, int32 num_rois,</span>
+<span class="sd">            float32 spatial_scale, int32 channels, int32 height, int32 width,</span>
+<span class="sd">            int32 pooled_height, int32 pooled_width, raw float32 bottom_rois</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;float32 bottom_diff&#39;</span><span class="p">,</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            int w = i % width;</span>
+<span class="sd">            int h = (i / width) % height;</span>
+<span class="sd">            int c = (i / (width * height)) % channels;</span>
+<span class="sd">            int num = i / (width * height * channels);</span>
+
+<span class="sd">            float gradient = 0;</span>
+<span class="sd">            // Accumulate gradient over all ROIs that pooled this element</span>
+<span class="sd">            for (int roi_n = 0; roi_n &lt; num_rois; ++roi_n) {</span>
+<span class="sd">                // Skip if ROI&#39;s batch index doesn&#39;t match num</span>
+<span class="sd">                if (num != static_cast&lt;int&gt;(bottom_rois[roi_n * 5])) {</span>
+<span class="sd">                    continue;</span>
+<span class="sd">                }</span>
+
+<span class="sd">                int roi_start_w = round(bottom_rois[roi_n * 5 + 1]</span>
+<span class="sd">                                        * spatial_scale);</span>
+<span class="sd">                int roi_start_h = round(bottom_rois[roi_n * 5 + 2]</span>
+<span class="sd">                                        * spatial_scale);</span>
+<span class="sd">                int roi_end_w = round(bottom_rois[roi_n * 5 + 3]</span>
+<span class="sd">                                      * spatial_scale);</span>
+<span class="sd">                int roi_end_h = round(bottom_rois[roi_n * 5 + 4]</span>
+<span class="sd">                                      * spatial_scale);</span>
+
+<span class="sd">                // Skip if ROI doesn&#39;t include (h, w)</span>
+<span class="sd">                const bool in_roi = (w &gt;= roi_start_w &amp;&amp; w &lt;= roi_end_w &amp;&amp;</span>
+<span class="sd">                                     h &gt;= roi_start_h &amp;&amp; h &lt;= roi_end_h);</span>
+<span class="sd">                if (!in_roi) {</span>
+<span class="sd">                    continue;</span>
+<span class="sd">                }</span>
+
+<span class="sd">                int offset = (roi_n * channels + c) * pooled_height</span>
+<span class="sd">                             * pooled_width;</span>
+
+<span class="sd">                // Compute feasible set of pooled units that could have pooled</span>
+<span class="sd">                // this bottom unit</span>
+
+<span class="sd">                // Force malformed ROIs to be 1x1</span>
+<span class="sd">                int roi_width = max(roi_end_w - roi_start_w + 1, 1);</span>
+<span class="sd">                int roi_height = max(roi_end_h - roi_start_h + 1, 1);</span>
+
+<span class="sd">                float bin_size_h = static_cast&lt;float&gt;(roi_height)</span>
+<span class="sd">                               / static_cast&lt;float&gt;(pooled_height);</span>
+<span class="sd">                float bin_size_w = static_cast&lt;float&gt;(roi_width)</span>
+<span class="sd">                               / static_cast&lt;float&gt;(pooled_width);</span>
+
+<span class="sd">                int phstart = floor(static_cast&lt;float&gt;(h - roi_start_h)</span>
+<span class="sd">                                    / bin_size_h);</span>
+<span class="sd">                int phend = ceil(static_cast&lt;float&gt;(h - roi_start_h + 1)</span>
+<span class="sd">                                 / bin_size_h);</span>
+<span class="sd">                int pwstart = floor(static_cast&lt;float&gt;(w - roi_start_w)</span>
+<span class="sd">                                    / bin_size_w);</span>
+<span class="sd">                int pwend = ceil(static_cast&lt;float&gt;(w - roi_start_w + 1)</span>
+<span class="sd">                                 / bin_size_w);</span>
+
+<span class="sd">                phstart = min(max(phstart, 0), pooled_height);</span>
+<span class="sd">                phend = min(max(phend, 0), pooled_height);</span>
+<span class="sd">                pwstart = min(max(pwstart, 0), pooled_width);</span>
+<span class="sd">                pwend = min(max(pwend, 0), pooled_width);</span>
+
+<span class="sd">                for (int ph = phstart; ph &lt; phend; ++ph) {</span>
+<span class="sd">                    for (int pw = pwstart; pw &lt; pwend; ++pw) {</span>
+<span class="sd">                        int index_ = ph * pooled_width + pw + offset;</span>
+<span class="sd">                        if (argmax_data[index_] == (h * width + w)) {</span>
+<span class="sd">                            gradient += top_diff[index_];</span>
+<span class="sd">                        }</span>
+<span class="sd">                    }</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            bottom_diff = gradient;</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;roi_pooling_2d_bwd&#39;</span>
+        <span class="p">)(</span><span class="n">gy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">argmax_data</span><span class="p">,</span> <span class="n">bottom_rois</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">spatial_scale</span><span class="p">,</span>
+          <span class="n">channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outw</span><span class="p">,</span>
+          <span class="n">bottom_rois</span><span class="p">,</span> <span class="n">bottom_diff</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">bottom_diff</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="roi_pooling_2d"><a class="viewcode-back" href="../../../../reference/functions.html#chainer.functions.roi_pooling_2d">[docs]</a><span class="k">def</span> <span class="nf">roi_pooling_2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rois</span><span class="p">,</span> <span class="n">outh</span><span class="p">,</span> <span class="n">outw</span><span class="p">,</span> <span class="n">spatial_scale</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Spatial Region of Interest (ROI) pooling function.</span>
+
+<span class="sd">    This function acts similarly to :class:`~functions.MaxPooling2D`, but</span>
+<span class="sd">    it computes the maximum of input spatial patch for each channel</span>
+<span class="sd">    with the region of interest.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (~chainer.Variable): Input variable. The shape is expected to be</span>
+<span class="sd">            4 dimentional: (n: batch, c: channel, h, height, w: width).</span>
+<span class="sd">        rois (~chainer.Variable): Input roi variable. The shape is expected to</span>
+<span class="sd">            be (n: data size, 5), and each datum is set as below:</span>
+<span class="sd">            (batch_index, x_min, y_min, x_max, y_max).</span>
+<span class="sd">        outh (int): Height of output image after pooled.</span>
+<span class="sd">        outw (int): Width of output image after pooled.</span>
+<span class="sd">        spatial_scale (float): Scale of the roi is resized.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ~chainer.Variable: Output variable.</span>
+
+<span class="sd">    See the original paper proposing ROIPooling:</span>
+<span class="sd">    `Fast R-CNN &lt;https://arxiv.org/abs/1504.08083&gt;`_.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ROIPooling2D</span><span class="p">(</span><span class="n">outh</span><span class="p">,</span> <span class="n">outw</span><span class="p">,</span> <span class="n">spatial_scale</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="n">rois</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

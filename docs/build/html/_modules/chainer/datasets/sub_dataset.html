@@ -1,0 +1,427 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.datasets.sub_dataset &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../index.html"/>
+        <link rel="up" title="chainer" href="../../chainer.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.datasets.sub_dataset</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.datasets.sub_dataset</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer.dataset</span> <span class="k">import</span> <span class="n">dataset_mixin</span>
+
+
+<div class="viewcode-block" id="SubDataset"><a class="viewcode-back" href="../../../reference/datasets.html#chainer.datasets.SubDataset">[docs]</a><span class="k">class</span> <span class="nc">SubDataset</span><span class="p">(</span><span class="n">dataset_mixin</span><span class="o">.</span><span class="n">DatasetMixin</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Subset of a base dataset.</span>
+
+<span class="sd">    SubDataset defines a subset of a given base dataset. The subset is defined</span>
+<span class="sd">    as an interval of indexes, optionally with a given permutation.</span>
+
+<span class="sd">    If ``order`` is given, then the ``i``-th example of this dataset is the</span>
+<span class="sd">    ``order[start + i]``-th example of the base dataset, where ``i`` is a</span>
+<span class="sd">    non-negative integer. If ``order`` is not given, then the ``i``-th example</span>
+<span class="sd">    of this dataset is the ``start + i``-th example of the base dataset.</span>
+<span class="sd">    Negative indexing is also allowed: in this case, the term ``start + i`` is</span>
+<span class="sd">    replaced by ``finish + i``.</span>
+
+<span class="sd">    SubDataset is often used to split a dataset into training and validation</span>
+<span class="sd">    subsets. The training set is used for training, while the validation set is</span>
+<span class="sd">    used to track the generalization performance, i.e. how the learned model</span>
+<span class="sd">    works well on unseen data. We can tune hyperparameters (e.g. number of</span>
+<span class="sd">    hidden units, weight initializers, learning rate, etc.) by comparing the</span>
+<span class="sd">    validation performance. Note that we often use another set called test set</span>
+<span class="sd">    to measure the quality of the tuned hyperparameter, which can be made by</span>
+<span class="sd">    nesting multiple SubDatasets.</span>
+
+<span class="sd">    There are two ways to make training-validation splits. One is a single</span>
+<span class="sd">    split, where the dataset is split just into two subsets. It can be done by</span>
+<span class="sd">    :func:`split_dataset` or :func:`split_dataset_random`. The other one is a</span>
+<span class="sd">    :math:`k`-fold cross validation, in which the dataset is divided into</span>
+<span class="sd">    :math:`k` subsets, and :math:`k` different splits are generated using each</span>
+<span class="sd">    of the :math:`k` subsets as a validation set and the rest as a training</span>
+<span class="sd">    set. It can be done by :func:`get_cross_validation_datasets`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset: Base dataset.</span>
+<span class="sd">        start (int): The first index in the interval.</span>
+<span class="sd">        finish (int): The next-to-the-last index in the interval.</span>
+<span class="sd">        order (sequence of ints): Permutation of indexes in the base dataset.</span>
+<span class="sd">            If this is ``None``, then the ascending order of indexes is used.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">finish</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;subset overruns the base dataset.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_finish</span> <span class="o">=</span> <span class="n">finish</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">finish</span> <span class="o">-</span> <span class="n">start</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;order option must have the same length as the base &#39;</span>
+                   <span class="s1">&#39;dataset: len(order) = </span><span class="si">{}</span><span class="s1"> while len(dataset) = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                       <span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">=</span> <span class="n">order</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+
+    <span class="k">def</span> <span class="nf">get_example</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;dataset index out of range&#39;</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">+</span> <span class="n">i</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;dataset index out of range&#39;</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finish</span> <span class="o">+</span> <span class="n">i</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">[</span><span class="n">index</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="split_dataset"><a class="viewcode-back" href="../../../reference/datasets.html#chainer.datasets.split_dataset">[docs]</a><span class="k">def</span> <span class="nf">split_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">split_at</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits a dataset into two subsets.</span>
+
+<span class="sd">    This function creates two instances of :class:`SubDataset`. These instances</span>
+<span class="sd">    do not share any examples, and they together cover all examples of the</span>
+<span class="sd">    original dataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset: Dataset to split.</span>
+<span class="sd">        split_at (int): Position at which the base dataset is split.</span>
+<span class="sd">        order (sequence of ints): Permutation of indexes in the base dataset.</span>
+<span class="sd">            See the document of :class:`SubDataset` for details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Two :class:`SubDataset` objects. The first subset represents the</span>
+<span class="sd">            examples of indexes ``order[:split_at]`` while the second subset</span>
+<span class="sd">            represents the examples of indexes ``order[split_at:]``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_examples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">split_at</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;split_at must be non-negative&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">split_at</span> <span class="o">&gt;=</span> <span class="n">n_examples</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;split_at exceeds the dataset size&#39;</span><span class="p">)</span>
+    <span class="n">subset1</span> <span class="o">=</span> <span class="n">SubDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">split_at</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+    <span class="n">subset2</span> <span class="o">=</span> <span class="n">SubDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">split_at</span><span class="p">,</span> <span class="n">n_examples</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">subset1</span><span class="p">,</span> <span class="n">subset2</span></div>
+
+
+<div class="viewcode-block" id="split_dataset_random"><a class="viewcode-back" href="../../../reference/datasets.html#chainer.datasets.split_dataset_random">[docs]</a><span class="k">def</span> <span class="nf">split_dataset_random</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">first_size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits a dataset into two subsets randomly.</span>
+
+<span class="sd">    This function creates two instances of :class:`SubDataset`. These instances</span>
+<span class="sd">    do not share any examples, and they together cover all examples of the</span>
+<span class="sd">    original dataset. The split is automatically done randomly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset: Dataset to split.</span>
+<span class="sd">        first_size (int): Size of the first subset.</span>
+<span class="sd">        seed (int): Seed the generator used for the permutation of indexes.</span>
+<span class="sd">            If an integer beging convertible to 32 bit unsigned integers is</span>
+<span class="sd">            specified, it is guaranteed that each sample</span>
+<span class="sd">            in the given dataset always belongs to a specific subset.</span>
+<span class="sd">            If ``None``, the permutation is changed randomly.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Two :class:`SubDataset` objects. The first subset contains</span>
+<span class="sd">            ``first_size`` examples randomly chosen from the dataset without</span>
+<span class="sd">            replacement, and the second subset contains the rest of the</span>
+<span class="sd">            dataset.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">split_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">first_size</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_cross_validation_datasets"><a class="viewcode-back" href="../../../reference/datasets.html#chainer.datasets.get_cross_validation_datasets">[docs]</a><span class="k">def</span> <span class="nf">get_cross_validation_datasets</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">n_fold</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a set of training/test splits for cross validation.</span>
+
+<span class="sd">    This function generates ``n_fold`` splits of the given dataset. The first</span>
+<span class="sd">    part of each split corresponds to the training dataset, while the second</span>
+<span class="sd">    part to the test dataset. No pairs of test datasets share any examples, and</span>
+<span class="sd">    all test datasets together cover the whole base dataset. Each test dataset</span>
+<span class="sd">    contains almost same number of examples (the numbers may differ up to 1).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset: Dataset to split.</span>
+<span class="sd">        n_fold (int): Number of splits for cross validation.</span>
+<span class="sd">        order (sequence of ints): Order of indexes with which each split is</span>
+<span class="sd">            determined. If it is ``None``, then no permutation is used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of tuples: List of dataset splits.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>  <span class="c1"># copy</span>
+
+    <span class="n">whole_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">borders</span> <span class="o">=</span> <span class="p">[</span><span class="n">whole_size</span> <span class="o">*</span> <span class="n">i</span> <span class="o">//</span> <span class="n">n_fold</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_fold</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">test_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">borders</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">borders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_fold</span><span class="p">)]</span>
+
+    <span class="n">splits</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">test_size</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">test_sizes</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">whole_size</span> <span class="o">-</span> <span class="n">test_size</span>
+        <span class="n">splits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">order</span><span class="p">))</span>
+        <span class="n">new_order</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="n">new_order</span><span class="p">[:</span><span class="n">test_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="o">-</span><span class="n">test_size</span><span class="p">:]</span>
+        <span class="n">new_order</span><span class="p">[</span><span class="n">test_size</span><span class="p">:]</span> <span class="o">=</span> <span class="n">order</span><span class="p">[:</span><span class="o">-</span><span class="n">test_size</span><span class="p">]</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">new_order</span>
+
+    <span class="k">return</span> <span class="n">splits</span></div>
+
+
+<div class="viewcode-block" id="get_cross_validation_datasets_random"><a class="viewcode-back" href="../../../reference/datasets.html#chainer.datasets.get_cross_validation_datasets_random">[docs]</a><span class="k">def</span> <span class="nf">get_cross_validation_datasets_random</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">n_fold</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a set of training/test splits for cross validation randomly.</span>
+
+<span class="sd">    This function acts almost same as :func:`get_cross_validation_dataset`,</span>
+<span class="sd">    except automatically generating random permutation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset: Dataset to split.</span>
+<span class="sd">        n_fold (int): Number of splits for cross validation.</span>
+<span class="sd">        seed (int): Seed the generator used for the permutation of indexes.</span>
+<span class="sd">            If an integer beging convertible to 32 bit unsigned integers is</span>
+<span class="sd">            specified, it is guaranteed that each sample</span>
+<span class="sd">            in the given dataset always belongs to a specific subset.</span>
+<span class="sd">            If ``None``, the permutation is changed randomly.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of tuples: List of dataset splits.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">get_cross_validation_datasets</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">n_fold</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

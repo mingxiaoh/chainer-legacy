@@ -1,0 +1,464 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Serializers &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../index.html"/>
+        <link rel="up" title="Chainer Reference Manual" href="index.html"/>
+        <link rel="next" title="Function hooks" href="function_hooks.html"/>
+        <link rel="prev" title="Optimizers" href="optimizers.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Chainer Reference Manual</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="core.html">Core functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="check.html">Assertion and Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html">Standard Function implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="links.html">Standard Link implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimizers.html">Optimizers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Serializers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#serialization-in-numpy-npz-format">Serialization in NumPy NPZ format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#serialization-in-hdf5-format">Serialization in HDF5 format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="function_hooks.html">Function hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initializers.html">Weight Initializers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Dataset examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iterators.html">Iterator examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">Trainer extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="triggers.html">Trainer triggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="caffe.html">Caffe Reference Model Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graph.html">Visualization of Computational Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Chainer Reference Manual</a> &raquo;</li>
+        
+      <li>Serializers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/reference/serializers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-chainer.serializers"></span><div class="section" id="serializers">
+<h1>Serializers<a class="headerlink" href="#serializers" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="serialization-in-numpy-npz-format">
+<h2>Serialization in NumPy NPZ format<a class="headerlink" href="#serialization-in-numpy-npz-format" title="Permalink to this headline">¶</a></h2>
+<p>NumPy serializers can be used in arbitrary environments that Chainer runs with.
+It consists of asymmetric serializer/deserializer due to the fact that <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez.html#numpy.savez" title="(in NumPy v1.13)"><code class="xref py py-func docutils literal"><span class="pre">numpy.savez()</span></code></a> does not support online serialization.
+Therefore, serialization requires two-step manipulation: first packing the objects into a flat dictionary, and then serializing it into npz format.</p>
+<dl class="class">
+<dt id="chainer.serializers.DictionarySerializer">
+<em class="property">class </em><code class="descclassname">chainer.serializers.</code><code class="descname">DictionarySerializer</code><span class="sig-paren">(</span><em>target=None</em>, <em>path=''</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/npz.html#DictionarySerializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.DictionarySerializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializer for dictionary.</p>
+<p>This is the standard serializer in Chainer. The hierarchy of objects are
+simply mapped to a flat dictionary with keys representing the paths to
+objects in the hierarchy.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Despite of its name, this serializer DOES NOT serialize the
+object into external files. It just build a flat dictionary of arrays
+that can be fed into <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez.html#numpy.savez" title="(in NumPy v1.13)"><code class="xref py py-func docutils literal"><span class="pre">numpy.savez()</span></code></a> and
+<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez_compressed.html#numpy.savez_compressed" title="(in NumPy v1.13)"><code class="xref py py-func docutils literal"><span class="pre">numpy.savez_compressed()</span></code></a>. If you want to use this serializer
+directly, you have to manually send a resulting dictionary to one of
+these functions.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – The dictionary that this serializer saves the objects
+to. If target is None, then a new dictionary is created.</li>
+<li><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The base path in the hierarchy that this serializer
+indicates.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Variables:</th><td class="field-body"><p class="first last"><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – The target dictionary. Once the serialization completes,
+this dictionary can be fed into <a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez.html#numpy.savez" title="(in NumPy v1.13)"><code class="xref py py-func docutils literal"><span class="pre">numpy.savez()</span></code></a> or
+<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez_compressed.html#numpy.savez_compressed" title="(in NumPy v1.13)"><code class="xref py py-func docutils literal"><span class="pre">numpy.savez_compressed()</span></code></a> to serialize it in the NPZ format.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.serializers.NpzDeserializer">
+<em class="property">class </em><code class="descclassname">chainer.serializers.</code><code class="descname">NpzDeserializer</code><span class="sig-paren">(</span><em>npz</em>, <em>path=''</em>, <em>strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/npz.html#NpzDeserializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.NpzDeserializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deserializer for NPZ format.</p>
+<p>This is the standard deserializer in Chainer. This deserializer can be used
+to read an object serialized by <a class="reference internal" href="#chainer.serializers.save_npz" title="chainer.serializers.save_npz"><code class="xref py py-func docutils literal"><span class="pre">save_npz()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>npz</strong> – <cite>npz</cite> file object.</li>
+<li><strong>path</strong> – The base path that the deserialization starts from.</li>
+<li><strong>strict</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, the deserializer raises an error when an
+expected value is not found in the given NPZ file. Otherwise,
+it ignores the value and skip deserialization.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.serializers.save_npz">
+<code class="descclassname">chainer.serializers.</code><code class="descname">save_npz</code><span class="sig-paren">(</span><em>filename</em>, <em>obj</em>, <em>compression=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/npz.html#save_npz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.save_npz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves an object to the file in NPZ format.</p>
+<p>This is a short-cut function to save only one object into an NPZ file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Target file name.</li>
+<li><strong>obj</strong> – Object to be serialized. It must support serialization protocol.</li>
+<li><strong>compression</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, compression in the resulting zip file
+is enabled.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.serializers.load_npz">
+<code class="descclassname">chainer.serializers.</code><code class="descname">load_npz</code><span class="sig-paren">(</span><em>filename</em>, <em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/npz.html#load_npz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.load_npz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads an object from the file in NPZ format.</p>
+<p>This is a short-cut function to load from an <cite>.npz</cite> file that contains only
+one object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the file to be loaded.</li>
+<li><strong>obj</strong> – Object to be deserialized. It must support serialization protocol.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="serialization-in-hdf5-format">
+<h2>Serialization in HDF5 format<a class="headerlink" href="#serialization-in-hdf5-format" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="chainer.serializers.HDF5Serializer">
+<em class="property">class </em><code class="descclassname">chainer.serializers.</code><code class="descname">HDF5Serializer</code><span class="sig-paren">(</span><em>group</em>, <em>compression=4</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/hdf5.html#HDF5Serializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.HDF5Serializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializer for HDF5 format.</p>
+<p>This is the standard serializer in Chainer. The chain hierarchy is simply
+mapped to HDF5 hierarchical groups.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>group</strong> (<em>h5py.Group</em>) – The group that this serializer represents.</li>
+<li><strong>compression</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – Gzip compression level.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="chainer.serializers.HDF5Deserializer">
+<em class="property">class </em><code class="descclassname">chainer.serializers.</code><code class="descname">HDF5Deserializer</code><span class="sig-paren">(</span><em>group</em>, <em>strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/hdf5.html#HDF5Deserializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.HDF5Deserializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deserializer for HDF5 format.</p>
+<p>This is the standard deserializer in Chainer. This deserializer can be used
+to read an object serialized by <a class="reference internal" href="#chainer.serializers.HDF5Serializer" title="chainer.serializers.HDF5Serializer"><code class="xref py py-class docutils literal"><span class="pre">HDF5Serializer</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>group</strong> (<em>h5py.Group</em>) – The group that the deserialization starts from.</li>
+<li><strong>strict</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If <code class="docutils literal"><span class="pre">True</span></code>, the deserializer raises an error when an
+expected value is not found in the given HDF5 file. Otherwise,
+it ignores the value and skip deserialization.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.serializers.save_hdf5">
+<code class="descclassname">chainer.serializers.</code><code class="descname">save_hdf5</code><span class="sig-paren">(</span><em>filename</em>, <em>obj</em>, <em>compression=4</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/hdf5.html#save_hdf5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.save_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves an object to the file in HDF5 format.</p>
+<p>This is a short-cut function to save only one object into an HDF5 file. If
+you want to save multiple objects to one HDF5 file, use
+<a class="reference internal" href="#chainer.serializers.HDF5Serializer" title="chainer.serializers.HDF5Serializer"><code class="xref py py-class docutils literal"><span class="pre">HDF5Serializer</span></code></a> directly by passing appropriate <code class="xref py py-class docutils literal"><span class="pre">h5py.Group</span></code>
+objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Target file name.</li>
+<li><strong>obj</strong> – Object to be serialized. It must support serialization protocol.</li>
+<li><strong>compression</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – Gzip compression level.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="chainer.serializers.load_hdf5">
+<code class="descclassname">chainer.serializers.</code><code class="descname">load_hdf5</code><span class="sig-paren">(</span><em>filename</em>, <em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chainer/serializers/hdf5.html#load_hdf5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#chainer.serializers.load_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads an object from the file in HDF5 format.</p>
+<p>This is a short-cut function to load from an HDF5 file that contains only
+one object. If you want to load multiple objects from one HDF5 file, use
+<a class="reference internal" href="#chainer.serializers.HDF5Deserializer" title="chainer.serializers.HDF5Deserializer"><code class="xref py py-class docutils literal"><span class="pre">HDF5Deserializer</span></code></a> directly by passing appropriate
+<code class="xref py py-class docutils literal"><span class="pre">h5py.Group</span></code> objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Name of the file to be loaded.</li>
+<li><strong>obj</strong> – Object to be deserialized. It must support serialization protocol.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="function_hooks.html" class="btn btn-neutral float-right" title="Function hooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="optimizers.html" class="btn btn-neutral" title="Optimizers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

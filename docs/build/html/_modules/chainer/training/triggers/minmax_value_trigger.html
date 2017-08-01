@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.training.triggers.minmax_value_trigger &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../../../index.html"/>
+        <link rel="up" title="chainer" href="../../../chainer.html"/> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.training.triggers.minmax_value_trigger</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.training.triggers.minmax_value_trigger</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">reporter</span>
+<span class="kn">from</span> <span class="nn">chainer.training</span> <span class="k">import</span> <span class="n">util</span>
+
+
+<span class="k">class</span> <span class="nc">BestValueTrigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Trigger invoked when specific value becomes best.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        key (str): Key of value.</span>
+<span class="sd">        compare (function): Compare function which takes current best value and</span>
+<span class="sd">            new value and returns whether new value is better than current</span>
+<span class="sd">            best.</span>
+<span class="sd">        trigger: Trigger that decides the comparison interval between current</span>
+<span class="sd">            best value and new value. This must be a tuple in the form of</span>
+<span class="sd">            ``&lt;int&gt;, &#39;epoch&#39;`` or ``&lt;int&gt;, &#39;iteration&#39;`` which is passed to</span>
+<span class="sd">            :class:`~chainer.training.triggers.IntervalTrigger`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">compare</span><span class="p">,</span> <span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;epoch&#39;</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interval_trigger</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">get_trigger</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_summary</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compare</span> <span class="o">=</span> <span class="n">compare</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decides whether the extension should be called on this iteration.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trainer (~chainer.training.Trainer): Trainer object that this</span>
+<span class="sd">                trigger is associated with. The ``observation`` of this trainer</span>
+<span class="sd">                is used to determine if the trigger should fire.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: ``True`` if the corresponding extension should be invoked in</span>
+<span class="sd">                this iteration.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">observation</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">observation</span><span class="p">:</span>
+            <span class="n">summary</span><span class="o">.</span><span class="n">add</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interval_trigger</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">compute_mean</span><span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>  <span class="c1"># copy to CPU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_summary</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compare</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_init_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">DictSummary</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="MaxValueTrigger"><a class="viewcode-back" href="../../../../reference/triggers.html#chainer.training.triggers.MaxValueTrigger">[docs]</a><span class="k">class</span> <span class="nc">MaxValueTrigger</span><span class="p">(</span><span class="n">BestValueTrigger</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Trigger invoked when specific value becomes maximum.</span>
+
+<span class="sd">    For example you can use this trigger to take snapshot on the epoch the</span>
+<span class="sd">    validation accuracy is maximum.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        key (str): Key of value. The trigger fires when the value associated</span>
+<span class="sd">            with this key becomes maximum.</span>
+<span class="sd">        trigger: Trigger that decides the comparison interval between current</span>
+<span class="sd">            best value and new value. This must be a tuple in the form of</span>
+<span class="sd">            ``&lt;int&gt;, &#39;epoch&#39;`` or ``&lt;int&gt;, &#39;iteration&#39;`` which is passed to</span>
+<span class="sd">            :class:`~chainer.training.triggers.IntervalTrigger`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;epoch&#39;</span><span class="p">)):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MaxValueTrigger</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="n">new_value</span> <span class="o">&gt;</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">trigger</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MinValueTrigger"><a class="viewcode-back" href="../../../../reference/triggers.html#chainer.training.triggers.MinValueTrigger">[docs]</a><span class="k">class</span> <span class="nc">MinValueTrigger</span><span class="p">(</span><span class="n">BestValueTrigger</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Trigger invoked when specific value becomes minimum.</span>
+
+<span class="sd">    For example you can use this trigger to take snapshot on the epoch the</span>
+<span class="sd">    validation loss is minimum.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        key (str): Key of value. The trigger fires when the value associated</span>
+<span class="sd">            with this key becomes minimum.</span>
+<span class="sd">        trigger: Trigger that decides the comparison interval between current</span>
+<span class="sd">            best value and new value. This must be a tuple in the form of</span>
+<span class="sd">            ``&lt;int&gt;, &#39;epoch&#39;`` or ``&lt;int&gt;, &#39;iteration&#39;`` which is passed to</span>
+<span class="sd">            :class:`~chainer.training.triggers.IntervalTrigger`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;epoch&#39;</span><span class="p">)):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MinValueTrigger</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="n">new_value</span> <span class="o">&lt;</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">trigger</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

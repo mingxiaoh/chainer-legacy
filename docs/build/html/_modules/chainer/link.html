@@ -1,0 +1,1046 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chainer.link &mdash; Chainer 2.0.0b1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/modified_theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Chainer 2.0.0b1 documentation" href="../../index.html"/>
+        <link rel="up" title="chainer" href="../chainer.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Chainer
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0b1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/index.html">Chainer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/index.html">Chainer Reference Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contribution.html">Chainer Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compatibility.html">API Compatibility Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison with Other Frameworks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Chainer</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../chainer.html">chainer</a> &raquo;</li>
+        
+      <li>chainer.link</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for chainer.link</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">initializers</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="k">import</span> <span class="n">variable</span>
+
+
+<span class="k">def</span> <span class="nf">_is_shape</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">_ensure_shape_dtype</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="c1"># Return value paired with dtype FP32 if it is a shape.</span>
+    <span class="k">if</span> <span class="n">_is_shape</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+    <span class="c1"># Otherwise, returns it with assuming a shape-dtype pair.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<div class="viewcode-block" id="Link"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link">[docs]</a><span class="k">class</span> <span class="nc">Link</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Building block of model definitions.</span>
+
+<span class="sd">    Link is a building block of neural network models that support various</span>
+<span class="sd">    features like handling parameters, defining network fragments,</span>
+<span class="sd">    serialization, etc.</span>
+
+<span class="sd">    Link is the primitive structure for the model definitions. It supports</span>
+<span class="sd">    management of parameter variables and *persistent values* that should be</span>
+<span class="sd">    incorporated to serialization. Parameters are variables registered via</span>
+<span class="sd">    the :meth:`add_param` method, or given to the initializer method.</span>
+<span class="sd">    Persistent values are arrays, scalars, or any other serializable values</span>
+<span class="sd">    registered via the :meth:`add_persistent` method.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">       Whereas arbitrary serializable objects can be registered as persistent</span>
+<span class="sd">       values, it is strongly recommended to just register values that should</span>
+<span class="sd">       be treated as results of learning. A typical example of persistent</span>
+<span class="sd">       values is ones computed during training and required for testing, e.g.</span>
+<span class="sd">       running statistics for batch normalization.</span>
+
+<span class="sd">    Parameters and persistent values are referred by their names. They can be</span>
+<span class="sd">    accessed as attributes of the links. Link class itself manages the lists</span>
+<span class="sd">    of names of parameters and persistent values to distinguish parameters and</span>
+<span class="sd">    persistent values from other attributes.</span>
+
+<span class="sd">    Link can be composed into more complex models. This composition feature is</span>
+<span class="sd">    supported by child classes like :class:`Chain` and :class:`ChainList`. One</span>
+<span class="sd">    can create a chain by combining one or more links. See the documents for</span>
+<span class="sd">    these classes for details.</span>
+
+<span class="sd">    As noted above, Link supports the serialization protocol of the</span>
+<span class="sd">    :class:`~chainer.Serializer` class. **Note that only parameters and</span>
+<span class="sd">    persistent values are saved and loaded.** Other attributes are considered</span>
+<span class="sd">    as a part of user program (i.e. a part of network definition). In order to</span>
+<span class="sd">    construct a link from saved file, other attributes must be identically</span>
+<span class="sd">    reconstructed by user codes.</span>
+
+<span class="sd">    .. admonition:: Example</span>
+
+<span class="sd">       This is a simple example of custom link definition. Chainer itself also</span>
+<span class="sd">       provides many links defined under the :mod:`~chainer.links` module. They</span>
+<span class="sd">       might serve as examples, too.</span>
+
+<span class="sd">       Consider we want to define a simple primitive link that implements a</span>
+<span class="sd">       fully-connected layer based on the :func:`~functions.linear` function.</span>
+<span class="sd">       Note that this function takes input units, a weight variable, and a bias</span>
+<span class="sd">       variable as arguments. Then, the fully-connected layer can be defined as</span>
+<span class="sd">       follows::</span>
+
+<span class="sd">          import chainer</span>
+<span class="sd">          import chainer.functions as F</span>
+<span class="sd">          import numpy as np</span>
+
+<span class="sd">          class LinearLayer(chainer.Link):</span>
+
+<span class="sd">              def __init__(self, n_in, n_out):</span>
+<span class="sd">                  # Parameters are initialized as a numpy array of given shape.</span>
+<span class="sd">                  super(LinearLayer, self).__init__(</span>
+<span class="sd">                      W=(n_out, n_in),</span>
+<span class="sd">                      b=(n_out,),</span>
+<span class="sd">                  )</span>
+<span class="sd">                  self.W.data[...] = np.random.randn(n_out, n_in)</span>
+<span class="sd">                  self.b.data.fill(0)</span>
+
+<span class="sd">              def __call__(self, x):</span>
+<span class="sd">                  return F.linear(x, self.W, self.b)</span>
+
+<span class="sd">       This example shows that a user can define arbitrary parameters and use</span>
+<span class="sd">       them in any methods. Links typically implement the ``__call__``</span>
+<span class="sd">       operator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        params: Names, shapes, and optional dtypes of initial parameters. The</span>
+<span class="sd">            keywords are used as the parameter names and the corresponding</span>
+<span class="sd">            values consist either of the shape or a tuple of shape and a dtype</span>
+<span class="sd">            `(shape, dtype)`. If only the shape is supplied, the default dtype</span>
+<span class="sd">            will be used.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name (str): Name of this link, given by the parent chain (if exists).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">_ensure_shape_dtype</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_param</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">xp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Array module for this link.</span>
+
+<span class="sd">        Depending on which of CPU/GPU this link is on, this property returns</span>
+<span class="sd">        :mod:`numpy` or :mod:`cupy`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">numpy</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span> <span class="k">else</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span>
+
+<div class="viewcode-block" id="Link.add_param"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.add_param">[docs]</a>    <span class="k">def</span> <span class="nf">add_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                  <span class="n">initializer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a parameter to the link.</span>
+
+<span class="sd">        The registered parameter is saved and loaded on serialization and</span>
+<span class="sd">        deserialization, and involved in the optimization. The data and</span>
+<span class="sd">        gradient of the variable are initialized by NaN arrays.</span>
+<span class="sd">        If ``initializer`` is not ``None``, the data is initialized by</span>
+<span class="sd">        ``initializer``. The initializer can be an array, in which case the</span>
+<span class="sd">        parameter array is directly initialized by it.</span>
+
+<span class="sd">        If ``shape`` is None and the initializer is not an array, this method</span>
+<span class="sd">        does not initialize the data and gradient arrays of the parameter</span>
+<span class="sd">        variable. They should be initialized by calling the</span>
+<span class="sd">        :meth:`chainer.Variable.initialize` method before using the parameter</span>
+<span class="sd">        in the forward computation. The shape can be specified at the</span>
+<span class="sd">        initialization.</span>
+
+<span class="sd">        The parameter is set to an attribute of the link with the given name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): Name of the parameter. This name is also used as the</span>
+<span class="sd">                attribute name.</span>
+<span class="sd">            shape (int or tuple of ints): Shape of the parameter array. If it</span>
+<span class="sd">                is omitted, the parameter variable is left uninitialized.</span>
+<span class="sd">            dtype: Data type of the parameter array.</span>
+<span class="sd">            initializer: If it is not ``None``, the data is initialized with</span>
+<span class="sd">                the given initializer. If it is an array, the data is directly</span>
+<span class="sd">                initialized by it. If it is callable, it is used as a weight</span>
+<span class="sd">                initializer. Note that in these cases, ``dtype`` argument is</span>
+<span class="sd">                ignored.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s1">&#39;cannot register a new parameter </span><span class="si">%s</span><span class="s1">: attribute exists&#39;</span>
+                <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">initializer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">NaN</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">initializer</span><span class="p">):</span>
+                <span class="c1"># uninitialized parameter</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">initializer</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># initialize parameter by the initial array</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">initializer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">generate_array</span><span class="p">(</span><span class="n">initializer</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">)</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">grad</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span></div>
+
+<div class="viewcode-block" id="Link.add_persistent"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.add_persistent">[docs]</a>    <span class="k">def</span> <span class="nf">add_persistent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a persistent value to the link.</span>
+
+<span class="sd">        The registered value is saved and loaded on serialization and</span>
+<span class="sd">        deserialization. The value is set to an attribute of the link.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): Name of the persistent value. This name is also used</span>
+<span class="sd">                for the attribute name.</span>
+<span class="sd">            value: Value to be registered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s1">&#39;cannot register a new persistent value </span><span class="si">%s</span><span class="s1">: attribute exists&#39;</span>
+                <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Link.copy"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copies the link hierarchy to new one.</span>
+
+<span class="sd">        The whole hierarchy rooted by this link is copied. The copy is</span>
+<span class="sd">        basically shallow, except that the parameter variables are also</span>
+<span class="sd">        shallowly copied. It means that the parameter variables of copied one</span>
+<span class="sd">        are different from ones of original link, while they share the data and</span>
+<span class="sd">        gradient arrays.</span>
+
+<span class="sd">        The name of the link is reset on the copy, since the copied instance</span>
+<span class="sd">        does not belong to the original parent chain (even if exists).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Link: Copied link object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Link.to_cpu"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.to_cpu">[docs]</a>    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copies parameter variables and persistent values to CPU.</span>
+
+<span class="sd">        This method does not handle non-registered attributes. If some of such</span>
+<span class="sd">        attributes must be copied to CPU, the link implementation must</span>
+<span class="sd">        override this method to do so.</span>
+
+<span class="sd">        Returns: self</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">cuda</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Link.to_gpu"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.to_gpu">[docs]</a>    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copies parameter variables and persistent values to GPU.</span>
+
+<span class="sd">        This method does not handle non-registered attributes. If some of such</span>
+<span class="sd">        attributes must be copied to GPU, the link implementation must</span>
+<span class="sd">        override this method to do so.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            device: Target device specifier. If omitted, the current device is</span>
+<span class="sd">                used.</span>
+
+<span class="sd">        Returns: self</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">check_cuda_available</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_device_id</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">cupy</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Link.params"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.params">[docs]</a>    <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator of all parameters under the link hierarchy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            include_uninit (bool): If ``True``, it also generates uninitialized</span>
+<span class="sd">                parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A generator object that generates all parameters.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">include_uninit</span> <span class="ow">or</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Link.namedparams"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.namedparams">[docs]</a>    <span class="k">def</span> <span class="nf">namedparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator of all (path, param) pairs under the hierarchy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            include_uninit (bool): If ``True``, it also generates uninitialized</span>
+<span class="sd">                parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A generator object that generates all (path, parameter) pairs. The</span>
+<span class="sd">            paths are relative from this link.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">include_uninit</span> <span class="ow">or</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Link.links"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.links">[docs]</a>    <span class="k">def</span> <span class="nf">links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator of all links under the hierarchy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            skipself (bool): If ``True``, then the generator skips this link</span>
+<span class="sd">                and starts with the first child link.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A generator object that generates all links.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Link.namedlinks"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.namedlinks">[docs]</a>    <span class="k">def</span> <span class="nf">namedlinks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator of all (path, link) pairs under the hierarchy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            skipself (bool): If ``True``, then the generator skips this link</span>
+<span class="sd">                and starts with the first child link.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A generator object that generates all (path, link) pairs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Link.children"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.children">[docs]</a>    <span class="k">def</span> <span class="nf">children</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator of all child links.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A generator object that generates all child links.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">yield</span></div>
+
+<div class="viewcode-block" id="Link.copyparams"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.copyparams">[docs]</a>    <span class="k">def</span> <span class="nf">copyparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copies all parameters from given link.</span>
+
+<span class="sd">        This method copies data arrays of all parameters in the hierarchy. The</span>
+<span class="sd">        copy is even done across the host and devices. Note that this method</span>
+<span class="sd">        does not copy the gradient arrays.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            link (Link): Source link object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">dst</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">copydata</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Link.cleargrads"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.cleargrads">[docs]</a>    <span class="k">def</span> <span class="nf">cleargrads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clears all gradient arrays.</span>
+
+<span class="sd">        This method should be called before the backward computation at every</span>
+<span class="sd">        iteration of the optimization.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">cleargrad</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Link.zerograds"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.zerograds">[docs]</a>    <span class="k">def</span> <span class="nf">zerograds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes all gradient arrays by zero.</span>
+
+<span class="sd">        This method can be used for the same purpose of cleargrads, but less</span>
+<span class="sd">        efficient. This method is left for backward compatibility.</span>
+
+<span class="sd">        .. deprecated:: v1.15</span>
+<span class="sd">           Use :meth:`cleargrads` instead.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s1">&#39;Link.zerograds is deprecated. Use Link.cleargrads instead.&#39;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">zerograd</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Link.addgrads"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.addgrads">[docs]</a>    <span class="k">def</span> <span class="nf">addgrads</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Accumulates gradient values from given link.</span>
+
+<span class="sd">        This method adds each gradient array of the given link to corresponding</span>
+<span class="sd">        gradient array of this link. The accumulation is even done across</span>
+<span class="sd">        host and different devices.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            link (Link): Source link object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">dst</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">addgrad</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Link.enable_update"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.enable_update">[docs]</a>    <span class="k">def</span> <span class="nf">enable_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Enables update rules of all parameters under the link hierarchy.</span>
+
+<span class="sd">        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the</span>
+<span class="sd">        update rule of each parameter variable to ``True``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">():</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">update_rule</span>
+            <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rule</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Link.disable_update"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.disable_update">[docs]</a>    <span class="k">def</span> <span class="nf">disable_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Disables update rules of all parameters under the link hierarchy.</span>
+
+<span class="sd">        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the</span>
+<span class="sd">        update rule of each parameter variable to ``False``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">():</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">update_rule</span>
+            <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rule</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">update_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;``True`` if at least one parameter has an update rule enabled.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">():</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">update_rule</span>
+            <span class="k">if</span> <span class="n">rule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Link.serialize"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Link.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Serializes the link object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializer (~chainer.AbstractSerializer): Serializer object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Initialize the variable here</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">copyto</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">Link</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Composable link with object-like interface.</span>
+
+<span class="sd">    Composability is one of the most important features of neural nets. Neural</span>
+<span class="sd">    net models consist of many reusable fragments, and each model itself might</span>
+<span class="sd">    be embedded into a larger learnable system. Chain enables us to write a</span>
+<span class="sd">    neural net based on composition, without bothering about routine works like</span>
+<span class="sd">    collecting parameters, serialization, copying the structure with parameters</span>
+<span class="sd">    shared, etc.</span>
+
+<span class="sd">    This class actually provides a way to compose one or more links into one</span>
+<span class="sd">    structure. A chain can contain one or more *child links*. Child link is a</span>
+<span class="sd">    link registered to the chain with its own name. The child link is stored to</span>
+<span class="sd">    an attribute of the chain with the name. User can write a whole model or a</span>
+<span class="sd">    fragment of neural nets as a child class of Chain.</span>
+
+<span class="sd">    Each chain itself is also a link. Therefore, one can combine chains into</span>
+<span class="sd">    higher-level chains. In this way, links and chains construct a *link</span>
+<span class="sd">    hierarchy*. Link hierarchy forms a tree structure, where each node is</span>
+<span class="sd">    identified by the path from the root. The path is represented by a string</span>
+<span class="sd">    like a file path in UNIX, consisting of names of nodes on the path, joined</span>
+<span class="sd">    by slashes ``/``.</span>
+
+<span class="sd">    .. admonition:: Example</span>
+
+<span class="sd">       This is a simple example of custom chain definition. Chainer itself also</span>
+<span class="sd">       provides some chains defined under the :mod:`~chainer.links` module.</span>
+<span class="sd">       They might serve as examples, too.</span>
+
+<span class="sd">       Consider we want to define a multi-layer perceptron consisting of two</span>
+<span class="sd">       hidden layers with rectifiers as activation functions. We can use the</span>
+<span class="sd">       :class:`~chainer.links.Linear` link as a building block::</span>
+
+<span class="sd">          import chainer</span>
+<span class="sd">          import chainer.functions as F</span>
+<span class="sd">          import chainer.links as L</span>
+
+<span class="sd">          class MultiLayerPerceptron(chainer.Chain):</span>
+
+<span class="sd">              def __init__(self, n_in, n_hidden, n_out):</span>
+<span class="sd">                  # Create and register three layers for this MLP</span>
+<span class="sd">                  super(MultiLayerPerceptron, self).__init__(</span>
+<span class="sd">                      layer1=L.Linear(n_in, n_hidden),</span>
+<span class="sd">                      layer2=L.Linear(n_hidden, n_hidden),</span>
+<span class="sd">                      layer3=L.Linear(n_hidden, n_out),</span>
+<span class="sd">                  )</span>
+
+<span class="sd">              def __call__(self, x):</span>
+<span class="sd">                  # Forward propagation</span>
+<span class="sd">                  h1 = F.relu(self.layer1(x))</span>
+<span class="sd">                  h2 = F.relu(self.layer2(h1))</span>
+<span class="sd">                  return self.layer3(h2)</span>
+
+<span class="sd">       Child links are registered via the initializer method. They also can be</span>
+<span class="sd">       registered by the :meth:`add_link` method. The forward propagation is</span>
+<span class="sd">       often implemented as The ``__call__`` operator as the above example,</span>
+<span class="sd">       though it is not mandatory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        links: Child links. The keywords are used as their names. The names are</span>
+<span class="sd">            also set to the links.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">links</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">links</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">link</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Equivalent to getattr.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Chain.add_link"><a class="viewcode-back" href="../../reference/core/link.html#chainer.Chain.add_link">[docs]</a>    <span class="k">def</span> <span class="nf">add_link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a child link to this chain.</span>
+
+<span class="sd">        The registered link is saved and loaded on serialization and</span>
+<span class="sd">        deserialization, and involved in the optimization. The registered link</span>
+<span class="sd">        is called a child. The child link is set to an attribute of the chain</span>
+<span class="sd">        with the given name.</span>
+
+<span class="sd">        This method also sets the :attr:`~Link.name` attribute of the</span>
+<span class="sd">        registered link. If the given link already has the name attribute set,</span>
+<span class="sd">        then it raises an error.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): Name of the child link. This name is also used as the</span>
+<span class="sd">                attribute name.</span>
+<span class="sd">            link (Link): The link object to be registered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">link</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;given link is already registered to another chain by name </span><span class="si">%s</span><span class="s1">&#39;</span>
+                <span class="o">%</span> <span class="n">link</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s1">&#39;cannot register a new link </span><span class="si">%s</span><span class="s1">: attribute exists&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">link</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">link</span></div>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">_children</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="c1"># copy child links recursively</span>
+            <span class="n">copied</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">copied</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copied</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">()</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">params</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">param</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">param</span>
+
+    <span class="k">def</span> <span class="nf">namedparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ret</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">namedparams</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">ret</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">namedparams</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">param</span>
+
+    <span class="k">def</span> <span class="nf">links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">links</span><span class="p">():</span>
+                <span class="k">yield</span> <span class="n">link</span>
+
+    <span class="k">def</span> <span class="nf">namedlinks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="bp">self</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">child</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="k">yield</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">child</span>
+            <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">namedlinks</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">link</span>
+
+    <span class="k">def</span> <span class="nf">children</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">copyparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">copyparams</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">dst</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">copyparams</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">addgrads</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">addgrads</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">dst</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">addgrads</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">serializer</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">serializer</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="ChainList"><a class="viewcode-back" href="../../reference/core/link.html#chainer.ChainList">[docs]</a><span class="k">class</span> <span class="nc">ChainList</span><span class="p">(</span><span class="n">Link</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Composable link with list-like interface.</span>
+
+<span class="sd">    This is another example of compositional link. Unlike :class:`Chain`, this</span>
+<span class="sd">    class can be used like a list of child links. Each child link is indexed by</span>
+<span class="sd">    a non-negative integer, and it maintains the current number of registered</span>
+<span class="sd">    child links. The :meth:`add_link` method inserts a new link at the end of</span>
+<span class="sd">    the list. It is useful to write a chain with arbitrary number of child</span>
+<span class="sd">    links, e.g. an arbitrarily deep multi-layer perceptron.</span>
+
+<span class="sd">    Note that this class does not implement all methods of :class:`list`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        links: Initial child links.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">links</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_link</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the child at given index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): Index of the child in the list.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Link: The ``index``-th child link.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the number of children.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ChainList.add_link"><a class="viewcode-back" href="../../reference/core/link.html#chainer.ChainList.add_link">[docs]</a>    <span class="k">def</span> <span class="nf">add_link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a child link to this chain.</span>
+
+<span class="sd">        The registered link is saved and loaded on serialization and</span>
+<span class="sd">        deserialization, and involved in the optimization. The registered link</span>
+<span class="sd">        is called a child. The child link is accessible via :meth:`children`</span>
+<span class="sd">        generator, which returns a generator running through the children in</span>
+<span class="sd">        registered order.</span>
+
+<span class="sd">        This method also sets the :attr:`~Link.name` attribute of the</span>
+<span class="sd">        registered link. If the given link already has the name attribute set,</span>
+<span class="sd">        then it raises an error.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            link (Link): The link object to be registered.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">link</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;given link is already registered to another chain by name </span><span class="si">%s</span><span class="s1">&#39;</span>
+                <span class="o">%</span> <span class="n">link</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">link</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">link</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_children</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">_children</span><span class="p">)</span>  <span class="c1"># copy</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">_children</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">children</span><span class="p">):</span>
+            <span class="n">child</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">children</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="n">link</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+                <span class="n">link</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">params</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">param</span>
+        <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">link</span><span class="o">.</span><span class="n">params</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">param</span>
+
+    <span class="k">def</span> <span class="nf">namedparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_uninit</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ret</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">namedparams</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">ret</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">link</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">):</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">idx</span>
+            <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">link</span><span class="o">.</span><span class="n">namedparams</span><span class="p">(</span><span class="n">include_uninit</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">param</span>
+
+    <span class="k">def</span> <span class="nf">links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">child</span><span class="o">.</span><span class="n">links</span><span class="p">():</span>
+                <span class="k">yield</span> <span class="n">link</span>
+
+    <span class="k">def</span> <span class="nf">namedlinks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skipself</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skipself</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="bp">self</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">):</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">idx</span>
+            <span class="k">yield</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">child</span>
+            <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">child</span><span class="o">.</span><span class="n">namedlinks</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">link</span>
+
+    <span class="k">def</span> <span class="nf">children</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">child</span>
+
+    <span class="k">def</span> <span class="nf">copyparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">copyparams</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">):</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">copyparams</span><span class="p">(</span><span class="n">link</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">addgrads</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">addgrads</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">):</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">addgrads</span><span class="p">(</span><span class="n">link</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ChainList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">serializer</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_children</span><span class="p">):</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">serializer</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">idx</span><span class="p">])</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Preferred Networks, inc. and Preferred Infrastructure, inc..
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.0.0b1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
