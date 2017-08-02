@@ -465,7 +465,7 @@ class Function(object):
         """
         if not chainer.is_cosim():
             return
-        check_options = {'atol': 5e-1, 'rtol': 5e-1, 'verbose': True}
+        check_options = {'atol': 5e-1, 'rtol': 5e-1}
         i = 0
         if numpy_result is None:
             return None
@@ -490,15 +490,11 @@ class Function(object):
                 numpy_y_nd = np.array(numpy_y)
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):
-                try:
-                    testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
-                except AssertionError:
+                if not testing.expect_allclose(mkl_x_nd, numpy_y_nd, **check_options):
                     self.cpu_cosim_dump_inputs(inputs, out_grad)
-                    raise
-                except:
-                    raise
+                    raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
             else:
-                raise KeyError('cosim, unexpected!')
+                raise KeyError('cosim, unexpected in %s!' % self.__class__.__name__)
 
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.
