@@ -328,7 +328,7 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
     if not isinstance(x.data, cuda.ndarray) and \
        mkld.check_with_mkld((x, W), ()):
         func = Deconvolution2DFunctionMKLDNN(stride, pad, outsize, deterministic)
-        if chainer.is_cosim:
+        if chainer.is_cosim():
             func.cosim_func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
             if b is None:
                 ret = func(x, W)
