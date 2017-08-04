@@ -1,3 +1,4 @@
+from chainer import cuda
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
@@ -51,7 +52,7 @@ class Linear(link.Link):
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
-        self.mkl_reshaped = False
+        self.mkld_reshaped = False
         self.out_size = out_size
 
         if initialW is None:
@@ -88,14 +89,16 @@ class Linear(link.Link):
             if chainer.mkld.available and \
                chainer.should_use_mkldnn('>=auto'):
                 self._initialize_params(x.shape[1:])
-                self.mkl_reshaped = True
+                self.mkld_reshaped = True
             else:
                 self._initialize_params(x.size // x.shape[0])
+        elif isinstance(x, cuda.ndarray) or isinstance(x.data, cuda.ndarray):
+            return linear.linear(x, self.W, self.b)
         # we only support ndim of x 2 , 4
         elif (chainer.mkld.check_with_mkld((x, self.W), (2, 4))) and \
-             (self.mkl_reshaped is False) and \
+             (self.mkld_reshaped is False) and \
              (self.W.ndim != x.ndim):
             w_shape = (self.out_size,) + x.shape[1:]
             if self.W.shape != w_shape:
-                self.W.mkl_reshape(w_shape)
+                self.W.mkld_reshape(w_shape)
         return linear.linear(x, self.W, self.b)

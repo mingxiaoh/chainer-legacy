@@ -419,7 +419,48 @@ class Function(object):
         chainer.enable_cosim()
         return output_cosim
 
-    def cpu_cosim_verify_result(self, mkl_result, numpy_result):
+    def cpu_cosim_dump_forward_inputs(self, in_data):
+        """dump all forward inputs into file
+
+        Aims to dump the inputs into a file in order to  reproduce offline,
+        if encountering a mismatch in cosim results of forward prop.
+        To support this feature, implement it for each function.
+
+        Args:
+            inputs: Tuple of input arrays.
+
+        """
+        pass
+
+    def cpu_cosim_dump_backward_inputs(self, in_data, out_grad):
+        """dump all backward inputs into file
+
+        Aims to dump the inputs into a file in order to  reproduce offline,
+        if encountering a mismatch in cosim results of backward prop.
+        To support this feature, implement it for each function.
+
+        Args:
+            inputs: Tuple of input arrays.
+            out_grad: Tuple of output gradient arrays.
+
+        """
+        pass
+
+    def cpu_cosim_dump_inputs(self, inputs, out_grad=None):
+        """dump all inputs into a file in order to reprocude errors offline.
+        """
+        inputs = [x if isinstance(x, variable.Variable)
+                  else variable.Variable(x)
+                  for x in inputs]
+
+        in_data = tuple([x.data for x in inputs])
+
+        if out_grad is None:
+            self.cpu_cosim_dump_forward_inputs(in_data)
+        else:
+            self.cpu_cosim_dump_backward_inputs(in_data, out_grad)
+
+    def cpu_cosim_verify_result(self, mkl_result, numpy_result, inputs, out_grad=None):
         """cosim verify result between MKLDNN and numpy
         """
         if not chainer.is_cosim():
@@ -449,7 +490,13 @@ class Function(object):
                 numpy_y_nd = np.array(numpy_y)
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):
-                testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
+                try:
+                    testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
+                except AssertionError:
+                    self.cpu_cosim_dump_inputs(inputs, out_grad)
+                    raise
+                except:
+                    raise
             else:
                 raise KeyError('cosim, unexpected!')
 

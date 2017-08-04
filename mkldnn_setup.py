@@ -61,11 +61,15 @@ modules = {
         'mkldnn.api._view': ['mkldnn/api/view.i'],
 
         'mkldnn.api._bn_forward': ['mkldnn/api/bn_forward.i'],
-        'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i']}
+        'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i'],
+
+        'mkldnn.api._cosim_dump':
+        ['mkldnn/api/cosim_dump.i', 'mkldnn/api/cosim_dump.cc'],
+        }
 
 
 swig_opts = [
-            '-c++', '-Imkldnn', '-relativeimport',
+            '-c++', '-Imkldnn',
             '-builtin', '-modern', '-modernargs',
             '-Imkldnn/api', '-Imkldnn', '-Imkldnn/swig_utils']
 
@@ -73,7 +77,7 @@ if sys.version_info.major < 3:
     swig_opts += ['-DNEWBUFFER_ON']
 
 ccxx_opts = ['-std=c++11']
-link_opts = ['-L' + prefix + '/lib']
+link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack', '-L' + prefix + '/lib']
 
 includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils', prefix + '/include']
 libraries = ['mkldnn']

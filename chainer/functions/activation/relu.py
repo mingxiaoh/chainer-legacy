@@ -89,13 +89,14 @@ def relu(x):
         (3, 2)
 
     """
-    if mkld.check_with_mkld((x, ), (2, 4)):
+    if not isinstance(x.data, cuda.ndarray) and \
+       mkld.check_with_mkld((x, ), (2, 4)):
         func = ReLUMKLDNN()
         ret = func(x)
         if chainer.is_cosim():
             func.cosim_func = ReLU()
             numpy_result = func.cosim_func(x)
-            func.cpu_cosim_verify_result(ret, numpy_result)
+            func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
         return ret
     else:
         if chainer.mkld.available and \

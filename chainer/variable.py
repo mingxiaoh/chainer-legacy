@@ -696,7 +696,8 @@ Actual: {0}'''.format(type(data))
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             if is_cosim:
-                func.cpu_cosim_verify_result(gxs, func.backward_cpu_cosim(in_data, out_grad))
+                numpy_result = func.backward_cpu_cosim(in_data, out_grad)
+                func.cpu_cosim_verify_result(gxs, numpy_result, func.inputs, out_grad)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
@@ -846,7 +847,7 @@ Actual: {0}'''.format(type(data))
         self._data[0] = data
         self._node._grad = grad
 
-    def mkl_reshape(self, shape):
+    def mkld_reshape(self, shape):
         self._data[0] = self._data[0].reshape(shape)
         if self._node._grad is not None:
             self._node._grad = self._node._grad.reshape(shape)

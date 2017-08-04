@@ -9,6 +9,8 @@ from mkldnn.api.support import forward_training, lrn_across_channels, at
 import mkldnn.api.memory as m
 import mkldnn.api.lrn_forward as lrn_forward
 import mkldnn.api.lrn_backward as lrn_backward
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 from mkldnn.mdarray import mdarray
 
 
@@ -132,3 +134,26 @@ class LrnMKLDNN(function.Function):
 
         gx, = cc.execute_on()
         return gx,
+
+    def cpu_cosim_dump_forward_inputs(self, in_data):
+        cd = cdump.cosim_dump(cdump_op_lrn_forward)
+
+        x = array(in_data[0], m.memory.nchw, Engine())
+        cd.dump_memory(cdump_src_memory, x.memory)
+
+        cd.dump_int_parms(cdump_lrn_local_size, self.n)
+        cd.dump_double_parms(cdump_lrn_doulbe_parms, self.k, self.alpha, self.beta)
+
+    def cpu_cosim_dump_backward_inputs(self, in_data, out_grad):
+        cd = cdump.cosim_dump(cdump_op_lrn_backward)
+
+        x = array(in_data[0], m.memory.nchw, Engine())
+        cd.dump_memory(cdump_src_memory, x.memory)
+
+        gy = array(out_grad[0], m.memory.nchw, Engine())
+        cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+
+        cd.dump_memory(cdump_ws_memory, self.ws.memory)
+
+        cd.dump_int_parms(cdump_lrn_local_size, self.n)
+        cd.dump_double_parms(cdump_lrn_doulbe_parms, self.k, self.alpha, self.beta)
