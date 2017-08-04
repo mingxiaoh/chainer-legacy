@@ -158,7 +158,7 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
-        elif (mkld.check_with_mkld((x, ), (2, 4)) and
+        elif (mkld.all_ready((x, ), (2, 4)) and
               isinstance(self, BnMKLDNN)):
             outputs = self.forward_cpu(inputs)
             y = outputs[0]
@@ -259,7 +259,7 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
-        elif (mkld.check_with_mkld((x, ), (2, 4)) and
+        elif (mkld.all_ready((x, ), (2, 4)) and
               isinstance(self, BnMKLDNN)):
             outputs = self.backward_cpu(inputs, gy)
             gx, ggamma, gbeta = outputs[:3]
@@ -392,8 +392,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
     """
 
-    if not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, ), (2, 4)):
+    if mkld.all_ready((x, ), (2, 4)):
         return BnMKLDNN(
             eps, running_mean, running_var,
             decay)(x, gamma, beta)
@@ -425,8 +424,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
 
     """
     with configuration.using_config('train', False):
-        if not isinstance(x.data, cuda.ndarray) and \
-           mkld.check_with_mkld((x, ), (2, 4)):
+        if mkld.all_ready((x, ), (2, 4)):
             func = BnMKLDNN(eps, None, None, 0.0)
             ret = func(x, gamma, beta, mean, var)
             if chainer.is_cosim():

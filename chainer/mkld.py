@@ -33,15 +33,17 @@ except Exception as ex:
         pass
 
 
-def check_with_mkld(inputs, check_with_ndim):
+def all_ready(inputs, check_with_ndim):
     # Check whether mkldnn installed
     if not available:
         return False
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
 
+    if isinstance(_inputs[0], mdarray):
+        return True
     # Check whether mkldnn configured and used correctly
-    if not isinstance(_inputs[0], mdarray):
+    elif isinstance(_inputs[0], numpy.ndarray):
         _should_use_mkldnn = True
 
         for x in _inputs:
@@ -52,6 +54,9 @@ def check_with_mkld(inputs, check_with_ndim):
                                  chainer.should_use_mkldnn('>=auto')
         if not _should_use_mkldnn:
             return False
+    # cuda.ndarray
+    else:
+        return False
 
     # Check with mkldnn supported dimension of input data
     valid_ndim = False

@@ -133,8 +133,7 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    if not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, ), ()):
+    if mkld.all_ready((x, ), ()):
         func = LrnMKLDNN(n, k, alpha, beta)
         ret = func(x)
         if chainer.is_cosim():

@@ -320,8 +320,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
 
     """
     # XXX: Switch the route, work on the critera
-    if not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, W), ()):
+    if mkld.all_ready((x, W), ()):
         func = Convolution2DFunctionMKLDNN(
             stride, pad, cover_all, deterministic)
         if chainer.is_cosim():

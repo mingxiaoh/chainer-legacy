@@ -89,8 +89,7 @@ def relu(x):
         (3, 2)
 
     """
-    if not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, ), (2, 4)):
+    if mkld.all_ready((x, ), (2, 4)):
         func = ReLUMKLDNN()
         ret = func(x)
         if chainer.is_cosim():
