@@ -27,7 +27,7 @@ def install():
     # install mkldnn
     if not os.path.exists(MKLML_PKG_PATH):
         os.system('cd scripts && ./prepare_mkl.sh && cd ..')
-    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make' % MKLDNN_ROOT)
+    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j 8' % MKLDNN_ROOT)
     os.system('cd build && make install')
 
     # install mklml
