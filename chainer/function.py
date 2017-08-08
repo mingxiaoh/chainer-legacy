@@ -419,24 +419,11 @@ class Function(object):
         chainer.enable_cosim()
         return output_cosim
 
-    def cpu_cosim_dump_forward_inputs(self, in_data):
-        """dump all forward inputs into file
+    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+        """dump all inputs into file
 
         Aims to dump the inputs into a file in order to  reproduce offline,
-        if encountering a mismatch in cosim results of forward prop.
-        To support this feature, implement it for each function.
-
-        Args:
-            inputs: Tuple of input arrays.
-
-        """
-        pass
-
-    def cpu_cosim_dump_backward_inputs(self, in_data, out_grad):
-        """dump all backward inputs into file
-
-        Aims to dump the inputs into a file in order to  reproduce offline,
-        if encountering a mismatch in cosim results of backward prop.
+        if encountering a mismatch in cosim results.
         To support this feature, implement it for each function.
 
         Args:
@@ -446,19 +433,14 @@ class Function(object):
         """
         pass
 
-    def cpu_cosim_dump_inputs(self, inputs, out_grad=None):
+    def cpu_cosim_dump(self, inputs, out_grad=None):
         """dump all inputs into a file in order to reprocude errors offline.
         """
         inputs = [x if isinstance(x, variable.Variable)
                   else variable.Variable(x)
                   for x in inputs]
-
         in_data = tuple([x.data for x in inputs])
-
-        if out_grad is None:
-            self.cpu_cosim_dump_forward_inputs(in_data)
-        else:
-            self.cpu_cosim_dump_backward_inputs(in_data, out_grad)
+        self.cpu_cosim_dump_inner(in_data, out_grad)
 
     def cpu_cosim_verify_result(self, mkl_result, numpy_result, inputs, out_grad=None):
         """cosim verify result between MKLDNN and numpy
@@ -491,7 +473,7 @@ class Function(object):
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):
                 if not testing.expect_allclose(mkl_x_nd, numpy_y_nd, **check_options):
-                    self.cpu_cosim_dump_inputs(inputs, out_grad)
+                    self.cpu_cosim_dump(inputs, out_grad)
                     raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
             else:
                 raise KeyError('cosim, unexpected in %s!' % self.__class__.__name__)

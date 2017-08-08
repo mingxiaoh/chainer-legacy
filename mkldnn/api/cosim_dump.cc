@@ -21,11 +21,18 @@
 namespace mkldnn {
 
 cosim_dump::cosim_dump(operation_kind aop_kind) {
-    header.idnum = CDUMP_ID_NUM;
-    header.ok = aop_kind;
+    header.id_num = CDUMP_ID_NUM;
+    header.mkldnn_ver = 0;
+    header.op_kind = aop_kind;
 
     const char* dname = NULL;
-    switch(header.ok) {
+    switch(header.op_kind) {
+        case cdump_op_conv_forward:
+            dname = "Conv_forward.cdump";
+            break;
+        case cdump_op_conv_backward:
+            dname = "Conv_backward.cdump";
+            break;
         case cdump_op_lrn_forward:
             dname = "Lrn_forward.cdump";
             break;
@@ -49,6 +56,13 @@ cosim_dump::cosim_dump(operation_kind aop_kind) {
         dfile.close();
         return;
     }
+
+    dfile.write((const char*)&dummy_mdesc, sizeof(mkldnn_memory_desc_t));
+    if (!dfile.good()) {
+        LOG(ERROR) << "Failed to write dummy_mdesc to dump file " << dname;
+        dfile.close();
+        return;
+    }
 }
 
 cosim_dump::~cosim_dump() {
@@ -66,7 +80,7 @@ void cosim_dump::dump_memory(parm_kind aparm_kind, const memory &mem) {
     auto mp = mem.get_primitive_desc();
 
     DumpDesc dd;
-    dd.pk = aparm_kind;
+    dd.pa_kind = aparm_kind;
     dd.desc_size = sizeof(mkldnn_memory_desc_t);
     dd.data_size = mp.get_size();
     dfile.write((const char*)&dd, sizeof(DumpDesc));
@@ -98,7 +112,7 @@ void cosim_dump::dump_int_parms(parm_kind aparm_kind, int i1, int i2, int i3,
     }
 
     DumpDesc dd;
-    dd.pk = aparm_kind;
+    dd.pa_kind = aparm_kind;
     dd.desc_size = 0;
     dd.data_size = 0;
 
@@ -125,7 +139,7 @@ void cosim_dump::dump_double_parms(parm_kind aparm_kind, double d1, double d2,
     }
 
     DumpDesc dd;
-    dd.pk = aparm_kind;
+    dd.pa_kind = aparm_kind;
     dd.desc_size = 0;
     dd.data_size = 0;
 

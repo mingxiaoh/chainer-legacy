@@ -29,4 +29,6 @@ mkldnn/api/pooling_*.py
 mkldnn/api/bn_*.py
 mkldnn/api/view.py
 mkldnn/api/sum.py
+mkldnn/api/cosim_dump.py
 mkldnn/mdarray.py
+external/mkldnn/source

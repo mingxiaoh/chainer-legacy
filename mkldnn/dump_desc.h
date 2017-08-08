@@ -21,8 +21,50 @@
 
 namespace mkldnn {
 
+/***
+XXX: Dump file layout
+-------------------------
+| DumpHeader            |
+-------------------------
+| dummy_mdesc           |
+-------------------------
+| DumpDesc1             |
+-------------------------
+| mkldnn_memory_desc_t2 |
+-------------------------
+| ...mdesc1...          |
+-------------------------
+| DumpDesc2             |
+-------------------------
+| mkldnn_memory_desc_t2 |
+-------------------------
+| ...mdesc2...          |
+-------------------------
+| ...........           |
+-------------------------
+***/
+
+static const mkldnn_memory_desc_t dummy_mdesc = {
+    .primitive_kind = mkldnn_undefined_primitive,
+    .ndims = TENSOR_MAX_DIMS,
+    .dims = {1},
+    .data_type = mkldnn_data_type_undef,
+    .format = mkldnn_format_undef,
+    .layout_desc = {
+        .blocking = {
+            .block_dims = {2},
+            .strides = {3},
+            .padding_dims = {4},
+            .offset_padding_to_data = {5},
+            .offset_padding = 0xf0f05050,
+        },
+    },
+};
+
 enum operation_kind {
     cdump_op_invalid = 0,
+    cdump_op_conv_forward,
+    cdump_op_conv_backward,
     cdump_op_lrn_forward,
     cdump_op_lrn_backward,
     cdump_op_max
@@ -31,8 +73,11 @@ enum operation_kind {
 enum parm_kind {
     cdump_memory_invalid = 0,
     cdump_src_memory,
+    cdump_weight_memory,
+    cdump_bias_memory,
     cdump_ws_memory,
     cdump_diff_dst_memory,
+    cdump_conv_int_parms,
     cdump_lrn_local_size,
     cdump_lrn_doulbe_parms,
     cdump_memory_max
@@ -41,12 +86,13 @@ enum parm_kind {
 #define CDUMP_ID_NUM  0xA0A05050
 
 struct DumpHeader {
-    int              idnum;
-    operation_kind   ok;
+    int             id_num;
+    int             mkldnn_ver;
+    operation_kind  op_kind;
 }__attribute__ ((packed));
 
 struct DumpDesc {
-    parm_kind   pk;
+    parm_kind   pa_kind;
     int         desc_size;
     int         data_size;
     union {

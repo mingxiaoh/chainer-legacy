@@ -536,7 +536,7 @@ public:
           //printf("\n   %d *Reorder(split) iutput from:%d, to:%d\n", spl_nr++, user_fmt, mkl_fmt);
       } else {
           dag->push_back(mkldnn::reorder(user, interm));
-	  }
+      }
 #else
       dag->push_back(mkldnn::reorder(user, interm));
 #endif
@@ -596,8 +596,8 @@ public:
 
   virtual void reset_buf_order() override {
     if (reorder_.get()) {
-	  reorder_->reset_reorder();
-	}
+        reorder_->reset_reorder();
+    }
   }
 protected:
   std::vector<mkldnn::primitive> *dag_;

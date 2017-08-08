@@ -13,6 +13,8 @@ import mkldnn.api.memory as m
 import mkldnn.api.convolution_forward as conv_forward
 import mkldnn.api.convolution_backward_data as conv_backdata
 import mkldnn.api.convolution_backward_weights as conv_backweights
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 from mkldnn.mdarray import mdarray
 
 conv_f_op = conv_forward.conv_f_op
@@ -343,3 +345,32 @@ class Convolution2DFunctionMKLDNN(function.Function):
             gx = None,
 
         return gx + gW_b
+
+    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+        cd = None
+        if out_grad is None:
+            cd = cdump.cosim_dump(cdump_op_conv_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_conv_backward)
+
+        e = Engine()
+        x = in_data[0]
+        W = in_data[1]
+        b = in_data[2] if len(in_data) == 3 else None
+
+        md_x = array(x, m.memory.nchw, e)
+        cd.dump_memory(cdump_src_memory, md_x.memory)
+
+        md_W = array(W, m.memory.oihw, e)
+        cd.dump_memory(cdump_weight_memory, md_W.memory)
+
+        if b is not None:
+            md_b = array(b, m.memory.x, e)
+            cd.dump_memory(cdump_bias_memory, md_b.memory)
+
+        if out_grad is not None:
+            gy = grad_outputs[0]
+            md_gy = array(gy, m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_b.memory)
+
+        cd.dump_int_parms(cdump_conv_int_parms, self.sy, self.sx, self.ph, self.pw)
