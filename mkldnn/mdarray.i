@@ -97,7 +97,7 @@ public:
       , mkldnn::engine &e);
 
   mdarray(mkldnn::memory::primitive_desc pd);
-
+  mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp);
   mdarray(Py_buffer *view
       , mkldnn::memory::format, mkldnn::engine &);
 

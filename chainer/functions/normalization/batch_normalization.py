@@ -339,6 +339,7 @@ class BnMKLDNN(BatchNormalizationFunction):
 
         outputs = cc.execute_on()
         gx = outputs[0]
+        gx.reset_buf_order()
         ggamma = outputs[1][0]
         gbeta = outputs[1][1]
         if expand_dim:

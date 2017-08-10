@@ -340,6 +340,25 @@ public:
                         ) != md.format;
                   } ()), purpose_(sink) {}
 
+  mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
+    : size_([&pd] () {
+                    auto md = pd.desc().data;
+                    return std::accumulate(md.dims, md.dims + md.ndims, 1
+                        , std::multiplies<int>());
+                  }())
+              // Use primitive desc's reference
+              , data_(std::shared_ptr<avx::byte>(
+                   reinterpret_cast<avx::byte *>(mp.get_data_handle())
+                   , [] (avx::byte *p) {}))
+              , m_(pd, data_.get())
+              , view_(nullptr), rtti(raw)
+              , internal_order_([&pd] () {
+                  auto md = pd.desc().data;
+                    return reorderer::public_format(
+                        static_cast<mkldnn::memory::format>(md.format)
+                        ) != md.format;
+                  } ()), purpose_(sink) {}
+
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
       , const mkldnn::engine &e)
@@ -827,6 +846,9 @@ public:
 
   mdarray(mkldnn::memory::primitive_desc pd)
     : py_handle(std::make_shared<implementation::mdarray>(pd)) {}
+
+  mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
+    : py_handle(std::make_shared<implementation::mdarray>(pd, mp)) {}
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format format

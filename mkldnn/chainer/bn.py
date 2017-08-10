@@ -150,7 +150,7 @@ class BnBackward(ComputeComplex):
         self.x = fwd_x
         x_mpd = self.x.memory.get_primitive_desc()
         x_md = x_mpd.desc()
-        gy = array(gy, m.get_fmt(x_mpd), e)
+        gy = array(gy, m.memory.nchw, e)
         outputs = reorder_if_must(gy, x_mpd, e, self.dag_)
         if len(outputs) == 2:
             self.gy_src = gy
@@ -163,7 +163,7 @@ class BnBackward(ComputeComplex):
         cc_d = bn_backward.desc(backward, gy_md, x_md, eps, flags)
         cc_pd = bn_backward.primitive_desc(cc_d, e, hint)
 
-        gx = mdarray(self.x.memory.get_primitive_desc())
+        gx = mdarray(self.x.memory.get_primitive_desc(), gy.memory)
         if flags & use_scale_shift:
             w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
             self.w = array(w, m.memory.nc, e)
@@ -184,7 +184,7 @@ class BnBackward(ComputeComplex):
     def _reuse(self, inputs, gy, mean=None, var=None):
         x, gamma, beta = inputs[:3]
         reuse_buffer(self.x, x)
-        reuse_buffer(self.gy, gy)
+        reuse_buffer(self.gy_src, gy)
         if mean is not None:
             reuse_buffer(self.mean, mean)
         if var is not None:
