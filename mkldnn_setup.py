@@ -11,7 +11,10 @@ subdir = 'mkldnn'
 # prefix = '/usr/local'
 mkldnn_root = external.mkldnn.root()
 mkldnn_version = '171572a205c71f5bbb08657de5660c9d06cf2d8f'
-external.mkldnn.prepare(mkldnn_version)
+
+
+def prepare_mkldnn():
+    external.mkldnn.prepare(mkldnn_version)
 
 
 modules = {

@@ -32,12 +32,14 @@ if cupy_pkg is not None:
 
 class _build_py(build_py):
     def run(self):
+        mkldnn_setup.prepare_mkldnn()
         self.run_command('build_ext')
         build_py.run(self)
 
 
 class _install(install):
     def run(self):
+        mkldnn_setup.prepare_mkldnn()
         self.run_command('build_ext')
         install.run(self)
 
