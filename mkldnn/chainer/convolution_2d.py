@@ -369,8 +369,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
             cd.dump_memory(cdump_bias_memory, md_b.memory)
 
         if out_grad is not None:
-            gy = grad_outputs[0]
-            md_gy = array(gy, m.memory.nchw, e)
-            cd.dump_memory(cdump_diff_dst_memory, md_b.memory)
+            md_gy = array(out_grad[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
 
         cd.dump_int_parms(cdump_conv_int_parms, self.sy, self.sx, self.ph, self.pw)
