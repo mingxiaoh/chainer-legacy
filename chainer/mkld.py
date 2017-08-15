@@ -27,6 +27,7 @@ try:
 
     available = True
 except Exception as ex:
+    print('WARNING: import mkldpy fails')
     error_info = ex
 
     class mdarray(object):

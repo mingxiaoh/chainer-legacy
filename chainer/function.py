@@ -447,9 +447,10 @@ class Function(object):
         """
         if not chainer.is_cosim():
             return
-        check_options = {'atol': 5e-1, 'rtol': 5e-1}
+        check_options = {'atol': 1e-2, 'rtol': 1e-2}
         i = 0
         if numpy_result is None:
+            print('WARNING: cosim numpy result is none')
             return None
         print('cpu_cosim_verify_result v2')
         for numpy_y in numpy_result:
