@@ -222,6 +222,9 @@ class Function(object):
         ret = tuple([variable.Variable(y) for y in outputs])
 
         if configuration.config.enable_backprop:
+            if chainer.mkld.available:
+                chainer.mkld.training_forward_optimization(self, inputs)
+
             # Backward edges
             for y in ret:
                 y.set_creator(self)
@@ -412,31 +415,22 @@ class Function(object):
         print(self)
         if not hasattr(self, 'cosim_func'):
             return
-        cosim_inputs = copy.copy(inputs)
-        cosim_grad_outputs = copy.copy(grad_outputs)
+
+        cosim_inputs = chainer.mkld.to_plain_array(inputs)
+        cosim_grad_outputs = chainer.mkld.to_plain_array(grad_outputs)
+        # cosim_inputs = copy.copy(inputs)
+        # cosim_grad_outputs = copy.copy(grad_outputs)
+
         chainer.disable_cosim()
         output_cosim = self.cosim_func.backward(cosim_inputs, cosim_grad_outputs)
         chainer.enable_cosim()
         return output_cosim
 
-    def cpu_cosim_dump_forward_inputs(self, in_data):
-        """dump all forward inputs into file
+    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+        """dump all inputs into file
 
         Aims to dump the inputs into a file in order to  reproduce offline,
-        if encountering a mismatch in cosim results of forward prop.
-        To support this feature, implement it for each function.
-
-        Args:
-            inputs: Tuple of input arrays.
-
-        """
-        pass
-
-    def cpu_cosim_dump_backward_inputs(self, in_data, out_grad):
-        """dump all backward inputs into file
-
-        Aims to dump the inputs into a file in order to  reproduce offline,
-        if encountering a mismatch in cosim results of backward prop.
+        if encountering a mismatch in cosim results.
         To support this feature, implement it for each function.
 
         Args:
@@ -446,28 +440,24 @@ class Function(object):
         """
         pass
 
-    def cpu_cosim_dump_inputs(self, inputs, out_grad=None):
+    def cpu_cosim_dump(self, inputs, out_grad=None):
         """dump all inputs into a file in order to reprocude errors offline.
         """
         inputs = [x if isinstance(x, variable.Variable)
                   else variable.Variable(x)
                   for x in inputs]
-
         in_data = tuple([x.data for x in inputs])
-
-        if out_grad is None:
-            self.cpu_cosim_dump_forward_inputs(in_data)
-        else:
-            self.cpu_cosim_dump_backward_inputs(in_data, out_grad)
+        self.cpu_cosim_dump_inner(in_data, out_grad)
 
     def cpu_cosim_verify_result(self, mkl_result, numpy_result, inputs, out_grad=None):
         """cosim verify result between MKLDNN and numpy
         """
         if not chainer.is_cosim():
             return
-        check_options = {'atol': 5e-1, 'rtol': 5e-1, 'verbose': True}
+        check_options = {'atol': 1e-2, 'rtol': 1e-2}
         i = 0
         if numpy_result is None:
+            print('WARNING: cosim numpy result is none')
             return None
         print('cpu_cosim_verify_result v2')
         for numpy_y in numpy_result:
@@ -490,15 +480,11 @@ class Function(object):
                 numpy_y_nd = np.array(numpy_y)
             i = i + 1
             if isinstance(mkl_x_nd, np.ndarray):
-                try:
-                    testing.assert_allclose(mkl_x_nd, numpy_y_nd, **check_options)
-                except AssertionError:
-                    self.cpu_cosim_dump_inputs(inputs, out_grad)
-                    raise
-                except:
-                    raise
+                if not testing.expect_allclose(mkl_x_nd, numpy_y_nd, **check_options):
+                    self.cpu_cosim_dump(inputs, out_grad)
+                    raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
             else:
-                raise KeyError('cosim, unexpected!')
+                raise KeyError('cosim, unexpected in %s!' % self.__class__.__name__)
 
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.

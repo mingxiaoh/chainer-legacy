@@ -48,6 +48,7 @@ class ConcatForward(ComputeComplex):
         y = mdarray(cc_pd.dst_primitive_desc())
         self.dag_.push_back(concat.concat(cc_pd, xs_pl, y.memory))
 
+        self._hint = cc_pd
         self.outputs = y,
         self.xarrays = xarrays
 
@@ -69,16 +70,16 @@ class ConcatForward(ComputeComplex):
 class ConcatBackward(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, xs, gy, axis,
+    def __init__(self, xs, gy, hint, axis,
                  pos=None, e=Engine()):
         super(ConcatBackward, self).__init__()
 
         if self.new:
-            self._create_cc(xs, gy, axis, e)
+            self._create_cc(xs, gy, hint, axis, e)
         else:
             self._reuse(xs, gy)
 
-    def _create_cc(self, xs, gy, axis, e):
+    def _create_cc(self, xs, gy, hint, axis, e):
         self.axis = axis
         gy = array(gy[0], m.memory.nchw, e)
         fmt = m.memory.nchw
@@ -101,11 +102,12 @@ class ConcatBackward(ComputeComplex):
 
         self.gy = gy
         self.xs = xs
+        self._hint = hint
 
     def _reuse(self, inputs, gy):
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, gy, axis):
+    def match(self, inputs, gy, hint, axis):
         if len(self.xs) != len(inputs):
             return False
         for xarray, x in zip(self.xs, inputs):
@@ -150,11 +152,12 @@ class ConcatMKLDNN(function.Function):
         cc = ConcatForward(xs, self.axis,
                            pos=(self.rank, self.fanout))
 
+        self.hint = cc.hint
         y, = cc.execute_on()
         return y,
 
     def backward_cpu(self, xs, gy):
-        cc = ConcatBackward(xs, gy, self.axis,
+        cc = ConcatBackward(xs, gy, self.hint, self.axis,
                             pos=(self.rank, self.fanout))
 
         gx = cc.execute_on()

@@ -13,7 +13,9 @@ def reorder_if_must(x, expect, e, net_):
     if (usr_m.get_primitive_desc() != expect):
         reorded_array = mdarray(expect)
         reorded = reorded_array.memory
-        net_.push_back(r.reorder(at(usr_m), reorded))
+        reorder = r.reorder(at(usr_m), reorded)
+        net_.push_back(reorder)
+
         return reorded_array,
     else:
         return x,
@@ -115,7 +117,7 @@ class ComputeComplex(object):
         else:
             ret = None
         return ret
-        
+
     @property
     def hint(self):
         return self._hint

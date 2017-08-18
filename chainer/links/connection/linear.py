@@ -95,7 +95,7 @@ class Linear(link.Link):
         elif isinstance(x, cuda.ndarray) or isinstance(x.data, cuda.ndarray):
             return linear.linear(x, self.W, self.b)
         # we only support ndim of x 2 , 4
-        elif (chainer.mkld.check_with_mkld((x, self.W), (2, 4))) and \
+        elif (chainer.mkld.all_ready((x, self.W), (2, 4))) and \
              (self.mkld_reshaped is False) and \
              (self.W.ndim != x.ndim):
             w_shape = (self.out_size,) + x.shape[1:]

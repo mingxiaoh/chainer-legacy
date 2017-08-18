@@ -46,6 +46,8 @@ namespace c_api {
 
 enum operation_kind {
     cdump_op_invalid = 0,
+    cdump_op_conv_forward,
+    cdump_op_conv_backward,
     cdump_op_lrn_forward,
     cdump_op_lrn_backward,
     cdump_op_max
@@ -54,8 +56,11 @@ enum operation_kind {
 enum parm_kind {
     cdump_memory_invalid = 0,
     cdump_src_memory,
+    cdump_weight_memory,
+    cdump_bias_memory,
     cdump_ws_memory,
     cdump_diff_dst_memory,
+    cdump_conv_int_parms,
     cdump_lrn_local_size,
     cdump_lrn_doulbe_parms,
     cdump_memory_max

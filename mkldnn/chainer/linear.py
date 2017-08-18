@@ -148,6 +148,11 @@ class LinearBackwardData(ComputeComplex):
     def match(self, inputs, grad_outputs, hint, *args):
         if len(inputs) != self.argc:
             return False
+
+        gy = grad_outputs[0]
+        if isinstance(gy, mdarray) and gy is not self.gy:
+            return False
+
         return (hint is self._hint)
 
     def _create_cc(self, x, W, gy, hint, fwd_W, e=Engine()):
@@ -235,6 +240,11 @@ class LinearBackwardWeighs(ComputeComplex):
     def match(self, inputs, grad_outputs, hint, *args):
         if len(inputs) != self.argc:
             return False
+
+        gy = grad_outputs[0]
+        if isinstance(gy, mdarray) and gy is not self.gy:
+            return False
+
         return (hint is self._hint)
 
     def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):

@@ -325,8 +325,7 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
 
     """
     # XXX: Switch the route
-    if not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, W), ()):
+    if mkld.all_ready((x, W), ()):
         func = Deconvolution2DFunctionMKLDNN(stride, pad, outsize, deterministic)
         if chainer.is_cosim():
             func.cosim_func = Deconvolution2DFunction(stride, pad, outsize, deterministic)

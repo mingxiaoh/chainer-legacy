@@ -197,7 +197,7 @@ class DeconvolutionBackwardData(ComputeComplex):
 
         # Transform inputs
         self.gy = array(gy, m.memory.nchw, e)
-        self.W = array(W, m.memory.nchw, e)
+        self.W = array(W, m.memory.oihw, e)
 
         # here hint is deconv backward data pd, use it directly
         gx = deconv_bd_op(hint, self.gy, self.W, self.dag_)

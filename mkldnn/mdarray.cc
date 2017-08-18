@@ -3,6 +3,7 @@
 #include "cpu_info.h"
 #endif
 #include "mdarray.h"
+#include <mkl_vml_functions.h>
 
 namespace implementation {
 
@@ -69,8 +70,95 @@ void g_init() {
 //FIXME: macro SWIG_as_voidptr is copied from mdarray_wrap.cpp
 #define SWIG_as_voidptr(a) const_cast< void * >(static_cast< const void * >(a))
 
-PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
-  // Resource manager, for GCC do not accept lambda
+// Pickle
+PyObject *mdarray::__getstate__() const {
+  auto md = desc();
+  void *raw_data = data();
+  int ndims = md.data.ndims;
+  mkldnn::memory::dims dims;
+  mkldnn::memory::data_type dtype = static_cast<mkldnn::memory::data_type>(md.data.data_type);
+  mkldnn::memory::format format = static_cast<mkldnn::memory::format>(md.data.format);
+  static mkldnn::engine engine = get_engine();
+
+  PyObject *py_dims = PyTuple_New(ndims);
+  for (int i = 0; i < ndims; i++) {
+    PyObject *py_dim = PyLong_FromLong(md.data.dims[i]);
+    PyTuple_SetItem(py_dims, i, py_dim);
+  }
+
+  PyObject *py_dtype = PyLong_FromLong((long)dtype);
+  PyObject *py_format = PyLong_FromLong((long)format);
+  PyObject *py_engine = PyLong_FromVoidPtr((void *)&engine);
+  PyObject *py_rdata = PyLong_FromVoidPtr((void *)raw_data);
+
+  PyObject *state = PyTuple_New(5);
+  PyTuple_SetItem(state, 0, py_dims);
+  PyTuple_SetItem(state, 1, py_dtype);
+  PyTuple_SetItem(state, 2, py_format);
+  PyTuple_SetItem(state, 3, py_engine);
+  PyTuple_SetItem(state, 4, py_rdata);
+
+  return state;
+}
+
+// Unpickle.
+void mdarray::__setstate__(PyObject *state) {
+  return;
+}
+
+PyObject *mdarray::py_mdarray_from(PyObject *o) const {
+  mkldnn::engine p_e = get_engine();
+
+  PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
+      , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
+
+  PyObject *argList = Py_BuildValue("(OiO)", o
+      , reorderer::public_format(
+          static_cast<mkldnn::memory::format>(desc().data.format)
+        ), Py_p_engine);
+
+  if (argList == nullptr) {
+    PyErr_SetString(PyExc_SystemError, "Can not create argument list");
+    return nullptr;
+  }
+
+  o = PyObject_CallObject(PyType_mdarray, argList);
+
+  Py_DECREF(argList);
+  Py_DECREF(Py_p_engine);
+
+  if (o == nullptr) {
+    PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
+    return nullptr;
+  }
+
+  return o;
+}
+
+template<class T>
+void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
+  std::vector<mkldnn::primitive> prims;
+  std::unique_ptr<mkldnn::memory> mreorder;
+
+  /// Reorder to x's format
+  auto mid = reorder_if_must(y->m_, x->m_.get_primitive_desc()
+      , mreorder, &prims);
+
+  mkldnn::sum::primitive_desc sum_pd({a, b}
+      , {x->m_.get_primitive_desc(), mid.get_primitive_desc()});
+
+  std::vector<mkldnn::memory::primitive::at> inputs_at {x->m_, mid};
+
+  mkldnn::sum sum_prim(sum_pd, inputs_at, dst->m_);
+  prims.push_back(sum_prim);
+
+  mkldnn::stream s(mkldnn::stream::kind::eager);
+  s.submit(prims).wait();
+}
+
+template<class T>
+PyObject *mdarray::axpby(T a, T b, PyObject *o) {
+  /// Resource manager, for GCC do not accept lambda
   struct py_decref {
     void operator () (PyObject *p) {
       Py_DECREF(p);
@@ -79,34 +167,9 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 
   std::unique_ptr<PyObject, py_decref> op(nullptr);
 
-  // Create mdarray from buffer provider
+  /// Create mdarray from buffer provider
   if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
-    mkldnn::engine p_e = get_engine();
-
-    PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
-        , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
-    assert(Py_p_engine != nullptr);
-
-    PyObject *argList = Py_BuildValue("(OiO)", o
-        , reorderer::public_format(
-            static_cast<mkldnn::memory::format>(desc().data.format)
-          ), Py_p_engine);
-
-    if (argList == nullptr) {
-      PyErr_SetString(PyExc_SystemError, "Can not create argument list");
-      return nullptr;
-    }
-
-    o = PyObject_CallObject(PyType_mdarray, argList);
-
-    Py_DECREF(argList);
-    Py_DECREF(Py_p_engine);
-
-    if (o == nullptr) {
-      PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
-      return nullptr;
-    }
-
+    o = py_mdarray_from(o);
     op.reset(o);
   }
 
@@ -118,26 +181,11 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
     return nullptr;
   }
 
-  // 2 mdarray add
-  auto mdarray2 = (reinterpret_cast<py_handle *>(oprd2))->get();
+  auto x = (reinterpret_cast<py_handle *>(oprd2))->get();
+  py_handle *output = new py_handle(new mdarray(x->m_.get_primitive_desc()));
 
-  std::vector<mkldnn::primitive> prims;
-  std::unique_ptr<mkldnn::memory> mreorder;
-  auto mem1 = reorder_if_must(memory(), mdarray2->m_.get_primitive_desc(), mreorder, &prims);
-
-  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
-      , {mem1.get_primitive_desc(), mdarray2->m_.get_primitive_desc()});
-
-  std::vector<mkldnn::memory::primitive::at> inputs_at {mem1
-    , mdarray2->memory()};
-
-  py_handle *output = new py_handle(new mdarray(sum_pd.dst_primitive_desc()));
-
-  mkldnn::sum sum_prim(sum_pd, inputs_at, (*output)->memory());
-  prims.push_back(sum_prim);
-
-  mkldnn::stream s(mkldnn::stream::kind::eager);
-  s.submit(prims).wait();
+  /// Switch position for format consistency
+  axpby(output->get(), b, x, a, this);
 
   PyObject *resultobj = SWIG_Python_NewPointerObj(nullptr
       , SWIG_as_voidptr(output), SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
@@ -145,7 +193,8 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   return resultobj;
 }
 
-PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
+template<class T>
+PyObject *mdarray::inplace_axpby(T a, PyObject *self, T b, PyObject *o) {
   // Resource manager, for GCC do not accept lambda
   struct py_decref {
     void operator () (PyObject *p) {
@@ -157,32 +206,7 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
 
   // Create mdarray from buffer provider
   if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
-    mkldnn::engine p_e = get_engine();
-
-    PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
-        , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
-    assert(Py_p_engine != nullptr);
-
-    PyObject *argList = Py_BuildValue("(OiO)", o
-        , reorderer::public_format(
-            static_cast<mkldnn::memory::format>(desc().data.format)
-          ), Py_p_engine);
-
-    if (argList == nullptr) {
-      PyErr_SetString(PyExc_SystemError, "Can not create argument list");
-      return nullptr;
-    }
-
-    o = PyObject_CallObject(PyType_mdarray, argList);
-
-    Py_DECREF(argList);
-    Py_DECREF(Py_p_engine);
-
-    if (o == nullptr) {
-      PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
-      return nullptr;
-    }
-
+    o = py_mdarray_from(o);
     op.reset(o);
   }
 
@@ -194,28 +218,165 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
     return nullptr;
   }
 
-  // 2 mdarray add
-  auto mdarray2 = (reinterpret_cast<py_handle *>(oprd2))->get();
-
-  std::vector<mkldnn::primitive> prims;
-  std::unique_ptr<mkldnn::memory> mreorder;
-  auto mem2 = reorder_if_must(mdarray2->memory(), m_.get_primitive_desc(), mreorder, &prims);
-
-  mkldnn::sum::primitive_desc sum_pd({1.0, 1.0}
-      , {m_.get_primitive_desc(), mem2.get_primitive_desc()});
-
-  std::vector<mkldnn::memory::primitive::at> inputs_at {m_
-    , mem2};
-
-  assert(m_.get_primitive_desc() == sum_pd.dst_primitive_desc());
-  mkldnn::sum sum_prim(sum_pd, inputs_at, memory());
-  prims.push_back(sum_prim);
-
-  mkldnn::stream s(mkldnn::stream::kind::eager);
-  s.submit(prims).wait();
-
+  auto y = (reinterpret_cast<py_handle *>(oprd2))->get();
+  axpby(this, a, this, b, y);
   Py_INCREF(self);
+
   return self;
+}
+
+PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
+  // Array Broadcast
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_Add_map_impl(self, o);
+  } else {
+    return axpby(1.0, 1.0, o);
+  }
+}
+
+PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
+  // Array Broadcast
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_Subtract_map_impl(self, o);
+  } else {
+    return axpby(1.0, -1.0, o);
+  }
+}
+
+PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
+  // Array Broadcast
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_InPlaceAdd_map_impl(self, o);
+  } else {
+    return inplace_axpby(1.0, self, 1.0, o);
+  }
+}
+
+PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
+  // Array Broadcast
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_InPlaceSubtract_map_impl(self, o);
+  } else {
+    return inplace_axpby(1.0, self, -1.0, o);
+  }
+}
+
+PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
+  struct py_decref {
+    void operator () (PyObject *p) {
+      Py_DECREF(p);
+    }
+  };
+
+  std::unique_ptr<PyObject, py_decref> op(nullptr);
+
+  enum mult_type_t { MULT_UNKNOWN, MULT_ELTWISE, MULT_SCALAR };
+
+  PyTypeObject *oprd2_type = reinterpret_cast<PyTypeObject *>(o->ob_type);
+  int mult_type = static_cast<int>(MULT_UNKNOWN);
+  if (oprd2_type == &PyArray_Type) {
+    mult_type = MULT_ELTWISE;
+    o = py_mdarray_from(o);
+    op.reset(o);
+  } else if (PyObject_HasAttrString(o, "is_mdarray")) {
+    mult_type = MULT_ELTWISE;
+  } else if (PyFloat_Check(o) || PyInt_Check(o) || PyNumber_Check(o)) {
+    mult_type = MULT_SCALAR;
+  }
+
+  PyObject *resultobj = nullptr;
+
+  switch (static_cast<enum mult_type_t>(mult_type)) {
+  case MULT_ELTWISE: {
+    void *oprd2;
+    int res = SWIG_ConvertPtr(o, &oprd2, nullptr, 0);
+    if (!SWIG_IsOK(res)) {
+      PyErr_SetString(PyExc_ValueError, "Error oprd2 %matrix element multiply");
+      break;
+    }
+
+    auto oprd1_mdarr = this;
+    auto oprd2_mdarr = (reinterpret_cast<py_handle *>(oprd2))->get();
+
+    if (oprd1_mdarr->size() != oprd2_mdarr->size()) {
+      PyErr_SetString(PyExc_SystemError, "Abnormal matrix size %matrix element multiply");
+      break;
+    }
+
+    std::vector<mkldnn::primitive> prims;
+    std::unique_ptr<mkldnn::memory> mreorder;
+
+    auto oprd2_internal_m = reorder_if_must(oprd2_mdarr->m_,
+                               oprd1_mdarr->m_.get_primitive_desc(),
+                               mreorder,
+                               &prims);
+    mkldnn::stream s(mkldnn::stream::kind::eager);
+    s.submit(prims).wait();
+
+    mkldnn::memory::desc res_desc = oprd1_mdarr->desc();
+    mkldnn::memory::dims res_tz;
+    mkldnn::memory::data_type res_dtype =
+          static_cast<mkldnn::memory::data_type>(res_desc.data.data_type);
+    mkldnn::memory::format res_fmt =
+          static_cast<mkldnn::memory::format>(res_desc.data.format);
+    mkldnn::engine res_engine = oprd1_mdarr->get_engine();
+
+    assert(oprd1_mdarr->ndims() == 2 || oprd1_mdarr->ndims() == 4);
+    for (int ndim = 0; ndim < static_cast<int>(oprd1_mdarr->ndims()); ndim++)
+      res_tz.push_back(res_desc.data.dims[ndim]);
+
+    mdarray *res_mdarr = new mdarray(res_tz, res_dtype, res_fmt, res_engine);
+    assert(mkldnn::memory::f32 == res_dtype ||
+           mkldnn::memory::s32 == res_dtype);
+    if (mkldnn::memory::f32 == res_dtype) {
+      vsMul(oprd1_mdarr->size(),
+            reinterpret_cast<const float *>(oprd1_mdarr->data()),
+            reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
+            reinterpret_cast<float *>(res_mdarr->data()));
+    } else if (mkldnn::memory::s32 == res_dtype) {
+      int *a1 = reinterpret_cast<int *>(oprd1_mdarr->data());
+      int *a2 = reinterpret_cast<int *>(oprd2_internal_m.get_data_handle());
+      int *out = reinterpret_cast<int *>(res_mdarr->data());
+      for (int idx = 0; idx < static_cast<int>(oprd1_mdarr->size()); idx++) {
+        int _a1 = a1[idx];
+        int _a2 = a2[idx];
+        out[idx] = _a1 * _a2;
+      }
+    }
+
+    auto res_py_handle = new py_handle(res_mdarr);
+    resultobj = SWIG_Python_NewPointerObj(nullptr,
+                     SWIG_as_voidptr(res_py_handle),
+                     SwigTy_mdarray,
+                     SWIG_POINTER_OWN | 0);
+
+    break;
+  }
+
+  case MULT_SCALAR: {
+    double a = PyInt_Check(o) ?
+               static_cast<double>(PyInt_AsLong(o)) :
+               PyFloat_AsDouble(o),
+           b = 0.0;
+    resultobj = axpby(a, b, self);
+    break;
+  }
+
+  case MULT_UNKNOWN:
+  default:
+    PyErr_SetString(PyExc_SystemError, "Abnormal type % matrix * scalar");
+    break;
+  }
+
+  return resultobj;
 }
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
@@ -267,6 +428,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
 
   // Stolen reference
   view->obj = rbobj;
+  sync_reorder_ = rb;
 
   return 0;
 }
@@ -340,6 +502,10 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
   else
     ret = PyObject_SetItem(surrogate, ind, op);
 
+  if (sync_reorder_ && sync_reorder_->non_trivial()) {
+    sync_reorder_->sync(this);
+  }
+
   Py_DECREF(surrogate);
 
   // TODO: Exception localize
@@ -372,6 +538,7 @@ int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   }
 
   view->obj = self;
+  sync_reorder_ = reorder_.get();
   Py_INCREF(self);
 
   return 0;

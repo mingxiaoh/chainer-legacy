@@ -24,27 +24,27 @@ try:
     from mkldnn.chainer import max_pooling_2d
     from mkldnn.chainer import pooling_2d
     from mkldnn.chainer import relu
+    from mkldnn.chainer.optimization import training_forward_optimization
 
     available = True
 except Exception as ex:
+    print('WARNING: import mkldpy fails')
     error_info = ex
 
     class mdarray(object):
         pass
 
 
-def check_with_mkld(inputs, check_with_ndim):
+def all_ready(inputs, check_with_ndim):
     # Check whether mkldnn installed
     if not available:
         return False
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
-
-    _inputs = [x.data if isinstance(x, variable.Variable)
-               else x for x in inputs]
-
+    if isinstance(_inputs[0], mdarray):
+        return True
     # Check whether mkldnn configured and used correctly
-    if not isinstance(_inputs[0], mdarray):
+    elif isinstance(_inputs[0], numpy.ndarray):
         _should_use_mkldnn = True
 
         for x in _inputs:
@@ -55,6 +55,9 @@ def check_with_mkld(inputs, check_with_ndim):
                                  chainer.should_use_mkldnn('>=auto')
         if not _should_use_mkldnn:
             return False
+    # cuda.ndarray
+    else:
+        return False
 
     # Check with mkldnn supported dimension of input data
     valid_ndim = False
@@ -65,3 +68,17 @@ def check_with_mkld(inputs, check_with_ndim):
         return False
 
     return True
+
+
+def to_plain_array(params):
+    assert(isinstance(params, tuple))
+
+    _params = ()
+
+    for p in params:
+        if isinstance(p, mdarray):
+            _params += (numpy.array(p), )
+        else:
+            _params += (p, )
+
+    return _params

@@ -697,7 +697,7 @@ Actual: {0}'''.format(type(data))
             assert len(gxs) == len(in_data)
             if is_cosim:
                 numpy_result = func.backward_cpu_cosim(in_data, out_grad)
-                func.cpu_cosim_verify_result(gxs, numpy_result, func.inputs, out_grad)
+                func.cpu_cosim_verify_result(gxs, numpy_result, in_data, out_grad)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 

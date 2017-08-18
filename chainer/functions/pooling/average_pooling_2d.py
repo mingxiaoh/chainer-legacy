@@ -137,13 +137,12 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    if not isinstance(x, cuda.ndarray) and \
-       not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, ), ()):
+    if mkld.all_ready((x, ), ()):
         func = AvgPooling2DMKLDNN(ksize, stride, pad, False)
         ret = func(x)
         if chainer.is_cosim():
             func.cosim_func = AveragePooling2D(ksize, stride, pad, False)
+            x, = mkld.to_plain_array((x, ))
             numpy_result = func.cosim_func(x)
             func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
         return ret

@@ -150,9 +150,7 @@ def linear(x, W, b=None):
     """
     # XXX: switch the route, work on the critera
 
-    if not isinstance(x, cuda.ndarray) and \
-       not isinstance(x.data, cuda.ndarray) and \
-       mkld.check_with_mkld((x, W), (2, 4)):
+    if mkld.all_ready((x, W), (2, 4)):
         if b is None:
             return LinearFunctionMKLDNN()(x, W)
         else:
