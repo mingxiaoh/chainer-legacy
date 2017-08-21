@@ -112,6 +112,11 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
       , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
 
+  if (Py_p_engine == nullptr) {
+    PyErr_SetString(PyExc_SystemError, "Can not create mkldnn cpu engine pyobject");
+    return nullptr;
+  }
+
   PyObject *argList = Py_BuildValue("(OiO)", o
       , reorderer::public_format(
           static_cast<mkldnn::memory::format>(desc().data.format)
