@@ -49,8 +49,10 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4):
         total += 1
         diff = abs(act_it[0] - ref_it[0])
         if diff > (atol + rtol * abs(ref_it[0])):
+            if mismatched == 0:
+                print('[ __act__ , __ref__ , __diff__ , __index__ ]')
             mismatched += 1
-            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % diff])
+            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % diff, '%d' % total])
         act_it.iternext()
         ref_it.iternext()
 
@@ -88,8 +90,10 @@ def expect_allnear(act, ref, atol=1e-4, rtol=1e-4, ctol=0.0):
         if abs(ref_it[0]) > atol:
             var = var / ref_it[0]
         if abs(var - ctol) >= rtol:
+            if mismatched == 0:
+                print('[ __act__ , __ref__ , __var__ , __index__ ]')
             mismatched += 1
-            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % var])
+            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % var, '%d' % total])
         act_it.iternext()
         ref_it.iternext()
 

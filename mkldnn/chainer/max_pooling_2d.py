@@ -1,5 +1,11 @@
+import mkldnn.api.memory as m
+import mkldnn.api.cosim_dump as cdump
+
 from mkldnn.chainer.pooling_2d import Pooling2DMKLDNN, Pooling2DForward, Pooling2DBackward
 from mkldnn.api.support import pooling_max
+from mkldnn.chainer.runtime import Engine
+from mkldnn.compute_complex import array
+from mkldnn.api.cosim_dump import *
 
 
 class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
@@ -26,3 +32,22 @@ class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
                                pos=(self.rank, self.fanout))
         gx, = cc.execute_on()
         return gx,
+
+    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+        cd = None
+        if out_grad is None:
+            cd = cdump.cosim_dump(cdump_op_max_pooling_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_max_pooling_backward)
+
+        x = array(in_data[0], m.memory.nchw, Engine())
+        cd.dump_memory(cdump_src_memory, x.memory)
+
+        if out_grad is not None:
+            gy = array(out_grad[0], m.memory.nchw, Engine())
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+
+        cd.dump_int_parms(cdump_max_pooling_int_parms, 8,
+                          self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+                          pooling_max, 1 if self.cover_all else 0)
+

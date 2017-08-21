@@ -188,3 +188,4 @@ class Pooling2DMKLDNN(function.Function):
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4
         )
+

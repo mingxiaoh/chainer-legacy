@@ -30,15 +30,15 @@ XXX: Dump file layout
 -------------------------
 | DumpDesc1             |
 -------------------------
-| mkldnn_memory_desc_t2 |
+| mkldnn_memory_desc_t1 |
 -------------------------
-| ...mdesc1...          |
+| ...data...            |
 -------------------------
 | DumpDesc2             |
 -------------------------
 | mkldnn_memory_desc_t2 |
 -------------------------
-| ...mdesc2...          |
+| ...data...            |
 -------------------------
 | ...........           |
 -------------------------
@@ -67,6 +67,10 @@ enum operation_kind {
     cdump_op_conv_backward,
     cdump_op_lrn_forward,
     cdump_op_lrn_backward,
+    cdump_op_max_pooling_forward,
+    cdump_op_max_pooling_backward,
+    cdump_op_avg_pooling_forward,
+    cdump_op_avg_pooling_backward,
     cdump_op_max
 };
 
@@ -75,11 +79,12 @@ enum parm_kind {
     cdump_src_memory,
     cdump_weight_memory,
     cdump_bias_memory,
-    cdump_ws_memory,
     cdump_diff_dst_memory,
     cdump_conv_int_parms,
     cdump_lrn_local_size,
     cdump_lrn_doulbe_parms,
+    cdump_max_pooling_int_parms,
+    cdump_avg_pooling_int_parms,
     cdump_memory_max
 };
 

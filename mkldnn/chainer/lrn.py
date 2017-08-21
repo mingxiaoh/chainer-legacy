@@ -148,7 +148,6 @@ class LrnMKLDNN(function.Function):
         if out_grad is not None:
             gy = array(out_grad[0], m.memory.nchw, Engine())
             cd.dump_memory(cdump_diff_dst_memory, gy.memory)
-            cd.dump_memory(cdump_ws_memory, self.ws.memory)
 
-        cd.dump_int_parms(cdump_lrn_local_size, self.n)
-        cd.dump_double_parms(cdump_lrn_doulbe_parms, self.k, self.alpha, self.beta)
+        cd.dump_int_parms(cdump_lrn_local_size, 1, self.n)
+        cd.dump_double_parms(cdump_lrn_doulbe_parms, 3, self.k, self.alpha, self.beta)

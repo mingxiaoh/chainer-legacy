@@ -39,6 +39,18 @@ cosim_dump::cosim_dump(operation_kind aop_kind) {
         case cdump_op_lrn_backward:
             dname = "Lrn_backward.cdump";
             break;
+        case cdump_op_max_pooling_forward:
+            dname = "MaxPooling_forward.cdump";
+            break;
+        case cdump_op_max_pooling_backward:
+            dname = "MaxPooling_backward.cdump";
+            break;
+        case cdump_op_avg_pooling_forward:
+            dname = "AvgPooling_forward.cdump";
+            break;
+        case cdump_op_avg_pooling_backward:
+            dname = "AvgPooling_backward.cdump";
+            break;
         default:
             dname =  "Cosim_dump.cdump";
             break;
@@ -46,20 +58,20 @@ cosim_dump::cosim_dump(operation_kind aop_kind) {
 
     dfile.open(dname, std::ios::binary | std::ios::trunc | std::ios::out);
     if (!dfile.is_open() || !dfile.good()) {
-        LOG(ERROR) << "Failed to open dump file " << dname;
+        printf("Failed to open dump file %s\n", dname);
         return;
     }
 
     dfile.write((const char*)&header, sizeof(DumpHeader));
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write file header to dump file " << dname;
+        printf("Failed to write file header to dump file %s\n", dname);
         dfile.close();
         return;
     }
 
     dfile.write((const char*)&dummy_mdesc, sizeof(mkldnn_memory_desc_t));
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write dummy_mdesc to dump file " << dname;
+        printf("Failed to write dummy_mdesc to dump file %s\n", dname);
         dfile.close();
         return;
     }
@@ -73,7 +85,7 @@ cosim_dump::~cosim_dump() {
 
 void cosim_dump::dump_memory(parm_kind aparm_kind, const memory &mem) {
     if (!dfile.is_open()) {
-        LOG(ERROR) << "FATAL: the dump file is unavailable!";
+        printf("FATAL: the dump file is unavailable!\n");
         return;
     }
 
@@ -85,29 +97,30 @@ void cosim_dump::dump_memory(parm_kind aparm_kind, const memory &mem) {
     dd.data_size = mp.get_size();
     dfile.write((const char*)&dd, sizeof(DumpDesc));
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write memory DumpDesc to dump file!";
+        printf("Failed to write memory DumpDesc to dump file!\n");
         return;
     }
 
     auto md = mp.desc();
     dfile.write(reinterpret_cast<const char*>(&md.data), dd.desc_size);
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write memory desc to dump file!";
+        printf("Failed to write memory desc to dump file!\n");
         return;
     }
 
     void* data = mem.get_data_handle();
     dfile.write(reinterpret_cast<const char*>(data), dd.data_size);
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write memory data to dump file!";
+        printf("Failed to write memory data to dump file!\n");
         return;
     }
 }
 
-void cosim_dump::dump_int_parms(parm_kind aparm_kind, int i1, int i2, int i3,
-        int i4, int i5, int i6) {
+void cosim_dump::dump_int_parms(parm_kind aparm_kind, int nargs, ...) {
+    assert(nargs <= TENSOR_MAX_DIMS);
+
     if (!dfile.is_open()) {
-        LOG(ERROR) << "FATAL: the dump file is unavailable!";
+        printf("FATAL: the dump file is unavailable!\n");
         return;
     }
 
@@ -116,25 +129,26 @@ void cosim_dump::dump_int_parms(parm_kind aparm_kind, int i1, int i2, int i3,
     dd.desc_size = 0;
     dd.data_size = 0;
 
-    assert(TENSOR_MAX_DIMS >= 6);
-    dd.iparms[0] = i1;
-    dd.iparms[1] = i2;
-    dd.iparms[2] = i3;
-    dd.iparms[3] = i4;
-    dd.iparms[4] = i5;
-    dd.iparms[5] = i6;
+    int i = 0;
+    va_list vl;
+    va_start(vl, nargs);
+    for (i = 0; i < nargs; i++) {
+        dd.iparms[i] = va_arg(vl, int);
+    }
+    va_end(vl);
 
     dfile.write(reinterpret_cast<const char*>(&dd), sizeof(DumpDesc));
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write int DumpDesc to dump file!";
+        printf("Failed to write int DumpDesc to dump file!\n");
         return;
     }
 }
 
-void cosim_dump::dump_double_parms(parm_kind aparm_kind, double d1, double d2,
-        double d3, double d4, double d5, double d6) {
+void cosim_dump::dump_double_parms(parm_kind aparm_kind, int nargs, ...) {
+    assert(nargs <= TENSOR_MAX_DIMS);
+
     if (!dfile.is_open()) {
-        LOG(ERROR) << "FATAL: the dump file is unavailable!";
+        printf("FATAL: the dump file is unavailable!\n");
         return;
     }
 
@@ -143,17 +157,17 @@ void cosim_dump::dump_double_parms(parm_kind aparm_kind, double d1, double d2,
     dd.desc_size = 0;
     dd.data_size = 0;
 
-    assert(TENSOR_MAX_DIMS >= 6);
-    dd.dparms[0] = d1;
-    dd.dparms[1] = d2;
-    dd.dparms[2] = d3;
-    dd.dparms[3] = d4;
-    dd.dparms[4] = d5;
-    dd.dparms[5] = d6;
+    int i = 0;
+    va_list vl;
+    va_start(vl, nargs);
+    for (i = 0; i < nargs; i++) {
+        dd.dparms[i] = va_arg(vl, double);
+    }
+    va_end(vl);
 
     dfile.write(reinterpret_cast<const char*>(&dd), sizeof(DumpDesc));
     if (!dfile.good()) {
-        LOG(ERROR) << "Failed to write double DumpDesc to dump file!";
+        printf("Failed to write double DumpDesc to dump file!\n");
         return;
     }
 }

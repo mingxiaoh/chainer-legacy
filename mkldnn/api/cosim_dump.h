@@ -19,6 +19,7 @@
 
 #include <mkldnn.hpp>
 #include <fstream>
+#include <cstdarg>
 #include "mdarray.h"
 #include "dump_desc.h"
 
@@ -30,11 +31,9 @@ public:
 
     void dump_memory(parm_kind aparm_kind, const memory &mem);
 
-    void dump_int_parms(parm_kind aparm_kind, int i1, int i2 = 0, int i3 = 0,
-            int i4 = 0, int i5 = 0, int i6 = 0);
+    void dump_int_parms(parm_kind aparm_kind, int nargs, ...);
 
-    void dump_double_parms(parm_kind aparm_kind, double d1, double d2 = 0.0,
-            double d3 = 0.0, double d4 = 0.0, double d5 = 0.0, double d6 = 0.0);
+    void dump_double_parms(parm_kind aparm_kind, int nargs, ...);
 
     virtual ~cosim_dump();
 
