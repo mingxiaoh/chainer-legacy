@@ -490,6 +490,8 @@ public:
   template<class T>
   PyObject *inplace_axpby(T a, PyObject *self, T b, PyObject *o);
 
+  PyObject *mmult(PyObject *self, PyObject *o, bool inplace);
+
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
 
@@ -507,6 +509,8 @@ public:
   nb_binary_map_impl(InPlaceSubtract);
   PyObject *m_Multiply(PyObject *self, PyObject *o);
   nb_binary_map_impl(Multiply);
+  PyObject *m_InPlaceMultiply(PyObject *self, PyObject *o);
+  nb_binary_map_impl(InPlaceMultiply);
 
   nb_binary_map(Remainder);
   nb_binary_map(Divmod);
@@ -519,7 +523,6 @@ public:
   nb_binary_map(And);
   nb_binary_map(Xor);
   nb_binary_map(Or);
-  nb_binary_map(InPlaceMultiply);
   nb_binary_map(InPlaceRemainder);
   nb_ternary_map(InPlacePower);
   nb_binary_map(InPlaceLshift);
