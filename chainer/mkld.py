@@ -72,7 +72,7 @@ def all_ready(inputs, check_with_ndim):
 
 
 def to_plain_array(params):
-    assert(isinstance(params, tuple))
+    assert(isinstance(params, tuple) or isinstance(params, list))
 
     _params = ()
 
