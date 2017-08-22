@@ -454,14 +454,14 @@ class Function(object):
         """
         if not chainer.is_cosim():
             return
-        check_options = {'atol': 1e-2, 'rtol': 1e-2}
-        i = 0
+        check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
         if numpy_result is None:
             print('WARNING: cosim numpy result is none')
             return None
         print('cpu_cosim_verify_result v2')
+        index = 0
         for numpy_y in numpy_result:
-            mkl_x = mkl_result[i]
+            mkl_x = mkl_result[index]
             if numpy_y is None:
                 if mkl_x is None:
                     continue
@@ -478,11 +478,14 @@ class Function(object):
                 numpy_y_nd = np.array(numpy_y.data)
             else:
                 numpy_y_nd = np.array(numpy_y)
-            i = i + 1
+            index = index + 1
             if isinstance(mkl_x_nd, np.ndarray):
                 if not testing.expect_allclose(mkl_x_nd, numpy_y_nd, **check_options):
-                    self.cpu_cosim_dump(inputs, out_grad)
-                    raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
+                    if chainer.is_cosim_continue():
+                        print('WARNING: cosim check failed in %s!' % self.__class__.__name__)
+                    else:
+                        self.cpu_cosim_dump(inputs, out_grad)
+                        raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
             else:
                 raise KeyError('cosim, unexpected in %s!' % self.__class__.__name__)
 

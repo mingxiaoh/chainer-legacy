@@ -45,6 +45,35 @@ private:
     DumpHeader header;
 };
 
+class cosim_check {
+public:
+    cosim_check();
+
+    void set_act_view(Py_buffer *view);
+
+    void set_ref_view(Py_buffer *view);
+
+    bool expect_allclose(double atol, double rtol);
+
+    virtual ~cosim_check() {};
+
+private:
+    struct buf_view {
+        Py_ssize_t len;
+        Py_ssize_t itemsize;
+        memory::data_type dtype;
+        int ndim;
+        Py_ssize_t strides[TENSOR_MAX_DIMS];
+        Py_ssize_t shape[TENSOR_MAX_DIMS];
+        void *buf;
+    };
+
+    void set_view(Py_buffer *view, buf_view *buf);
+
+    buf_view act;
+    buf_view ref;
+};
+
 };
 
 #endif

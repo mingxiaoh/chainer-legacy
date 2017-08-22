@@ -15,8 +15,10 @@
 *******************************************************************************/
 
 #include "cosim_dump.h"
+#include <string>
+#include <cmath>
+#include <cstdlib>
 #include <assert.h>
-#include <glog/logging.h>
 
 namespace mkldnn {
 
@@ -170,6 +172,146 @@ void cosim_dump::dump_double_parms(parm_kind aparm_kind, int nargs, ...) {
         printf("Failed to write double DumpDesc to dump file!\n");
         return;
     }
+}
+
+cosim_check::cosim_check() {
+    act.len = 0;
+    act.itemsize = 0;
+    act.dtype = memory::data_undef;
+    act.ndim = 0; // scalar is not supported
+    act.buf = nullptr;
+
+    ref.len = 0;
+    ref.itemsize = 0;
+    ref.dtype = memory::data_undef;
+    ref.ndim = 0; // scalar is not supported
+    ref.buf = nullptr;
+}
+
+void cosim_check::set_act_view(Py_buffer *view) {
+    set_view(view, &act);
+}
+
+void cosim_check::set_ref_view(Py_buffer *view) {
+    set_view(view, &ref);
+}
+
+void cosim_check::set_view(Py_buffer *view, cosim_check::buf_view *buf) {
+    assert(view != nullptr && buf != nullptr);
+
+    buf->len = view->len;
+    buf->itemsize = view->itemsize;
+
+    buf->dtype = memory::data_undef;
+    std::string format(view->format);
+    if (view->itemsize == 4) {
+      if (std::string::npos != format.find_last_of('f')) {
+        buf->dtype = memory::f32;
+      } else if (std::string::npos != format.find_last_of('i')) {
+        buf->dtype = memory::s32;
+      }
+    }
+
+    buf->ndim = view->ndim;
+    for (int i = 0; i < view->ndim; i++) {
+        buf->strides[i] = view->strides[i];
+        buf->shape[i] = view->shape[i];
+    }
+
+    buf->buf = view->buf;
+}
+
+bool cosim_check::expect_allclose(double atol, double rtol) {
+    if ((act.len != ref.len) ||
+        (act.dtype != ref.dtype) ||
+        (act.itemsize != ref.itemsize) ||
+        (act.ndim != ref.ndim)) {
+        printf("WARNING: act & ref are not matched!\n");
+        return false;
+    }
+
+    if (act.len <= 0 ||
+        act.itemsize <= 0 ||
+        act.dtype == memory::data_undef ||
+        act.ndim > TENSOR_MAX_DIMS ||
+        act.ndim <= 0 ||
+        act.buf == nullptr ||
+        ref.buf == nullptr) {
+        printf("WARNING: act & ref are not initialized!\n");
+        return false;
+    }
+
+    int total = 1;
+    int ndim = act.ndim;
+    for (int i = 0; i < ndim; i++) {
+        if ((act.shape[i] != ref.shape[i]) || (act.shape[i] <= 0)) {
+            printf("WARNING: act & ref have different/wrong shape!\n");
+            return false;
+        }
+        total *= act.shape[i];
+    }
+
+    if (total != act.len / act.itemsize) {
+        printf("WARNING: something wrong in the shape of act & ref!\n");
+        return false;
+    }
+
+    if (act.buf == ref.buf) {
+        printf("NOTE: act & ref have same data buffer\n");
+        return true;
+    }
+
+    int mismatched = 0;
+    if (act.dtype == memory::s32) {
+        int *abuf = static_cast<int*>(act.buf);
+        int *rbuf = static_cast<int*>(ref.buf);
+#   pragma omp parallel for schedule(static)
+        for (int j = 0; j < total; j++) {
+            int aval = abuf[j];
+            int rval = rbuf[j];
+            if (aval != rval) {
+                if (mismatched == 0) {
+                    printf("[ __act__ , __ref__ , __diff__ , #index]\n");
+                }
+                printf("[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
+                mismatched ++;
+            }
+        }
+
+    } else if (act.dtype == memory::f32) {
+        float *abuf = static_cast<float*>(act.buf);
+        float *rbuf = static_cast<float*>(ref.buf);
+#   pragma omp parallel for schedule(static)
+        for (int j = 0; j < total; j++) {
+            float aval = abuf[j];
+            float rval = rbuf[j];
+            float diff = fabs(aval - rval);
+            if (diff > (atol + rtol * fabs(rval))) {
+                if (mismatched == 0) {
+                    printf("[ __act__ , __ref__ , __diff__ , #index ]\n");
+                }
+                printf("[ %.10lf, %.10lf, %.10lf, #%d ]\n", aval, rval, diff, j);
+                mismatched ++;
+            }
+        }
+
+    } else {
+        printf("WARNING: wrong dtype!\n");
+        return false;
+    }
+
+    if (mismatched != 0) {
+        printf("size: %d ndim: %d shape: [ ", total, ndim);
+        for (int k = 0; k < act.ndim; k++) {
+            printf("%d ", static_cast<int>(act.shape[k]));
+        }
+        printf("]\nmismatch rate: %.10lf%%\n",
+                ((double)mismatched / (double)total) * (double)100.00f);
+
+        return false;
+    }
+
+    return true;
 }
 
 };

@@ -84,8 +84,10 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
-#export CHAINER_ENABLE_COSIM=0
+# export CHAINER_ENABLE_COSIM=0
 global_config.cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
+# export CHAINER_ENABLE_COSIM_CONTINUE=0
+global_config.cosim_continue = bool(int(os.environ.get('CHAINER_ENABLE_COSIM_CONTINUE', '0')))
 
 if global_config.cosim is True:
     variable.RANK_START = 1
@@ -166,6 +168,15 @@ def should_use_mkldnn(level):
                          '(must be either of "always", "auto", or "never")' %
                          repr(config.use_mkldnn))
     return flags[config.use_mkldnn]
+
+
+def is_cosim_continue():
+    """Get the cosim continue mode
+
+    Returns:
+        bool: Return ``True`` if continue after a failure.
+    """
+    return config.cosim_continue
 
 
 def is_cosim():
