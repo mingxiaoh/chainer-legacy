@@ -28,8 +28,7 @@ try:
 
     available = True
 except Exception as ex:
-    print('WARNING: import mkldpy fails')
-    error_info = ex
+    print('*** CPU acceleration is disabled: %s' % ex)
 
     class mdarray(object):
         pass
