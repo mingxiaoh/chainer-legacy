@@ -30,10 +30,12 @@ class Dropout(function.Function):
                 flag = (xp.random.rand(*x[0].shape, dtype=numpy.float32) >=
                         self.dropout_ratio)
             self.mask = scale * flag
-        return x[0] * self.mask,
+        # FIXME: return x[0] * self.mask,
+        return self.mask * x[0],
 
     def backward(self, x, gy):
-        return gy[0] * self.mask,
+        # FIXME: return gy[0] * self.mask,
+        return self.mask * gy[0],
 
 
 def dropout(x, ratio=.5):
