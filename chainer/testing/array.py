@@ -1,4 +1,5 @@
 import numpy as np
+import mkldnn.api.cosim_dump as cdump
 
 from chainer import cuda
 from chainer import utils
@@ -27,7 +28,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         raise
 
 
-def expect_allclose(act, ref, atol=1e-4, rtol=1e-4):
+def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
     """Failed if some corresponding element of act and ref differs too much.
 
     Args:
@@ -35,68 +36,19 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4):
         ref: Right-hand-side array.
         atol (float): Absolute tolerance.
         rtol (float): Relative tolerance.
+        verbose (bool): If ``True``, it outputs verbose messages on error.
     """
     act = cuda.to_cpu(utils.force_array(act))
     ref = cuda.to_cpu(utils.force_array(ref))
     if act.size != ref.size or act.itemsize != ref.itemsize or act.shape != ref.shape:
         return False
 
-    total = 0
-    mismatched = 0
-    act_it = np.nditer(act, flags=['c_index'], op_flags=['readonly'], order='C')
-    ref_it = np.nditer(ref, flags=['c_index'], op_flags=['readonly'], order='C')
-    while (not act_it.finished) and (not ref_it.finished):
-        total += 1
-        diff = abs(act_it[0] - ref_it[0])
-        if diff > (atol + rtol * abs(ref_it[0])):
-            mismatched += 1
-            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % diff])
-        act_it.iternext()
-        ref_it.iternext()
+    act = np.ascontiguousarray(act)
+    ref = np.ascontiguousarray(ref)
 
-    if total != act.size:
-        return False
-    elif mismatched > 0:
-        print('mismatched rate %s' % format(mismatched / total, '3.6%'))
-        return False
-    else:
-        return True
+    cc = cdump.cosim_check()
+    cc.set_act_view(act)
+    cc.set_ref_view(ref)
+    return cc.expect_allclose(atol, rtol)
 
 
-def expect_allnear(act, ref, atol=1e-4, rtol=1e-4, ctol=0.0):
-    """Failed if some corresponding element of act and ref differs too much.
-
-    Args:
-        act: Left-hand-side array.
-        ref: Right-hand-side array.
-        atol (float): Absolute tolerance.
-        rtol (float): Relative tolerance.
-        ctol (float): Compromise tolerance.
-    """
-    act = cuda.to_cpu(utils.force_array(act))
-    ref = cuda.to_cpu(utils.force_array(ref))
-    if act.size != ref.size or act.itemsize != ref.itemsize or act.shape != ref.shape:
-        return False
-
-    total = 0
-    mismatched = 0
-    act_it = np.nditer(act, flags=['c_index'], op_flags=['readonly'], order='C')
-    ref_it = np.nditer(ref, flags=['c_index'], op_flags=['readonly'], order='C')
-    while (not act_it.finished) and (not ref_it.finished):
-        total += 1
-        var = act_it[0] - ref_it[0]
-        if abs(ref_it[0]) > atol:
-            var = var / ref_it[0]
-        if abs(var - ctol) >= rtol:
-            mismatched += 1
-            print(['%.8f' % act_it[0], '%.8f' % ref_it[0], '%.8f' % var])
-        act_it.iternext()
-        ref_it.iternext()
-
-    if total != act.size:
-        return False
-    elif mismatched > 0:
-        print('mismatched rate %s' % format(mismatched / total, '3.6%'))
-        return False
-    else:
-        return True

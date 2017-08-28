@@ -112,6 +112,11 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
       , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
 
+  if (Py_p_engine == nullptr) {
+    PyErr_SetString(PyExc_SystemError, "Can not create mkldnn cpu engine pyobject");
+    return nullptr;
+  }
+
   PyObject *argList = Py_BuildValue("(OiO)", o
       , reorderer::public_format(
           static_cast<mkldnn::memory::format>(desc().data.format)
@@ -269,7 +274,7 @@ PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
   }
 }
 
-PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
+PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
   struct py_decref {
     void operator () (PyObject *p) {
       Py_DECREF(p);
@@ -333,7 +338,13 @@ PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
     for (int ndim = 0; ndim < static_cast<int>(oprd1_mdarr->ndims()); ndim++)
       res_tz.push_back(res_desc.data.dims[ndim]);
 
-    mdarray *res_mdarr = new mdarray(res_tz, res_dtype, res_fmt, res_engine);
+    mdarray *res_mdarr;
+    if (!inplace) {
+      res_mdarr = new mdarray(res_tz, res_dtype, res_fmt, res_engine);
+    } else {
+      res_mdarr = oprd1_mdarr;
+    }
+
     assert(mkldnn::memory::f32 == res_dtype ||
            mkldnn::memory::s32 == res_dtype);
     if (mkldnn::memory::f32 == res_dtype) {
@@ -352,11 +363,16 @@ PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
       }
     }
 
-    auto res_py_handle = new py_handle(res_mdarr);
-    resultobj = SWIG_Python_NewPointerObj(nullptr,
-                     SWIG_as_voidptr(res_py_handle),
-                     SwigTy_mdarray,
-                     SWIG_POINTER_OWN | 0);
+    if (!inplace) {
+      auto res_py_handle = new py_handle(res_mdarr);
+      resultobj = SWIG_Python_NewPointerObj(nullptr,
+                       SWIG_as_voidptr(res_py_handle),
+                       SwigTy_mdarray,
+                       SWIG_POINTER_OWN | 0);
+    } else {
+      resultobj = self;
+      Py_INCREF(self);
+    }
 
     break;
   }
@@ -366,7 +382,11 @@ PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
                static_cast<double>(PyInt_AsLong(o)) :
                PyFloat_AsDouble(o),
            b = 0.0;
-    resultobj = axpby(a, b, self);
+    if (!inplace) {
+      resultobj = axpby(a, b, self);
+    } else {
+      resultobj = inplace_axpby(a, self, b, self);;
+    }
     break;
   }
 
@@ -377,6 +397,14 @@ PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
   }
 
   return resultobj;
+}
+
+PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
+  return mmult(self, o, false);
+}
+
+PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
+  return mmult(self, o, true);
 }
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {

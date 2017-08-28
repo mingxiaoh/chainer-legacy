@@ -5,7 +5,7 @@ from chainer.utils import type_check
 from chainer.utils import conv
 
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
 
 # Most important thing
 from mkldnn.api.support import forward_training, zero, pooling_max, at
@@ -60,6 +60,7 @@ class Pooling2DForward(ComputeComplex):
         x_md = self.x.memory.get_primitive_desc().desc()
         cc_d = pooling_forward.desc(forward_training, self.alg_kind, x_md, y_md,
                                     stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
+
         cc_pd = pooling_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
 
@@ -91,26 +92,30 @@ class Pooling2DForward(ComputeComplex):
 class Pooling2DBackward(ComputeComplex):
     cc_type = 'bd'
 
-    def __init__(self, inputs, gy, hint, ws, alg_kind,
+    def __init__(self, inputs, gy, hint, y, ws, alg_kind,
                  ksize, stride=None, pad=0, cover_all=True,
                  pos=None, e=Engine()):
         super(Pooling2DBackward, self).__init__()
         x = inputs[0]
         self.alg_kind = alg_kind
         if self.new:
-            self._create_cc(x, gy, hint, ws, ksize, stride, pad, cover_all, e)
+            self._create_cc(x, gy, hint, y, ws, ksize, stride, pad, cover_all, e)
         else:
             self._reuse(x, gy)
 
-    def _create_cc(self, x, gy, hint, ws, ksize, stride, pad, cover_all, e):
+    def _create_cc(self, x, gy, hint, y, ws, ksize, stride, pad, cover_all, e):
         self.ksize = ksize
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
         self.x = array(x, m.memory.nchw, e)
         gy = array(gy, m.memory.nchw, e)
-        gy_md = gy.memory.get_primitive_desc().desc()
+        if self.alg_kind is pooling_max:
+            gy_md = y.memory.get_primitive_desc().desc()
+        else:
+            gy_md = gy.memory.get_primitive_desc().desc()
         gx_md = m.desc(x.shape, m.memory.f32, m.memory.any)
+        # x_md = self.x.memory.get_primitive_desc().desc()
 
         n, c, h, w = x.shape
         sy, sx = _pair(stride)
@@ -129,10 +134,17 @@ class Pooling2DBackward(ComputeComplex):
                                      stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
 
         cc_pd = pooling_backward.primitive_desc(cc_d, e, hint)
+
         gx = mdarray(cc_pd.diff_src_primitive_desc())
 
         if self.alg_kind is pooling_max:
-            self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(gy.memory), at(ws.memory), gx.memory))
+            # For max pooling reorder y if needed
+            outputs = reorder_if_must(gy, y.memory.get_primitive_desc(), e, self.dag_)
+            if len(outputs) == 2:
+                self.reordered_gy, self.itm_arr = outputs[:2]
+            else:
+                self.reordered_gy = outputs[0]
+                self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(self.reordered_gy.memory), at(ws.memory), gx.memory))
         else:
             # There is no workspace for average pooling
             self.dag_.push_back(pooling_backward.pooling_backward(cc_pd, at(gy.memory), gx.memory))
@@ -176,3 +188,4 @@ class Pooling2DMKLDNN(function.Function):
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4
         )
+

@@ -392,4 +392,6 @@ class Convolution2DFunctionMKLDNN(function.Function):
             md_gy = array(out_grad[0], m.memory.nchw, e)
             cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
 
-        cd.dump_int_parms(cdump_conv_int_parms, self.sy, self.sx, self.ph, self.pw)
+        cd.dump_int_parms(cdump_conv_int_parms, 5,
+                          self.sy, self.sx, self.ph, self.pw,
+                          1 if self.cover_all else 0)

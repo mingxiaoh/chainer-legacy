@@ -28,8 +28,7 @@ try:
 
     available = True
 except Exception as ex:
-    print('WARNING: import mkldpy fails')
-    error_info = ex
+    print('*** CPU acceleration is disabled: %s' % ex)
 
     class mdarray(object):
         pass
@@ -71,7 +70,7 @@ def all_ready(inputs, check_with_ndim):
 
 
 def to_plain_array(params):
-    assert(isinstance(params, tuple))
+    assert(isinstance(params, tuple) or isinstance(params, list))
 
     _params = ()
 

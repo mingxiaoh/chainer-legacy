@@ -50,6 +50,10 @@ enum operation_kind {
     cdump_op_conv_backward,
     cdump_op_lrn_forward,
     cdump_op_lrn_backward,
+    cdump_op_max_pooling_forward,
+    cdump_op_max_pooling_backward,
+    cdump_op_avg_pooling_forward,
+    cdump_op_avg_pooling_backward,
     cdump_op_max
 };
 
@@ -58,13 +62,17 @@ enum parm_kind {
     cdump_src_memory,
     cdump_weight_memory,
     cdump_bias_memory,
-    cdump_ws_memory,
     cdump_diff_dst_memory,
     cdump_conv_int_parms,
     cdump_lrn_local_size,
     cdump_lrn_doulbe_parms,
+    cdump_max_pooling_int_parms,
+    cdump_avg_pooling_int_parms,
     cdump_memory_max
 };
+
+%varargs(TENSOR_MAX_DIMS, int arg = 0) cosim_dump::dump_int_parms;
+%varargs(TENSOR_MAX_DIMS, double arg = 0.0f) cosim_dump::dump_double_parms;
 
 class cosim_dump {
 public:
@@ -72,11 +80,9 @@ public:
 
     void dump_memory(parm_kind aparm_kind, const memory &mem);
 
-    void dump_int_parms(parm_kind aparm_kind, int i1, int i2 = 0, int i3 = 0,
-            int i4 = 0, int i5 = 0, int i6 = 0);
+    void dump_int_parms(parm_kind aparm_kind, int nargs, ...);
 
-    void dump_double_parms(parm_kind aparm_kind, double d1, double d2 = 0.0,
-            double d3 = 0.0, double d4 = 0.0, double d5 = 0.0, double d6 = 0.0);
+    void dump_double_parms(parm_kind aparm_kind, int nargs, ...);
 
     virtual ~cosim_dump();
 
@@ -86,6 +92,35 @@ private:
     std::fstream dfile;
 
     DumpHeader header;
+};
+
+class cosim_check {
+public:
+    cosim_check();
+
+    void set_act_view(Py_buffer *view);
+
+    void set_ref_view(Py_buffer *view);
+
+    bool expect_allclose(double atol, double rtol);
+
+    virtual ~cosim_check() {};
+
+private:
+    struct buf_view {
+        Py_ssize_t len;
+        Py_ssize_t itemsize;
+        mkldnn::memory::data_type dtype;
+        int ndim;
+        Py_ssize_t strides[TENSOR_MAX_DIMS];
+        Py_ssize_t shape[TENSOR_MAX_DIMS];
+        void *buf;
+    };
+
+    void set_view(Py_buffer *view, buf_view *buf);
+
+    buf_view act;
+    buf_view ref;
 };
 
 } // namespace mkldnn
