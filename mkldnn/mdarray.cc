@@ -274,7 +274,20 @@ PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
   }
 }
 
-PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
+template <typename T>
+void plain_mult(const T *a, const T *b, T *o, int size) {
+  for (int idx = 0; idx < size; idx++)
+    o[idx] = a[idx] * b[idx];
+}
+
+template <typename T>
+void plain_div(const T *a, const T *b, T *o, int size) {
+  for (int idx = 0; idx < size; idx++)
+    o[idx] = a[idx] / b[idx];
+}
+
+enum {mmult, mdiv};
+PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool inplace) {
   struct py_decref {
     void operator () (PyObject *p) {
       Py_DECREF(p);
@@ -347,19 +360,39 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
 
     assert(mkldnn::memory::f32 == res_dtype ||
            mkldnn::memory::s32 == res_dtype);
+    assert(MMULT == mult_or_div ||
+           MDIV == mult_or_div);
     if (mkldnn::memory::f32 == res_dtype) {
-      vsMul(oprd1_mdarr->size(),
-            reinterpret_cast<const float *>(oprd1_mdarr->data()),
-            reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
-            reinterpret_cast<float *>(res_mdarr->data()));
+      switch (mult_or_div) {
+      case mmult:
+        vsMul(oprd1_mdarr->size(),
+              reinterpret_cast<const float *>(oprd1_mdarr->data()),
+              reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
+              reinterpret_cast<float *>(res_mdarr->data()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const float *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<float *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
+      }
     } else if (mkldnn::memory::s32 == res_dtype) {
-      int *a1 = reinterpret_cast<int *>(oprd1_mdarr->data());
-      int *a2 = reinterpret_cast<int *>(oprd2_internal_m.get_data_handle());
-      int *out = reinterpret_cast<int *>(res_mdarr->data());
-      for (int idx = 0; idx < static_cast<int>(oprd1_mdarr->size()); idx++) {
-        int _a1 = a1[idx];
-        int _a2 = a2[idx];
-        out[idx] = _a1 * _a2;
+      switch (mult_or_div) {
+      case mmult:
+        plain_mult(reinterpret_cast<const int *>(oprd1_mdarr->data()),
+                   reinterpret_cast<const int *>(oprd2_internal_m.get_data_handle()),
+                   reinterpret_cast<int *>(res_mdarr->data()),
+                   static_cast<int>(oprd1_mdarr->size()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const int *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const int *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<int *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
       }
     }
 
@@ -382,6 +415,9 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
                static_cast<double>(PyInt_AsLong(o)) :
                PyFloat_AsDouble(o),
            b = 0.0;
+
+    a = (mmult == mult_or_div) ? a : (1 / a);
+
     if (!inplace) {
       resultobj = axpby(a, b, self);
     } else {
@@ -400,11 +436,19 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
 }
 
 PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
-  return mmult(self, o, false);
+  return m_mult_div(self, o, mmult, false);
 }
 
 PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
-  return mmult(self, o, true);
+  return m_mult_div(self, o, mmult, true);
+}
+
+PyObject *mdarray::m_Divide(PyObject *self, PyObject *o) {
+  return m_mult_div(self, o, mdiv, false);
+}
+
+PyObject *mdarray::m_InPlaceDivide(PyObject *self, PyObject *o) {
+  return m_mult_div(self, o, mdiv, true);
 }
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {

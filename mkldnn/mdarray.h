@@ -490,7 +490,7 @@ public:
   template<class T>
   PyObject *inplace_axpby(T a, PyObject *self, T b, PyObject *o);
 
-  PyObject *mmult(PyObject *self, PyObject *o, bool inplace);
+  PyObject *m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool inplace);
 
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
@@ -511,6 +511,9 @@ public:
   nb_binary_map_impl(Multiply);
   PyObject *m_InPlaceMultiply(PyObject *self, PyObject *o);
   nb_binary_map_impl(InPlaceMultiply);
+  // SWIG: nb_true_divide (no slot) <= nb_divide
+  PyObject *m_Divide(PyObject *self, PyObject *o);
+  PyObject *m_InPlaceDivide(PyObject *self, PyObject *o);
 
   nb_binary_map(Remainder);
   nb_binary_map(Divmod);
@@ -531,9 +534,7 @@ public:
   nb_binary_map(InPlaceXor);
   nb_binary_map(InPlaceOr);
   nb_binary_map(FloorDivide);
-  nb_binary_map(TrueDivide);
   nb_binary_map(InPlaceFloorDivide);
-  nb_binary_map(InPlaceTrueDivide);
 #if (PY_VERSION_HEX >= 0x03000000)
   nb_binary_map(MatrixMultiply);
   nb_binary_map(InPlaceMatrixMultiply);
