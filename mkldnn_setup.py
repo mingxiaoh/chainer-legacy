@@ -71,6 +71,9 @@ modules = {
     'mkldnn.api._bn_forward': ['mkldnn/api/bn_forward.i'],
     'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i'],
 
+    'mkldnn.api._dropout':
+    ['mkldnn/api/dropout.i'],
+
     'mkldnn.api._cosim_dump':
     ['mkldnn/api/cosim_dump.i', 'mkldnn/api/cosim_dump.cc'],
 }
@@ -87,7 +90,7 @@ if sys.version_info.major < 3:
 ccxx_opts = ['-std=c++11']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack', '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
-includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils', mkldnn_root + '/include']
+includes = [get_include(), 'mkldnn', 'mkldnn/mkl', 'mkldnn/swig_utils', mkldnn_root + '/include']
 libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':

@@ -24,6 +24,7 @@ try:
     from mkldnn.chainer import max_pooling_2d
     from mkldnn.chainer import pooling_2d
     from mkldnn.chainer import relu
+    from mkldnn.chainer import dropout
     from mkldnn.chainer.optimization import training_forward_optimization
 
     available = True
