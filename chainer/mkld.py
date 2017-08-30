@@ -26,6 +26,7 @@ try:
     from mkldnn.chainer import relu
     from mkldnn.chainer import dropout
     from mkldnn.chainer.optimization import training_forward_optimization
+    from mkldnn.chainer.reorder import ReorderMKLDNN
 
     available = True
 except Exception as ex:
