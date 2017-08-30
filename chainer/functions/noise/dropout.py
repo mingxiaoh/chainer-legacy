@@ -1,12 +1,15 @@
 import numpy
-
 import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-
+from chainer import mkld
 from chainer.functions.math import identity
+
+
+if mkld.available:
+    DropoutFunctionMKLDNN = mkld.dropout.DropoutFunctionMKLDNN
 
 
 class Dropout(function.Function):
@@ -57,6 +60,18 @@ def dropout(x, ratio=.5):
 
     """
     if configuration.config.train:
-        return Dropout(ratio)(x)
+        if mkld.all_ready((x,), (2, 4)):
+            func = DropoutFunctionMKLDNN(ratio)
+            if chainer.is_cosim():
+                func.cosim_func = Dropout(ratio)
+                ret = func(x)
+                x, = mkld.to_plain_array((x,))
+                func.cosim_func.mask = func.mask
+                numpy_result = func.cosim_func(x,)
+                func.cpu_cosim_verify_result(ret, numpy_result, (x,))
+                return ret
+        else:
+            func = Dropout(ratio)
+        return func(x)
     elif chainer.should_use_mkldnn('>=auto'):
         return identity.Identity()(x)
