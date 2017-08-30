@@ -584,6 +584,18 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
   return ret;
 }
 
+PyObject *mdarray::flat() {
+  long int dims[1] = {this->size()};
+  int typenum = (this->memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
+
+  PyObject *plain_arr = nullptr;
+  plain_arr = PyArray_SimpleNewFromData(1, dims, typenum, this->data());
+  if (!plain_arr)
+    PyErr_SetString(PyExc_ValueError, "Can't create plain array with format from mdarray");
+
+  return plain_arr;
+}
+
 int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
     PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");

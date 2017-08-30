@@ -84,6 +84,10 @@
     /// Second param y is a harmless dummy
     return (*$self)->inplace_axpby(a, y, b, y);
   }
+
+  PyObject *flat() {
+    return (*self)->flat();
+  }
 }
 
 %extend mdarray {
