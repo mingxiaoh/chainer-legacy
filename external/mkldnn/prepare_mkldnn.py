@@ -27,7 +27,7 @@ def install():
     # install mkldnn
     if not os.path.exists(MKLML_PKG_PATH):
         os.system('cd scripts && ./prepare_mkl.sh && cd ..')
-    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j 8' % MKLDNN_ROOT)
+    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j' % MKLDNN_ROOT)
     os.system('cd build && make install')
 
     # install mklml
@@ -59,14 +59,20 @@ def prepare(mkldnn_version):
         res = os.popen('git log | sed -n \'1p\'', 'r')
         commit_head = res.read()
         if mkldnn_version not in commit_head:
-            os.system('rm -rf *')
+            os.chdir(MKLDNN_WORK_PATH)
+            os.system('rm -rf %s' % MKLDNN_SOURCE_PATH)
+            os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+            os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
             mkldnn_prepared = False
         else:
             if not os.path.exists(MKLDNN_LIB_PATH) or \
                not os.path.exists(MKLDNN_INCLUDE_PATH):
-                os.system('rm -rf %s %s' % (MKLDNN_LIB_PATH, MKLDNN_INCLUDE_PATH))
+                os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+                os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
                 mkldnn_installed = False
     else:
+        os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+        os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
         mkldnn_prepared = False
 
     if not mkldnn_prepared:
