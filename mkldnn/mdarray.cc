@@ -585,7 +585,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 }
 
 PyObject *mdarray::flat() {
-  long int dims[1] = {this->size()};
+  long int dims[1] = {static_cast<long int>(this->size())};
   int typenum = (this->memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
 
   PyObject *plain_arr = nullptr;
