@@ -64,7 +64,7 @@ class DropoutBackward(ComputeComplex):
         self.gx = mdarray(self.gy.memory.get_primitive_desc())
         self._hint = hint
 
-    def match(self, inputs, grad_outpus, hint, *args):
+    def match(self, dropout_op, mask, gy, hint, *args):
         # TODO: refine it
         return (hint is self._hint)
 
@@ -76,7 +76,7 @@ class DropoutBackward(ComputeComplex):
 class DropoutFunctionMKLDNN(function.Function):
     def __init__(self, dropout_ratio):
         self.dropout_ratio = dropout_ratio
-    
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
