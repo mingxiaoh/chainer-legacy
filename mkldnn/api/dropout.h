@@ -5,6 +5,7 @@
 
 #include "mdarray.h"
 #include "mkl_vsl.h"
+#include "utils.hpp"
 
 static void bernoulli_generate(long n, double p, int* r) {
     std::srand(std::time(0));
@@ -34,10 +35,7 @@ struct dropout {
         auto y_data_ptr = static_cast<T*>(y->get()->data());
         assert(x->size() == y->get()->size());
 
-#pragma omp parallel for schedule(static)
-        for (size_t i = 0; i < size_; ++i) {
-            y_data_ptr[i] = data_ptr[i] * mask_buf_[i];
-        }
+        eltwise_multiply(data_ptr, mask_buf_, y_data_ptr, size_);
     }
     
     void backward(mdarray* dy_in, mdarray* mask_in, mdarray* dx) {
@@ -49,10 +47,7 @@ struct dropout {
         auto mask_buf_ = static_cast<T*>(mask_in->get()->data());
         auto dx_data_ptr = static_cast<T*>(dx->get()->data());
 
-#pragma omp parallel for schedule(static)
-        for (size_t i = 0; i < size_; ++i) {
-            dx_data_ptr[i] = data_ptr[i] * mask_buf_[i];
-        }
+        eltwise_multiply(data_ptr, mask_buf_, dx_data_ptr, size_);
     }
 
 private:
