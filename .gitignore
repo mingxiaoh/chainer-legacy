@@ -30,5 +30,6 @@ mkldnn/api/bn_*.py
 mkldnn/api/view.py
 mkldnn/api/sum.py
 mkldnn/api/cosim_dump.py
+mkldnn/api/dropout.py
 mkldnn/mdarray.py
 external/mkldnn/source

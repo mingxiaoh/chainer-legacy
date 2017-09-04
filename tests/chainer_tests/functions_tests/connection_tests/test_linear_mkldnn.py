@@ -5,13 +5,11 @@ import numpy
 import chainer
 # from chainer import cuda
 from chainer import functions
-from chainer.functions.connection import linear
 from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
-# import mkldnn
-from mkldnn.chainer.fanout import FanoutRecorder
+from chainer.mkld import LinearFunctionMKLDNN, FanoutRecorder
 
 
 def _as_mat(x):
@@ -82,7 +80,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
             args = args + (b_data,)
 
         gradient_check.check_backward(
-            linear.LinearFunctionMKLDNN(), args, y_grad,
+            LinearFunctionMKLDNN(), args, y_grad,
             eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)

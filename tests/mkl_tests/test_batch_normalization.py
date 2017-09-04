@@ -12,6 +12,7 @@ from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
+from chainer.mkld import BnMKLDNN
 
 
 def _batch_normalization(expander, gamma, beta, x, mean, var):
@@ -71,7 +72,7 @@ class TestBatchNormalization(unittest.TestCase):
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):
             gradient_check.check_backward(
-                batch_normalization.BnMKLDNN(
+                BnMKLDNN(
                     mean=None, var=None,
                     decay=self.decay, eps=self.eps), args, y_grad,
                 **self.check_backward_options)
@@ -130,7 +131,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):
             gradient_check.check_backward(
-                batch_normalization.BnMKLDNN(
+                BnMKLDNN(
                     mean=None, var=None,
                     decay=self.decay, eps=self.eps),
                 args, y_grad,  **self.check_backward_options)

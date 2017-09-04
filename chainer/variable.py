@@ -625,7 +625,7 @@ Actual: {0}'''.format(type(data))
 
         """
         if chainer.mkld.available:
-            chainer.mkld.fanout.FanoutRecorder.clear()
+            chainer.mkld.FanoutRecorder.clear()
         if self.creator is None:
             return
         initial_device = None
@@ -637,7 +637,6 @@ Actual: {0}'''.format(type(data))
                     raise
 
         is_debug = chainer.is_debug()
-        is_cosim = chainer.is_cosim()
         cand_funcs = []
         seen_set = set()
         seen_vars = set()
@@ -668,7 +667,7 @@ Actual: {0}'''.format(type(data))
 
             out_grad = ()
             if chainer.mkld.available and \
-               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
+               chainer.mkld.mkl_sum_enabled(outputs_data):
                 out_grad_tmp = tuple([None if y is None else y.grad for y in outputs])
                 acc_grad_tuple = tuple([None if y is None else y.acc_grad for y in outputs])
                 for grad_tmp, acc_grad in zip(out_grad_tmp, acc_grad_tuple):
@@ -681,7 +680,7 @@ Actual: {0}'''.format(type(data))
                         call native MKLDNN sum primitive
                         """
                         acc_grad += (grad_tmp,)
-                        y = chainer.mkld.sum.mkl_sum(acc_grad, func)
+                        y = chainer.mkld.mkl_sum(acc_grad, func)
                         out_grad += (y,)
             else:
                 out_grad = tuple([None if y is None else y.grad for y in outputs])
@@ -695,9 +694,6 @@ Actual: {0}'''.format(type(data))
                 hook.backward_preprocess(func, in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
-            if is_cosim:
-                numpy_result = func.backward_cpu_cosim(in_data, out_grad)
-                func.cpu_cosim_verify_result(gxs, numpy_result, in_data, out_grad)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
@@ -744,7 +740,7 @@ Actual: {0}'''.format(type(data))
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
                             if chainer.mkld.available and \
-                               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
+                               chainer.mkld.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:
@@ -752,7 +748,7 @@ Actual: {0}'''.format(type(data))
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
                             if chainer.mkld.available and \
-                               chainer.mkld.sum.mkl_sum_enabled(outputs_data):
+                               chainer.mkld.mkl_sum_enabled(outputs_data):
                                 # if enable_acc_grad, will deply to do grad accumulate, only record grad
                                 x.acc_grad += (gx,)
                             else:

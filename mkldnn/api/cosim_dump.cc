@@ -221,12 +221,13 @@ void cosim_check::set_view(Py_buffer *view, cosim_check::buf_view *buf) {
     buf->buf = view->buf;
 }
 
+#define MAX_PRINTOUTS   10
 bool cosim_check::expect_allclose(double atol, double rtol) {
     if ((act.len != ref.len) ||
         (act.dtype != ref.dtype) ||
         (act.itemsize != ref.itemsize) ||
         (act.ndim != ref.ndim)) {
-        printf("WARNING: act & ref are not matched!\n");
+        printf("\tWARNING: act & ref are not matched!\n");
         return false;
     }
 
@@ -237,7 +238,7 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         act.ndim <= 0 ||
         act.buf == nullptr ||
         ref.buf == nullptr) {
-        printf("WARNING: act & ref are not initialized!\n");
+        printf("\tWARNING: act & ref are not initialized!\n");
         return false;
     }
 
@@ -245,22 +246,23 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
     int ndim = act.ndim;
     for (int i = 0; i < ndim; i++) {
         if ((act.shape[i] != ref.shape[i]) || (act.shape[i] <= 0)) {
-            printf("WARNING: act & ref have different/wrong shape!\n");
+            printf("\tWARNING: act & ref have different/wrong shape!\n");
             return false;
         }
         total *= act.shape[i];
     }
 
     if (total != act.len / act.itemsize) {
-        printf("WARNING: something wrong in the shape of act & ref!\n");
+        printf("\tWARNING: something wrong in the shape of act & ref!\n");
         return false;
     }
 
     if (act.buf == ref.buf) {
-        printf("NOTE: act & ref have same data buffer\n");
+        printf("\tNOTE: act & ref have same data buffer\n");
         return true;
     }
 
+    int count = MAX_PRINTOUTS;
     int mismatched = 0;
     if (act.dtype == memory::s32) {
         int *abuf = static_cast<int*>(act.buf);
@@ -270,12 +272,16 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
             int aval = abuf[j];
             int rval = rbuf[j];
             if (aval != rval) {
-                if (mismatched == 0) {
-                    printf("[ __act__ , __ref__ , __diff__ , #index]\n");
+                if (count > 0) {
+                    printf("\t[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
+                    count--;
                 }
-                printf("[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
                 mismatched ++;
             }
+        }
+
+        if (mismatched != 0) {
+            printf("\t[ __act__ , __ref__ , __diff__ , #index]\n");
         }
 
     } else if (act.dtype == memory::f32) {
@@ -286,27 +292,34 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
             float aval = abuf[j];
             float rval = rbuf[j];
             float diff = fabs(aval - rval);
-            if (diff > (atol + rtol * fabs(rval))) {
-                if (mismatched == 0) {
-                    printf("[ __act__ , __ref__ , __diff__ , #index ]\n");
+            float cval = atol + rtol * fabs(rval);
+            if (diff > cval) {
+                if (count > 0) {
+                    printf("\t[ %.10lf, %.10lf, %.10lf, %.10lf, #%d ]\n", aval, rval, diff, cval, j);
+                    count--;
                 }
-                printf("[ %.10lf, %.10lf, %.10lf, #%d ]\n", aval, rval, diff, j);
                 mismatched ++;
             }
         }
 
+        if (mismatched != 0) {
+            printf("\t[ __act__ , __ref__ , __diff__ , __cmp__ , #index ]\n\tatol: %lf, rtol: %lf ",
+                    atol, rtol);
+        }
+
     } else {
-        printf("WARNING: wrong dtype!\n");
+        printf("\tWARNING: wrong dtype!\n");
         return false;
     }
 
     if (mismatched != 0) {
-        printf("size: %d ndim: %d shape: [ ", total, ndim);
+        printf("\tsize: %d ndim: %d shape: [ ", total, ndim);
         for (int k = 0; k < act.ndim; k++) {
             printf("%d ", static_cast<int>(act.shape[k]));
         }
-        printf("]\nmismatch rate: %.10lf%%\n",
-                ((double)mismatched / (double)total) * (double)100.00f);
+        printf("]\n\tmismatch rate: %.10lf%%\n"
+                "\tNOTE: ONLY about %d lines in failures are printed out here\n",
+                ((double)mismatched / (double)total) * (double)100.00f, MAX_PRINTOUTS);
 
         return false;
     }

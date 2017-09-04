@@ -1,6 +1,7 @@
 from chainer import function
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer, reorder_if_must
 
@@ -117,6 +118,11 @@ class ReLUBackward(ComputeComplex):
 
 class ReLUMKLDNN(function.Function):
 
+    def __init__(self):
+        if is_cosim():
+            from chainer.functions.activation.relu import ReLU
+            self.cosim_func = ReLU()
+
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
@@ -131,6 +137,7 @@ class ReLUMKLDNN(function.Function):
         y, = cc.execute_on()
         y.reset_buf_order()
 
+        cosim.cosim_verify(self, (y, ), x)
         return y,
 
     def backward(self, x, gy):
@@ -140,4 +147,5 @@ class ReLUMKLDNN(function.Function):
         gx, = cc.execute_on()
         gx.reset_buf_order()
 
+        cosim.cosim_verify(self, (gx, ), x, gy)
         return gx,

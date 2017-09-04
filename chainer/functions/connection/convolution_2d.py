@@ -18,9 +18,6 @@ if cuda.cudnn_enabled:
         _bwd_data_pref = \
             libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
-if mkld.available:
-    Convolution2DFunctionMKLDNN = mkld.convolution_2d.Convolution2DFunctionMKLDNN
-
 
 def _check_cudnn_acceptable_type(x_dtype, W_dtype):
     return x_dtype == W_dtype and (
@@ -321,25 +318,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
     """
     # XXX: Switch the route, work on the critera
     if mkld.all_ready((x, W), ()):
-        func = Convolution2DFunctionMKLDNN(
-            stride, pad, cover_all, deterministic)
-        if chainer.is_cosim():
-            func.cosim_func = Convolution2DFunction(
-                stride, pad, cover_all, deterministic)
-            if b is None:
-                ret = func(x, W)
-                x, W = mkld.to_plain_array((x, W))
-                numpy_result = func.cosim_func(x, W)
-                func.cpu_cosim_verify_result(ret, numpy_result, (x, W))
-            else:
-                ret = func(x, W, b)
-                x, W, b = mkld.to_plain_array((x, W, b))
-                numpy_result = func.cosim_func(x, W, b)
-                func.cpu_cosim_verify_result(ret, numpy_result, (x, W, b))
-            return ret
+        func = mkld.Convolution2DFunctionMKLDNN(stride, pad, cover_all, deterministic)
     else:
-        func = Convolution2DFunction(
-            stride, pad, cover_all, deterministic)
+        func = Convolution2DFunction(stride, pad, cover_all, deterministic)
 
     if b is None:
         return func(x, W)

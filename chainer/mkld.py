@@ -9,22 +9,21 @@ available = False
 try:
     import mkldnn
     from mkldnn.mdarray import mdarray
-    from mkldnn.chainer import basic_math
-    from mkldnn.chainer import fanout
-    from mkldnn.chainer import runtime
-    from mkldnn.chainer import sum
+    from mkldnn.chainer.basic_math import AddMKLDNN
+    from mkldnn.chainer.fanout import FanoutRecorder
+    from mkldnn.chainer.runtime import Engine, Stream
+    from mkldnn.chainer.sum import mkl_sum_enabled, mkl_sum
     # Modules listed depend on chainer.
-    from mkldnn.chainer import avg_pooling_2d
-    from mkldnn.chainer import bn
-    from mkldnn.chainer import concat
-    from mkldnn.chainer import convolution_2d
-    from mkldnn.chainer import deconvolution_2d
-    from mkldnn.chainer import linear
-    from mkldnn.chainer import lrn
-    from mkldnn.chainer import max_pooling_2d
-    from mkldnn.chainer import pooling_2d
-    from mkldnn.chainer import relu
-    from mkldnn.chainer import dropout
+    from mkldnn.chainer.dropout import DropoutFunctionMKLDNN
+    from mkldnn.chainer.avg_pooling_2d import AvgPooling2DMKLDNN
+    from mkldnn.chainer.bn import BnMKLDNN
+    from mkldnn.chainer.concat import ConcatMKLDNN
+    from mkldnn.chainer.convolution_2d import Convolution2DFunctionMKLDNN
+    from mkldnn.chainer.deconvolution_2d import Deconvolution2DFunctionMKLDNN
+    from mkldnn.chainer.linear import LinearFunctionMKLDNN
+    from mkldnn.chainer.lrn import LrnMKLDNN
+    from mkldnn.chainer.max_pooling_2d import MaxPooling2DMKLDNN
+    from mkldnn.chainer.relu import ReLUMKLDNN
     from mkldnn.chainer.optimization import training_forward_optimization
     from mkldnn.chainer.reorder import ReorderMKLDNN
 
@@ -36,9 +35,14 @@ except Exception as ex:
         pass
 
 
-def all_ready(inputs, check_with_ndim):
+def is_enabled():
     # Check whether mkldnn installed
-    if not available:
+
+    return available
+
+
+def all_ready(inputs, check_with_ndim):
+    if not is_enabled():
         return False
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
@@ -72,15 +76,3 @@ def all_ready(inputs, check_with_ndim):
     return True
 
 
-def to_plain_array(params):
-    assert(isinstance(params, tuple) or isinstance(params, list))
-
-    _params = ()
-
-    for p in params:
-        if isinstance(p, mdarray):
-            _params += (numpy.array(p), )
-        else:
-            _params += (p, )
-
-    return _params

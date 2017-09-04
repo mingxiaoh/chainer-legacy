@@ -1,6 +1,7 @@
 import mkldnn.api.memory as m
 import mkldnn.api.cosim_dump as cdump
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.pooling_2d import Pooling2DMKLDNN, Pooling2DForward, Pooling2DBackward
 from mkldnn.api.support import pooling_max
 from mkldnn.chainer.runtime import Engine
@@ -12,6 +13,13 @@ class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
 
     """Max pooling over a set of 2d planes."""
 
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
+        super(MaxPooling2DMKLDNN, self).__init__(ksize, stride, pad, cover_all)
+
+        if is_cosim():
+            from chainer.functions.pooling.max_pooling_2d import MaxPooling2D
+            self.cosim_func = MaxPooling2D(ksize, stride, pad, cover_all)
+
     def forward_cpu(self, x):
         cc = Pooling2DForward(x, pooling_max, ksize=(self.kh, self.kw),
                               stride=(self.sy, self.sx),
@@ -22,6 +30,8 @@ class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
         self.ws = cc.ws
         y, = cc.execute_on()
         self.y = y
+
+        cosim.cosim_verify(self, (y, ), x)
         return y,
 
     def backward_cpu(self, x, gy):
@@ -31,6 +41,8 @@ class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
                                pad=(self.ph, self.pw), cover_all=self.cover_all,
                                pos=(self.rank, self.fanout))
         gx, = cc.execute_on()
+
+        cosim.cosim_verify(self, (gx, ), x, gy)
         return gx,
 
     def cpu_cosim_dump_inner(self, in_data, out_grad=None):

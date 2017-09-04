@@ -8,9 +8,6 @@ from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
 
-if mkld.available:
-    mkld_bm = mkld.basic_math
-
 
 def _convert_value_to_string(value):
     if isinstance(value, variable.Variable):
@@ -125,7 +122,7 @@ class Add(function.Function):
     def forward(self, x):
         self.retain_inputs(())
         if isinstance(x[0], mkld.mdarray) and isinstance(x[1], mkld.mdarray):
-            y = mkld_bm.AddMKLDNN()((x[0], x[1]), (self.rank, self.fanout))
+            y = mkld.AddMKLDNN()((x[0], x[1]), (self.rank, self.fanout))
         else:
             y = utils.force_array(x[0] + x[1])
         return y,

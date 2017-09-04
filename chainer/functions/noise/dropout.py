@@ -8,10 +8,6 @@ from chainer import mkld
 from chainer.functions.math import identity
 
 
-if mkld.available:
-    DropoutFunctionMKLDNN = mkld.dropout.DropoutFunctionMKLDNN
-
-
 class Dropout(function.Function):
 
     """Dropout regularization."""
@@ -61,17 +57,8 @@ def dropout(x, ratio=.5):
     """
     if configuration.config.train:
         if mkld.all_ready((x,), (2, 4)):
-            func = DropoutFunctionMKLDNN(ratio)
-            if chainer.is_cosim():
-                func.cosim_func = Dropout(ratio)
-                ret = func(x)
-                x, = mkld.to_plain_array((x,))
-                func.cosim_func.mask = func.mask
-                numpy_result = func.cosim_func(x,)
-                func.cpu_cosim_verify_result(ret, numpy_result, (x,))
-                return ret
+            return mkld.DropoutFunctionMKLDNN(ratio)(x)
         else:
-            func = Dropout(ratio)
-        return func(x)
+            return Dropout(ratio)(x)
     elif chainer.should_use_mkldnn('>=auto'):
         return identity.Identity()(x)

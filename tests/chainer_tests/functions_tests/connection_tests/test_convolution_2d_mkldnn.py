@@ -12,8 +12,7 @@ from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-
-from mkldnn.chainer.fanout import FanoutRecorder
+from chainer.mkld import Convolution2DFunctionMKLDNN, FanoutRecorder
 
 
 @testing.parameterize(*(
@@ -120,7 +119,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
         with chainer.using_config('use_mkldnn', self.use_mkldnn):
             gradient_check.check_backward(
-                convolution_2d.Convolution2DFunctionMKLDNN(
+                Convolution2DFunctionMKLDNN(
                     self.stride, self.pad, self.cover_all),
                 args, y_grad, **self.check_backward_options)
 

@@ -12,11 +12,9 @@ from chainer import testing
 # from chainer.testing import attr
 # from chainer.testing import condition
 
-from mkldnn.chainer.runtime import Engine
+from chainer.mkld import mdarray, Engine, ReLUMKLDNN, FanoutRecorder
 import mkldnn.api.memory as m
-import mkldnn.chainer.fanout
 # import mkldnn.mdarray
-from mkldnn.mdarray import mdarray
 
 
 @testing.parameterize(*testing.product({
@@ -28,7 +26,7 @@ class TestReLU(unittest.TestCase):
     def setUp(self):
         # Avoid unstability of numerical grad
         # fanout.clear()
-        mkldnn.chainer.fanout.FanoutRecorder.clear()
+        FanoutRecorder.clear()
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         for i in numpy.ndindex(self.shape):
             if -0.1 < x[i] < 0.1:
@@ -40,8 +38,8 @@ class TestReLU(unittest.TestCase):
             self.x.setbuffer(x)
             self.gy.setbuffer(gy)
         except AttributeError:
-            self.x = mkldnn.mdarray(x, m.memory.nc, Engine())
-            self.gy = mkldnn.mdarray(gy, m.memory.nc, Engine())
+            self.x = mdarray(x, m.memory.nc, Engine())
+            self.gy = mdarray(gy, m.memory.nc, Engine())
 
         self.check_backward_options = {}
 
@@ -64,7 +62,7 @@ class TestReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-                relu.ReLUMKLDNN(), x_data, y_grad,
+                ReLUMKLDNN(), x_data, y_grad,
                 **self.check_backward_options)
 
 #    @condition.retry(3)

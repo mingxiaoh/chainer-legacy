@@ -12,7 +12,7 @@ from chainer import testing
 # from chainer.testing import attr
 # from chainer.testing import condition
 from chainer.utils import conv
-import mkldnn.chainer.fanout
+from chainer.mkld import Convolution2DFunctionMKLDNN, FanoutRecorder
 # from mkldnn.chainer.fanout import *
 
 
@@ -43,7 +43,7 @@ import mkldnn.chainer.fanout
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     def setUp(self):
-        mkldnn.chainer.fanout.FanoutRecorder.clear()
+        FanoutRecorder.clear()
         n, c, h, w = self.in_shape
         out_c = self.kernel_geo[0]
         kh, kw = (self.kernel_geo[1], self.kernel_geo[2])
@@ -72,7 +72,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             -1, 1,
             (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        self.con2mkl = convolution_2d.Convolution2DFunctionMKLDNN(
+        self.con2mkl = Convolution2DFunctionMKLDNN(
             stride=self.stride, pad=self.pad,
             cover_all=self.cover_all)
         self.con2 = convolution_2d.Convolution2DFunction(
@@ -151,7 +151,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
         with chainer.using_config('use_mkldnn', self.use_mkldnn):
             gradient_check.check_backward(
-                convolution_2d.Convolution2DFunctionMKLDNN(
+                Convolution2DFunctionMKLDNN(
                     self.stride, self.pad, self.cover_all),
                 args, y_grad, **self.check_backward_options)
 

@@ -3,6 +3,7 @@ import numpy
 from chainer import function
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import reuse_buffer
 from mkldnn.compute_complex import array
@@ -127,6 +128,10 @@ class ConcatMKLDNN(function.Function):
 
         self.axis = axis
 
+        if is_cosim():
+            from chainer.functions.array.concat import Concat
+            self.cosim_func = Concat(axis=axis)
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(in_types[0].ndim >
@@ -154,6 +159,8 @@ class ConcatMKLDNN(function.Function):
 
         self.hint = cc.hint
         y, = cc.execute_on()
+
+        cosim.cosim_verify(self, (y, ), xs)
         return y,
 
     def backward_cpu(self, xs, gy):
@@ -161,4 +168,6 @@ class ConcatMKLDNN(function.Function):
                             pos=(self.rank, self.fanout))
 
         gx = cc.execute_on()
+
+        cosim.cosim_verify(self, gx, xs, gy)
         return gx

@@ -11,8 +11,7 @@ from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
 
-import mkldnn
-import mkldnn.chainer.fanout
+from chainer.mkld import LinearFunctionMKLDNN, FanoutRecorder
 
 
 @testing.parameterize(*testing.product({
@@ -22,7 +21,7 @@ import mkldnn.chainer.fanout
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        mkldnn.chainer.fanout.FanoutRecorder.clear()
+        FanoutRecorder.clear()
         self.W = numpy.random.uniform(
             -1, 1, (2, 3)).astype(self.W_dtype)
         self.b = numpy.random.uniform(
@@ -42,7 +41,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, W_data, b_data, y_expect):
-        mkldnn.chainer.fanout.FanoutRecorder.clear()
+        FanoutRecorder.clear()
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:
@@ -73,7 +72,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
             args = args + (b_data,)
 
         gradient_check.check_backward(
-            linear.LinearFunctionMKLDNN(), args, y_grad,
+            LinearFunctionMKLDNN(), args, y_grad,
             eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)

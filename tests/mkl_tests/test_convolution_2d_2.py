@@ -13,7 +13,7 @@ from chainer import testing
 # from chainer.testing import condition
 from chainer.utils import conv
 
-import mkldnn.chainer.fanout
+from chainer.mkld import Convolution2DFunctionMKLDNN, FanoutRecorder
 
 
 @testing.parameterize(*(
@@ -42,7 +42,7 @@ import mkldnn.chainer.fanout
 class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
 
     def setUp(self):
-        mkldnn.chainer.fanout.FanoutRecorder.clear()
+        FanoutRecorder.clear()
         n, c, h, w = self.in_shape
         out_c = self.kernel_geo[0]
         kh, kw = (self.kernel_geo[1], self.kernel_geo[2])
@@ -71,7 +71,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             -1, 1,
             (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        self.con2dMkl = convolution_2d.Convolution2DFunctionMKLDNN(
+        self.con2dMkl = Convolution2DFunctionMKLDNN(
                     self.stride, self.pad, self.cover_all)
 
         self.con2d = convolution_2d.Convolution2DFunction(
@@ -129,20 +129,20 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
         # print(args)
         # with chainer.using_config('use_mkldnn', self.use_mkldnn):
         #     gradient_check.check_backward(
-        #         convolution_2d.Convolution2DFunctionMKLDNN(
+        #         Convolution2DFunctionMKLDNN(
         #             self.stride, self.pad, self.cover_all),
         #         args, y_grad, **self.check_backward_options)
 
         # with chainer.using_config('use_mkldnn', self.use_mkldnn):
-        #     con2d = convolution_2d.Convolution2DFunctionMKLDNN(
+        #     con2d = Convolution2DFunctionMKLDNN(
         #             self.stride, self.pad, self.cover_all)
         #     y_cpu = con2d.backward_cpu(args, y_grad)
             # gradient_check.check_backward(
-            #     convolution_2d.Convolution2DFunctionMKLDNN(
+            #     Convolution2DFunctionMKLDNN(
             #         self.stride, self.pad, self.cover_all),
             #     args, y_grad, **self.check_backward_options)
         # with chainer.using_config('use_mkldnn', 'never'):
-        #     con2d = convolution_2d.Convolution2DFunctionMKLDNN(
+        #     con2d = Convolution2DFunctionMKLDNN(
         #             self.stride, self.pad, self.cover_all)
         #     y_cpu_expect = con2d.backward_cpu(args, y_grad)
 

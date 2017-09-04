@@ -14,9 +14,6 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
     _mode = libcudnn.CUDNN_ACTIVATION_RELU
 
-if mkld.available:
-    ReLUMKLDNN = mkld.relu.ReLUMKLDNN
-
 
 class ReLU(function.Function):
 
@@ -90,14 +87,7 @@ def relu(x):
 
     """
     if mkld.all_ready((x, ), (2, 4)):
-        func = ReLUMKLDNN()
-        ret = func(x)
-        if chainer.is_cosim():
-            func.cosim_func = ReLU()
-            x, = mkld.to_plain_array((x, ))
-            numpy_result = func.cosim_func(x)
-            func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
-        return ret
+        return mkld.ReLUMKLDNN()(x)
     else:
         if chainer.mkld.available and \
            chainer.should_use_mkldnn('>=auto'):

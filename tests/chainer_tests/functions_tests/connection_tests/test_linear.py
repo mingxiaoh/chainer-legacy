@@ -12,6 +12,7 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 import mkldnn
+from chainer.mkld import LinearFunctionMKLDNN
 
 
 @testing.parameterize(*testing.product({
@@ -83,7 +84,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 and W_data.dtype == numpy.dtype('float32') \
                 or isinstance(x_data, mkldnn.mdarray):
             gradient_check.check_backward(
-                linear.LinearFunctionMKLDNN(), args, y_grad,
+                LinearFunctionMKLDNN(), args, y_grad,
                 eps=1e-2, **self.check_backward_options)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):

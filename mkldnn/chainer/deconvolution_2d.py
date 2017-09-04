@@ -4,6 +4,7 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
 
@@ -263,6 +264,10 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.deterministic = deterministic
 
+        if is_cosim():
+            from chainer.functions.connection.deconvolution_2d import Deconvolution2DFunction
+            self.cosim_func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -317,6 +322,7 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
             b = b * tmp
             y += b
 
+        cosim.cosim_verify(self, (y, ), inputs)
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
@@ -336,9 +342,13 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
         gx = cc_data.execute_on()
         gx[0].reset_buf_order()
 
+        ret = None
         b = inputs[2] if len(inputs) == 3 else None
         if b is not None:
             gb = gy.sum(axis=(0, 2, 3))
-            return gx[0], gW[0], gb
+            ret = (gx[0], gW[0], gb)
         else:
-            return gx + gW
+            ret = gx + gW
+
+        cosim.cosim_verify(self, ret, inputs, grad_outputs)
+        return ret

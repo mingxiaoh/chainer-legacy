@@ -11,7 +11,7 @@ from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
-from mkldnn.chainer import max_pooling_2d
+from chainer.mkld import MaxPooling2DMKLDNN
 
 
 @testing.parameterize(*testing.product({
@@ -69,7 +69,7 @@ class TestMaxPooling2D(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_mkldnn='always'):
         with chainer.using_config('use_mkldnn', use_mkldnn):
             gradient_check.check_backward(
-                    max_pooling_2d.MaxPooling2DMKLDNN(
+                    MaxPooling2DMKLDNN(
                         3, stride=2, pad=1, cover_all=self.cover_all),
                     x_data, y_grad, **self.check_backward_options)
 
@@ -79,7 +79,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_backward(self.x, self.gy)
 
     def test_backward_cpu_more_than_once(self):
-        func = max_pooling_2d.MaxPooling2DMKLDNN(
+        func = MaxPooling2DMKLDNN(
             3, stride=2, pad=1, cover_all=self.cover_all)
         func(self.x)
         func.backward_cpu((self.x,), (self.gy,))

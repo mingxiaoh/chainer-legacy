@@ -1,8 +1,11 @@
-import mkldnn.api.memory as m
 import numpy as np
+import mkldnn.api.memory as m
+
 from chainer import function
 from chainer.utils import type_check
+
 from mkldnn.mdarray import mdarray
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.api.dropout import dropout_f32
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import array, ComputeComplex
@@ -45,7 +48,7 @@ class DropoutForward(ComputeComplex):
 
     def execute_on(self, s=None):
         self.dropout_op.forward(self.x, self._mask, self._hint)
-        return self._hint,
+        return self._hint
 
 
 class DropoutBackward(ComputeComplex):
@@ -70,7 +73,7 @@ class DropoutBackward(ComputeComplex):
 
     def execute_on(self, s=None):
         self._dropout_op.backward(self.gy, self._mask, self.gx)
-        return self.gx,
+        return self.gx
 
 
 class DropoutFunctionMKLDNN(function.Function):
@@ -89,8 +92,19 @@ class DropoutFunctionMKLDNN(function.Function):
         self.dropout_op = cc.dropout_op
         self.hint = cc.hint
 
-        return cc.execute_on()
+        y = cc.execute_on()
+
+        if is_cosim():
+            self.cosim_func = cosim.Dropout(self.dropout_ratio, self._mask)
+
+        cosim.cosim_verify(self, (y, ), x)
+        return y,
 
     def backward(self, x, gy):
-        cc = DropoutBackward(self.dropout_op, self._mask, gy, self.hint, pos=(self.rank, self.fanout))
-        return cc.execute_on()
+        cc = DropoutBackward(self.dropout_op, self._mask, gy, self.hint,
+                             pos=(self.rank, self.fanout))
+
+        gx = cc.execute_on()
+
+        cosim.cosim_verify(self, (gx, ), x, gy)
+        return gx,

@@ -1,6 +1,7 @@
 from chainer import function
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
 
@@ -109,6 +110,10 @@ class LrnMKLDNN(function.Function):
         self.alpha = alpha
         self.beta = beta
 
+        if is_cosim():
+            from chainer.functions.normalization.local_response_normalization import LocalResponseNormalization
+            self.cosim_func = LocalResponseNormalization(n, k, alpha, beta)
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
@@ -125,6 +130,8 @@ class LrnMKLDNN(function.Function):
         self.hint = cc.hint
         self.ws = cc.ws
         y, = cc.execute_on()
+
+        cosim.cosim_verify(self, (y, ), x)
         return y,
 
     def backward_cpu(self, x, gy):
@@ -133,6 +140,8 @@ class LrnMKLDNN(function.Function):
                          pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
+
+        cosim.cosim_verify(self, (gx, ), x, gy)
         return gx,
 
     def cpu_cosim_dump_inner(self, in_data, out_grad=None):

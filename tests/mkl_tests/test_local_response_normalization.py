@@ -10,7 +10,7 @@ from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
-from mkldnn.chainer import lrn
+from chainer.mkld import LrnMKLDNN
 
 
 @testing.parameterize(*testing.product({
@@ -37,7 +37,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
-        # self.lrn = lrn.LrnMKLDNN(n, k, alpha, beta)
+        # self.lrn = LrnMKLDNN(n, k, alpha, beta)
         # self.lrn = functions.LocalResponseNormalization(n, k, alpha, beta)
 
     def check_forward(self, x_data):
@@ -92,7 +92,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            lrn.LrnMKLDNN(), x_data, y_grad,
+            LrnMKLDNN(), x_data, y_grad,
             eps=1, dtype=self.dtype, **self.check_backward_optionss)
 
     @condition.retry(3)

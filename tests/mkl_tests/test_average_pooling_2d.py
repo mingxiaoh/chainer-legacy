@@ -11,7 +11,7 @@ from chainer import gradient_check
 from chainer import testing
 # from chainer.testing import attr
 from chainer.testing import condition
-from mkldnn.chainer import avg_pooling_2d
+from chainer.mkld import AvgPooling2DMKLDNN
 
 
 @testing.parameterize(*testing.product({
@@ -82,7 +82,7 @@ class TestAveragePooling2D(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_mkldnn='always'):
         with chainer.using_config('use_mkldnn', use_mkldnn):
             gradient_check.check_backward(
-                avg_pooling_2d.AvgPooling2DMKLDNN(3, 2, 1, False),
+                AvgPooling2DMKLDNN(3, 2, 1, False),
                 x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)

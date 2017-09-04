@@ -245,7 +245,7 @@ def check_backward(func, x_data, y_grad, params=(),
 
     def f():
         if chainer.mkld.available:
-            chainer.mkld.fanout.FanoutRecorder.clear()
+            chainer.mkld.FanoutRecorder.clear()
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         return tuple(y.data for y in ys)

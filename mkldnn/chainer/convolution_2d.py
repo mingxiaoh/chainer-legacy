@@ -2,6 +2,7 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
 
@@ -308,6 +309,10 @@ class Convolution2DFunctionMKLDNN(function.Function):
         self.cover_all = cover_all
         self.deterministic = deterministic
 
+        if is_cosim():
+            from chainer.functions.connection.convolution_2d import Convolution2DFunction
+            self.cosim_func = Convolution2DFunction(stride, pad, cover_all, deterministic)
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -343,6 +348,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
         y, = cc.execute_on()
         y.reset_buf_order()
 
+        cosim.cosim_verify(self, (y, ), inputs)
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
@@ -364,11 +370,12 @@ class Convolution2DFunctionMKLDNN(function.Function):
         else:
             gx = None,
 
+        cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
         return gx + gW_b
 
-    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+    def dump_cpu(self, inputs, grads=None):
         cd = None
-        if out_grad is None:
+        if grads is None:
             cd = cdump.cosim_dump(cdump_op_conv_forward)
         else:
             cd = cdump.cosim_dump(cdump_op_conv_backward)
@@ -388,8 +395,8 @@ class Convolution2DFunctionMKLDNN(function.Function):
             md_b = array(b, m.memory.x, e)
             cd.dump_memory(cdump_bias_memory, md_b.memory)
 
-        if out_grad is not None:
-            md_gy = array(out_grad[0], m.memory.nchw, e)
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nchw, e)
             cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
 
         cd.dump_int_parms(cdump_conv_int_parms, 5,

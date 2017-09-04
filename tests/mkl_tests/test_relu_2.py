@@ -12,7 +12,8 @@ from chainer import testing
 # from chainer.testing import attr
 # from chainer.testing import condition
 
-# from mkldnn.chainer.runtime import Engine
+from chainer.mkld import ReLUMKLDNN
+# from chainer.mkld import Engine
 # import mkldnn.api.memory as m
 # from mkldnn.chainer.fanout import *
 # from mkldnn.mdarray import *
@@ -55,7 +56,7 @@ class TestReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-                relu.ReLUMKLDNN(), x_data, y_grad,
+                ReLUMKLDNN(), x_data, y_grad,
                 **self.check_backward_options)
 
 #    @condition.retry(3)

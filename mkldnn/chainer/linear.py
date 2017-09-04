@@ -1,3 +1,7 @@
+from chainer import function
+from chainer.utils import type_check
+
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
 
@@ -54,6 +58,18 @@ def create_backward_desc(d_creator, *inputs):
 
 class LinearForward(ComputeComplex):
     cc_type = 'f'
+
+    def __init__(self, inputs, pos=(0, 0), e=Engine()):
+        super(LinearForward, self).__init__()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+        self.argc = len(inputs)
+
+        if self.new:
+            self._create_cc(x, W, b, e)
+        else:
+            self._reuse_cc(x, W, b, e)
 
     def _create_cc(self, x, W, b, e=Engine()):
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
@@ -117,18 +133,6 @@ class LinearForward(ComputeComplex):
             return False
         return True
 
-    def __init__(self, inputs, pos=(0, 0), e=Engine()):
-        super(LinearForward, self).__init__()
-        x = inputs[0]
-        W = inputs[1]
-        b = inputs[2] if len(inputs) == 3 else None
-        self.argc = len(inputs)
-
-        if self.new:
-            self._create_cc(x, W, b, e)
-        else:
-            self._reuse_cc(x, W, b, e)
-
 
 class LinearBackwardData(ComputeComplex):
     cc_type = 'bd'
@@ -191,6 +195,20 @@ class LinearBackwardData(ComputeComplex):
 class LinearBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
 
+    def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
+        super(LinearBackwardWeighs, self).__init__()
+        x = inputs[0]
+        gy = grad_outputs[0]
+        self.argc = len(inputs)
+
+        if self.new:
+            W = inputs[1]
+            b = inputs[2] if self.argc == 3 else None
+
+            self._create_cc(x, W, b, gy, hint, e)
+        else:
+            self._reuse_cc(x, gy)
+
     def _create_cc(self, x, W, b, gy, hint, e):
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
@@ -247,16 +265,58 @@ class LinearBackwardWeighs(ComputeComplex):
 
         return (hint is self._hint)
 
-    def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
-        super(LinearBackwardWeighs, self).__init__()
+
+class LinearFunctionMKLDNN(function.Function):
+
+    def __init__(self):
+        if is_cosim():
+            from chainer.functions.connection.linear import LinearFunction
+            self.cosim_func = LinearFunction()
+
+    def check_type_forward(self, in_types):
+        n_in = in_types.size()
+        type_check.expect(2 <= n_in, n_in <= 3)
+        x_type, w_type = in_types[:2]
+
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            w_type.dtype.kind == 'f',
+            x_type.ndim >= 2,
+            w_type.ndim >= 2,
+            type_check.prod(x_type.shape[1:]) == type_check.prod(w_type.shape[1:]),
+        )
+        if type_check.eval(n_in) == 3:
+            b_type = in_types[2]
+            type_check.expect(
+                b_type.dtype == x_type.dtype,
+                b_type.ndim == 1,
+                b_type.shape[0] == w_type.shape[0],
+            )
+
+    def forward(self, inputs):
+        cc = LinearForward(inputs,
+                           pos=(self.rank, self.fanout))
+        self.hint = cc.hint
+        self.W = cc.W
+
+        y, = cc.execute_on()
+        y.reset_buf_order()
+
         x = inputs[0]
-        gy = grad_outputs[0]
-        self.argc = len(inputs)
+        W = inputs[1]
+        cosim.cosim_verify(self, (y, ), inputs)
+        return y,
 
-        if self.new:
-            W = inputs[1]
-            b = inputs[2] if self.argc == 3 else None
+    def backward(self, inputs, grad_outputs):
+        cc_data = LinearBackwardData(inputs, grad_outputs, self.hint, self.W,
+                                     pos=(self.rank, self.fanout))
+        cc_weight = LinearBackwardWeighs(inputs, grad_outputs, self.hint,
+                                         pos=(self.rank, self.fanout))
 
-            self._create_cc(x, W, b, gy, hint, e)
-        else:
-            self._reuse_cc(x, gy)
+        gx = cc_data.execute_on()
+        gx[0].reset_buf_order()
+        gW_b = cc_weight.execute_on()
+        gW_b[0].reset_buf_order()
+
+        cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
+        return gx + gW_b
