@@ -14,7 +14,12 @@ from chainer.testing import condition
 from chainer.functions.math import identity
 from mkldnn.chainer import max_pooling_2d
 
-
+@testing.parameterize(*testing.product({
+    'cover_all': [True, False],
+    'dtype': [numpy.float32],
+    'channel': [1, 2, 4, 8, 16, 24, 32, 64, 128, 256, 1024],
+    'bs': [2, 4]
+}))
 class TestMaxPooling2D(unittest.TestCase):
 
     def setUp(self):
@@ -22,15 +27,15 @@ class TestMaxPooling2D(unittest.TestCase):
         self.cover_all = False
         # Avoid unstability of numerical gradient
         self.x = numpy.arange(
-            2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
+            self.bs * self.channel * 4 * 3, dtype=self.dtype).reshape(self.bs, self.channel, 4, 3)
         numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        self.x = self.bs * self.x / self.x.size - 1
         if self.cover_all:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 3, 2)).astype(self.dtype)
+                -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
         else:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 2, 2)).astype(self.dtype)
+                -1, 1, (self.bs, self.channel, 2, 2)).astype(self.dtype)
         self.check_backward_options = {'eps': 2.0 ** -8}
 
     def check_forward(self, x_data, use_cudnn='always'):
@@ -42,9 +47,10 @@ class TestMaxPooling2D(unittest.TestCase):
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
-        for k in six.moves.range(2):
-            for c in six.moves.range(3):
+        for k in six.moves.range(self.bs):
+            for c in six.moves.range(self.channel):
                 x = self.x[k, c]
+                print (x)
                 if self.cover_all:
                     expect = numpy.array([
                         [x[0:2, 0:2].max(), x[0:2, 1:3].max()],
@@ -60,7 +66,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_forward(self.x)
 
     def test_forward_cpu_wide(self):  # see #120
-        x_data = numpy.random.rand(2, 3, 15, 15).astype(self.dtype)
+        x_data = numpy.random.rand(self.bs, self.channel, 15, 15).astype(self.dtype)
         x = chainer.Variable(x_data)
         functions.max_pooling_2d(x, 6, stride=6, pad=0, cover_all=True)
 
@@ -77,8 +83,8 @@ class TestMaxPooling2D(unittest.TestCase):
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
-test = TestMaxPooling2D()
-test.setUp()
+#test = TestMaxPooling2D()
+#test.setUp()
 # test.test_forward_cpu()
 # test.test_forward_cpu_wide()
-test.test_backward_cpu()
+#test.test_backward_cpu()

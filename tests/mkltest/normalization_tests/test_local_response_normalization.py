@@ -15,7 +15,8 @@ from mkldnn.chainer import lrn
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32],
-    # 'channel': [1, 2, 4, 8, 10, 16, 24, 32, 64]
+    'channel': [1, 2, 4, 8, 10, 16, 24, 32, 64],
+    'bs': [0, 1, 2, 4, 8, 16, 24, 32, 64]
 }))
 class TestLocalResponseNormalization(unittest.TestCase):
 
@@ -24,17 +25,17 @@ class TestLocalResponseNormalization(unittest.TestCase):
         # k = 1
         # alpha = 1e-4
         # beta = .75
-        # self.x = numpy.random.uniform(
-        #     -1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
-        # self.gy = numpy.random.uniform(
-        #     -1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
         self.x = numpy.random.uniform(
-            -1, 1, (2, 7, 3, 2)).astype(self.dtype)
+            -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
         self.gy = numpy.random.uniform(
-            -1, 1, (2, 7, 3, 2)).astype(self.dtype)
+            -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
+        #self.x = numpy.random.uniform(
+        #    -1, 1, (2, 7, 3, 2)).astype(self.dtype)
+        #self.gy = numpy.random.uniform(
+        #    -1, 1, (2, 7, 3, 2)).astype(self.dtype)
         self.check_forward_optionss = {}
         self.check_backward_optionss = {}
-        if self.dtype == numpy.float16:
+        if self.dtype == numpy.float32:
             self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_optionss = {'atol': 5e-3, 'rtol': 5e-3}
         # self.lrn = lrn.LrnMKLDNN(n, k, alpha, beta)
@@ -72,7 +73,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
         y_expect = numpy.zeros_like(self.x)
         for n, c, h, w in numpy.ndindex(self.x.shape):
             s = 0
-            for i in six.moves.range(max(0, c - 2), min(7, c + 2)):
+            for i in six.moves.range(max(0, c - 2), min(self.channel, c + 2)):
                 s += self.x[n, i, h, w] ** 2
             denom = (2 + 1e-4 * s) ** .75
             y_expect[n, c, h, w] = self.x[n, c, h, w] / denom
