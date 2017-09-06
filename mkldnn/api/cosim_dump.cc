@@ -53,6 +53,36 @@ cosim_dump::cosim_dump(operation_kind aop_kind) {
         case cdump_op_avg_pooling_backward:
             dname = "AvgPooling_backward.cdump";
             break;
+        case cdump_op_bn_forward:
+            dname = "BN_forward.cdump";
+            break;
+        case cdump_op_bn_backward:
+            dname = "BN_backward.cdump";
+            break;
+        case cdump_op_concat_forward:
+            dname = "Concat_forward.cdump";
+            break;
+        case cdump_op_concat_backward:
+            dname = "Concat_backward.cdump";
+            break;
+        case cdump_op_deconv_forward:
+            dname = "Deconv_forward.cdump";
+            break;
+        case cdump_op_deconv_backward:
+            dname = "Deconv_backward.cdump";
+            break;
+        case cdump_op_linear_forward:
+            dname = "Linear_forward.cdump";
+            break;
+        case cdump_op_linear_backward:
+            dname = "Linear_backward.cdump";
+            break;
+        case cdump_op_relu_forward:
+            dname = "ReLU_forward.cdump";
+            break;
+        case cdump_op_relu_backward:
+            dname = "ReLU_backward.cdump";
+            break;
         default:
             dname =  "Cosim_dump.cdump";
             break;

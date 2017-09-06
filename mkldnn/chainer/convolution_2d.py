@@ -371,7 +371,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
         cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
         return gx + gW_b
 
-    def dump_cpu(self, inputs, grads=None):
+    def dump_to_file(self, inputs, grads=None):
         cd = None
         if grads is None:
             cd = cdump.cosim_dump(cdump_op_conv_forward)
@@ -379,9 +379,9 @@ class Convolution2DFunctionMKLDNN(function.Function):
             cd = cdump.cosim_dump(cdump_op_conv_backward)
 
         e = Engine()
-        x = in_data[0]
-        W = in_data[1]
-        b = in_data[2] if len(in_data) == 3 else None
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
 
         md_x = array(x, m.memory.nchw, e)
         cd.dump_memory(cdump_src_memory, md_x.memory)

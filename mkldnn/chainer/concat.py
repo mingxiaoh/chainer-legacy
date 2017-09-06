@@ -17,6 +17,8 @@ import mkldnn.api.view as view
 import mkldnn.api.concat as concat
 import mkldnn.api.reorder as r
 from mkldnn.mdarray import mdarray
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 
 
 class ConcatForward(ComputeComplex):
@@ -171,3 +173,24 @@ class ConcatMKLDNN(function.Function):
 
         cosim.cosim_verify(self, gx, xs, gy)
         return gx
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_concat_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_concat_backward)
+
+        e = Engine()
+
+        x_cnt = 0
+        for x in inputs:
+            x_cnt += 1
+            xarray = array(x, m.memory.nchw, e)
+            cd.dump_memory(cdump_src_memory, xarray.memory)
+
+        if grads is not None:
+            gy = array(grads[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+
+        cd.dump_int_parms(cdump_concat_int_parms, 2, x_cnt, self.axis)

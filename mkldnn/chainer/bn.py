@@ -21,6 +21,8 @@ import mkldnn.api.memory as m
 import mkldnn.api.bn_forward as bn_forward
 import mkldnn.api.bn_backward as bn_backward
 from mkldnn.mdarray import mdarray
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 
 
 def _xhat(x, mean, std, expander):
@@ -221,6 +223,7 @@ class BnMKLDNN(function.Function):
 
         if is_cosim():
             from chainer.functions.normalization.batch_normalization import BatchNormalizationFunction
+            self.mean_orig = mean
             self.cosim_func = BatchNormalizationFunction(eps, mean, var, decay)
 
     def check_type_forward(self, in_types):
@@ -355,6 +358,7 @@ class BnMKLDNN(function.Function):
             self.expand_dim = True
             x = x[:, :, None, None]
             inputs = (x,) + inputs[1:]
+
         if configuration.config.train:
             cc = BnForward(
                 inputs, self.eps, None, None,
@@ -416,4 +420,35 @@ class BnMKLDNN(function.Function):
         cosim.cosim_verify(self, (gx, ggamma, gbeta), inputs, (gy_orig, ))
         return gx, ggamma, gbeta
 
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_bn_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_bn_backward)
+
+        e = Engine()
+
+        x, gamma, beta = inputs[:3]
+        x = array(inputs[0], m.memory.nchw, e)
+        cd.dump_memory(cdump_src_memory, x.memory)
+
+        w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+        w = array(w, m.memory.nc, e)
+        cd.dump_memory(cdump_weight_memory, w.memory)
+
+        if grads is not None:
+            gy = array(grads[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+
+        # Always True
+        scale_shift = 1
+        global_stats = 1
+        fwd_prop_kind = forward_scoring
+        if self.mean_orig is None:
+            fwd_prop_kind = forward_training
+            global_stats = 0
+
+        cd.dump_int_parms(cdump_bn_int_parms, 3, fwd_prop_kind, global_stats, scale_shift)
+        cd.dump_double_parms(cdump_bn_doulbe_parms, 1, self.eps)
 

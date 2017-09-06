@@ -10,6 +10,8 @@ from mkldnn.api.support import forward, eltwise_relu, at
 import mkldnn.api.memory as m
 import mkldnn.api.eltwise_forward as eltwise_forward
 import mkldnn.api.eltwise_backward as eltwise_backward
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 
 from mkldnn.mdarray import mdarray
 
@@ -160,3 +162,25 @@ class ReLUMKLDNN(function.Function):
 
         cosim.cosim_verify(self, (gx, ), x, gy_orig)
         return gx,
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_relu_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_relu_backward)
+
+        e = Engine()
+        x = inputs[0]
+
+        if grads is None:
+            fmt = m.memory.nchw if x.ndim == 4 else m.memory.nc
+            x = array(x, fmt, e)
+            cd.dump_memory(cdump_src_memory, x.memory)
+        else:
+            fmt = m.memory.nc if x.ndim == 2 else m.memory.nchw
+            x = array(x, fmt, e)
+            cd.dump_memory(cdump_src_memory, x.memory)
+            gy = array(grads[0], fmt, e)
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+

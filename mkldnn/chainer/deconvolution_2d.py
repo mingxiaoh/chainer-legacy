@@ -17,6 +17,9 @@ import mkldnn.api.convolution_forward as conv_forward
 import mkldnn.api.convolution_backward_data as conv_backdata
 import mkldnn.api.convolution_backward_weights as conv_backweights
 from mkldnn.mdarray import mdarray
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
+
 
 deconv_f_op = conv_backdata.conv_bd_op  # deconv fwd --> conv bwd data
 deconv_bd_op = conv_forward.conv_f_op  # deconv bwd data --> conv fwd
@@ -353,3 +356,34 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
 
         cosim.cosim_verify(self, ret, inputs, grad_outputs)
         return ret
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_deconv_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_deconv_backward)
+
+        e = Engine()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        md_x = array(x, m.memory.nchw, e)
+        cd.dump_memory(cdump_src_memory, md_x.memory)
+
+        md_W = array(W, m.memory.oihw, e)
+        cd.dump_memory(cdump_weight_memory, md_W.memory)
+
+        if b is not None:
+            md_b = array(b, m.memory.x, e)
+            cd.dump_memory(cdump_bias_memory, md_b.memory)
+
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
+
+        cd.dump_int_parms(cdump_deconv_int_parms, 5,
+                          self.sy, self.sx, self.ph, self.pw,
+                          1 if self.deterministic else 0)
+

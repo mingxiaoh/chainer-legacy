@@ -15,6 +15,8 @@ import mkldnn.api.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import mdarray
 from mkldnn.chainer.optimization import WeightReorderOptimization, weight_optimization_trigger
 
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 from mkldnn.api.inner_product_forward import linear_f_op
 from mkldnn.api.inner_product_backward_data import linear_bd_op
 from mkldnn.api.inner_product_backward_weights import linear_bw_op
@@ -335,3 +337,30 @@ class LinearFunctionMKLDNN(function.Function):
 
         cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
         return gx + gW_b
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_linear_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_linear_backward)
+
+        e = Engine()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        md_x = array(x, _x_format(x.ndim), e)
+        cd.dump_memory(cdump_src_memory, md_x.memory)
+
+        md_W = array(W, _W_format(W.ndim), e)
+        cd.dump_memory(cdump_weight_memory, md_W.memory)
+
+        if b is not None:
+            md_b = array(b, m.memory.x, e)
+            cd.dump_memory(cdump_bias_memory, md_b.memory)
+
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nc, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
+

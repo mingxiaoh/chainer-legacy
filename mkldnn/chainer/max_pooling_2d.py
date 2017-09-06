@@ -45,18 +45,18 @@ class MaxPooling2DMKLDNN(Pooling2DMKLDNN):
         cosim.cosim_verify(self, (gx, ), x, gy)
         return gx,
 
-    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+    def dump_to_file(self, inputs, grads=None):
         cd = None
-        if out_grad is None:
+        if grads is None:
             cd = cdump.cosim_dump(cdump_op_max_pooling_forward)
         else:
             cd = cdump.cosim_dump(cdump_op_max_pooling_backward)
 
-        x = array(in_data[0], m.memory.nchw, Engine())
+        x = array(inputs[0], m.memory.nchw, Engine())
         cd.dump_memory(cdump_src_memory, x.memory)
 
-        if out_grad is not None:
-            gy = array(out_grad[0], m.memory.nchw, Engine())
+        if grads is not None:
+            gy = array(grads[0], m.memory.nchw, Engine())
             cd.dump_memory(cdump_diff_dst_memory, gy.memory)
 
         cd.dump_int_parms(cdump_max_pooling_int_parms, 8,
