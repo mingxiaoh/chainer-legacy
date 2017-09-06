@@ -10,15 +10,16 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32],
-    'channel': [1, 2, 4, 8, 10, 16, 24, 32, 64]
+    'channel': [1, 2, 4, 8, 10, 16, 24, 32, 64, 128, 256, 1024],
+    'bs': [1, 2, 4, 8, 16, 24, 32, 64]
 }))
 class TestSum(unittest.TestCase):
     def setUp(self):
         self.e = Engine()
         self.x = numpy.random.uniform(
-            -1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
+            -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
         self.y = numpy.random.uniform(
-            -1, 1, (2, self.channel, 3, 2)).astype(self.dtype)
+            -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
 
     # @staticmethod

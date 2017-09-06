@@ -16,17 +16,19 @@ from chainer.mkld import AvgPooling2DMKLDNN
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, ],
+    'channel': [1, 2, 4, 8, 10, 16, 24, 32, 64],
+    'bs': [0, 1, 2, 4, 6, 8, 10, 16, 24, 32, 64]
 }))
 class TestAveragePooling2D(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1,
-                                      (2, 3, 4, 3)).astype(self.dtype)
+                                      (self.bs, self.channel, 4, 3)).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1,
-                                       (2, 3, 2, 2)).astype(self.dtype)
+                                       (self.bs, self.channel, 2, 2)).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float32}
-        if self.dtype == numpy.float16:
+        if self.dtype == numpy.float32:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {
                 'dtype': numpy.float32, 'atol': 5e-4, 'rtol': 5e-3}
@@ -39,8 +41,8 @@ class TestAveragePooling2D(unittest.TestCase):
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
-        for k in six.moves.range(2):
-            for c in six.moves.range(3):
+        for k in six.moves.range(self.bs):
+            for c in six.moves.range(self.channel):
                 x = self.x[k, c]
                 expect = numpy.array([
                     [x[0:2, 0:2].sum(), x[0:2, 1:3].sum()],

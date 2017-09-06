@@ -17,21 +17,23 @@ from mkldnn.chainer import max_pooling_2d
 @testing.parameterize(*testing.product({
     'cover_all': [True, False],
     'dtype': [numpy.float32],
+    'channel': [1, 2, 4, 6],
+    'bs': [0, 2, 4, 6]
 }))
 class TestMaxPooling2D(unittest.TestCase):
 
     def setUp(self):
         # Avoid unstability of numerical gradient
         self.x = numpy.arange(
-            2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
+            self.bs * self.channel * 4 * 3, dtype=self.dtype).reshape(self.bs, self.channel, 4, 3)
         numpy.random.shuffle(self.x)
         self.x = 2 * self.x / self.x.size - 1
         if self.cover_all:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 3, 2)).astype(self.dtype)
+                -1, 1, (self.bs, self.channel, 3, 2)).astype(self.dtype)
         else:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 2, 2)).astype(self.dtype)
+                -1, 1, (self.bs, self.channel, 2, 2)).astype(self.dtype)
         self.check_backward_options = {'eps': 2.0 ** -8}
 
     def check_forward(self, x_data, use_mkldnn='always'):
@@ -43,8 +45,8 @@ class TestMaxPooling2D(unittest.TestCase):
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
-        for k in six.moves.range(2):
-            for c in six.moves.range(3):
+        for k in six.moves.range(self.bs):
+            for c in six.moves.range(self.channel):
                 x = self.x[k, c]
                 if self.cover_all:
                     expect = numpy.array([
@@ -62,7 +64,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_forward(self.x)
 
     def test_forward_cpu_wide(self):  # see #120
-        x_data = numpy.random.rand(2, 3, 15, 15).astype(self.dtype)
+        x_data = numpy.random.rand(self.bs, self.channel, 15, 15).astype(self.dtype)
         x = chainer.Variable(x_data)
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
