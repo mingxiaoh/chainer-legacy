@@ -388,6 +388,11 @@ class BnMKLDNN(function.Function):
             gy = gy[:, :, None, None]
         inputs = (x,) + inputs[1:]
 
+        gy_orig = None
+        if is_cosim():
+            import copy
+            gy_orig = copy.deepcopy(gy)
+
         if configuration.config.train:
             mean = self.mkl_mean
             var = self.mkl_var
@@ -408,7 +413,7 @@ class BnMKLDNN(function.Function):
             assert gx.ndim == 4
             gx = numpy.squeeze(gx, axis=(2, 3))
 
-        cosim.cosim_verify(self, (gx, ggamma, gbeta), inputs, (gy, ))
+        cosim.cosim_verify(self, (gx, ggamma, gbeta), inputs, (gy_orig, ))
         return gx, ggamma, gbeta
 
 
