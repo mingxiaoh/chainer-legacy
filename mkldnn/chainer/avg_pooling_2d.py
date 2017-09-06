@@ -7,7 +7,7 @@ from mkldnn.chainer.pooling_2d import Pooling2DForward
 from mkldnn.chainer.pooling_2d import Pooling2DBackward
 from mkldnn.api.support import pooling_avg_include_padding
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import array
+from mkldnn.array import array
 from mkldnn.api.cosim_dump import *
 
 

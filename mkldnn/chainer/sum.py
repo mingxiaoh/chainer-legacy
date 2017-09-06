@@ -1,7 +1,8 @@
 import numpy
 import chainer
 from mkldnn.chainer.runtime import Engine, Stream
-from mkldnn.compute_complex import array, reorder_if_must
+from mkldnn.compute_complex import reorder_if_must
+from mkldnn.array import array
 # Most important thing
 from mkldnn.api.support import primitive_list, at
 import mkldnn.api.memory as m

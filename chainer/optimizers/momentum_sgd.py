@@ -1,5 +1,8 @@
+import numpy
+import chainer
 from chainer import cuda
 from chainer import optimizer
+from chainer import mkld
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -34,15 +37,24 @@ class MomentumSGDRule(optimizer.UpdateRule):
         xp = cuda.get_array_module(param.data)
         with cuda.get_device(param.data):
             self.state['v'] = xp.zeros_like(param.data)
+        v = self.state['v']
+        if isinstance(v, numpy.ndarray) and \
+           v.dtype == numpy.float32 and \
+           mkld.available:
+            self.state['v'] = mkld.warray(v)
 
     def update_core_cpu(self, param):
         grad = param.grad
         if grad is None:
             return
         v = self.state['v']
-        v *= self.hyperparam.momentum
-        v -= self.hyperparam.lr * grad
-        param.data += v
+        if isinstance(v, mkld.mdarray):
+            v.inplace_axpby(self.hyperparam.momentum, -self.hyperparam.lr, grad)
+            param.data += v
+        else:
+            v *= self.hyperparam.momentum
+            v -= self.hyperparam.lr * grad
+            param.data += v
 
     def update_core_gpu(self, param):
         grad = param.grad

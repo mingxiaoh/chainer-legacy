@@ -6,7 +6,8 @@ from chainer.utils import type_check
 
 from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 from mkldnn.api.support import forward, convolution_direct, zero
 

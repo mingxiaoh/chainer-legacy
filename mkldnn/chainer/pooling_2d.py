@@ -5,7 +5,8 @@ from chainer.utils import type_check
 from chainer.utils import conv
 
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 # Most important thing
 from mkldnn.api.support import forward_training, zero, pooling_max, at

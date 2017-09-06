@@ -3,7 +3,8 @@ from chainer.utils import type_check
 
 from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer, reorder_if_must
+from mkldnn.compute_complex import ComputeComplex, reuse_buffer, reorder_if_must
+from mkldnn.array import array
 
 from mkldnn.api.support import forward, eltwise_relu, at
 import mkldnn.api.memory as m

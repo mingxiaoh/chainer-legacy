@@ -8,6 +8,7 @@ sys.setdlopenflags(sys.getdlopenflags() | ctypes.RTLD_GLOBAL)
 from mkldnn import api
 from mkldnn import chainer
 from mkldnn import compute_complex
+from mkldnn import array
 
 from mkldnn.mdarray import mdarray
 

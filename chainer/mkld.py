@@ -13,6 +13,7 @@ try:
     from mkldnn.chainer.fanout import FanoutRecorder
     from mkldnn.chainer.runtime import Engine, Stream
     from mkldnn.chainer.sum import mkl_sum_enabled, mkl_sum
+    from mkldnn.array import array, warray
     # Modules listed depend on chainer.
     from mkldnn.chainer.dropout import DropoutFunctionMKLDNN
     from mkldnn.chainer.avg_pooling_2d import AvgPooling2DMKLDNN
@@ -74,5 +75,3 @@ def all_ready(inputs, check_with_ndim):
         return False
 
     return True
-
-

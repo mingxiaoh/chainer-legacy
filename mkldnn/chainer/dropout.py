@@ -8,7 +8,8 @@ from mkldnn.mdarray import mdarray
 from mkldnn.chainer import cosim, is_cosim
 from mkldnn.api.dropout import dropout_f32
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import array, ComputeComplex
+from mkldnn.compute_complex import ComputeComplex
+from mkldnn.array import array
 
 
 def _format(ndim):

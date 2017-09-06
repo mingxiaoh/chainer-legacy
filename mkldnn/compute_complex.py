@@ -49,19 +49,6 @@ def reuse_buffer(d, s):
         d.setbuffer(s)
 
 
-# XXX: move this file to another location
-def array(obj, *args):
-    if isinstance(obj, mkldnn.mdarray):
-        return obj
-    elif isinstance(obj, numpy.ndarray):
-        # TODO: Do we automatically transfer?
-
-        obj = numpy.ascontiguousarray(obj)
-        return mkldnn.mdarray(obj, *args)
-    else:
-        raise NotImplementedError
-
-
 class ComputeComplex(object):
     """MKLDNN Compute Complex.
 

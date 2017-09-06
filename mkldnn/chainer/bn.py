@@ -6,8 +6,8 @@ from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import reorder_if_must
 from mkldnn.compute_complex import reuse_buffer
-from mkldnn.compute_complex import array
 from mkldnn.compute_complex import ComputeComplex
+from mkldnn.array import array
 import numpy
 
 # Most important thing
