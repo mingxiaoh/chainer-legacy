@@ -162,13 +162,10 @@ class ConvolutionForward(ComputeComplex):
             self.W = outputs[0]
 
         # Record weight reorder primitive hint
-        if self.usr_w is not self.W:
-            wro = WeightReorderOptimization()
-            wro.reorder = self.dag_.size() - 1
-            wro.optimized = False
-            self.weight_reorder_opt = wro
-        else:
-            self.weight_reorder_opt = None
+        wro = WeightReorderOptimization()
+        wro.reorder = (self.dag_.size() - 1) if self.usr_w is not self.W else -1
+        wro.optimized = False
+        self.weight_reorder_opt = wro
 
         # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
@@ -190,9 +187,9 @@ class ConvolutionForward(ComputeComplex):
         if self.W is not W:
             reuse_buffer(self.usr_w, W)
         else:
-            if self.weight_reorder_opt is not None and \
-               self.weight_reorder_opt.optimized is False:
-                self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
+            if self.weight_reorder_opt.optimized is False:
+                if self.weight_reorder_opt.reorder != -1:
+                    self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
                 self.weight_reorder_opt.optimized = True
 
         if b is not None:
