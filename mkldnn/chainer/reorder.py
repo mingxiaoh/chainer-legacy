@@ -1,5 +1,7 @@
 from mkldnn.chainer.runtime import Engine, Stream
-from mkldnn.api.support import primitive_list
+from mkldnn.api.support import at, primitive_list
+from mkldnn.api import reorder as r
+from mkldnn.mdarray import mdarray
 import mkldnn.api.memory as m
 import numpy
 
