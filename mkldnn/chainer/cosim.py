@@ -129,8 +129,6 @@ def cosim_verify(func, acts, inputs, out_grads=None):
 
         # Reshape W for Linear
         orig_shape = None
-        # XXX: to avoid interdependence issue in python2, only check the function name here,
-        # instead of function class type
         if isinstance(func, LinearFunctionMKLDNN):
             assert len(inputs) >= 2
             if inputs[1].ndim == 4:

@@ -131,6 +131,11 @@ class ReLUMKLDNN(function.Function):
         )
 
     def forward(self, x):
+        x_orig = None
+        if is_cosim():
+            import copy
+            x_orig = copy.deepcopy(x)
+
         cc = ReLUForward(x, pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
@@ -138,15 +143,20 @@ class ReLUMKLDNN(function.Function):
         y, = cc.execute_on()
         y.reset_buf_order()
 
-        cosim.cosim_verify(self, (y, ), x)
+        cosim.cosim_verify(self, (y, ), x_orig)
         return y,
 
     def backward(self, x, gy):
+        gy_orig = None
+        if is_cosim():
+            import copy
+            gy_orig = copy.deepcopy(gy)
+
         cc = ReLUBackward(x, gy, self.hint,
                           pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
         gx.reset_buf_order()
 
-        cosim.cosim_verify(self, (gx, ), x, gy)
+        cosim.cosim_verify(self, (gx, ), x, gy_orig)
         return gx,
