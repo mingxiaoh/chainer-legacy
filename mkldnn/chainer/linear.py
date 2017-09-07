@@ -13,6 +13,7 @@ import mkldnn.api.inner_product_forward as ip_forward
 import mkldnn.api.inner_product_backward_data as ip_backdata
 import mkldnn.api.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import mdarray
+from mkldnn.chainer.optimization import WeightReorderOptimization, weight_optimization_trigger
 
 from mkldnn.api.inner_product_forward import linear_f_op
 from mkldnn.api.inner_product_backward_data import linear_bd_op
@@ -88,6 +89,11 @@ class LinearForward(ComputeComplex):
         else:
             self.W = outputs[0]
 
+        wro = WeightReorderOptimization()
+        wro.reorder = (self.dag_.size() - 1) if self.usr_w is not self.W else -1
+        wro.optimized = False
+        self.weight_reorder_opt = wro
+
         if b is not None:
             self.b = array(b, m.memory.x, e)
             y = linear_f_op(cc_pd, self.x, self.W, self.b, self.dag_)
@@ -119,7 +125,14 @@ class LinearForward(ComputeComplex):
 
     def _reuse_cc(self, x, W, b, e=Engine()):
         reuse_buffer(self.x, x)
-        reuse_buffer(self.W, W)
+        if self.W is not W:
+            reuse_buffer(self.usr_w, W)
+        else:
+            if self.weight_reorder_opt.optimized is False:
+                if self.weight_reorder_opt.reorder != -1:
+                    self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
+                self.weight_reorder_opt.optimized = True
+
         if b is not None:
             reuse_buffer(self.b, b)
 
@@ -299,6 +312,7 @@ class LinearFunctionMKLDNN(function.Function):
                            pos=(self.rank, self.fanout))
         self.hint = cc.hint
         self.W = cc.W
+        weight_optimization_trigger(self)
 
         y, = cc.execute_on()
         y.reset_buf_order()
