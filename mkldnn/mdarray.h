@@ -100,6 +100,19 @@ namespace implementation {
     return res;   \
   }
 
+#define nb_binary_map_impl_with_target_func(method, tfunc) \
+  PyObject * m_ ## method ## _map_impl(PyObject *self, PyObject *o) {    \
+    NPY_ARRAY_SURROGATE_ENTRY(self); \
+                                \
+    if (surrogate == nullptr)   \
+      return nullptr;           \
+                                \
+    PyObject *res = PyNumber_ ## tfunc(surrogate, o); \
+    Py_DECREF(surrogate);   \
+    NPY_ARRAY_SURROGATE_EXIT(); \
+    return res;   \
+  }
+
 #define nb_binary_map(method) \
   nb_binary_map_impl(method) \
   PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
@@ -524,7 +537,17 @@ public:
   nb_binary_map_impl(InPlaceMultiply);
   // SWIG: nb_true_divide (no slot) <= nb_divide
   PyObject *m_Divide(PyObject *self, PyObject *o);
+#if PY_VERSION_HEX < 0x03000000
+  nb_binary_map_impl(Divide);
+#else
+  nb_binary_map_impl_with_target_func(Divide, TrueDivide);
+#endif
   PyObject *m_InPlaceDivide(PyObject *self, PyObject *o);
+#if PY_VERSION_HEX < 0x03000000
+  nb_binary_map_impl(InPlaceDivide);
+#else
+  nb_binary_map_impl_with_target_func(InPlaceDivide, InPlaceTrueDivide);
+#endif
 
   nb_binary_map(Remainder);
   nb_binary_map(Divmod);

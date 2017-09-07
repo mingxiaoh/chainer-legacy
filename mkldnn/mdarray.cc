@@ -436,19 +436,43 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
 }
 
 PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
-  return m_mult_div(self, o, mmult, false);
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_Multiply_map_impl(self, o);
+  } else {
+    return m_mult_div(self, o, mmult, false);
+  }
 }
 
 PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
-  return m_mult_div(self, o, mmult, true);
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_InPlaceMultiply_map_impl(self, o);
+  } else {
+    return m_mult_div(self, o, mmult, true);
+  }
 }
 
 PyObject *mdarray::m_Divide(PyObject *self, PyObject *o) {
-  return m_mult_div(self, o, mdiv, false);
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_Divide_map_impl(self, o);
+  } else {
+    return m_mult_div(self, o, mdiv, false);
+  }
 }
 
 PyObject *mdarray::m_InPlaceDivide(PyObject *self, PyObject *o) {
-  return m_mult_div(self, o, mdiv, true);
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size())) {
+    return m_InPlaceDivide_map_impl(self, o);
+  } else {
+    return m_mult_div(self, o, mdiv, true);
+  }
 }
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
