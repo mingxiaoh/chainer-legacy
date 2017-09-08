@@ -39,7 +39,12 @@
   , int flags = PyBUF_C_CONTIGUOUS | PyBUF_RECORDS) {
   view = new Py_buffer;
   res = PyObject_GetBuffer($input, view, flags);
-  $1 = ($1_ltype) view;
+  if (res != 0) {
+    $1 = NULL;
+    goto fail;
+  } else {
+    $1 = ($1_ltype) view;
+  }
   // TODO: IF WE CONFRONT A F_CONTINGUOUS ONE???
 }
 %enddef

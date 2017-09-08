@@ -531,6 +531,7 @@ public:
   nb_binary_map_impl(Subtract);
   PyObject *m_InPlaceSubtract(PyObject *self, PyObject *o);
   nb_binary_map_impl(InPlaceSubtract);
+#if 1
   PyObject *m_Multiply(PyObject *self, PyObject *o);
   nb_binary_map_impl(Multiply);
   PyObject *m_InPlaceMultiply(PyObject *self, PyObject *o);
@@ -547,6 +548,12 @@ public:
   nb_binary_map_impl(InPlaceDivide);
 #else
   nb_binary_map_impl_with_target_func(InPlaceDivide, InPlaceTrueDivide);
+#endif
+#else
+  nb_binary_map(Multiply)
+  nb_binary_map(InPlaceMultiply)
+  nb_binary_map(Divide);
+  nb_binary_map(InPlaceDivide);
 #endif
 
   nb_binary_map(Remainder);

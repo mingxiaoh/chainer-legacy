@@ -435,6 +435,7 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
   return resultobj;
 }
 
+#if 1
 PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
   if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
@@ -474,6 +475,7 @@ PyObject *mdarray::m_InPlaceDivide(PyObject *self, PyObject *o) {
     return m_mult_div(self, o, mdiv, true);
   }
 }
+#endif
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {

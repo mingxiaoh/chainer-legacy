@@ -442,7 +442,7 @@ class TestMaxPooling(TestCaffeFunctionBaseMock):
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(
-            self.inputs[0], (2, 3), stride=(4, 5), pad=(6, 7))
+            self.inputs[0], (2, 3), stride=(4, 5), pad=(6, 7), cover_all=True)
 
 
 class TestAveragePooling(TestCaffeFunctionBaseMock):
@@ -473,7 +473,7 @@ class TestAveragePooling(TestCaffeFunctionBaseMock):
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(
-            self.inputs[0], 2, stride=4, pad=6)
+            self.inputs[0], 2, stride=4, pad=6, cover_all=True)
 
 
 class TestStochasticPooling(TestCaffeFunctionBase):
