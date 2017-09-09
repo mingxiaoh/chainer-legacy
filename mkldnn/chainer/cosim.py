@@ -64,7 +64,7 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
     """
     print('\tCosim verify results for %s <rank=%d, fanout=%d>'
           % (func.__class__.__name__, func.rank, func.fanout))
-    check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
+    check_options = {'atol': 1e-3, 'rtol': 1e-2, 'verbose': True}
 
     if acts is None and refs is None:
         print('\tWARNING: input results are None!')
