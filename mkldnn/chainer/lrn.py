@@ -1,4 +1,5 @@
 from chainer import function
+from chainer import configuration
 from chainer.utils import type_check
 
 from mkldnn.chainer import cosim, is_cosim
@@ -7,7 +8,7 @@ from mkldnn.compute_complex import ComputeComplex, reuse_buffer
 from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward_training, lrn_across_channels, at
+from mkldnn.api.support import forward_training, forward_inference, lrn_across_channels, at
 import mkldnn.api.memory as m
 import mkldnn.api.lrn_forward as lrn_forward
 import mkldnn.api.lrn_backward as lrn_backward
@@ -37,7 +38,12 @@ class LrnForward(ComputeComplex):
         # TODO: check avx512?
         self.x = array(x, m.memory.nchw, e)
         x_md = self.x.memory.get_primitive_desc().desc()
-        cc_d = lrn_forward.desc(forward_training, lrn_across_channels, x_md,
+        if configuration.config.train:
+            aprop_kind = forward_training
+        else:
+            aprop_kind = forward_inference
+        self.train = configuration.config.train
+        cc_d = lrn_forward.desc(aprop_kind, lrn_across_channels, x_md,
                                 n, alpha, beta, k)
         cc_pd = lrn_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
@@ -53,6 +59,8 @@ class LrnForward(ComputeComplex):
 
     def match(self, inputs, n, k, alpha, beta):
         x = inputs[0]
+        if self.train != configuration.config.train:
+            return False
         return ((self.x.shape == x.shape) and
                 (self.n == n) and
                 (self.k == k) and
