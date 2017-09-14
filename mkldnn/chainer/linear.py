@@ -1,4 +1,5 @@
 from chainer import function
+from chainer import configuration
 from chainer.utils import type_check
 
 from mkldnn.chainer import cosim, is_cosim
@@ -7,7 +8,7 @@ from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
 from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward
+from mkldnn.api.support import forward_training, forward_inference
 import mkldnn.api.memory as m
 import mkldnn.api.inner_product_forward as ip_forward
 import mkldnn.api.inner_product_backward_data as ip_backdata
@@ -46,11 +47,15 @@ def create_forward_desc(d_creator, o_expect, *inputs):
                 for v in inputs if v is not None]
     x_m = inputs_d[0]
     W_m = inputs_d[1]
+    if configuration.config.train:
+        aprop_kind = forward_training
+    else:
+        aprop_kind = forward_inference
     if len(inputs_d) == 3:
         b_m = inputs_d[2]
-        return d_creator(forward, x_m, W_m, b_m, o_expect)
+        return d_creator(aprop_kind, x_m, W_m, b_m, o_expect)
     else:
-        return d_creator(forward, x_m, W_m, o_expect)
+        return d_creator(aprop_kind, x_m, W_m, o_expect)
 
 
 def create_backward_desc(d_creator, *inputs):
@@ -78,6 +83,7 @@ class LinearForward(ComputeComplex):
     def _create_cc(self, x, W, b, e=Engine()):
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
         # Create primitive_desc from any
+        self.train = configuration.config.train
         cc_d = create_forward_desc(ip_forward.desc, y_d, x, W, b)
         cc_pd = ip_forward.primitive_desc(cc_d, e)
 
@@ -139,6 +145,8 @@ class LinearForward(ComputeComplex):
             reuse_buffer(self.b, b)
 
     def match(self, inputs):
+        if self.train != configuration.config.train:
+            return False
         if len(inputs) != self.argc:
             return False
         x, W = inputs[:2]

@@ -9,7 +9,7 @@ from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import ComputeComplex, reuse_buffer
 from mkldnn.array import array
 
-from mkldnn.api.support import forward, convolution_direct, zero
+from mkldnn.api.support import forward_training, convolution_direct, zero
 
 import mkldnn.api.memory as m
 
@@ -102,7 +102,7 @@ def create_backward_data_desc(d_creator, y, inputs, geometry):
         deconv backward data --> convolution forward
         src desc <--> dst desc
     """
-    return d_creator(forward, convolution_direct, y, w_desc, x_desc,
+    return d_creator(forward_training, convolution_direct, y, w_desc, x_desc,
                      strides, padding_ul, padding_dr, zero)
 
 

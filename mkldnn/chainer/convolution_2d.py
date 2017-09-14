@@ -1,4 +1,5 @@
 from chainer import function
+from chainer import configuration
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -8,7 +9,7 @@ from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
 from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward, convolution_direct, zero
+from mkldnn.api.support import forward_training, forward_inference, convolution_direct, zero
 
 import mkldnn.api.memory as m
 
@@ -74,13 +75,17 @@ def create_forward_desc(d_creator, o_expect, inputs, geometry):
     padding_dr = geometry[2]
     x_desc = inputs_d[0]
     w_desc = inputs_d[1]
+    if configuration.config.train:
+        aprop_kind = forward_training
+    else:
+        aprop_kind = forward_inference
     if len(inputs_d) == 3:
         b_desc = inputs_d[2]
-        return d_creator(forward, convolution_direct,
+        return d_creator(aprop_kind, convolution_direct,
                          x_desc, w_desc, b_desc, o_expect,
                          strides, padding_ul, padding_dr, zero)
     else:
-        return d_creator(forward, convolution_direct,
+        return d_creator(aprop_kind, convolution_direct,
                          x_desc, w_desc, o_expect,
                          strides, padding_ul, padding_dr, zero)
 
@@ -151,6 +156,7 @@ class ConvolutionForward(ComputeComplex):
 
         self.geometry = g.geometry
         # Create primitive_desc from any
+        self.train = configuration.config.train
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
         cc_pd = conv_forward.primitive_desc(cc_d, e)
         w_mpd = cc_pd.weights_primitive_desc()
@@ -198,6 +204,8 @@ class ConvolutionForward(ComputeComplex):
     def match(self, inputs, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
         W = inputs[1]
+        if self.train != configuration.config.train:
+            return False
         if (self.x.shape != x.shape) or (self.W.shape != W.shape):
             return False
         if (isinstance(x, mdarray) and (x is not self.x)):
