@@ -1049,8 +1049,7 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 if isinstance(gx, tuple):
-                    for g in gx:
-                        _check_grad_type(func, x, g.data)
+                    _check_grad_type(func, x, gx[0].data)
                 else:
                     _check_grad_type(func, x, gx.data)
 
