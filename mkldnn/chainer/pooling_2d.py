@@ -71,7 +71,7 @@ class Pooling2DForward(ComputeComplex):
         cc_pd = pooling_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
 
-        if self.alg_kind is pooling_max:
+        if self.alg_kind is pooling_max and aprop_kind == forward_training:
             ws = mdarray(cc_pd.workspace_primitive_desc())
             self.dag_.push_back(pooling_forward.pooling_forward(cc_pd, at(self.x.memory), y.memory, ws.memory))
         else:

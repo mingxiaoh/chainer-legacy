@@ -47,9 +47,13 @@ class LrnForward(ComputeComplex):
                                 n, alpha, beta, k)
         cc_pd = lrn_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
-        ws = mdarray(cc_pd.workspace_primitive_desc())
+        if aprop_kind == forward_training:
+            ws = mdarray(cc_pd.workspace_primitive_desc())
+            self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), ws.memory, y.memory))
+        else:
+            ws = None
+            self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), y.memory))
 
-        self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), ws.memory, y.memory))
         self._hint = cc_pd
         self.outputs = y,
         self.ws = ws
