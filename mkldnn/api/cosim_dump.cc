@@ -292,8 +292,8 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         return true;
     }
 
-    int count = MAX_PRINTOUTS;
-    int mismatched = 0;
+    int print_cnt = MAX_PRINTOUTS;
+    int mismatch_cnt = 0, a_nan_cnt = 0, a_inf_cnt = 0, r_nan_cnt = 0, r_inf_cnt = 0;
     if (act.dtype == memory::s32) {
         int *abuf = static_cast<int*>(act.buf);
         int *rbuf = static_cast<int*>(ref.buf);
@@ -302,15 +302,15 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
             int aval = abuf[j];
             int rval = rbuf[j];
             if (aval != rval) {
-                if (count > 0) {
+                if (print_cnt > 0) {
                     printf("\t[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
-                    count--;
+                    print_cnt --;
                 }
-                mismatched ++;
+                mismatch_cnt ++;
             }
         }
 
-        if (mismatched != 0) {
+        if (mismatch_cnt != 0) {
             printf("\t[ __act__ , __ref__ , __diff__ , #index]\n");
         }
 
@@ -319,20 +319,50 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         float *rbuf = static_cast<float*>(ref.buf);
 #   pragma omp parallel for schedule(static)
         for (int j = 0; j < total; j++) {
+            bool mismatched = false;
+            float cval = 0.0, diff = 0.0;
             float aval = abuf[j];
             float rval = rbuf[j];
-            float diff = fabs(aval - rval);
-            float cval = atol + rtol * fabs(rval);
-            if (diff > cval) {
-                if (count > 0) {
-                    printf("\t[ %.10lf, %.10lf, %.10lf, %.10lf, #%d ]\n", aval, rval, diff, cval, j);
-                    count--;
+
+            if (std::isnan(aval)) {
+                a_nan_cnt ++;
+                cval = aval;
+                mismatched = true;
+            } else if (!std::isfinite(aval)) {
+                a_inf_cnt ++;
+                cval = aval;
+                mismatched = true;
+            }
+
+            if (std::isnan(rval)) {
+                r_nan_cnt ++;
+                cval = rval;
+                mismatched = true;
+            } else if (!std::isfinite(rval)) {
+                r_inf_cnt ++;
+                cval = rval;
+                mismatched = true;
+            }
+
+            if (!mismatched) {
+                diff = fabs(aval - rval);
+                cval = atol + rtol * fabs(rval);
+                if (diff > cval) {
+                    mismatched = true;
                 }
-                mismatched ++;
+            }
+
+            if (mismatched) {
+                mismatch_cnt ++;
+                if (print_cnt > 0) {
+                    printf("\t[ %.10lf, %.10lf, %.10lf, %.10lf, #%d ]\n",
+                            aval, rval, diff, cval, j);
+                    print_cnt --;
+                }
             }
         }
 
-        if (mismatched != 0) {
+        if (mismatch_cnt != 0) {
             printf("\t[ __act__ , __ref__ , __diff__ , __cmp__ , #index ]\n\tatol: %lf, rtol: %lf ",
                     atol, rtol);
         }
@@ -342,14 +372,32 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         return false;
     }
 
-    if (mismatched != 0) {
+    if (mismatch_cnt != 0) {
         printf("\tsize: %d ndim: %d shape: [ ", total, ndim);
         for (int k = 0; k < act.ndim; k++) {
             printf("%d ", static_cast<int>(act.shape[k]));
         }
-        printf("]\n\tmismatch rate: %.10lf%%\n"
-                "\tNOTE: ONLY about %d lines in failures are printed out here\n",
-                ((double)mismatched / (double)total) * (double)100.00f, MAX_PRINTOUTS);
+
+        printf("]\n\tmismatch rate: %.10lf%% ",
+                ((double)mismatch_cnt / (double)total) * (double)100.00f);
+
+        if (a_nan_cnt != 0) {
+            printf("act NaN count: %d ", a_nan_cnt);
+        }
+
+        if (r_nan_cnt != 0) {
+            printf("ref NaN count: %d ", r_nan_cnt);
+        }
+
+        if (a_inf_cnt != 0) {
+            printf("act INF count: %d ", a_inf_cnt);
+        }
+
+        if (r_inf_cnt != 0) {
+            printf("ref INF count: %d ", r_inf_cnt);
+        }
+
+        printf("\n\tNOTE: ONLY about %d lines in failures are printed out here\n", MAX_PRINTOUTS);
 
         return false;
     }
