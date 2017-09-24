@@ -130,13 +130,13 @@ class BnForward(ComputeComplex):
     def match(self, inputs, eps, mean=None, var=None):
         x = inputs[0]
         if (self.x.shape != x.shape) or (self.eps != eps):
-            print('WARNING:bn forward, shape or eps mismatch ', self.x.shape, x.shape, self.eps, eps)
+            # print('WARNING:bn forward, shape or eps mismatch ', self.x.shape, x.shape, self.eps, eps)
             return False
         if self.train != configuration.config.train:
-            print('WARNING:bn forward, config.train mismatch ', self.train, configuration.config.train)
+            # print('WARNING:bn forward, config.train mismatch ', self.train, configuration.config.train)
             return False
         if (mean is not None) and ((self.flags & use_global_stats) == 0):
-            print('WARNING:bn forward, mean or flags mismatch ', mean, self.flags)
+            # print('WARNING:bn forward, mean or flags mismatch ', mean, self.flags)
             return False
         return True
 

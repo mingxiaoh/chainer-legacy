@@ -151,7 +151,7 @@ class LinearForward(ComputeComplex):
             return False
         x, W = inputs[:2]
         if (x.shape != self.x.shape) or (W.shape != self.W.shape):
-            print('WARNING: LinearForard x or w shape mismatch', x.shape, self.x.shape, W.shape, self.W.shape)
+            # print('WARNING: LinearForard x or w shape mismatch', x.shape, self.x.shape, W.shape, self.W.shape)
             return False
         if(isinstance(x, mdarray) and (x is not self.x)):
             return False
