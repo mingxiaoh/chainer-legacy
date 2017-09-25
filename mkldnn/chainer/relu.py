@@ -87,6 +87,7 @@ class ReLUBackward(ComputeComplex):
         if x.ndim == 2:
             fmt = m.memory.nc
         x = array(x, fmt, e)
+        self.x_in = x
         gy = array(gy, fmt, e)
 
         diff_pd = gy.memory.get_primitive_desc()
@@ -115,7 +116,7 @@ class ReLUBackward(ComputeComplex):
         self.outputs = gx,
 
     def _reuse_cc(self, x, gy):
-        reuse_buffer(self.x, x)
+        reuse_buffer(self.x_in, x)
         reuse_buffer(self.gy, gy)
 
 
@@ -137,6 +138,7 @@ class ReLUMKLDNN(function.Function):
         if is_cosim():
             import copy
             x_orig = copy.deepcopy(x)
+        self.x_orig = x_orig
 
         cc = ReLUForward(x, pos=(self.rank, self.fanout))
 
@@ -160,7 +162,7 @@ class ReLUMKLDNN(function.Function):
         gx, = cc.execute_on()
         gx.reset_buf_order()
 
-        cosim.cosim_verify(self, (gx, ), x, gy_orig)
+        cosim.cosim_verify(self, (gx, ), self.x_orig, gy_orig)
         return gx,
 
     def dump_to_file(self, inputs, grads=None):
