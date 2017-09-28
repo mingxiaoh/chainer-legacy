@@ -132,6 +132,9 @@ class BnForward(ComputeComplex):
         if (self.x.shape != x.shape) or (self.eps != eps):
             # print('WARNING:bn forward, shape or eps mismatch ', self.x.shape, x.shape, self.eps, eps)
             return False
+        if (isinstance(x, mdarray) and (x is not self.x)):
+            return False
+ 
         if self.train != configuration.config.train:
             # print('WARNING:bn forward, config.train mismatch ', self.train, configuration.config.train)
             return False
