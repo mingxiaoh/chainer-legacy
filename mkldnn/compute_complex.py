@@ -2,7 +2,7 @@ from mkldnn.api.support import at, primitive_list
 from mkldnn.api import reorder as r
 # from mkldnn.api import memory as m
 from mkldnn.chainer.runtime import Stream
-
+from chainer import configuration
 import mkldnn
 import numpy
 from mkldnn.mdarray import mdarray
@@ -65,16 +65,21 @@ class ComputeComplex(object):
 
         cache = cls.cache[cls.cc_type]
         ret = cache.get(pos)
-
-        if ret and isinstance(ret, cls) and ret.match(*args, **kwargs):
-            ret.new = False
+        if configuration.config.train:
+            if ret and isinstance(ret, cls) and ret.match(*args, **kwargs):
+                ret.new = False
+            else:
+                ret = super(ComputeComplex, cls).__new__(cls)
+                # print("Create new CC: ", ret)
+                ret.new = True
+                cache[pos] = ret
+                ret.pos = pos
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
             # print("Create new CC: ", ret)
             ret.new = True
             cache[pos] = ret
             ret.pos = pos
-
         return ret
 
     def __init__(self):
