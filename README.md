@@ -14,6 +14,12 @@ Minimum requirements:
 - Python 2.7.6+, 3.4.3+, 3.5.1+, 3.6.0+
 - NumPy 1.9, 1.10, 1.11, 1.12
 - Six 1.9
+- Swig 3.0.12
+- Boost 1.64.0
+- Glog 0.3.5
+- Cmake 2.8.0 
+- Doxygen 1.8.5 
+- C++ compiler with C++11 standard support
 
 Requirements for some features:
 - CUDA support
@@ -27,6 +33,9 @@ Requirements for some features:
     - protobuf>=3.0.0 is required for Py3
 - Image dataset support
   - Pillow
+  - opencv-python 3.3.0.10
+- Plot support
+  - matplotlib 2.0.2
 - HDF5 serialization support
   - h5py 2.5.0
 - Testing utilities
@@ -51,6 +60,11 @@ pip install chainer
 You can also install Chainer from the source code:
 ```
 python setup.py install
+```
+During the installation, external library mkl-dnn will be installed automatically, the mkl-dnn libraries will be put in the `$HOME/.chainer/lib` after the installation, the next thing is to append this path to the environment variable `$LD_LIBRARY_PATH$`.
+```
+export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib"
+export LIBRARY_PATH="$LD_LIBRARY_PATH"
 ```
 
 
