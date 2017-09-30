@@ -90,6 +90,8 @@ class Pooling2DForward(ComputeComplex):
         x = inputs[0]
         if self.train != configuration.config.train:
             return False
+        if (isinstance(x, mdarray) and (x is not self.x)):
+            return False
         return ((self.x.shape == x.shape) and
                 (self.ksize == ksize) and
                 (self.stride == stride) and
