@@ -8,12 +8,16 @@ from chainer import functions
 from chainer import testing
 # from chainer.testing import attr
 
+@testing.parameterize(*testing.product_dict(
+    [
+        {'shape': (2, 7, 3, 3)}
+    ]
+))
 
 class TestConcat(unittest.TestCase):
 
     def setUp(self):
         self.dtype = numpy.float32
-        self.shape = (2, 7, 3, 3)
         self.axis = 1
         self.slices = [
                 [
@@ -47,7 +51,7 @@ class TestConcat(unittest.TestCase):
         # print('ingore backward test')
         self.check_backward(self.xs, axis=self.axis)
 
-test = TestConcat()
-test.setUp()
+#test = TestConcat()
+#test.setUp()
 # test.test_forward_cpu()
-test.test_backward_cpu()
+#test.test_backward_cpu()

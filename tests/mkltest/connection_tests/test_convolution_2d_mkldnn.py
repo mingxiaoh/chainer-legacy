@@ -13,8 +13,7 @@ from chainer import testing
 # from chainer.testing import condition
 from chainer.utils import conv
 
-from mkldnn.chainer.fanout import FanoutRecorder
-
+from chainer.mkld import Convolution2DFunctionMKLDNN, FanoutRecorder
 
 @testing.parameterize(*(
     testing.product({
@@ -71,7 +70,7 @@ class TestConvolution2DFunctionMKLDNN(unittest.TestCase):
             -1, 1,
             (n, out_c, out_h, out_w)).astype(self.x_dtype)
 
-        self.con2dMkl = convolution_2d.Convolution2DFunctionMKLDNN(
+        self.con2dMkl = Convolution2DFunctionMKLDNN(
                     self.stride, self.pad, self.cover_all)
 
         self.con2d = convolution_2d.Convolution2DFunction(
