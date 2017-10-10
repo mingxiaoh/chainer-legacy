@@ -6,17 +6,31 @@
 #include "mdarray.h"
 #include "mkl_vsl.h"
 #include "utils.hpp"
-
+#include "cpu_info.h"
+#include <omp.h>
 static void bernoulli_generate(long n, double p, int* r) {
     std::srand(std::time(0));
     int seed = 17 + std::rand() % 4096;
-    const long my_amount = n;
-    const long my_offset = 0;
-    VSLStreamStatePtr stream;
-    vslNewStream(&stream, VSL_BRNG_MCG31, seed);
-    vslSkipAheadStream(stream, my_offset);
-    viRngBernoulli(VSL_RNG_METHOD_BERNOULLI_ICDF, stream, my_amount, r + my_offset, p);
-    vslDeleteStream(&stream);
+
+    int nthr = omp_get_max_threads();
+    int threshold = nthr * OpenMpManager::getProcessorSpeedMHz() / 3;
+    bool run_parallel = 
+         (omp_in_parallel() == 0) && (n >= threshold);
+    if (!run_parallel) nthr = 1;
+#pragma omp parallel num_threads(nthr)
+    {
+      const int ithr = omp_get_thread_num();
+      const long avg_amount = (n + nthr -1) / nthr;
+      const long my_offset = ithr * avg_amount;
+      const long my_amount = std::min(my_offset + avg_amount, n) - my_offset;
+      if (my_amount > 0) {
+        VSLStreamStatePtr stream;
+        vslNewStream(&stream, VSL_BRNG_MCG31, seed);
+        vslSkipAheadStream(stream, my_offset);
+        viRngBernoulli(VSL_RNG_METHOD_BERNOULLI_ICDF, stream, my_amount, r + my_offset, p);
+        vslDeleteStream(&stream);
+      }
+    }
 }
 
 template<typename T>
