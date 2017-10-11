@@ -119,7 +119,7 @@ class BnForward(ComputeComplex):
 
     def _reuse(self, inputs, mean=None, var=None):
         x, gamma, beta = inputs[:3]
-        reuse_buffer(self.x, x)
+        reuse_buffer(self.x_src, x)
         if mean is not None:
             reuse_buffer(self.mean, mean)
         if var is not None:
@@ -132,7 +132,7 @@ class BnForward(ComputeComplex):
         if (self.x.shape != x.shape) or (self.eps != eps):
             # print('WARNING:bn forward, shape or eps mismatch ', self.x.shape, x.shape, self.eps, eps)
             return False
-        if (isinstance(x, mdarray) and (x is not self.x)):
+        if (isinstance(x, mdarray) and (x is not self.x_src)):
             return False
  
         if self.train != configuration.config.train:
