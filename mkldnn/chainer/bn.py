@@ -134,7 +134,7 @@ class BnForward(ComputeComplex):
             return False
         if (isinstance(x, mdarray) and (x is not self.x_src)):
             return False
- 
+
         if self.train != configuration.config.train:
             # print('WARNING:bn forward, config.train mismatch ', self.train, configuration.config.train)
             return False
@@ -178,7 +178,8 @@ class BnBackward(ComputeComplex):
         cc_d = bn_backward.desc(backward, gy_md, x_md, eps, flags)
         cc_pd = bn_backward.primitive_desc(cc_d, e, hint)
 
-        gx = mdarray(self.x.memory.get_primitive_desc(), gy.memory)
+        # gx = mdarray(self.x.memory.get_primitive_desc(), gy.memory)
+        gx = mdarray(self.x.memory.get_primitive_desc())
         if flags & use_scale_shift:
             w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
             self.w = array(w, m.memory.nc, e)
