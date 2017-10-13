@@ -1,7 +1,7 @@
 import numpy as np
-from mkldnn.mdarray import mdarray
+from chainer.mkld import mdarray
 import mkldnn.api.memory as m
-from mkldnn.chainer.runtime import Engine
+from chainer.mkld import Engine
 from chainer import variable
 
 e = Engine()
