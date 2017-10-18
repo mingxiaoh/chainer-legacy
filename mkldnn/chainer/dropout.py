@@ -7,8 +7,8 @@ from chainer.utils import type_check
 from mkldnn.mdarray import mdarray
 from mkldnn.chainer import cosim, is_cosim
 from mkldnn.api.dropout import dropout_f32
-from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex
+from mkldnn.chainer.runtime import Engine, Stream
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex
 from mkldnn.array import array
 
 
@@ -35,9 +35,7 @@ class DropoutForward(ComputeComplex):
     def _create_cc(self, x, dropout_ratio, e=Engine()):
         self.dropout_op = dropout_f32(dropout_ratio)
 
-        self.mask = np.ndarray(shape=x.shape, dtype=np.float32)
-        self._mask = array(self.mask, _format(self.mask.ndim), e)
-
+        self._mask = mdarray(self.x.memory.get_primitive_desc())
         self._hint = mdarray(self.x.memory.get_primitive_desc())
 
     def match(self, inputs, *args):
@@ -58,13 +56,20 @@ class DropoutBackward(ComputeComplex):
     def __init__(self, dropout_op, mask, gy, hint, pos=(0, 0), e=Engine()):
         super(DropoutBackward, self).__init__()
         self._dropout_op = dropout_op
-        self._mask = mask
+        self._mask_hint = mask
         self.gy = array(gy[0], _format(gy[0].ndim), e)
 
         if self.new:
             self._create_cc(hint)
 
     def _create_cc(self, hint):
+        outputs = reorder_if_must(
+            self._mask_hint,
+            self.gy.memory.get_primitive_desc(),
+            Engine(),
+            self.dag_
+        )
+        self._mask = outputs[0]
         self.gx = mdarray(self.gy.memory.get_primitive_desc())
         self._hint = hint
 
@@ -73,6 +78,12 @@ class DropoutBackward(ComputeComplex):
         return (hint is self._hint)
 
     def execute_on(self, s=None):
+        if s is None:
+            s = Stream()
+
+        s.submit(self.dag_)
+        s.wait()
+
         self._dropout_op.backward(self.gy, self._mask, self.gx)
         return self.gx
 
@@ -88,7 +99,7 @@ class DropoutFunctionMKLDNN(function.Function):
     def forward(self, x):
         cc = DropoutForward(x, self.dropout_ratio, pos=(self.rank, self.fanout))
 
-        self.mask = cc.mask
+        self.mask = np.array(cc._mask)
         self._mask = cc._mask
         self.dropout_op = cc.dropout_op
         self.hint = cc.hint
