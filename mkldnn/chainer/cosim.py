@@ -7,6 +7,8 @@ from chainer.utils import force_array, type_check
 
 from mkldnn.chainer import is_cosim, is_cosim_continue, plain_array
 
+import logging
+
 
 class Dropout(function.Function):
     """
@@ -38,16 +40,17 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
         verbose (bool): If ``True``, it outputs verbose messages on error.
     """
     if not isinstance(act, np.ndarray) or not isinstance(ref, np.ndarray):
-        print('\tWARNING: wrong array types!')
+        logging.warning('\tWARNING: wrong array types!')
         return False
 
     act = force_array(act)
     ref = force_array(ref)
     if act.size != ref.size or act.itemsize != ref.itemsize or act.shape != ref.shape:
-        print('\tWARNING: size is not matched!\nsize: act=%d ref=%d itemsize: act=%d ref=%d'
-              % (act.size, ref.size, act.itemsize, ref.itemsize),
-              ' shape: act=', act.shape, ' ref=', ref.shape,
-              ' dtype: act=', act.dtype, ' ref=', ref.dtype)
+        logging.warning(
+            '\tWARNING: size is not matched!\nsize: act=%d ref=%d itemsize: act=%d ref=%d'
+            % (act.size, ref.size, act.itemsize, ref.itemsize),
+            ' shape: act=', act.shape, ' ref=', ref.shape,
+            ' dtype: act=', act.dtype, ' ref=', ref.dtype)
         return False
 
     act = np.ascontiguousarray(act)
@@ -62,16 +65,17 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
 def verify_results(func, acts, refs, inputs, out_grads=None):
     """
     """
-    print('\tCosim verify results for %s <rank=%d, fanout=%d>'
-          % (func.__class__.__name__, func.rank, func.fanout))
+    logging.info(
+            '\tCosim verify results for %s <rank=%d, fanout=%d>'
+            % (func.__class__.__name__, func.rank, func.fanout))
     check_options = {'atol': 1e-3, 'rtol': 1e-2, 'verbose': True}
 
     if acts is None and refs is None:
-        print('\tWARNING: input results are None!')
+        logging.warning('\tWARNING: input results are None!')
         return True
     elif acts is None or refs is None:
         if is_cosim_continue():
-            print('\tWARNING: cosim, input results are None!')
+            logging.warning('\tWARNING: cosim, input results are None!')
             return False
         else:
             raise KeyError('Cosim, input results are None!')
@@ -79,8 +83,9 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
     size = len(acts)
     if size != len(refs):
         if is_cosim_continue():
-            print('\tWARNING: cosim, lengths of results are different'
-                  + ' <acts_size=%d refs_size=%d>!' % (size, len(refs)))
+            logging.warning(
+                    '\tWARNING: cosim, lengths of results are different'
+                    + ' <acts_size=%d refs_size=%d>!' % (size, len(refs)))
             return False
         else:
             raise KeyError('Cosim, lengths of results are different'
@@ -93,7 +98,7 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
         elif acts[i] is None or refs[i] is None:
             ret = False
             if is_cosim_continue():
-                print('\tWARNING: cosim, one input result is None!')
+                logging.warning('\tWARNING: cosim, one input result is None!')
                 continue
             else:
                 raise KeyError('Cosim, one  input result is None!')
@@ -101,11 +106,11 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
         if not expect_allclose(*plain_array((acts[i], refs[i])), **check_options):
             ret = False
             if is_cosim_continue():
-                print('\tCosim, mismatched in %s #%d result!' % (func.__class__.__name__, i))
+                logging.error('\tCosim, mismatched in %s #%d result!' % (func.__class__.__name__, i))
                 continue
             else:
                 if hasattr(func, 'dump_to_file'):
-                    print('\tDump input parameters to file for %s' % func.__class__.__name__)
+                    logging.info('\tDump input parameters to file for %s' % func.__class__.__name__)
                     func.dump_to_file(inputs, out_grads)
                 raise KeyError('Cosim, mismatched in #%d result of %s!'
                                % (i, func.__class__.__name__))
@@ -124,8 +129,9 @@ def cosim_verify(func, acts, inputs, out_grads=None):
     from mkldnn.chainer.linear import LinearFunctionMKLDNN
 
     if out_grads is None:
-        print('\tFORWARD cosim for %s <rank=%d, fanout=%d>'
-              % (func.__class__.__name__, func.rank, func.fanout))
+        logging.info(
+                '\tFORWARD cosim for %s <rank=%d, fanout=%d>'
+                % (func.__class__.__name__, func.rank, func.fanout))
 
         # Reshape W for Linear
         orig_shape = None
@@ -169,11 +175,13 @@ def cosim_verify(func, acts, inputs, out_grads=None):
                 refs = tuple([x if i != 0 else ref0 for i, x in enumerate(refs)])
 
         if not verify_results(func, acts, refs, inputs):
-            print('\tFailed in FORWARD cosim for %s <rank=%d, fanout=%d>'
+            logging.error(
+                  '\tFailed in FORWARD cosim for %s <rank=%d, fanout=%d>'
                   % (func.__class__.__name__, func.rank, func.fanout))
 
     else:
-        print('\tBACKWARD cosim for %s <rank=%d, fanout=%d>'
+        logging.info(
+              '\tBACKWARD cosim for %s <rank=%d, fanout=%d>'
               % (func.__class__.__name__, func.rank, func.fanout))
         refs = plain_array(func.cosim_func.backward(plain_array(inputs), plain_array(out_grads)))
 
@@ -194,7 +202,6 @@ def cosim_verify(func, acts, inputs, out_grads=None):
                 refs = tuple([x if i != 0 else ref0 for i, x in enumerate(refs)])
 
         if not verify_results(func, acts, refs, inputs, out_grads):
-            print('\tFailed in BACKWARD cosim for %s <rank=%d, fanout=%d>'
+            logging.error(
+                  '\tFailed in BACKWARD cosim for %s <rank=%d, fanout=%d>'
                   % (func.__class__.__name__, func.rank, func.fanout))
-
-
