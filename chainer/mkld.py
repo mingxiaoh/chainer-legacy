@@ -9,6 +9,7 @@ available = False
 try:
     import mkldnn
     from mkldnn.mdarray import mdarray
+    from mkldnn.chainer import plain_array
     from mkldnn.chainer.basic_math import AddMKLDNN
     from mkldnn.chainer.fanout import FanoutRecorder
     from mkldnn.chainer.runtime import Engine, Stream
