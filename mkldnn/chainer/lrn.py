@@ -112,6 +112,8 @@ class LrnBackward(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, hint, ws, n, k, alpha, beta):
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
 

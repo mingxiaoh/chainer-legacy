@@ -78,8 +78,11 @@ class ReLUBackward(ComputeComplex):
         else:
             self._reuse_cc(x, gy)
 
-    def match(self, inputs, grad_outpus, hint, *args):
+    def match(self, inputs, grad_outputs, hint, *args):
         # TODO: refine it
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
     def _create_cc(self, x, gy, hint, e=Engine()):

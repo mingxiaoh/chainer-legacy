@@ -215,6 +215,9 @@ class DeconvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return ((hint is not None) and (hint is self._hint))
 
 
@@ -256,6 +259,9 @@ class DeconvolutionBackwardWeights(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return ((hint is not None) and (hint is self._hint))
 
 

@@ -116,6 +116,8 @@ class ConcatBackward(ComputeComplex):
         for xarray, x in zip(self.xs, inputs):
             if xarray.shape != x.shape:
                 return False
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return True
 
 
