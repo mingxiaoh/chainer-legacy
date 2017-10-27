@@ -212,7 +212,7 @@ class BnBackward(ComputeComplex):
         if self.train != configuration.config.train:
             print('WARNING:bn backward, config.train mismatch ', self.train, configuration.config.train)
             return False
-        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+        if(isinstance(gy, mdarray) and (gy is not self.gy_src)):
             return False
         return (hint is self._hint)
 
