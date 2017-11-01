@@ -362,7 +362,12 @@ struct sum : public primitive {
     struct primitive_desc : public handle<mkldnn_primitive_desc_t> {
         std::vector<const_mkldnn_primitive_desc_t> cpp_to_c(
                 std::vector<memory::primitive_desc> inputs);
+        primitive_desc(const memory::desc &output, const std::vector<float> &scales,
+                std::vector<memory::primitive_desc> inputs);
 
+        primitive_desc(const std::vector<float> &scales,
+                std::vector<memory::primitive_desc> inputs);
+       
         primitive_desc(const memory::desc &output, std::vector<double> scale,
                 std::vector<memory::primitive_desc> inputs);
 

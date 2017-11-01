@@ -10,7 +10,7 @@ subdir = 'mkldnn'
 # Sepcify prefix under which you put ipl_mkldnn
 # prefix = '/usr/local'
 mkldnn_root = external.mkldnn.root()
-mkldnn_version = '472bbbf05ce5ff5c072811220c55cf9b5bbd96ad'
+mkldnn_version = 'ba482eca9459e3b9a8256ab07f9afa41dba34b9e'
 
 
 def prepare_mkldnn():

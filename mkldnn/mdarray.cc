@@ -149,7 +149,7 @@ void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
   auto mid = reorder_if_must(y->m_, x->m_.get_primitive_desc()
       , mreorder, &prims);
 
-  mkldnn::sum::primitive_desc sum_pd({a, b}
+  mkldnn::sum::primitive_desc sum_pd(std::vector<float>({a, b})
       , {x->m_.get_primitive_desc(), mid.get_primitive_desc()});
 
   std::vector<mkldnn::memory::primitive::at> inputs_at {x->m_, mid};
@@ -250,7 +250,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return axpby(1.0, 1.0, o);
+    return axpby((float)1.0, (float)1.0, o);
   }
 }
 
@@ -273,7 +273,7 @@ PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return axpby(1.0, -1.0, o);
+    return axpby((float)1.0, (float)-1.0, o);
   }
 }
 
@@ -296,7 +296,7 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return inplace_axpby(1.0, self, 1.0, o);
+    return inplace_axpby((float)1.0, self, (float)1.0, o);
   }
 }
 
@@ -319,7 +319,7 @@ PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return inplace_axpby(1.0, self, -1.0, o);
+    return inplace_axpby((float)1.0, self, (float)-1.0, o);
   }
 }
 
@@ -460,8 +460,8 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
   }
 
   case MULT_SCALAR: {
-    double a = PyInt_Check(o) ?
-               static_cast<double>(PyInt_AsLong(o)) :
+    float a = PyInt_Check(o) ?
+               static_cast<float>(PyInt_AsLong(o)) :
                PyFloat_AsDouble(o),
            b = 0.0;
 

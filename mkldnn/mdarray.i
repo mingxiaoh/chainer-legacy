@@ -76,11 +76,11 @@
     (*$self)->reset_buf_order();
   }
 
-  PyObject *axpby(double a, double b, PyObject *y) {
+  PyObject *axpby(float a, float b, PyObject *y) {
     return (*$self)->axpby(a, b, y);
   }
 
-  PyObject *inplace_axpby(double a, double b, PyObject *y) {
+  PyObject *inplace_axpby(float a, float b, PyObject *y) {
     /// Second param y is a harmless dummy
     return (*$self)->inplace_axpby(a, y, b, y);
   }
