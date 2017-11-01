@@ -17,7 +17,8 @@ def prepare_mkldnn():
 
 
 swig_opts = ['-c++', '-builtin', '-modern', '-modernargs',
-             '-Idnn/py/tmp', '-Idnn/py/swig_utils']
+             '-Idnn/py/mm', '-Idnn/py/primitives', '-Idnn/py/swig_utils',
+             '-Idnn/include/primitives/']
 
 if sys.version_info.major < 3:
     swig_opts += ['-DNEWBUFFER_ON']
@@ -27,7 +28,8 @@ link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack',
              '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
 includes = [get_include(), 'dnn/include', 'dnn/include/mkl', 'dnn/py', 'dnn/common',
-            'dnn/mm', 'dnn/primitives', 'dnn/primitives/ops', 'dnn/primitives/prim_mgr', mkldnn_root + '/include']
+            'dnn/include/mm', 'dnn/include/primitives', 'dnn/primitives', 'dnn/primitives/ops',
+            'dnn/primitives/prim_mgr', mkldnn_root + '/include']
 libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':
@@ -35,7 +37,7 @@ if system() == 'Linux':
     libraries += ['boost_system', 'glog', 'm']
     src = ['dnn/py/dnn.i', 'dnn/mm/mdarray.cc',
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
-	   'dnn/primitives/ops/conv_fwd.cc', 'dnn/primitives/prim_mgr/conv_fwd_factory.cc',
+	       'dnn/primitives/ops/conv_fwd.cc', 'dnn/primitives/prim_mgr/conv_fwd_factory.cc',
            'dnn/primitives/ops/conv_bwd_weights.cc', 'dnn/primitives/prim_mgr/conv_bwd_weights_factory.cc',
            'dnn/primitives/ops/conv_bwd_data.cc', 'dnn/primitives/prim_mgr/conv_bwd_data_factory.cc',
            'dnn/primitives/conv.cc',
