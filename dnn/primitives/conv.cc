@@ -85,43 +85,36 @@ Convolution2D<T>::Convolution2D()
 }
 
 template<typename T>
-Convolution2D<T>::Convolution2D(conv_param_t cp)
-{
-    this->cp = cp;
-}
-
-template<typename T>
 Convolution2D<T>::~Convolution2D()
 {
 }
 
 template<typename T>
-mdarray* Convolution2D<T>::Forward(
-                mdarray* src, mdarray* weights,
-                mdarray* bias,
-                conv_param_t* cp)
+mdarray Convolution2D<T>::Forward(
+                mdarray &src, mdarray &weights,
+                mdarray &bias,
+                conv_param_t &cp)
 {
-    mdarray *dst_mdarray = NULL; // return mdarray
     std::shared_ptr<mkldnn::memory> src_reorder = NULL;
     std::shared_ptr<mkldnn::memory> w_reorder = NULL;
 
     //get internal mdarray buffer
-    implementation::mdarray *src_internal = src->get();
-    implementation::mdarray *w_internal = weights->get();
+    implementation::mdarray *src_internal = src.get();
+    implementation::mdarray *w_internal = weights.get();
     implementation::mdarray *b_internal;
-    if ( cp->with_bias )
-        b_internal = bias->get();
+    if (cp.with_bias)
+        b_internal = bias.get();
     
     // sanity check
-    mkldnn::memory::dims src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
+    mkldnn::memory::dims src_dims = {cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4};
+    mkldnn::memory::dims w_dims = {cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4};
+    mkldnn::memory::dims dst_dims = {cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4};
     mkldnn::memory::dims b_dims;
-    if ( cp->with_bias ) {
-        b_dims = {cp->bias_d1};
+    if (cp.with_bias) {
+        b_dims = {cp.bias_d1};
         assert( b_dims == b_internal->cxx_dims());
     }
-    assert( src_dims == src_internal->cxx_dims() && w_dims = w_internal->cxx_dims());
+    assert(src_dims == src_internal->cxx_dims() && w_dims = w_internal->cxx_dims());
 
     //sanity check for data type
     //assuem all x/w/b should have same data type as T
@@ -129,17 +122,17 @@ mdarray* Convolution2D<T>::Forward(
     //yli135: Is it possible x and w have different data type????
     assert(memory_data_type<T>() == src_internal->cxx_data_type());
     assert(memory_data_type<T>() == w_internal->cxx_data_type());
-    if ( cp->with_bias )
+    if (cp.with_bias)
         assert(memory_data_type<T>() == b_internal->cxx_data_type());
     
     // get a conv2d fwd from primitive pool
     Convolution2DFwd<T> *conv2d_forward = NULL;
-    if ( cp->with_bias)
+    if (cp.with_bias)
         conv2d_forward = Convolution2DFwdFactory<T>::get(src_dims, w_dims, b_dims, dst_dims,
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp.sy, cp.sx, cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw);
     else
         conv2d_forward = Convolution2DFwdFactory<T>::get(src_dims, w_dims, NONE_DIMS, dst_dims,
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp.sy, cp.sx, cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw);
 
     // create mdarray based on primitive's dst 
     // FIXME: in this model, every call to conv_forward will create a new mdarray, when to free???
@@ -147,11 +140,11 @@ mdarray* Convolution2D<T>::Forward(
     mkldnn::memory::format w_fmt = w_internal->cxx_format();
 
     // assume dst and src have same data type
-    dst_mdarray = new mdarray(dst_dims, src_internal->cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
+    mdarray dst_mdarray = mdarray(dst_dims, src_internal->cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
     mkldnn::memory src_tmp = src_internal->memory();
     mkldnn::memory w_tmp = w_internal->memory();
     // check wehther fmt is same
-    if ( src_fmt == conv2d_forward->src_fmt_ && w_fmt == conv2d_forward->weights_fmt_) {
+    if (src_fmt == conv2d_forward->src_fmt_ && w_fmt == conv2d_forward->weights_fmt_) {
         printf("primitive fmt matched \n");
     } else {
         printf("fmt not match, need to reorder \n");
@@ -174,10 +167,10 @@ mdarray* Convolution2D<T>::Forward(
     }
 
     // do forward
-    if ( cp->with_bias ) {
-        conv2d_forward->execute(src_tmp, w_tmp, b_internal->memory(), dst_mdarray->get()->memory());
+    if (cp.with_bias) {
+        conv2d_forward->execute(src_tmp, w_tmp, b_internal->memory(), dst_mdarray.get()->memory());
     } else {
-        conv2d_forward->execute(src_tmp, w_tmp, dst_mdarray->get()->memory());
+        conv2d_forward->execute(src_tmp, w_tmp, dst_mdarray.get()->memory());
     }
     //
 
@@ -188,49 +181,49 @@ mdarray* Convolution2D<T>::Forward(
  * gW = gy *x
  */
 template<typename T>
-mdarray* Convolution2D<T>::BackwardWeights(
-                mdarray* src, mdarray* diff_dst,
-                mdarray* diff_bias, // if with b, this is an output parameter
-                conv_param_t* cp)
+mdarray Convolution2D<T>::BackwardWeights(
+                mdarray &src, mdarray &diff_dst,
+                mdarray &diff_bias, // if with b, this is an output parameter
+                conv_param_t &cp)
 {
-    mdarray *diff_w_mdarray = NULL; // return gw
+//    mdarray diff_w_mdarray; // return gw
     std::shared_ptr<mkldnn::memory> src_reorder = NULL;
     std::shared_ptr<mkldnn::memory> diff_dst_reorder = NULL;
 
     // get internal mdarray buffer
-    implementation::mdarray *src_internal = src->get();
-    implementation::mdarray *diff_dst_internal = diff_dst->get();
+    implementation::mdarray *src_internal = src.get();
+    implementation::mdarray *diff_dst_internal = diff_dst.get();
     implementation::mdarray *diff_b_internal;
-    if ( cp->with_bias )
-        diff_b_internal = diff_bias->get();
+    if (cp.with_bias)
+        diff_b_internal = diff_bias.get();
 
     // sanity check
-    mkldnn::memory::dims src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims diff_w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
+    mkldnn::memory::dims src_dims = {cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4};
+    mkldnn::memory::dims diff_w_dims = {cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4};
+    mkldnn::memory::dims diff_dst_dims = {cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4};
     mkldnn::memory::dims diff_b_dims;
-    if ( cp->with_bias ) {
-        diff_b_dims = {cp->bias_d1};
-        assert( diff_b_dims == diff_b_internal->cxx_dims());
+    if (cp.with_bias) {
+        diff_b_dims = {cp.bias_d1};
+        assert(diff_b_dims == diff_b_internal->cxx_dims());
     }
-    assert( src_dims == src_internal->cxx_dims() && diff_dst_dims = diff_dst_internal->cxx_dims());
+    assert(src_dims == src_internal->cxx_dims() && diff_dst_dims = diff_dst_internal->cxx_dims());
 
     // sanity check for data type
     // FIXME
     // is it possible y and w have different data type??
     assert(memory_data_type<T>() == src_internal->cxx_data_type());
     assert(memory_data_type<T>() == diff_dst_internal->cxx_data_type());
-    if ( cp->with_bias )
+    if (cp.with_bias)
         assert(memory_data_type<T>() == diff_b_internal->cxx_data_type());
 
     // get a conv2d bwd weights from primitive pool
     Convolution2DBwdWeights<T> *conv2d_bwd_weights = NULL;
-    if ( cp->with_bias ) {
+    if (cp.with_bias) {
         conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, diff_b_dims, diff_dst_dims, 
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp.sy, cp.sx, cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw);
     } else {
         conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, NONE_DIMS, diff_dst_dims, 
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp.sy, cp.sx, cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw);
     }
 
     // create mdarray based on selected primitive
@@ -238,7 +231,7 @@ mdarray* Convolution2D<T>::BackwardWeights(
     mkldnn::memory::format diff_dst_fmt = diff_dst_internal->cxx_format();
 
     //assum dst and src have same data type
-    diff_w_mdarray = new mdarray(diff_w_dims, src_internal->cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
+    mdarray diff_w_mdarray = mdarray(diff_w_dims, src_internal->cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
     mkldnn::memory src_tmp = src_internal->memory();
     mkldnn::memory diff_dst_tmp = diff_dst_internal->memory();
 
@@ -248,14 +241,14 @@ mdarray* Convolution2D<T>::BackwardWeights(
     } else {
         printf("fmt not match, need to reorder \n");
 
-        if ( src_fmt != conv2d_bwd_weights->src_fmt_) {
+        if (src_fmt != conv2d_bwd_weights->src_fmt_) {
             printf("src_fmt=%d, conv2d_bwd_weights->src_fmt_=%d \n", src_fmt, conv2d_bwd_weights->src_fmt_);
             // FIXME: when to free the reordered memory
             src_reorder.reset(new memory({{{src_dims}, memory_data_type<T>(), conv2d_bwd_weights->src_fmt_}, cpu_engine}));
             reorder_func(src_internal->memory(), *(src_reorder));
             src_tmp = *src_reorder;
         }
-        if ( diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
+        if (diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
             printf("diff_dst_fmt=%d, conv2d_bwd_weights->diff_dst_fmt_=%d \n", diff_dst_fmt, conv2d_bwd_weights->diff_dst_fmt_);
             // FIXME: when to free the reordered memory
             diff_dst_reorder.reset(new memory({{{diff_dst_dims}, memory_data_type<T>(), conv2d_bwd_weights->diff_dst_fmt_}, cpu_engine}));
@@ -265,31 +258,31 @@ mdarray* Convolution2D<T>::BackwardWeights(
     }
 
         // do execute
-    if ( cp->with_bias ) 
-        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray->get()->memory(), diff_b_internal->memory(), diff_dst_tmp);
+    if (cp.with_bias) 
+        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->memory(), diff_b_internal->memory(), diff_dst_tmp);
     else
-        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray->get()->memory(), diff_dst_tmp);
+        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->memory(), diff_dst_tmp);
 
     return diff_w_mdarray;
 }
 
 template<typename T>
-mdarray* Convolution2D<T>::BackwardData(
-                mdarray* weights, mdarray* diff_dst,
-                conv_param_t* cp)
+mdarray Convolution2D<T>::BackwardData(
+                mdarray &weights, mdarray &diff_dst,
+                conv_param_t &cp)
 {
-    mdarray *diff_src_mdarray = NULL; // return mdarray
+//    mdarray diff_src_mdarray; // return mdarray
     std::shared_ptr<mkldnn::memory> w_reorder = NULL;
     std::shared_ptr<mkldnn::memory> diff_dst_reorder = NULL;
 
     // get internal mdarray buffer
-    implementation::mdarray *w_internal = weights->get();
-    implementation::mdarray *diff_dst_internal = diff_dst->get();
+    implementation::mdarray *w_internal = weights.get();
+    implementation::mdarray *diff_dst_internal = diff_dst.get();
 
     //sanity check
-    mkldnn::memory::dims diff_src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
+    mkldnn::memory::dims diff_src_dims = {cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4};
+    mkldnn::memory::dims w_dims = {cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4};
+    mkldnn::memory::dims diff_dst_dims = {cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4};
     assert(w_dims == w_internal->cxx_dims() && diff_dst_dims == diff_dst_internal->cxx_dims());
 
     // sanity check for data type
@@ -302,7 +295,7 @@ mdarray* Convolution2D<T>::BackwardData(
     // get a conv2d bwd data from primitive pool
     Convolution2DBwdData<T> *conv2d_bwd_data = NULL;
     conv2d_bwd_data = Convolution2DBwdDataFactory<T>::get( diff_src_dims, w_dims, diff_dst_dims,
-            cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+            cp.sy, cp.sx, cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw);
 
     // create mdarray based on selected primitive
     // FIXME: in this model, every call to conv_forward will create a new mdarray, when to free???
@@ -310,11 +303,11 @@ mdarray* Convolution2D<T>::BackwardData(
     mkldnn::memory::format diff_dst_fmt = diff_dst_internal->cxx_format();
     
     // assume dst and src have same data type
-    diff_src_mdarray = new mdarray(diff_src_dims, diff_dst_internal->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
+    mdarray diff_src_mdarray = mdarray(diff_src_dims, diff_dst_internal->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
     mkldnn::memory w_tmp = w_internal->memory();
     mkldnn::memory diff_dst_tmp = diff_dst_internal->memory();
 
-    if ( w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
+    if (w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
         printf("conv2d bwd data primitive fmt matched \n");
     } else {
         printf("conv2d bwd data fmt not match, need to reorder \n");
@@ -333,7 +326,7 @@ mdarray* Convolution2D<T>::BackwardData(
         }
     }
 
-    conv2d_bwd_data->execute(diff_src_mdarray->get()->memory(), w_tmp, diff_dst_tmp);
+    conv2d_bwd_data->execute(diff_src_mdarray.get()->memory(), w_tmp, diff_dst_tmp);
 
     return diff_src_mdarray;
 }

@@ -8,15 +8,15 @@
 //
 // API for Convolution2D
 //
-// mdarray* Convolution2D_F32::Forward(
-//                        mdarray* src, mdarray* weights, 
-//                        mdarray* dst, mdarray* bias,
-//                        conv_param_t* cp);
-// mdarray* Convolution2D_F32::BackwardWeights(
-//                        mdarray* src, mdarray* diff_dst, mdarray* diff_bias,
+// mdarray Convolution2D_F32::Forward(
+//                        mdarray& src, mdarray& weights, 
+//                        mdarray& dst, mdarray& bias,
+//                        conv_param_t& cp);
+// mdarray Convolution2D_F32::BackwardWeights(
+//                        mdarray& src, mdarray& diff_dst, mdarray& diff_bias,
 //                        con_prarm_t cp);
-// mdarray* Convolution2D_F32::BackwardData(
-//                        mdarray* weights, mdarray* diff_dst,
+// mdarray Convolution2D_F32::BackwardData(
+//                        mdarray& weights, mdarray& diff_dst,
 //                        conv_param_t* cp);
 
 %include "conv.h"

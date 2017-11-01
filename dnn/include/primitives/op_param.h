@@ -59,68 +59,21 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
+#ifndef _OP_PARAM_H_
+#define _OP_PARAM_H_
 
-
-#ifndef _CONV_H_
-#define _CONV_H_
-
-#include <mkldnn.hpp>
-#include <vector>
-#include <memory>
-#include "layer.h"
-#include "op_param.h"
-#include "mdarray.h"
-
-template <typename T>
-class Convolution2D : public Layer<T>
-{
-public:
-    Convolution2D();
-    ~Convolution2D();
-    
-    /*
-     * Convolution Forward
-     * Y = W*X + b
-     * params:
-     * src: input, x
-     * weight: weights, w
-     * dst: output, y
-     * bias: bias, b
-     * cp: convolution parameters
-     */
-    static mdarray Forward( mdarray& src, mdarray& weights, 
-                             mdarray& bias,
-                             conv_param_t& cp);
-
-    /*
-     * Convolution backward weights
-     * gW = gy*x
-     * params:
-     * src: input, x
-     * diff_dst: diff dst, gy
-     * diff_bias: gb, output parameter
-     * cp: convolution parameters
-     */
-    static mdarray BackwardWeights( mdarray& src, mdarray& diff_dst,
-                                     mdarray& diff_bias, // output parameter if with bias
-                                     conv_param_t& cp);
-
-    /*
-     * Convolution backward data
-     * gx = gy*w
-     * param:
-     * weights: weights, w
-     * diff_dst: diff dst, gy
-     * cp: convolution parameters
-     */
-    static mdarray BackwardData( mdarray& weights, mdarray& diff_dst,
-                                  conv_param_t& cp);
-
-private:
-    conv_param_t cp;
+struct conv_param_t {
+    int src_d1, src_d2, src_d3, src_d4; // input shape
+    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
+    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
+    int bias_d1; // bias shape
+    int kh, kw; // kernel size
+    int sy, sx; // stride
+    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
+    bool with_bias; 
 };
 
-#endif // _CONV_H_
+#endif // _OP_PARAM_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
