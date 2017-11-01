@@ -4,7 +4,6 @@
 #endif
 #include "mdarray.h"
 #include <mkl_vml_functions.h>
-
 namespace implementation {
 
 static PyObject *PyType_reorder_buffer = nullptr;
@@ -24,7 +23,8 @@ PyObject *queryPyTypeObject(const char *name) {
   throw mkldnn::error(mkldnn_invalid_arguments
       , "Failed to find reorderer object");
 }
-
+extern "C" int regSig();
+extern "C" void cause_calamity();
 // We brought this to global scope to mitigate it consumption
 #if PY_VERSION_HEX >= 0x03000000
 int g_init() {
@@ -58,6 +58,11 @@ void g_init() {
   google::InitGoogleLogging("mkldnn");
   OpenMpManager::bindOpenMpThreads();
   OpenMpManager::printVerboseInformation();
+#endif
+
+#ifdef _TESTSTACK
+regSig();
+//cause_calamity() ;
 #endif
 
 #if PY_VERSION_HEX >= 0x03000000

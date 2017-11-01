@@ -94,9 +94,9 @@ includes = [get_include(), 'mkldnn', 'mkldnn/mkl', 'mkldnn/swig_utils', mkldnn_r
 libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':
-    ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY']
+    ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY', '-g', '-D_TESTSTACK']
     libraries += ['boost_system', 'glog', 'm']
-    mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc', 'mkldnn/cpu_info.cc']
+    mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc', 'mkldnn/cpu_info.cc', 'mkldnn/stack_fpe.c']
 else:
     mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']
 
@@ -118,4 +118,12 @@ ext = Extension(
 
 ext_modules.append(ext)
 
+# fpe_src = ['mkldnn/fpe_except.c']
+# fpe_libraries = ['m']
+# ext = Extension(
+# 	'mkldnn._fpe', sources=fpe_src,
+#         libraries=fpe_libraries)
+# ext_modules.append(ext)
+
 packages = ['mkldnn', 'mkldnn.api', 'mkldnn.chainer']
+
