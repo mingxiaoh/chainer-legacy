@@ -5,8 +5,11 @@ import os
 import pkg_resources
 import sys
 
+from setuptools.command.build_py import build_py
+from setuptools.command.install import install
 from setuptools import setup
 
+import dnn_setup
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
@@ -43,6 +46,58 @@ here = os.path.abspath(os.path.dirname(__file__))
 __version__ = imp.load_source(
     '_version', os.path.join(here, 'chainer', '_version.py')).__version__
 
+class _build_py(build_py):
+    def run(self):
+        dnn_setup.prepare_mkldnn()
+        self.run_command('build_ext')
+        build_py.run(self)
+
+class _install(install):
+    def run(self):
+        dnn_setup.prepare_mkldnn()
+        self.run_command('build_ext')
+        install.run(self)
+
+packages=['chainer',
+          'chainer.dataset',
+          'chainer.datasets',
+          'chainer.functions',
+          'chainer.functions.activation',
+          'chainer.functions.array',
+          'chainer.functions.connection',
+          'chainer.functions.evaluation',
+          'chainer.functions.loss',
+          'chainer.functions.math',
+          'chainer.functions.noise',
+          'chainer.functions.normalization',
+          'chainer.functions.pooling',
+          'chainer.functions.theano',
+          'chainer.functions.util',
+          'chainer.function_hooks',
+          'chainer.iterators',
+          'chainer.initializers',
+          'chainer.links',
+          'chainer.links.activation',
+          'chainer.links.caffe',
+          'chainer.links.caffe.protobuf3',
+          'chainer.links.connection',
+          'chainer.links.loss',
+          'chainer.links.model',
+          'chainer.links.model.vision',
+          'chainer.links.normalization',
+          'chainer.links.theano',
+          'chainer.optimizers',
+          'chainer.serializers',
+          'chainer.testing',
+          'chainer.training',
+          'chainer.training.extensions',
+          'chainer.training.triggers',
+          'chainer.training.updaters',
+          'chainer.utils']
+
+ext_modules = dnn_setup.ext_modules
+packages += dnn_setup.packages
+
 setup(
     name='chainer',
     version=__version__,
@@ -51,42 +106,9 @@ setup(
     author_email='tokui@preferred.jp',
     url='https://chainer.org/',
     license='MIT License',
-    packages=['chainer',
-              'chainer.dataset',
-              'chainer.datasets',
-              'chainer.functions',
-              'chainer.functions.activation',
-              'chainer.functions.array',
-              'chainer.functions.connection',
-              'chainer.functions.evaluation',
-              'chainer.functions.loss',
-              'chainer.functions.math',
-              'chainer.functions.noise',
-              'chainer.functions.normalization',
-              'chainer.functions.pooling',
-              'chainer.functions.theano',
-              'chainer.functions.util',
-              'chainer.function_hooks',
-              'chainer.iterators',
-              'chainer.initializers',
-              'chainer.links',
-              'chainer.links.activation',
-              'chainer.links.caffe',
-              'chainer.links.caffe.protobuf3',
-              'chainer.links.connection',
-              'chainer.links.loss',
-              'chainer.links.model',
-              'chainer.links.model.vision',
-              'chainer.links.normalization',
-              'chainer.links.theano',
-              'chainer.optimizers',
-              'chainer.serializers',
-              'chainer.testing',
-              'chainer.training',
-              'chainer.training.extensions',
-              'chainer.training.triggers',
-              'chainer.training.updaters',
-              'chainer.utils'],
+    packages=packages,
+    ext_modules=ext_modules,
+    cmdclass={'install': _install, 'build_py': _build_py},
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
