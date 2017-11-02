@@ -10,3 +10,6 @@ print("size=", x.size)
 print("dtype=", x.dtype)
 print("is_mdarry=", x.is_mdarray)
 # print("will crash ", x.crash)
+
+y = numpy.zeros_like(x)
+print(y)
