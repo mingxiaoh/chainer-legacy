@@ -31,7 +31,7 @@ int g_init() {
 #else
 void g_init() {
 #endif
-  //PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
+  PyType_reorder_buffer = queryPyTypeObject("_p_reorder_buffer");
   SwigTy_mdarray = SWIG_TypeQuery("_p_mdarray");
   PyType_mdarray = queryPyTypeObject("_p_mdarray");
   //SwigTy_engine = SWIG_TypeQuery("_p_mkldnn__engine");

@@ -136,3 +136,8 @@ public:
     }
     $1 = (reinterpret_cast<mdarray *>(that));
 };
+
+class reorder_buffer {
+public:
+  reorder_buffer(mdarray in);
+};
