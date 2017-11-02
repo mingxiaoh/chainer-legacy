@@ -176,6 +176,13 @@ void Convolution2DFwd<T>::execute(mkldnn::memory src, mkldnn::memory w, mkldnn::
     dst_mem_->set_data_handle(dst.get_data_handle());
     //conv_fwd_->execute();
     fwd_stream_->submit(fwd_primitives_);
+
+    //after exec, set data handle back
+    src_mem_->set_data_handle(dummy);
+    weights_mem_->set_data_handle(dummy);
+    bias_mem_->set_data_handle(dummy);
+    dst_mem_->set_data_handle(dummy);
+
     return;
 }
 
@@ -190,6 +197,12 @@ void Convolution2DFwd<T>::execute(mkldnn::memory src, mkldnn::memory w, mkldnn::
     dst_mem_->set_data_handle(dst.get_data_handle());
     //conv_fwd_->execute();
     fwd_stream_->submit(fwd_primitives_);
+    
+    //after exec, set data handle back
+    src_mem_->set_data_handle(dummy);
+    weights_mem_->set_data_handle(dummy);
+    dst_mem_->set_data_handle(dummy);
+    
     return;
 }
 

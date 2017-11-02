@@ -120,6 +120,9 @@
 class mdarray: public py_handle {
 public:
   // It is deliberately NOT matching prototypes!
+  // FIXME
+  // add default constructor so that native can pass vector<mdarray> to python
+  mdarray();
   mdarray(Py_buffer *view);
   virtual ~mdarray();
 };

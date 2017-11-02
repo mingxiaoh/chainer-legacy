@@ -5,6 +5,10 @@
 %}
 
 %include "param.i"
+%include "std_vector.i"
+
+%template(MdarrayVector) std::vector<mdarray>;
+
 //
 // API for Convolution2D
 //
@@ -12,8 +16,8 @@
 //                        mdarray& src, mdarray& weights, 
 //                        mdarray& dst, mdarray& bias,
 //                        conv_param_t& cp);
-// mdarray Convolution2D_F32::BackwardWeights(
-//                        mdarray& src, mdarray& diff_dst, mdarray& diff_bias,
+// std::vector<mdarray> Convolution2D_F32::BackwardWeights(
+//                        mdarray& src, mdarray& diff_dst,
 //                        con_prarm_t cp);
 // mdarray Convolution2D_F32::BackwardData(
 //                        mdarray& weights, mdarray& diff_dst,

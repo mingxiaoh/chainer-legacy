@@ -367,6 +367,9 @@ public:
 public:
   typedef size_t size_type;
   // Generated on demand
+  //FIXME 
+  //yli135: add default constructor so that we can pass vector<mdarray> form native
+  mdarray();
   virtual ~mdarray() = default;
 
   mdarray(mkldnn::memory::dims &dims
@@ -993,6 +996,10 @@ private:
 //
 class mdarray : public py_handle {
 public:
+  //FIXME 
+  //yli135: add default constructor so that we can pass vector<mdarray> form native
+  mdarray() {};
+
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format

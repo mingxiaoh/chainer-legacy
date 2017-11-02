@@ -88,9 +88,10 @@ public:
      * bias: bias, b
      * cp: convolution parameters
      */
-    static mdarray Forward( mdarray& src, mdarray& weights, 
-                             mdarray& bias,
-                             conv_param_t& cp);
+    static mdarray Forward(mdarray& src, 
+                           mdarray& weights, 
+                           mdarray& bias,
+                           conv_param_t& cp);
 
     /*
      * Convolution backward weights
@@ -98,12 +99,11 @@ public:
      * params:
      * src: input, x
      * diff_dst: diff dst, gy
-     * diff_bias: gb, output parameter
      * cp: convolution parameters
      */
-    static mdarray BackwardWeights( mdarray& src, mdarray& diff_dst,
-                                     mdarray& diff_bias, // output parameter if with bias
-                                     conv_param_t& cp);
+    static std::vector<mdarray> BackwardWeights(mdarray& src, 
+                                                mdarray& diff_dst,
+                                                conv_param_t& cp);
 
     /*
      * Convolution backward data
@@ -113,11 +113,10 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static mdarray BackwardData( mdarray& weights, mdarray& diff_dst,
-                                  conv_param_t& cp);
+    static mdarray BackwardData(mdarray& weights, 
+                                mdarray& diff_dst,
+                                conv_param_t& cp);
 
-private:
-    conv_param_t cp;
 };
 
 #endif // _CONV_H_
