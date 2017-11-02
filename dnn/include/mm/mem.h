@@ -6,7 +6,7 @@ class Memory {
 public:
     void* alloc(size_t size, int alignment);
     void free(void* p);
-}
+};
 
 // Just grab it from MKL-DNN
 namespace avx {

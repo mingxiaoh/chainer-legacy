@@ -2,7 +2,7 @@
 #if defined(OPENMP_AFFINITY)
 #include "cpu_info.h"
 #endif
-#include "mdarray.h"
+#include "mdarray_lite.h"
 #include <mkl_vml_functions.h>
 
 namespace implementation {
@@ -715,38 +715,6 @@ PyObject *mdarray::flat() {
     PyErr_SetString(PyExc_ValueError, "Can't create plain array with format from mdarray");
 
   return plain_arr;
-}
-
-int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
-  if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
-    PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
-    return -1;
-  }
-
-  if (view == nullptr) {
-    PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
-    return -1;
-  }
-
-  // Only for the first, framework do it for us next time
-  if (reorder_ == nullptr) {
-    reorder_.reset(new reorderer(this));
-  }
-  if (reorder_->non_trivial() && (reorder_->is_reordered() == false)) {
-    mkldnn::reorder rb_p = reorder_->fire(this);
-    reorder_->set_reordered();
-  }
-
-  if ( reorder_->build_view(view, flags) ) {
-    PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
-    return -1;
-  }
-
-  view->obj = self;
-  sync_reorder_ = reorder_.get();
-  Py_INCREF(self);
-
-  return 0;
 }
 
 }

@@ -15,6 +15,7 @@
 #include <mkldnn.hpp>
 #include <type_traits>
 #include <swigpyrun.h>
+#include "mem.h"
 
 // FIXME
 // use global engine to init mdarray
@@ -26,11 +27,6 @@ namespace implementation {
 }
 
 using py_handle = std::shared_ptr<implementation::mdarray>;
-
-template <class to>
-static bool isa(const py_handle &t) {
-  return to::classof(t.get());
-}
 
 namespace implementation {
 
@@ -326,15 +322,6 @@ public:
 
       return arrstr;
     }
-  };
-
-
-  // Array Protocol interface
-  class reorder_array : public reorderer {
-  public:
-    reorder_array(const py_handle in) : reorderer(in) {}
-    reorder_array(const mdarray *src) : reorderer(src) {}
-
   };
 
 public:
@@ -727,240 +714,6 @@ private:
   }
 };
 
-// XXX: solve dual outputs problem
-// Type system should be rework
-// TODO: review polymophic relationship
-// TODO: rework the names
-
-class s_op: public mdarray {
-public:
-  using mdarray::reorderer;
-
-  s_op(mkldnn::memory::primitive_desc dst
-      , std::vector<mkldnn::primitive> *dag)
-    : mdarray(dst), dag_(dag), reorder_(nullptr),
-      mreorder_(nullptr) {
-  }
-
-  virtual int getbuffer(PyObject *self
-      , Py_buffer *view, int flags) override;
-
-  virtual void reset_buf_order() override {
-    if (reorder_.get()) {
-        reorder_->reset_reorder();
-    }
-  }
-protected:
-  std::vector<mkldnn::primitive> *dag_;
-  std::unique_ptr<reorderer> reorder_;
-  std::unique_ptr<mkldnn::memory> mreorder_;
-};
-
-class d_op : public s_op {
-public:
-  // XXX: Tricky part, how extra managed
-  d_op(mkldnn::memory::primitive_desc major
-      , mkldnn::memory::primitive_desc extra
-      , std::vector<mkldnn::primitive> *dag):
-    s_op(major, dag), extra(std::make_shared<s_op>(extra, dag))
-    , dag_(dag) {
-    rtti = dual_out;
-  }
-
-  static py_handle extra_get(const d_op *that) {
-    return that->extra;
-  }
-
-  static bool classof(const mdarray *p) {
-    return p->get_kind() == dual_out;
-  }
-protected:
-  // This seems unique, but it will share in python
-  // Ugly. XXX
-  py_handle extra;
-  std::vector<mkldnn::primitive> *dag_;
-};
-
-class t_op : public s_op {
-public:
-  // XXX: Tricky part, how extra managed
-  t_op(mkldnn::memory::primitive_desc major
-      , mkldnn::memory::primitive_desc b_
-      , mkldnn::memory::primitive_desc w_
-      , std::vector<mkldnn::primitive> *dag)
-    : s_op(major, dag), b_(std::make_shared<s_op>(b_, dag))
-    , w_(std::make_shared<s_op>(w_, dag)), dag_(dag) {
-    rtti = dual_out;
-  }
-
-  static py_handle bias_get(const t_op *that) {
-    return that->b_;
-  }
-
-  static py_handle wrks_get(const t_op *that) {
-    return that->w_;
-  }
-
-  static bool classof(const mdarray *p) {
-    return p->get_kind() == dual_out;
-  }
-protected:
-  // This seems unique, but it will share in python
-  // Ugly. XXX
-  py_handle b_, w_;
-  std::vector<mkldnn::primitive> *dag_;
-};
-
-using namespace mkldnn;
-
-//
-// Active primitive
-//
-template <class p_t
-, typename pd_t = typename p_t::primitive_desc>
-class f_s_op: public s_op {
-private:
-  f_s_op(pd_t &op, mdarray *x, mdarray *W
-      , std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag)
-      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , mreorder_, dag_))
-      , W_reordered_(reorder_if_must(W->memory(), op.weights_primitive_desc()
-      , mreorder_, dag_)) {}
-
-public:
-  f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
-      , std::vector<primitive> *dag)
-    : f_s_op(op, x.get(), W.get(), dag) {
-      deps_ = {x, W, b};
-      dag_->push_back(p_t(op, x_reordered_, W_reordered_, b->memory()
-            , this->memory()));
-    }
-
-  f_s_op(pd_t &op, py_handle x, py_handle W
-      , std::vector<primitive> *dag)
-    : f_s_op(op, x.get(), W.get(), dag){
-      deps_= {x, W};
-      dag_->push_back(p_t(op, x_reordered_, W_reordered_, this->memory()));
-    }
-
-private:
-  mkldnn::memory x_reordered_, W_reordered_;
-  std::vector<py_handle> deps_;
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bd_op: public s_op {
-private:
-  bd_op(pd_t &op
-      , mdarray *gy, mdarray *W, std::vector<primitive> *dag)
-    : s_op(op.diff_src_primitive_desc(), dag)
-      , gy_reordered_(reorder_if_must(gy->memory()
-            , op.diff_dst_primitive_desc(), mreorder_, dag_))
-      , W_reordered_(reorder_if_must(W->memory()
-            , op.weights_primitive_desc(), mreorder_, dag_)) {}
-
-public:
-  bd_op(pd_t &op, py_handle gy, py_handle W
-      , std::vector<primitive> *dag)
-    : bd_op(op, gy.get(), W.get(), dag) {
-      deps_= {gy, W};
-      dag_->push_back(p_t(op, gy_reordered_, W_reordered_, this->memory()));
-    }
-
-private:
-  mkldnn::memory gy_reordered_, W_reordered_;
-  std::vector<py_handle> deps_;
-};
-
-template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bwb_op: public d_op {
-public:
-  bwb_op(pd_t &op
-      , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
-    : d_op(op.diff_weights_primitive_desc(), op.diff_bias_primitive_desc()
-        , dag)
-      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , mreorder_, dag_))
-      , gy_reordered_(reorder_if_must(gy->memory()
-          , op.diff_dst_primitive_desc(), mreorder_, dag_)) {}
-
-public:
-  bwb_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : bwb_op(op, x.get(), gy.get(), dag) {
-      deps_ = {x, gy};
-      dag_->push_back(p_t(op, x_reordered_, gy_reordered_, memory()
-            , extra->memory()));
-    }
-
-private:
-  mkldnn::memory x_reordered_, gy_reordered_;
-  std::vector<py_handle> deps_;
-};
-
-template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class bw_op: public s_op {
-public:
-  bw_op(pd_t &op
-      , mdarray *x, mdarray *gy, std::vector<primitive> *dag)
-    : s_op(op.diff_weights_primitive_desc(), dag)
-      , x_reordered_(reorder_if_must(x->memory(), op.src_primitive_desc()
-            , mreorder_, dag_))
-      , gy_reordered_(reorder_if_must(gy->memory()
-      , op.diff_dst_primitive_desc(), mreorder_, dag_)) {}
-
-public:
-  bw_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : bw_op(op, x.get(), gy.get(), dag) {
-      deps_ = {x, gy};
-      dag_ ->push_back(p_t(op, x_reordered_, gy_reordered_, memory()));
-    }
-
-private:
-  mkldnn::memory x_reordered_, gy_reordered_;
-  std::vector<py_handle> deps_;
-};
-
-//
-// Passive primitive
-//
-template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class passive_f_op: public s_op {
-public:
-  passive_f_op(pd_t &op, std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag) {}
-
-public:
-  passive_f_op(pd_t &op, py_handle x
-      , std::vector<primitive> *dag)
-    : passive_f_op(op, dag) {
-      deps_ = {x};
-      dag_ ->push_back(p_t(op, x->memory(), memory()));
-    }
-
-private:
-  std::vector<py_handle> deps_;
-};
-
-template<class p_t, typename pd_t = typename p_t::primitive_desc>
-class passive_bd_op: public s_op {
-public:
-  passive_bd_op(pd_t &op, std::vector<primitive> *dag)
-    : s_op(op.dst_primitive_desc(), dag) {}
-
-public:
-  passive_bd_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : passive_bd_op(op, dag) {
-      deps_ = {x, gy};
-      dag_ ->push_back(p_t(op, x->memory(), gy->memory(), memory()));
-    }
-
-private:
-  std::vector<py_handle> deps_;
-};
 }
 
 //
@@ -1053,77 +806,6 @@ public:
   static bool mdarray_is_mdarray_get(mdarray *self) {
     return true;
   }
-};
-
-using namespace mkldnn;
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class f_s_op : public py_handle {
-public:
-  f_s_op(pd_t &op, py_handle x, py_handle W, py_handle b
-      , std::vector<primitive> *dag)
-    : py_handle(std::make_shared< implementation::f_s_op<p_t, pd_t> >
-       (op, x, W, b, dag)){}
-
-  f_s_op(pd_t &op, py_handle x, py_handle W
-      , std::vector<primitive> *dag)
-    : py_handle(std::make_shared< implementation::f_s_op<p_t, pd_t> >
-       (op, x, W, dag)) {}
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bd_op : public py_handle {
-public:
-  bd_op(pd_t &op, py_handle gy, py_handle W
-      , std::vector<primitive> *dag)
-    : py_handle (std::make_shared< implementation::bd_op<p_t, pd_t> >
-        (op, gy, W, dag)) {}
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bwb_op: public py_handle {
-public:
-  bwb_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : py_handle (std::make_shared< implementation::bwb_op<p_t, pd_t> >
-        (op, x, gy, dag)) {}
-
-  static py_handle *extra_get(const py_handle *in) {
-    if (isa<implementation::d_op>(*in)){
-        return new py_handle(implementation::d_op::extra_get
-        (static_cast<implementation::d_op *>(in->get())));
-    }
-
-    // Raise exception?
-    return nullptr;
-  }
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class bw_op: public py_handle {
-public:
-  bw_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : py_handle (std::make_shared< implementation::bw_op<p_t, pd_t> >
-        (op, x, gy, dag)) {}
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class passive_f_op: public py_handle {
-public:
-  passive_f_op(pd_t &op, py_handle x
-      , std::vector<primitive> *dag)
-    : py_handle (std::make_shared< implementation::passive_f_op<p_t, pd_t> >
-        (op, x, dag)) {}
-};
-
-template <class p_t, typename pd_t = typename p_t::primitive_desc>
-class passive_bd_op: public py_handle {
-public:
-  passive_bd_op(pd_t &op, py_handle x, py_handle gy
-      , std::vector<primitive> *dag)
-    : py_handle (std::make_shared< implementation::passive_bd_op<p_t, pd_t> >
-        (op, x, gy, dag)) {}
 };
 
 using reorder_buffer = implementation::mdarray::reorderer;
