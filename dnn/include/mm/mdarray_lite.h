@@ -16,6 +16,7 @@
 #include <type_traits>
 #include <swigpyrun.h>
 #include "mem.h"
+#include "tensor.h"
 
 // FIXME
 // use global engine to init mdarray
@@ -348,13 +349,13 @@ public:
               , data_(new avx::byte [pd.get_size()]
                   , [](avx::byte *p) {delete [] p;})
               , m_(pd, data_.get())
-              , view_(nullptr), rtti(raw)
+              , view_(nullptr)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
                     return reorderer::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
-                  } ()), purpose_(sink) {}
+                  } ()) {}
 
   mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
     : size_([&pd] () {
@@ -367,13 +368,13 @@ public:
                    reinterpret_cast<avx::byte *>(mp.get_data_handle())
                    , [] (avx::byte *p) {}))
               , m_(pd, data_.get())
-              , view_(nullptr), rtti(raw)
+              , view_(nullptr)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
                     return reorderer::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
-                  } ()), purpose_(sink) {}
+                  } ()) {}
 
   mdarray(Py_buffer *view
       , mkldnn::memory::format format
@@ -390,7 +391,7 @@ public:
                    , [] (avx::byte *p) {});
            } ())
           , m_({_d_from_view(view, format), e}, data_.get())
-          , view_(view), rtti(raw), internal_order_(false), purpose_(source) {
+          , view_(view), internal_order_(false) {
 
     assert(m_.get_primitive_desc().get_size()
         == static_cast<decltype(
@@ -431,40 +432,6 @@ public:
         } ())
     , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {}
 #endif
-
-  // TODO: for view case, shared buffer won't expand life in this case
-  // because mdarray will destroy it when out of service.
-  //
-  int setbuffer(const Py_buffer *view) {
-    if (purpose_ == sink)
-      // TODO: not support by provided buffer to numpy
-      goto fail;
-    else {
-      // TODO: Guard this section with asserts
-      view_.reset(view);
-
-      unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
-
-      if (adrs % 16 != 0) {
-        data_.reset(new avx::byte [view->len]
-            , [] (avx::byte *p) {delete [] p;});
-        memcpy(data_.get(), view->buf, view->len);
-        view_.reset(nullptr);
-      } else
-        data_.reset(reinterpret_cast<avx::byte *>(view->buf)
-            , [] (avx::byte *p) {});
-
-      assert(m_.get_primitive_desc().get_size()
-          == static_cast<decltype(
-            m_.get_primitive_desc().get_size())>(view->len));
-
-      m_.set_data_handle(data());
-    }
-
-    return 0;
-  fail:
-    return -1;
-  }
 
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));
@@ -618,28 +585,14 @@ private:
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 
 protected:
-  enum mdarray_ty{
-    raw, dual_out
-  };
-  mdarray_ty rtti;
   bool internal_order_;
   reorderer *sync_reorder_;
-
-  enum purpose {
-    source, sink
-  } purpose_;
 
 public:
   inline bool incompatible() const { return internal_order_; }
   std::shared_ptr<avx::byte> share_data() const {
     return data_;
   }
-
-  static bool classof(const mdarray *p) {
-    return p->get_kind() == raw;
-  }
-
-  mdarray_ty get_kind() const { return rtti; }
 
   static mkldnn::memory reorder_if_must(mkldnn::memory user
       , mkldnn::memory::primitive_desc expect
@@ -684,8 +637,6 @@ public:
     return user;
   }
 
-protected:
-  // Private helpers
 private:
   static mkldnn::memory::desc _d_from_view(const Py_buffer *view
       , mkldnn::memory::format order) {
