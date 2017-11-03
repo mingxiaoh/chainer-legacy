@@ -142,12 +142,12 @@ mdarray Convolution2D<T>::Forward(
     
     // check wehther fmt is same
     if (src_fmt == conv2d_forward->src_fmt_ && w_fmt == conv2d_forward->weights_fmt_) {
-        printf("primitive fmt matched \n");
+        LOG(INFO) << "primitive fmt matched";
     } else {
-        printf("fmt not match, need to reorder \n");
+        LOG(INFO) << "fmt not match, need to reorder";
 
         if (src_fmt != conv2d_forward->src_fmt_) {
-            printf("src_fmt=%d, conv2d_forward->src_fmt_=%d \n", src_fmt, conv2d_forward->src_fmt_);
+            LOG(INFO) << "src_fmt=" << src_fmt <<", conv2d_forward->src_fmt_=" << conv2d_forward->src_fmt_;
             // FIXME: when to free the reordered memory
             src_reorder.reset(new memory({{{src_dims}, memory_data_type<T>(), conv2d_forward->src_fmt_}, cpu_engine}));
             reorder_func(src_internal->memory(), *(src_reorder));
@@ -155,7 +155,7 @@ mdarray Convolution2D<T>::Forward(
         }
 
         if (w_fmt != conv2d_forward->weights_fmt_) {
-            printf("weight_fmt=%d, conv2d_forward->weight_fmt_=%d, \n", w_fmt, conv2d_forward->weights_fmt_);
+            LOG(INFO) << "weight_fmt=" << w_fmt <<", conv2d_forward->weight_fmt_=" << conv2d_forward->weights_fmt_;
             // FIXME: when to free the reordered memory
             w_reorder.reset(new memory({{{w_dims}, memory_data_type<T>(), conv2d_forward->weights_fmt_}, cpu_engine}));
             reorder_func(w_internal->memory(), *(w_reorder));
@@ -229,19 +229,19 @@ std::vector<mdarray> Convolution2D<T>::BackwardWeights(
 
     //check whether fmt is same
     if (src_fmt == conv2d_bwd_weights->src_fmt_ && diff_dst_fmt == conv2d_bwd_weights->diff_dst_fmt_) {
-        printf("primitive fmt matched \n");
+        LOG(INFO) << "primitive fmt matched";
     } else {
-        printf("fmt not match, need to reorder \n");
+        LOG(INFO) << "fmt not match, need to reorder";
 
         if (src_fmt != conv2d_bwd_weights->src_fmt_) {
-            printf("src_fmt=%d, conv2d_bwd_weights->src_fmt_=%d \n", src_fmt, conv2d_bwd_weights->src_fmt_);
+            LOG(INFO) << "src_fmt=" << src_fmt << ", conv2d_bwd_weights->src_fmt_=" << conv2d_bwd_weights->src_fmt_;
             // FIXME: when to free the reordered memory
             src_reorder.reset(new memory({{{src_dims}, memory_data_type<T>(), conv2d_bwd_weights->src_fmt_}, cpu_engine}));
             reorder_func(src_internal->memory(), *(src_reorder));
             src_tmp = *src_reorder;
         }
         if (diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
-            printf("diff_dst_fmt=%d, conv2d_bwd_weights->diff_dst_fmt_=%d \n", diff_dst_fmt, conv2d_bwd_weights->diff_dst_fmt_);
+            LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_weights->diff_dst_fmt_=" << conv2d_bwd_weights->diff_dst_fmt_;
             // FIXME: when to free the reordered memory
             diff_dst_reorder.reset(new memory({{{diff_dst_dims}, memory_data_type<T>(), conv2d_bwd_weights->diff_dst_fmt_}, cpu_engine}));
             reorder_func(diff_dst_internal->memory(), *(diff_dst_reorder));
@@ -302,18 +302,18 @@ mdarray Convolution2D<T>::BackwardData(
     std::shared_ptr<mkldnn::memory> diff_dst_reorder = NULL;
 
     if (w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
-        printf("conv2d bwd data primitive fmt matched \n");
+        LOG(INFO) << "conv2d bwd data primitive fmt matched";
     } else {
-        printf("conv2d bwd data fmt not match, need to reorder \n");
+        LOG(INFO) << "conv2d bwd data fmt not match, need to reorder";
 
         if (w_fmt != conv2d_bwd_data->weights_fmt_) {
-            printf("weight_fmt=%d, conv2d_bwd_data->weights_fmt_=%d \n", w_fmt, conv2d_bwd_data->weights_fmt_);
+            LOG(INFO) << "weight_fmt=" << w_fmt << ", conv2d_bwd_data->weights_fmt_="<< conv2d_bwd_data->weights_fmt_;
             w_reorder.reset(new memory({{{w_dims}, memory_data_type<T>(), conv2d_bwd_data->weights_fmt_}, cpu_engine}));
             reorder_func(w_internal->memory(), *(w_reorder));
             w_tmp = *w_reorder;
         } 
         if (diff_dst_fmt != conv2d_bwd_data->diff_dst_fmt_) {
-            printf("diff_dst_fmt=%d, conv2d_bwd_data->diff_dst_fmt_=%d \n", diff_dst_fmt, conv2d_bwd_data->diff_dst_fmt_);
+            LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_data->diff_dst_fmt_=" << conv2d_bwd_data->diff_dst_fmt_;
             diff_dst_reorder.reset(new memory({{{diff_dst_dims}, memory_data_type<T>(), conv2d_bwd_data->diff_dst_fmt_}, cpu_engine}));
             reorder_func(diff_dst_internal->memory(), *(diff_dst_reorder));
             diff_dst_tmp = *diff_dst_reorder;
