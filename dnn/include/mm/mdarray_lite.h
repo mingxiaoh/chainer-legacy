@@ -381,10 +381,7 @@ public:
                 }
             return fmt;
         } ())
-    , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {
-    
-        printf("%s:%d--------------------\n", __FUNCTION__, __LINE__);
-    }
+    , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {}
 
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));

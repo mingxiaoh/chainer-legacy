@@ -69,7 +69,7 @@
 #include <memory>
 #include "layer.h"
 #include "op_param.h"
-#include "mdarray.h"
+#include "mdarray_lite.h"
 
 template <typename T>
 class Convolution2D : public Layer<T>

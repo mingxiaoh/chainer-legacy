@@ -7,7 +7,7 @@
   #include <memory>
   #include <stdexcept>
 #define SWIG_INLINE
-  #include "mdarray.h"
+  #include "mdarray_lite.h"
 %}
 
 %include exception.i
@@ -57,14 +57,6 @@
 %extend_ro_attr(mdarray, bool, is_mdarray, mdarray_is_mdarray_get)
 
 %extend mdarray {
-  int setbuffer(Py_buffer *view) {
-    return (*$self)->setbuffer(view);
-  }
-
-  void reset_buf_order() {
-    (*$self)->reset_buf_order();
-  }
-
   PyObject *axpby(double a, double b, PyObject *y) {
     return (*$self)->axpby(a, b, y);
   }
@@ -84,6 +76,7 @@
     return (*$self)->__getstate__();
   }
 
+  //TODO
   %typemap(default) (PyObject *state) {
     PyObject *state;
 
