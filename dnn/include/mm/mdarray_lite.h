@@ -113,7 +113,7 @@ namespace implementation {
     return m_ ## method ## _map_impl(self, o1, o2); \
   } \
 
-class mdarray {
+class mdarray : public Tensor {
 public:
   // It is exposed to python
   //
@@ -178,14 +178,14 @@ public:
 
             mkldnn::memory::primitive_desc pd ({adims
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
-                , ::public_format(
-                    static_cast<mkldnn::memory::format>(md_data.format))}
+                , static_cast<mkldnn::memory::format>
+                  (::public_format(md_data.format))}
                 , src->get_engine());
 
             // XXX: magic number 4 is a hack
             return mkldnn::memory(pd, reinterpret_cast<void *>(4));
           } else {
-            return src->memory();
+            return src->to_mkldnn_memory();
           }} ()), size_(src->size()) {
         if (src->incompatible()) {
           auto pd = dst_.get_primitive_desc();
@@ -203,7 +203,7 @@ public:
       }
 
     mkldnn::reorder fire(const mdarray *src) {
-      mkldnn::reorder reorder(src->memory(), dst_);
+      mkldnn::reorder reorder(src->to_mkldnn_memory(), dst_);
       mkldnn::stream s(mkldnn::stream::eager);
 
       s.submit({reorder}).wait();
@@ -211,7 +211,7 @@ public:
     }
 
     mkldnn::reorder sync(const mdarray *src) {
-      mkldnn::reorder reorder(dst_, src->memory());
+      mkldnn::reorder reorder(dst_, src->to_mkldnn_memory());
       mkldnn::stream s(mkldnn::stream::eager);
 
       s.submit({reorder}).wait();
@@ -287,46 +287,39 @@ public:
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , const mkldnn::engine &engine)
-    : mdarray({{std::move(dims), dt, format}, engine}) {}
+    : Tensor(dims, dt, format, engine) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
-    : size_([&pd] () {
-                    auto md = pd.desc().data;
-                    return std::accumulate(md.dims, md.dims + md.ndims, 1
-                        , std::multiplies<int>());
-                  }())
-              // Use primitive desc's reference
-              , data_(new avx::byte [pd.get_size()]
-                  , [](avx::byte *p) {delete [] p;})
-              , m_(pd, data_.get())
-              , view_(nullptr)
-              , internal_order_([&pd] () {
-                  auto md = pd.desc().data;
-                    return ::public_format(
-                        static_cast<mkldnn::memory::format>(md.format)
-                        ) != md.format;
-                  } ()) {}
+    : Tensor(pd) {}
 
-  mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
-    : size_([&pd] () {
-                    auto md = pd.desc().data;
-                    return std::accumulate(md.dims, md.dims + md.ndims, 1
-                        , std::multiplies<int>());
-                  }())
-              // Use primitive desc's reference
-              , data_(std::shared_ptr<avx::byte>(
-                   reinterpret_cast<avx::byte *>(mp.get_data_handle())
-                   , [] (avx::byte *p) {}))
-              , m_(pd, data_.get())
-              , view_(nullptr)
-              , internal_order_([&pd] () {
-                  auto md = pd.desc().data;
-                    return ::public_format(
-                        static_cast<mkldnn::memory::format>(md.format)
-                        ) != md.format;
-                  } ()) {}
-
-  mdarray(Py_buffer *view)
+  mdarray(Py_buffer *view) {
+    data_type_t dt;
+    std::string format(view->format);
+    if (view->itemsize == 4) {
+      if (std::string::npos != format.find_last_of('f')) {
+        dt = FLOAT32;
+      } else if (std::string::npos != format.find_last_of('i')) {
+        dt = SINT32;
+      } else {
+        throw mkldnn::error(mkldnn_invalid_arguments
+            , std::string("MKLDNN does not support data type: ")
+            + format);
+      }
+    } else {
+      throw mkldnn::error(mkldnn_invalid_arguments
+          , "MKLDNN does not support itemsize other than 4");
+    }
+    ndims_ = view->ndim;
+    dims_.assign(view->shape, view->shape + view->ndim);
+    size_ = view->len / view->itemsize;
+    type_ = dt;
+    data_ = std::shared_ptr<avx::byte>(new avx::byte [view->len]
+                    , [] (avx::byte *p) {delete [] p;});
+    memcpy(data_.get(), view->buf, view->len);
+    mm_fmt_ = ndims2format(ndims_);
+  }
+  
+#if 0
     : size_(view->len/view->itemsize)
     , data_ ([view]() {
                 auto data = std::shared_ptr<avx::byte>(new avx::byte [view->len]
@@ -354,34 +347,18 @@ public:
             return fmt;
         } ())
     , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {}
+#endif
 
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));
-    m_.set_data_handle(pdata);
+    //m_.set_data_handle(pdata);
     return;
   }
 
-  inline void *data() const { return data_.get(); }
-  inline size_type size() const { return size_; }
-  inline size_type len() const { return m_.get_primitive_desc().get_size(); }
-  inline mkldnn::engine get_engine() const {
-    return m_.get_primitive_desc().get_engine();
-  }
-
-  inline int ndims() const {
-    auto md = m_.get_primitive_desc().desc();
-    return md.data.ndims;
-  }
-
   inline mkldnn::memory memory() const {
-    return m_;
+    return to_mkldnn_memory();
   }
-
-  inline mkldnn::memory::desc desc() const {
-    return m_.get_primitive_desc().desc();
-  }
-
-#if 1
+#if 0
 //FIXME: yli135
 // expose 2 APIs with C++ style which will be friendly for native c++ internface
   inline mkldnn_memory_format_t format() const {
@@ -495,19 +472,13 @@ private:
     }
   };
 
-  // Attributes
-  size_type size_;
-  std::shared_ptr<avx::byte> data_;
-  mkldnn::memory::format mfmt_;
-  mkldnn::memory m_;
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 
 protected:
-  bool internal_order_;
   reorderer *sync_reorder_;
 
 public:
-  inline bool incompatible() const { return internal_order_; }
+  //inline bool incompatible() const { return internal_order_; }
   std::shared_ptr<avx::byte> share_data() const {
     return data_;
   }
@@ -605,9 +576,6 @@ public:
   mdarray(mkldnn::memory::primitive_desc pd)
     : py_handle(std::make_shared<implementation::mdarray>(pd)) {}
 
-  mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
-    : py_handle(std::make_shared<implementation::mdarray>(pd, mp)) {}
-
   mdarray(Py_buffer *view)
     : py_handle(std::make_shared<implementation::mdarray>(view)) {}
 
@@ -664,7 +632,7 @@ public:
   }
 
   static mkldnn::memory *mdarray_memory_get(mdarray *self) {
-    return new mkldnn::memory((*self)->memory());
+    return new mkldnn::memory((*self)->to_mkldnn_memory());
   }
 
   static bool mdarray_is_mdarray_get(mdarray *self) {
