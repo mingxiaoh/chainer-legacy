@@ -4,6 +4,8 @@
 #include "mkldnn.hpp"
 
 using namespace std;
+using namespace mkldnn;
+extern engine cpu_engine;
 
 enum data_type_t {
     UNKNOWN_TYPE = 0,
@@ -53,8 +55,32 @@ public:
     Tensor() : buf_(nullptr), len_(0), type_(UNKNOWN_TYPE), ndim_(0) {}
     Tensor(int ndim, vector<int> &dims, data_type_t type=FLOAT32);
     Tensor(void *buf, size_t len, int ndim, vector<int> &dims, data_type_t type=FLOAT32);
-    void *getbuf() { return buf_; }
-    size_t get_len() { return len_; }
+    inline void *getbuf() const { return buf_; }
+    inline size_t get_len() const { return len_; }
+    inline bool incompatible() const {
+        return (public_format(mm_fmt_) == mm_fmt_);
+    }
+    inline memory::data_type to_mkldnn_type() const {
+        memory::data_type type;
+        switch (type_) {
+            case FLOAT32:
+                type = memory::data_type::f32;
+                break;
+            case SINT32:
+                type = memory::data_type::s32;
+                break;
+            default:
+                type = memory::data_undef;
+                break;
+        }
+        return type;
+    }
+    inline memory to_mkldnn_memory() const {
+        memory::data_type type = to_mkldnn_type();
+        auto mem = memory(
+                { { { dims_ }, type, mm_fmt_ }, cpu_engine }, buf_);
+        return mem;
+    }
 
 protected:
     void *buf_;
@@ -63,5 +89,5 @@ protected:
     int ndim_;
     vector<int> dims_;
 
-    mkldnn::memory::format mm_fmt_;
+    memory::format mm_fmt_;
 };

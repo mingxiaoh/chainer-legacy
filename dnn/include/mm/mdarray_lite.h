@@ -326,34 +326,6 @@ public:
                         ) != md.format;
                   } ()) {}
 
-  mdarray(Py_buffer *view
-      , mkldnn::memory::format format
-      , const mkldnn::engine &e)
-    : size_(view->len/view->itemsize)
-          , data_ ([view]() {
-             unsigned long adrs = reinterpret_cast<unsigned long>(view->buf);
-             if (adrs % 16 != 0) {
-               return std::shared_ptr<avx::byte>(new avx::byte [view->len]
-                   , [] (avx::byte *p) {delete [] p;});
-             } else
-               return std::shared_ptr<avx::byte>(
-                   reinterpret_cast<avx::byte *>(view->buf)
-                   , [] (avx::byte *p) {});
-           } ())
-          , m_({_d_from_view(view, format), e}, data_.get())
-          , view_(view), internal_order_(false) {
-
-    assert(m_.get_primitive_desc().get_size()
-        == static_cast<decltype(
-          m_.get_primitive_desc().get_size())>(view->len));
-
-    if (data_.get() != view->buf) {
-      // XXX: Add OpenMP thing?
-      memcpy(data_.get(), view->buf, view->len);
-      view_.reset(nullptr);
-    }
-  }
-
   mdarray(Py_buffer *view)
     : size_(view->len/view->itemsize)
     , data_ ([view]() {
@@ -457,8 +429,6 @@ public:
 
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
-
-  virtual void reset_buf_order() {}
 
   PyObject *getattro(PyObject *self, PyObject *name);
 
@@ -637,11 +607,6 @@ public:
 
   mdarray(mkldnn::memory::primitive_desc pd, mkldnn::memory mp)
     : py_handle(std::make_shared<implementation::mdarray>(pd, mp)) {}
-
-  mdarray(Py_buffer *view
-      , mkldnn::memory::format format
-      , mkldnn::engine &e)
-    : py_handle(std::make_shared<implementation::mdarray>(view, format, e)) {}
 
   mdarray(Py_buffer *view)
     : py_handle(std::make_shared<implementation::mdarray>(view)) {}
