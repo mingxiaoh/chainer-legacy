@@ -118,7 +118,7 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   }
 
   PyObject *argList = Py_BuildValue("(OiO)", o
-      , reorderer::public_format(
+      , ::public_format(
           static_cast<mkldnn::memory::format>(desc().data.format)
         ), Py_p_engine);
 

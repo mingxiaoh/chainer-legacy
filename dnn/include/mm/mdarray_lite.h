@@ -122,7 +122,6 @@ public:
   class reorderer {
   protected:
     bool non_trivial_;
-    bool reordered_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
 
@@ -170,7 +169,7 @@ public:
       :reorderer(in.get()) {}
 
     reorderer(const mdarray *src)
-      : non_trivial_(src->incompatible()), reordered_(false), dst_([src] () {
+      : non_trivial_(src->incompatible()), dst_([src] () {
           if (src->incompatible()) {
             auto md_data = src->desc().data;
 
@@ -179,7 +178,7 @@ public:
 
             mkldnn::memory::primitive_desc pd ({adims
                 , static_cast<mkldnn::memory::data_type>(md_data.data_type)
-                , public_format(
+                , ::public_format(
                     static_cast<mkldnn::memory::format>(md_data.format))}
                 , src->get_engine());
 
@@ -221,55 +220,6 @@ public:
 
     inline bool non_trivial() const {
       return non_trivial_;
-    }
-
-    inline void set_reordered() {
-      reordered_ = true;
-    }
-
-    inline void reset_reorder() {
-      reordered_ = false;
-    }
-
-    inline bool is_reordered() const {
-      return reordered_;
-    }
-
-    static mkldnn::memory::format public_format(
-        mkldnn::memory::format origin) {
-      mkldnn::memory::format ret;
-
-      // review this relations carefully
-      switch(origin) {
-      case mkldnn::memory::nchw:
-      case mkldnn::memory::nhwc:
-      case mkldnn::memory::chwn:
-      case mkldnn::memory::nChw8c:
-      case mkldnn::memory::nChw16c:
-        ret = mkldnn::memory::nchw;
-        break;
-      case mkldnn::memory::oihw:
-      case mkldnn::memory::ihwo:
-      case mkldnn::memory::hwio:
-      case mkldnn::memory::OIhw8i8o:
-      case mkldnn::memory::OIhw16i16o:
-      case mkldnn::memory::OIhw8o8i:
-      case mkldnn::memory::OIhw16o16i:
-      case mkldnn::memory::OIhw8i16o2i:
-      case mkldnn::memory::OIhw8o16i2o:
-      case mkldnn::memory::Oihw8o:
-      case mkldnn::memory::Oihw16o:
-      case mkldnn::memory::Ohwi8o:
-      case mkldnn::memory::Ohwi16o:
-      case mkldnn::memory::OhIw16o4i:
-        ret = mkldnn::memory::oihw;
-        break;
-      default:
-        ret = origin;
-        break;
-      }
-
-      return ret;
     }
 
     // PEP 3118 interface
@@ -352,7 +302,7 @@ public:
               , view_(nullptr)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
-                    return reorderer::public_format(
+                    return ::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
                   } ()) {}
@@ -371,7 +321,7 @@ public:
               , view_(nullptr)
               , internal_order_([&pd] () {
                   auto md = pd.desc().data;
-                    return reorderer::public_format(
+                    return ::public_format(
                         static_cast<mkldnn::memory::format>(md.format)
                         ) != md.format;
                   } ()) {}
@@ -404,12 +354,13 @@ public:
     }
   }
 
-#if 1
   mdarray(Py_buffer *view)
     : size_(view->len/view->itemsize)
     , data_ ([view]() {
-                return std::shared_ptr<avx::byte>(new avx::byte [view->len]
-                        , [] (avx::byte *p) {delete [] p;});
+                auto data = std::shared_ptr<avx::byte>(new avx::byte [view->len]
+                                , [] (avx::byte *p) {delete [] p;});
+                memcpy(data.get(), view->buf, view->len);
+                return data;
             } ())
     , view_(nullptr)
     , mfmt_([view]() {
@@ -430,8 +381,10 @@ public:
                 }
             return fmt;
         } ())
-    , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {}
-#endif
+    , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {
+    
+        printf("%s:%d--------------------\n", __FUNCTION__, __LINE__);
+    }
 
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));
@@ -578,9 +531,7 @@ private:
   // Attributes
   size_type size_;
   std::shared_ptr<avx::byte> data_;
-  ///////////////////////////////////////////
   mkldnn::memory::format mfmt_;
-  ///////////////////////////////////////////
   mkldnn::memory m_;
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 

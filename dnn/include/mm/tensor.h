@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef _TENSOR_H_
-#define _TENSOR_H_
-
 #include <vector>
 #include "mkldnn.hpp"
 
@@ -13,6 +10,42 @@ enum data_type_t {
     FLOAT32,
     SINT32,
 };
+
+inline mkldnn::memory::format public_format(mkldnn::memory::format origin)
+{
+    mkldnn::memory::format ret;
+    // review this relations carefully
+    switch(origin) {
+        case mkldnn::memory::nchw:
+        case mkldnn::memory::nhwc:
+        case mkldnn::memory::chwn:
+        case mkldnn::memory::nChw8c:
+        case mkldnn::memory::nChw16c:
+            ret = mkldnn::memory::nchw;
+            break;
+        case mkldnn::memory::oihw:
+        case mkldnn::memory::ihwo:
+        case mkldnn::memory::hwio:
+        case mkldnn::memory::OIhw8i8o:
+        case mkldnn::memory::OIhw16i16o:
+        case mkldnn::memory::OIhw8o8i:
+        case mkldnn::memory::OIhw16o16i:
+        case mkldnn::memory::OIhw8i16o2i:
+        case mkldnn::memory::OIhw8o16i2o:
+        case mkldnn::memory::Oihw8o:
+        case mkldnn::memory::Oihw16o:
+        case mkldnn::memory::Ohwi8o:
+        case mkldnn::memory::Ohwi16o:
+        case mkldnn::memory::OhIw16o4i:
+            ret = mkldnn::memory::oihw;
+            break;
+        default:
+            ret = origin;
+            break;
+    }
+
+    return ret;
+}
 
 class Tensor {
 public:
@@ -32,5 +65,3 @@ protected:
 
     mkldnn::memory::format mm_fmt_;
 };
-
-#endif
