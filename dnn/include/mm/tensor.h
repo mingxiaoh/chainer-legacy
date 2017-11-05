@@ -108,6 +108,10 @@ public:
             data_ = std::shared_ptr<avx::byte>(new avx::byte [len()]
                     , [] (avx::byte *p) {delete [] p;});
             mm_fmt_ = ndims2format(ndims);
+            memory::data_type dt = to_mkldnn_type();
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
         }
 
     Tensor(int ndims, vector<int> &dims, void *buf, data_type_t type=FLOAT32)
@@ -118,6 +122,10 @@ public:
                     , [] (avx::byte *p) {delete [] p;});
             memcpy(data_.get(), buf, len());
             mm_fmt_ = ndims2format(ndims);
+            memory::data_type dt = to_mkldnn_type();
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
         }
 
     Tensor(mkldnn::memory::dims &dims
@@ -136,6 +144,10 @@ public:
         data_ = std::shared_ptr<avx::byte>(new avx::byte [len()]
                 , [] (avx::byte *p) {delete [] p;});
         mm_fmt_ = md.format;
+        memory::data_type dt = to_mkldnn_type();
+        mem_.reset(new mkldnn::memory(
+                    { { { dims_ }, dt , static_cast<memory::format>(mm_fmt_) }
+                    , cpu_engine }, data_.get()));
     }
 
     inline size_t len() {
@@ -188,24 +200,12 @@ public:
         return ndims_;
     }
 
-    inline memory to_mkldnn_memory() const {
-        memory::data_type type = to_mkldnn_type();
-        /*
-        for (int i = 0; i < ndims_; i++) {
-            printf("%d\n", dims_[i]);
-        }
-        printf("data %p\n", data_.get());
-        printf("format %d\n", mm_fmt_);
-        */
-        auto mem = memory(
-                { { { dims_ }, type, static_cast<memory::format>(mm_fmt_) }
-                , cpu_engine }, data_.get());
-        return mem;
+    inline shared_ptr<mkldnn::memory> to_mkldnn_memory() const {
+        return mem_;
     }
 
     inline memory::desc desc() const {
-        auto mem = to_mkldnn_memory();
-        return mem.get_primitive_desc().desc();
+        return mem_->get_primitive_desc().desc();
     }
 
     inline mkldnn_memory_format_t format() const {
@@ -225,7 +225,7 @@ public:
         return static_cast<mkldnn::memory::data_type>(to_mkldnn_type());
     }
 
-    protected:
+protected:
     int ndims_;
     vector<int> dims_;
     data_type_t type_;
@@ -234,4 +234,6 @@ public:
     std::shared_ptr<avx::byte> data_;
 
     mkldnn_memory_format_t mm_fmt_;
+    std::shared_ptr<mkldnn::memory> mem_;
+private:
 };

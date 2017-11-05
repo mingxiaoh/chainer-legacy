@@ -185,7 +185,7 @@ public:
             // XXX: magic number 4 is a hack
             return mkldnn::memory(pd, reinterpret_cast<void *>(4));
           } else {
-            return src->to_mkldnn_memory();
+            return (src->memory());
           }} ()), size_(src->size()) {
         if (src->incompatible()) {
           auto pd = dst_.get_primitive_desc();
@@ -203,7 +203,7 @@ public:
       }
 
     mkldnn::reorder fire(const mdarray *src) {
-      mkldnn::reorder reorder(src->to_mkldnn_memory(), dst_);
+      mkldnn::reorder reorder((src->memory()), dst_);
       mkldnn::stream s(mkldnn::stream::eager);
 
       s.submit({reorder}).wait();
@@ -211,7 +211,7 @@ public:
     }
 
     mkldnn::reorder sync(const mdarray *src) {
-      mkldnn::reorder reorder(dst_, src->to_mkldnn_memory());
+      mkldnn::reorder reorder(dst_, (src->memory()));
       mkldnn::stream s(mkldnn::stream::eager);
 
       s.submit({reorder}).wait();
@@ -317,38 +317,12 @@ public:
                     , [] (avx::byte *p) {delete [] p;});
     memcpy(data_.get(), view->buf, view->len);
     mm_fmt_ = ndims2format(ndims_);
+    memory::data_type type = to_mkldnn_type();
+    mem_.reset(new mkldnn::memory(
+                { { { dims_ }, type, static_cast<memory::format>(mm_fmt_) }
+                , cpu_engine }, data_.get()));
   }
   
-#if 0
-    : size_(view->len/view->itemsize)
-    , data_ ([view]() {
-                auto data = std::shared_ptr<avx::byte>(new avx::byte [view->len]
-                                , [] (avx::byte *p) {delete [] p;});
-                memcpy(data.get(), view->buf, view->len);
-                return data;
-            } ())
-    , view_(nullptr)
-    , mfmt_([view]() {
-        int ndim = view->ndim;
-        mkldnn::memory::format fmt = mkldnn::memory::format::any; 
-        switch (ndim) {
-            case 1:
-                fmt = mkldnn::memory::format::x;
-                break;
-            case 2:
-                fmt = mkldnn::memory::format::nc;
-                break;
-            case 4:
-                fmt = mkldnn::memory::format::nchw;
-                break;
-            default:
-                std::cout << "Unsuported tensor dimension" << std::endl;
-                }
-            return fmt;
-        } ())
-    , m_({_d_from_view(view, mfmt_), cpu_engine}, data_.get()) {}
-#endif
-
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));
     //m_.set_data_handle(pdata);
@@ -356,32 +330,8 @@ public:
   }
 
   inline mkldnn::memory memory() const {
-    return to_mkldnn_memory();
+    return *(to_mkldnn_memory());
   }
-#if 0
-//FIXME: yli135
-// expose 2 APIs with C++ style which will be friendly for native c++ internface
-  inline mkldnn_memory_format_t format() const {
-    auto md = m_.get_primitive_desc().desc();
-    return md.data.format;
-  }
-
-  inline mkldnn::memory::format cxx_format() const {
-    auto md = m_.get_primitive_desc().desc();
-    return static_cast<mkldnn::memory::format>(md.data.format);
-  }
-
-  inline mkldnn::memory::dims cxx_dims() const {
-    auto md = m_.get_primitive_desc().desc();
-    mkldnn::memory::dims ret(md.data.dims, md.data.dims+md.data.ndims);
-    return ret;
-  }
-
-  inline mkldnn::memory::data_type cxx_data_type() const {
-    auto md = m_.get_primitive_desc().desc();
-    return static_cast<mkldnn::memory::data_type>(md.data.data_type);
-  }
-#endif
 
   PyObject *__getstate__(void) const;
 
@@ -629,10 +579,6 @@ public:
 
   static long mdarray_ndim_get(mdarray *self) {
     return self->get()->desc().data.ndims;
-  }
-
-  static mkldnn::memory *mdarray_memory_get(mdarray *self) {
-    return new mkldnn::memory((*self)->to_mkldnn_memory());
   }
 
   static bool mdarray_is_mdarray_get(mdarray *self) {
