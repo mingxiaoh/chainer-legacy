@@ -191,6 +191,10 @@ public:
     }
 
     inline void *data() const { return data_.get(); }
+    inline std::shared_ptr<avx::byte> share_data() const {
+        return data_;
+    }
+
     inline size_type size() const { return size_; }
     inline mkldnn::engine get_engine() const {
         return cpu_engine;
@@ -200,6 +204,9 @@ public:
         return ndims_;
     }
 
+    inline mkldnn::memory mkldnn_memory() const {
+        return *mem_;
+    }
     inline shared_ptr<mkldnn::memory> to_mkldnn_memory() const {
         return mem_;
     }

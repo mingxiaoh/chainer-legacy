@@ -17,6 +17,7 @@
 #include <swigpyrun.h>
 #include "mem.h"
 #include "tensor.h"
+#include "reorder.h"
 
 // FIXME
 // use global engine to init mdarray
@@ -113,12 +114,20 @@ namespace implementation {
     return m_ ## method ## _map_impl(self, o1, o2); \
   } \
 
+
 class mdarray : public Tensor {
 public:
   // It is exposed to python
   //
   static constexpr int MAX_NDIM = 12; //XXX: For now
 
+#if 1
+  class Reorder_buffer : Reorderer {
+  public:
+    Reorder_buffer(const py_handle in)
+        :Reorderer((Tensor *)in.get()) {}
+  };
+#else
   class reorderer {
   protected:
     bool non_trivial_;
@@ -274,6 +283,7 @@ public:
       return arrstr;
     }
   };
+#endif
 
 public:
   typedef size_t size_type;
@@ -332,6 +342,60 @@ public:
   inline mkldnn::memory memory() const {
     return *(to_mkldnn_memory());
   }
+
+    // PEP 3118 interface
+  int build_view(Py_buffer *view, int flags, const Reorderer &reorder) {
+      view->buf = reorder.data_.get();
+      view->itemsize = reorder.itemsize_;
+      view->readonly = 0;
+      view->internal = nullptr;
+      view->len = reorder.size_ * reorder.itemsize_;
+
+      if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
+          view->format = const_cast<char *>(reorder.format_);
+      } else {
+          view->format = nullptr;
+      }
+
+      if ((flags & PyBUF_ND) == PyBUF_ND) {
+          view->ndim = reorder.ndims_;
+          view->shape = const_cast<Py_ssize_t *>(reorder.shape_);
+      } else {
+          view->ndim = 0;
+          view->shape = nullptr;
+      }
+
+      if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
+          view->strides = const_cast<Py_ssize_t *>(reorder.strides_);
+      } else {
+          view->strides = nullptr;
+      }
+
+      view->suboffsets = nullptr;
+
+      return 0;
+  }
+
+#if 0
+  // Array protocol
+  PyArrayInterface *build_array_struct(void) {
+      auto arrstr = new PyArrayInterface();
+
+      arrstr->two = 2;
+      arrstr->nd = ndims_;
+      arrstr->typekind = *((char *)format_);
+      arrstr->itemsize = itemsize_;
+      arrstr->flags = NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_NOTSWAPPED |
+          NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE;
+      arrstr->flags &= ~(NPY_ARRAY_UPDATEIFCOPY | NPY_ARRAY_OWNDATA);
+      arrstr->shape = shape_;
+      arrstr->strides = strides_;
+      arrstr->data = data_.get();
+      arrstr->descr = nullptr;
+
+      return arrstr;
+  }
+#endif
 
   PyObject *__getstate__(void) const;
 
@@ -425,14 +489,10 @@ private:
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 
 protected:
-  reorderer *sync_reorder_;
+  Reorderer *sync_reorder_;
 
 public:
   //inline bool incompatible() const { return internal_order_; }
-  std::shared_ptr<avx::byte> share_data() const {
-    return data_;
-  }
-
   static mkldnn::memory reorder_if_must(mkldnn::memory user
       , mkldnn::memory::primitive_desc expect
       , std::unique_ptr<mkldnn::memory> &mreorder
@@ -586,6 +646,6 @@ public:
   }
 };
 
-using reorder_buffer = implementation::mdarray::reorderer;
+using reorder_buffer = implementation::mdarray::Reorder_buffer;
 
 #endif // _MDARRAY_H_

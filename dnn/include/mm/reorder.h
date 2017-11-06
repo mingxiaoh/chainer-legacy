@@ -6,8 +6,9 @@
 extern engine cpu_engine;
 static constexpr int MAX_NDIM = 12; //XXX: For now
 
-class reorderer {
-protected:
+class Reorderer {
+//protected:
+public:
     bool non_trivial_;
     mkldnn::memory dst_;
     std::shared_ptr<avx::byte> data_;
@@ -53,10 +54,10 @@ protected:
 
 public:
 #if 0
-    reorderer(const py_handle in)
-        :reorderer(in.get()) {}
+    Reorderer(const py_handle in)
+        :Reorderer(in.get()) {}
 #endif
-    reorderer(const Tensor *src)
+    Reorderer(const Tensor *src)
         : non_trivial_(src->incompatible()), dst_([src] () {
                 if (src->incompatible()) {
                     auto md_data = src->desc().data;

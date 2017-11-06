@@ -602,7 +602,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
-  reorderer *rb;
+  Reorderer *rb;
   int res = SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
 
   if (!SWIG_IsOK(res)) {
@@ -613,7 +613,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if (rb->non_trivial())
     rb->fire(this);
 
-  if (rb->build_view(view, flags)) {
+  if (build_view(view, flags, *rb)) {
     PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
     return -1;
   }
