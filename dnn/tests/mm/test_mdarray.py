@@ -14,6 +14,8 @@ print("is_mdarry=", x.is_mdarray)
 
 #y = numpy.zeros_like(x)
 #print(y)
-
+x1 += x
+x += x
 x2 = numpy.array(x)
 testing.assert_allclose(x1, x2)
+

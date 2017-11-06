@@ -4,6 +4,7 @@
 #endif
 #include "mdarray_lite.h"
 #include <mkl_vml_functions.h>
+#include "mkldnn_ex.h"
 
 namespace implementation {
 
@@ -141,23 +142,7 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
 
 template<class T>
 void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
-  std::vector<mkldnn::primitive> prims;
-  std::unique_ptr<mkldnn::memory> mreorder;
-
-  /// Reorder to x's format
-  auto mid = reorder_if_must(y->memory(), x->memory().get_primitive_desc()
-      , mreorder, &prims);
-
-  mkldnn::sum::primitive_desc sum_pd({a, b}
-      , {x->memory().get_primitive_desc(), mid.get_primitive_desc()});
-
-  std::vector<mkldnn::memory::primitive::at> inputs_at {x->memory(), mid};
-
-  mkldnn::sum sum_prim(sum_pd, inputs_at, dst->memory());
-  prims.push_back(sum_prim);
-
-  mkldnn::stream s(mkldnn::stream::kind::eager);
-  s.submit(prims).wait();
+    ::axpby((Tensor *)dst, a, (Tensor *)x, b, (Tensor *) y);
 }
 
 template<class T>
