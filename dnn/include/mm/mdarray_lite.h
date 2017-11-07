@@ -333,6 +333,7 @@ private:
 protected:
   Reorderer *sync_reorder_;
 
+#if 0
 private:
   static mkldnn::memory::desc _d_from_view(const Py_buffer *view
       , mkldnn::memory::format order) {
@@ -359,6 +360,7 @@ private:
 
     return mkldnn::memory::desc(dims, dt, order);
   }
+#endif
 };
 
 }
