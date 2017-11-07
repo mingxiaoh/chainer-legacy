@@ -96,12 +96,12 @@ public:
     /*
      * Convolution backward weights with bias
      */
-    void execute(mkldnn::memory src, mkldnn::memory diff_w, mkldnn::memory diff_b, mkldnn::memory diff_dst);
+    void execute(void* src, void* diff_w, void* diff_b, void* diff_dst);
 
     /*
      * Convolution backward weights without bias
      */
-    void execute(mkldnn::memory src, mkldnn::memory diff_w, mkldnn::memory diff_dst);
+    void execute(void* src, void* diff_w, void* diff_dst);
 
 public:
     // expected memory format for this primitive instance

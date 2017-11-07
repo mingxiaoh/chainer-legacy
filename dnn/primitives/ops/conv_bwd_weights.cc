@@ -170,31 +170,38 @@ void Convolution2DBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memor
 }
 
 template<typename T>
-void Convolution2DBwdWeights<T>::execute(mkldnn::memory src, mkldnn::memory diff_w, mkldnn::memory diff_b, mkldnn::memory diff_dst)
+void Convolution2DBwdWeights<T>::execute(void* src, void* diff_w, void* diff_b, void* diff_dst)
 {
 //    LOG(INFO) << "Convolution forward";
     //LOG(INFO) << "conv_fwd_:" << conv_fwd_;
     //LOG(INFO) << "x=" << x << "; x_size=" << x_d1*x_d2*x_d3*x_d4*4;
-    src_mem_->set_data_handle(src.get_data_handle());
-    diff_weights_mem_->set_data_handle(diff_w.get_data_handle());
-    diff_bias_mem_->set_data_handle(diff_b.get_data_handle());
-    diff_dst_mem_->set_data_handle(diff_dst.get_data_handle());
+    src_mem_->set_data_handle(src);
+    diff_weights_mem_->set_data_handle(diff_w);
+    diff_bias_mem_->set_data_handle(diff_b);
+    diff_dst_mem_->set_data_handle(diff_dst);
     //conv_fwd_->execute();
     bwd_weights_stream_->submit(bwd_weights_primitives_);
+    src_mem_->set_data_handle(dummy);
+    diff_weights_mem_->set_data_handle(dummy);
+    diff_bias_mem_->set_data_handle(dummy);
+    diff_dst_mem_->set_data_handle(dummy);
     return;
 }
 
 template<typename T>
-void Convolution2DBwdWeights<T>::execute(mkldnn::memory src, mkldnn::memory diff_w, mkldnn::memory diff_dst)
+void Convolution2DBwdWeights<T>::execute(void* src, void* diff_w, void* diff_dst)
 {
 //    LOG(INFO) << "Convolution forward without bias";
 //    LOG(INFO) << conv_fwd_;
 
-    src_mem_->set_data_handle(src.get_data_handle());
-    diff_weights_mem_->set_data_handle(diff_w.get_data_handle());
-    diff_dst_mem_->set_data_handle(diff_dst.get_data_handle());
+    src_mem_->set_data_handle(src);
+    diff_weights_mem_->set_data_handle(diff_w);
+    diff_dst_mem_->set_data_handle(diff_dst);
     //conv_fwd_->execute();
     bwd_weights_stream_->submit(bwd_weights_primitives_);
+    src_mem_->set_data_handle(dummy);
+    diff_weights_mem_->set_data_handle(dummy);
+    diff_dst_mem_->set_data_handle(dummy);
     return;
 }
 

@@ -61,8 +61,8 @@
  */
 
 
-#ifndef _CONV_FWD_H_
-#define _CONV_FWD_H_
+#ifndef _REORDER_OP_H_
+#define _REORDER_OP_H_
 
 #include <mkldnn.hpp>
 #include <vector>
@@ -70,78 +70,48 @@
 #include "op.h"
 
 template <typename T>
-class Convolution2DFwd : public Op<T>
+class ReorderOp : public Op<T>
 {
 public:
-    Convolution2DFwd(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d, 
-                     mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d, 
-                     int sy, int sx,
-                     int pad_lh, int pad_lw, int pad_rh, int pad_rw);
-    ~Convolution2DFwd();
+    ReorderOp(mkldnn::memory::dims dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt);
+    ~ReorderOp();
 
     /*
-     * Convolution forward primitive setup
+     * Reorder primitive setup
      * Params:
-     * src_d: input, (n,c,h,w)
-     * W_d: weight, (out_c, in_c, h, w)
-     * b_d: bias, if no bias, expected b_d as None dims ({}), not NULL
-     * dst_d: output, (n, out_c, out_h, out_w)
+     * dims:
+     * src_fmt: 
+     * dst_fmt:
      */
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
-               mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d,
-               int s1, int s2,
-               int pl1, int pl2,
-               int pr1, int pr2);
+    void setup(mkldnn::memory::dims dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt);
 
     /*
-     * Convolution forward execute with bias
+     * reorder execute
      */
-    void execute(void* src, void* w, void* b, void* dst);
-
-    /*
-     * Convolution forward execute without bias
-     */
-    void execute(void* src, void* w, void* dst);
+    void execute(void* src, void* dst);
 
 public:
     // expected memory format for this primitive instance
-    // forward
     mkldnn::memory::format src_fmt_;
-    mkldnn::memory::format weights_fmt_;
     mkldnn::memory::format dst_fmt_;
     
-    // convolution primitive
-    std::shared_ptr<mkldnn::primitive> conv_fwd_;
+    // reorder primitive
+    std::shared_ptr<mkldnn::reorder> reorder_prim_;
 
 private:
     //MKLDNN memory
     //forward
     std::shared_ptr<mkldnn::memory> src_mem_; // x
-    std::shared_ptr<mkldnn::memory> weights_mem_;// W
-    std::shared_ptr<mkldnn::memory> bias_mem_;// b
     std::shared_ptr<mkldnn::memory> dst_mem_; //y
 
-    std::shared_ptr<mkldnn::stream> fwd_stream_;
-    std::vector<mkldnn::primitive> fwd_primitives_;
-
-    //desc & prmitive desc
-    //forward
-    std::shared_ptr<mkldnn::convolution_forward::desc> fwd_desc_;
-    std::shared_ptr<mkldnn::convolution_forward::primitive_desc> fwd_pd_;
-
-    //memory dims
-    mkldnn::memory::dims strides_;
-    mkldnn::memory::dims padding_l_;
-    mkldnn::memory::dims padding_r_;
+    std::shared_ptr<mkldnn::stream> reorder_stream_;
 
     //memory desc
     std::shared_ptr<mkldnn::memory::desc> src_md_; //x 
-    std::shared_ptr<mkldnn::memory::desc> weights_md_;// W
-    std::shared_ptr<mkldnn::memory::desc> bias_md_; // b
     std::shared_ptr<mkldnn::memory::desc> dst_md_; // y 
 };
 
-#endif // _CONV_FWD_H_
+#endif // _REORDER_OP_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

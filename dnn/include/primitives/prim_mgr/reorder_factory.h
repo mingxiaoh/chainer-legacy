@@ -61,87 +61,53 @@
  */
 
 
-#ifndef _CONV_FWD_H_
-#define _CONV_FWD_H_
-
+#ifndef _REORDER_FACTORY_
+#define _REORDER_FACTORY_
 #include <mkldnn.hpp>
-#include <vector>
-#include <memory>
+#include <string>
 #include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
+#include "utils.h"
+#include "reorder_op.h"
 
 template <typename T>
-class Convolution2DFwd : public Op<T>
+class ReorderFactory : public OpFactory<T> 
 {
-public:
-    Convolution2DFwd(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d, 
-                     mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d, 
-                     int sy, int sx,
-                     int pad_lh, int pad_lw, int pad_rh, int pad_rw);
-    ~Convolution2DFwd();
-
-    /*
-     * Convolution forward primitive setup
-     * Params:
-     * src_d: input, (n,c,h,w)
-     * W_d: weight, (out_c, in_c, h, w)
-     * b_d: bias, if no bias, expected b_d as None dims ({}), not NULL
-     * dst_d: output, (n, out_c, out_h, out_w)
-     */
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
-               mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d,
-               int s1, int s2,
-               int pl1, int pl2,
-               int pr1, int pr2);
-
-    /*
-     * Convolution forward execute with bias
-     */
-    void execute(void* src, void* w, void* b, void* dst);
-
-    /*
-     * Convolution forward execute without bias
-     */
-    void execute(void* src, void* w, void* dst);
-
-public:
-    // expected memory format for this primitive instance
-    // forward
-    mkldnn::memory::format src_fmt_;
-    mkldnn::memory::format weights_fmt_;
-    mkldnn::memory::format dst_fmt_;
-    
-    // convolution primitive
-    std::shared_ptr<mkldnn::primitive> conv_fwd_;
-
 private:
-    //MKLDNN memory
-    //forward
-    std::shared_ptr<mkldnn::memory> src_mem_; // x
-    std::shared_ptr<mkldnn::memory> weights_mem_;// W
-    std::shared_ptr<mkldnn::memory> bias_mem_;// b
-    std::shared_ptr<mkldnn::memory> dst_mem_; //y
+    ReorderFactory();
+    ~ReorderFactory();
 
-    std::shared_ptr<mkldnn::stream> fwd_stream_;
-    std::vector<mkldnn::primitive> fwd_primitives_;
+public:
+    static ReorderOp<T>* get( mkldnn::memory::dims dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt) {
+        ReorderOp<T>* reorder_op = NULL;
 
-    //desc & prmitive desc
-    //forward
-    std::shared_ptr<mkldnn::convolution_forward::desc> fwd_desc_;
-    std::shared_ptr<mkldnn::convolution_forward::primitive_desc> fwd_pd_;
+        //try to find a suitable one in pool
+        reorder_op = dynamic_cast<ReorderOp<T>*> (
+                            ReorderFactory<T>::get_instance().get_reorder(dims, src_fmt, dst_fmt));
+        
+        if (reorder_op == NULL) {
+            LOG(INFO) << "create a new one for reorder";
+            reorder_op = new ReorderOp<T>( dims, src_fmt, dst_fmt);
+            ReorderFactory<T>::get_instance().set_reorder( dims, src_fmt, dst_fmt, reorder_op);
+        } else {
+            LOG(INFO) << "reuse exist one for reorder";
+        }
+        return reorder_op;
+    }
 
-    //memory dims
-    mkldnn::memory::dims strides_;
-    mkldnn::memory::dims padding_l_;
-    mkldnn::memory::dims padding_r_;
+    static ReorderFactory& get_instance() {
+        static ReorderFactory instance_;
+        return instance_;
+    }
 
-    //memory desc
-    std::shared_ptr<mkldnn::memory::desc> src_md_; //x 
-    std::shared_ptr<mkldnn::memory::desc> weights_md_;// W
-    std::shared_ptr<mkldnn::memory::desc> bias_md_; // b
-    std::shared_ptr<mkldnn::memory::desc> dst_md_; // y 
+private:    
+    Op<T>* get_reorder( mkldnn::memory::dims dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt);
+
+    void set_reorder( mkldnn::memory::dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt, Op<T>* op);
 };
 
-#endif // _CONV_FWD_H_
+#endif // _REORDER_FACTORY_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

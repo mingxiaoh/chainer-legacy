@@ -73,6 +73,8 @@
 #include "conv_fwd_factory.h"
 #include "conv_bwd_data_factory.h"
 #include "conv_bwd_weights_factory.h"
+#include "reorder_op.h"
+#include "reorder_factory.h"
 
 using namespace mkldnn;
 
@@ -135,10 +137,10 @@ mdarray Convolution2D<T>::Forward(
     mkldnn::memory::format src_fmt = src_internal->cxx_format(); // src fmt in mdarray
     mkldnn::memory::format w_fmt = w_internal->cxx_format(); // weight fmt in mdarray
 
-    mkldnn::memory src_tmp = src_internal->memory(); // memory in src mdarray
-    mkldnn::memory w_tmp = w_internal->memory(); // memory in weight mdarray
-    std::shared_ptr<mkldnn::memory> src_reorder = NULL;
-    std::shared_ptr<mkldnn::memory> w_reorder = NULL;
+    void *src_tmp = src_internal->data();
+    void *w_tmp = w_internal->data();
+    void *src_reorder = NULL;
+    void *w_reorder = NULL;
     
     // check wehther fmt is same
     if (src_fmt == conv2d_forward->src_fmt_ && w_fmt == conv2d_forward->weights_fmt_) {
@@ -149,17 +151,19 @@ mdarray Convolution2D<T>::Forward(
         if (src_fmt != conv2d_forward->src_fmt_) {
             LOG(INFO) << "src_fmt=" << src_fmt <<", conv2d_forward->src_fmt_=" << conv2d_forward->src_fmt_;
             // FIXME: when to free the reordered memory
-            src_reorder.reset(new memory({{{src_dims}, memory_data_type<T>(), conv2d_forward->src_fmt_}, cpu_engine}));
-            reorder_func(src_internal->memory(), *(src_reorder));
-            src_tmp = *src_reorder;
+            ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, conv2d_forward->src_fmt_);
+            src_reorder = new avx::byte[src_internal->len()];
+            reorder_src_op->execute(src_tmp, src_reorder);
+            src_tmp = src_reorder;
         }
 
         if (w_fmt != conv2d_forward->weights_fmt_) {
             LOG(INFO) << "weight_fmt=" << w_fmt <<", conv2d_forward->weight_fmt_=" << conv2d_forward->weights_fmt_;
             // FIXME: when to free the reordered memory
-            w_reorder.reset(new memory({{{w_dims}, memory_data_type<T>(), conv2d_forward->weights_fmt_}, cpu_engine}));
-            reorder_func(w_internal->memory(), *(w_reorder));
-            w_tmp = *w_reorder;
+            ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, conv2d_forward->weights_fmt_);
+            w_reorder = new avx::byte[w_internal->len()];
+            reorder_w_op->execute(w_tmp, w_reorder);
+            w_tmp = w_reorder;
         }
     }
 
@@ -169,11 +173,16 @@ mdarray Convolution2D<T>::Forward(
     
     // do forward
     if (cp.with_bias) {
-        conv2d_forward->execute(src_tmp, w_tmp, b_internal->memory(), dst_mdarray.get()->memory());
+        conv2d_forward->execute(src_tmp, w_tmp, b_internal->data(), dst_mdarray.get()->data());
     } else {
-        conv2d_forward->execute(src_tmp, w_tmp, dst_mdarray.get()->memory());
+        conv2d_forward->execute(src_tmp, w_tmp, dst_mdarray.get()->data());
     }
-    //
+
+    //FIXME here may cause performance issue
+    if (src_reorder != NULL)
+        delete src_reorder;
+    if (w_reorder != NULL)
+        delete w_reorder;
 
     return dst_mdarray;
 }
@@ -222,10 +231,10 @@ std::vector<mdarray> Convolution2D<T>::BackwardWeights(
     mkldnn::memory::format diff_dst_fmt = diff_dst_internal->cxx_format();
 
     //assum dst and src have same data type
-    mkldnn::memory src_tmp = src_internal->memory();
-    mkldnn::memory diff_dst_tmp = diff_dst_internal->memory();
-    std::shared_ptr<mkldnn::memory> src_reorder = NULL;
-    std::shared_ptr<mkldnn::memory> diff_dst_reorder = NULL;
+    void* src_tmp = src_internal->data();
+    void* diff_dst_tmp = diff_dst_internal->data();
+    void* src_reorder = NULL;
+    void* diff_dst_reorder = NULL;
 
     //check whether fmt is same
     if (src_fmt == conv2d_bwd_weights->src_fmt_ && diff_dst_fmt == conv2d_bwd_weights->diff_dst_fmt_) {
@@ -236,16 +245,18 @@ std::vector<mdarray> Convolution2D<T>::BackwardWeights(
         if (src_fmt != conv2d_bwd_weights->src_fmt_) {
             LOG(INFO) << "src_fmt=" << src_fmt << ", conv2d_bwd_weights->src_fmt_=" << conv2d_bwd_weights->src_fmt_;
             // FIXME: when to free the reordered memory
-            src_reorder.reset(new memory({{{src_dims}, memory_data_type<T>(), conv2d_bwd_weights->src_fmt_}, cpu_engine}));
-            reorder_func(src_internal->memory(), *(src_reorder));
-            src_tmp = *src_reorder;
+            ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, conv2d_bwd_weights->src_fmt_);
+            src_reorder = new avx::byte[src_internal->len()];
+            reorder_src_op->execute(src_tmp, src_reorder);
+            src_tmp = src_reorder;
         }
         if (diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
             LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_weights->diff_dst_fmt_=" << conv2d_bwd_weights->diff_dst_fmt_;
             // FIXME: when to free the reordered memory
-            diff_dst_reorder.reset(new memory({{{diff_dst_dims}, memory_data_type<T>(), conv2d_bwd_weights->diff_dst_fmt_}, cpu_engine}));
-            reorder_func(diff_dst_internal->memory(), *(diff_dst_reorder));
-            diff_dst_tmp = *diff_dst_reorder;
+            ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_weights->diff_dst_fmt_);
+            diff_dst_reorder = new avx::byte[diff_dst_internal->len()];
+            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
+            diff_dst_tmp = diff_dst_reorder;
         }
     }
 
@@ -255,13 +266,19 @@ std::vector<mdarray> Convolution2D<T>::BackwardWeights(
     if (cp.with_bias) {
         // asume bias's format is always mkldnn::memory::format::x
         mdarray diff_b_mdarray = mdarray(diff_b_dims, src_internal->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
-        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->memory(), diff_b_mdarray.get()->memory(), diff_dst_tmp);
+        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->data(), diff_b_mdarray.get()->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_mdarray);
         bwd_weight_vec.push_back(diff_b_mdarray);
     } else {
-        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->memory(), diff_dst_tmp);
+        conv2d_bwd_weights->execute(src_tmp, diff_w_mdarray.get()->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_mdarray);
     }
+
+    //free
+    if (src_reorder != NULL)
+        delete src_reorder;
+    if (diff_dst_reorder != NULL)
+        delete diff_dst_reorder;
     return bwd_weight_vec;
 }
 
@@ -296,10 +313,10 @@ mdarray Convolution2D<T>::BackwardData(
     mkldnn::memory::format w_fmt = w_internal->cxx_format();
     mkldnn::memory::format diff_dst_fmt = diff_dst_internal->cxx_format();
     
-    mkldnn::memory w_tmp = w_internal->memory();
-    mkldnn::memory diff_dst_tmp = diff_dst_internal->memory();
-    std::shared_ptr<mkldnn::memory> w_reorder = NULL;
-    std::shared_ptr<mkldnn::memory> diff_dst_reorder = NULL;
+    void* w_tmp = w_internal->data();
+    void* diff_dst_tmp = diff_dst_internal->data();
+    void* w_reorder = NULL;
+    void* diff_dst_reorder = NULL;
 
     if (w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
         LOG(INFO) << "conv2d bwd data primitive fmt matched";
@@ -308,15 +325,17 @@ mdarray Convolution2D<T>::BackwardData(
 
         if (w_fmt != conv2d_bwd_data->weights_fmt_) {
             LOG(INFO) << "weight_fmt=" << w_fmt << ", conv2d_bwd_data->weights_fmt_="<< conv2d_bwd_data->weights_fmt_;
-            w_reorder.reset(new memory({{{w_dims}, memory_data_type<T>(), conv2d_bwd_data->weights_fmt_}, cpu_engine}));
-            reorder_func(w_internal->memory(), *(w_reorder));
-            w_tmp = *w_reorder;
+            ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, conv2d_bwd_data->weights_fmt_);
+            w_reorder = new avx::byte[w_internal->len()];
+            reorder_w_op->execute(w_tmp, w_reorder);
+            w_tmp = w_reorder;
         } 
         if (diff_dst_fmt != conv2d_bwd_data->diff_dst_fmt_) {
             LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_data->diff_dst_fmt_=" << conv2d_bwd_data->diff_dst_fmt_;
-            diff_dst_reorder.reset(new memory({{{diff_dst_dims}, memory_data_type<T>(), conv2d_bwd_data->diff_dst_fmt_}, cpu_engine}));
-            reorder_func(diff_dst_internal->memory(), *(diff_dst_reorder));
-            diff_dst_tmp = *diff_dst_reorder;
+            ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_data->diff_dst_fmt_);
+            diff_dst_reorder = new avx::byte[diff_dst_internal->len()];
+            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
+            diff_dst_tmp = diff_dst_reorder;
         }
     }
 
@@ -324,7 +343,13 @@ mdarray Convolution2D<T>::BackwardData(
     // assume dst and src have same data type
     mdarray diff_src_mdarray = mdarray(diff_src_dims, diff_dst_internal->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
     
-    conv2d_bwd_data->execute(diff_src_mdarray.get()->memory(), w_tmp, diff_dst_tmp);
+    conv2d_bwd_data->execute(diff_src_mdarray.get()->data(), w_tmp, diff_dst_tmp);
+
+    // free
+    if (w_reorder != NULL)
+        delete w_reorder;
+    if (diff_dst_reorder != NULL)
+        delete diff_dst_reorder;
 
     return diff_src_mdarray;
 }

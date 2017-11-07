@@ -97,7 +97,7 @@ public:
     /*
      * Convolution backward weights without bias
      */
-    void execute(mkldnn::memory diff_src, mkldnn::memory w, mkldnn::memory diff_dst);
+    void execute(void* diff_src, void* w, void* diff_dst);
 
 public:
     // expected memory format for this primitive instance

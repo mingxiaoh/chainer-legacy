@@ -156,16 +156,22 @@ void Convolution2DBwdData<T>::setup(
 }
 
 template<typename T>
-void Convolution2DBwdData<T>::execute(mkldnn::memory diff_src, mkldnn::memory w, mkldnn::memory diff_dst)
+void Convolution2DBwdData<T>::execute(void* diff_src, void* w, void* diff_dst)
 {
 //    LOG(INFO) << "Convolution forward without bias";
 //    LOG(INFO) << conv_fwd_;
 
-    diff_src_mem_->set_data_handle(diff_src.get_data_handle());
-    weights_mem_->set_data_handle(w.get_data_handle());
-    diff_dst_mem_->set_data_handle(diff_dst.get_data_handle());
+    diff_src_mem_->set_data_handle(diff_src);
+    weights_mem_->set_data_handle(w);
+    diff_dst_mem_->set_data_handle(diff_dst);
     //conv_fwd_->execute();
     bwd_data_stream_->submit(bwd_data_primitives_);
+
+    //set back data handke
+    diff_src_mem_->set_data_handle(dummy);
+    weights_mem_->set_data_handle(dummy);
+    diff_dst_mem_->set_data_handle(dummy);
+
     return;
 }
 
