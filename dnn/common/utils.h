@@ -69,4 +69,10 @@ static std::string dims_to_string(mkldnn::memory::dims dims) {
    return os.str();
 }
 
+static inline std::string long_to_string(size_t value) {
+    std::ostringstream os;
+    os << std::hex << "L" << value << "_";
+    return os.str();
+}
+
 #endif // _UTILS_H_
