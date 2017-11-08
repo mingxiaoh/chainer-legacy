@@ -180,9 +180,9 @@ mdarray Convolution2D<T>::Forward(
 
     //FIXME here may cause performance issue
     if (src_reorder != NULL)
-        delete src_reorder;
+        delete static_cast<avx::byte *>(src_reorder);
     if (w_reorder != NULL)
-        delete w_reorder;
+        delete static_cast<avx::byte *>(w_reorder);
 
     return dst_mdarray;
 }
@@ -276,9 +276,9 @@ std::vector<mdarray> Convolution2D<T>::BackwardWeights(
 
     //free
     if (src_reorder != NULL)
-        delete src_reorder;
+        delete static_cast<avx::byte *>(src_reorder);
     if (diff_dst_reorder != NULL)
-        delete diff_dst_reorder;
+        delete static_cast<avx::byte *>(diff_dst_reorder);
     return bwd_weight_vec;
 }
 
@@ -347,9 +347,9 @@ mdarray Convolution2D<T>::BackwardData(
 
     // free
     if (w_reorder != NULL)
-        delete w_reorder;
+        delete static_cast<avx::byte *>(w_reorder);
     if (diff_dst_reorder != NULL)
-        delete diff_dst_reorder;
+        delete static_cast<avx::byte *>(diff_dst_reorder);
 
     return diff_src_mdarray;
 }

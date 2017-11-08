@@ -34,7 +34,7 @@ libraries = ['mkldnn', 'mklml_intel']
 if system() == 'Linux':
     ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY']
     libraries += ['boost_system', 'glog', 'm']
-    src = ['dnn/py/dnn.i', 'dnn/mm/mdarray_lite.cc',
+    src = ['dnn/py/dnn.i', 'dnn/mm/mdarray_lite.cc', 'dnn/mm/mem.cc',
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
 	       'dnn/primitives/ops/conv_fwd.cc', 'dnn/primitives/prim_mgr/conv_fwd_factory.cc',
            'dnn/primitives/ops/conv_bwd_weights.cc', 'dnn/primitives/prim_mgr/conv_bwd_weights_factory.cc',
