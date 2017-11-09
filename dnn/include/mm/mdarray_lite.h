@@ -144,6 +144,10 @@ public:
   mdarray(mkldnn::memory::primitive_desc pd)
     : Tensor(pd) {}
 
+  mdarray(int ndims, vector<int> &dims, void *data,
+          mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
+    : Tensor(ndims, dims, data, mm_fmt, type) {}
+
   mdarray(Py_buffer *view) {
     data_type_t dt;
     std::string format(view->format);

@@ -100,6 +100,7 @@ class Tensor {
 public:
     // Allocate memory in constructor
     Tensor() : ndims_(0), type_(UNKNOWN_TYPE), size_(0), data_(nullptr) {}
+    virtual ~Tensor() {}
 
     Tensor(int ndims, vector<int> &dims, data_type_t type=FLOAT32)
         : ndims_(ndims), dims_(dims), type_(type) {
@@ -114,13 +115,13 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
-    Tensor(int ndims, vector<int> &dims, void *buf, data_type_t type=FLOAT32)
+    Tensor(int ndims, vector<int> &dims, void *data, data_type_t type=FLOAT32)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
             data_ = std::shared_ptr<avx::byte>(new avx::byte [len()]
                     , [] (avx::byte *p) {delete [] p;});
-            memcpy(data_.get(), buf, len());
+            memcpy(data_.get(), data, len());
             mm_fmt_ = ndims2format(ndims);
             memory::data_type dt = to_mkldnn_type();
             mem_.reset(new mkldnn::memory(
@@ -128,6 +129,12 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
+    Tensor(int ndims, vector<int> &dims, void *data,
+            mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
+        : Tensor(ndims, dims, data, type) {
+            mm_fmt_ = mm_fmt;
+        }
+        
     Tensor(mkldnn::memory::dims &dims
         , mkldnn::memory::data_type dt
         , mkldnn::memory::format format
@@ -147,6 +154,15 @@ public:
         memory::data_type dt = to_mkldnn_type();
         mem_.reset(new mkldnn::memory(
                     { { { dims_ }, dt , static_cast<memory::format>(mm_fmt_) }
+                    , cpu_engine }, data_.get()));
+    }
+
+    inline void reset_memory(mkldnn_memory_format_t mkldnn_mfmt, avx::byte *data) {
+        mm_fmt_ = mkldnn_mfmt;
+        data_.reset(data);
+        memory::data_type dt = to_mkldnn_type();
+        mem_.reset(new mkldnn::memory(
+                    { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
                     , cpu_engine }, data_.get()));
     }
 
