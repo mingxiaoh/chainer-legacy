@@ -20,7 +20,10 @@ def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
-    if not isinstance(gx, type(x.data)):
+    # FIXME
+    # yli135: in some case, gx's type is mdarray, but x.data's type is ndarray
+    # this should be legal in intel chainer
+    if not isinstance(gx, numpy.ndarray) and not isinstance(gx, mdarray):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
         typ = TypeError

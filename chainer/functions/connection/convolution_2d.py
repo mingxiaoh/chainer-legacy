@@ -90,8 +90,8 @@ class Convolution2DFunction(function_node.FunctionNode):
         # create conv parameter
         # for IA specific
         self.cp = conv_param_t()
-        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = n, c, h, w
-        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = out_c, input_c, kh, kw
+        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = x.shape
+        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = W.shape
         self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = n, out_c, out_h, out_w
         self.cp.bias_d1 = inputs[2].shape[0] if len(inputs) ==  3 else -1
         self.cp.with_bias = True if len(inputs) == 3 else False
@@ -256,6 +256,36 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
+
+    def forward_ia(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+
+        n, input_c, h, w = x.shape
+        n, out_c, out_h, out_w = gy.shape
+        self.pd = self.sy*(out_h-1) + self.kh - h - self.ph
+        self.pr = self.sx*(out_w-1) + self.kw - w - self.pw
+
+        # create conv parameter
+        # for IA specific
+        self.cp = conv_param_t()
+        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = x.shape
+        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = out_c, input_c, self.kh, self.kw
+        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = gy.shape
+        self.cp.sy, self.cp.sx = self.sy, self.sx
+        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        # Chainer's this function is only to calculate gW, MUST no gb
+        self.cp.bias_d1 = -1
+        self.cp.with_bias = False
+
+        if isinstance(x, numpy.ndarray):
+            x = mdarray(x)
+        if isinstance(gy, numpy.ndarray):
+            gy = mdarray(gy)
+
+        # only calculate gW, no gb
+        (gW,) = Convolution2D_Py_F32.BackwardWeights(x, gy, self.cp)
+        return gW,
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
