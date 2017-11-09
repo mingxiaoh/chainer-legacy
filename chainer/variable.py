@@ -13,6 +13,8 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
 
+from dnn._dnn import mdarray
+
 
 def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
@@ -448,7 +450,7 @@ class Variable(object):
                 ('requires_grad', True))
 
         if (data is not None and
-                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
+                not isinstance(data, (numpy.ndarray, cuda.ndarray, mdarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)

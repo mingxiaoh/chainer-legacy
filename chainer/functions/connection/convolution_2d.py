@@ -8,6 +8,12 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import mkld
+
+import dnn._dnn
+from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
+
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -67,6 +73,41 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
+    def forward_ia(self, inputs):
+        self.retain_inputs((0, 1))  # retain only x and W
+        x, W = inputs[:2]
+        b = inputs[2] if len(inputs) == 3 else None
+        out_c, input_c, kh, kw = W.shape
+        n, c, h, w = x.shape
+
+        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph, cover_all=self.cover_all)
+        assert out_h > 0, 'Height in the output should be positive.'
+        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw, cover_all=self.cover_all)
+        assert out_w > 0, 'Width in the output should be positive.'
+        self.pd = self.sy*(out_h-1) + kh - h - self.ph
+        self.pr = self.sx*(out_w-1) + kw - w - self.pw
+
+        # create conv parameter
+        # for IA specific
+        self.cp = conv_param_t()
+        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = n, c, h, w
+        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = out_c, input_c, kh, kw
+        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = n, out_c, out_h, out_w
+        self.cp.bias_d1 = inputs[2].shape[0] if len(inputs) ==  3 else -1
+        self.cp.with_bias = True if len(inputs) == 3 else False
+        self.cp.sy, self.cp.sx = self.sy, self.sx
+        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+
+        if isinstance(x, numpy.ndarray):
+            x = mdarray(x)
+        if isinstance(W, numpy.ndarray):
+            W = mdarray(W)
+        if self.cp.with_bias and isinstance(b, numpy.ndarray):
+            b = mdarray(b)
+
+        y = Convolution2D_Py_F32.Forward(x, W, b, self.cp)
+
+        return y,
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
@@ -180,7 +221,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             y = cuda.cupy.rollaxis(y, 3, 1)
 
         return y,
-
+    
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs

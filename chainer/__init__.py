@@ -3,6 +3,7 @@ import os
 import threading
 import warnings
 
+from chainer import mkld
 from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
@@ -89,12 +90,17 @@ global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 
+global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
     '>=auto':   {'always': True, 'auto': True,  'never': False},
 }
 
+_SHOULD_USE_MKLDNN = {
+    '==always': {'always': True, 'auto': False, 'never': False},
+    '>=auto': {'always': True, 'auto': True, 'never': False},
+}
 
 _cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else -1
 
@@ -154,6 +160,34 @@ def should_use_cudnn_tensor_core(dtype):
 
     return use_tensor_core
 
+def should_use_mkldnn(level):
+    """Determines if we should use cuDNN.
+
+    This function checks ``chainer.config.use_cudnn``,
+    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
+
+    Args:
+        level (str): cuDNN use level. It must be either ``'==always'`` or
+            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
+            config must be ``'always'`` to use cuDNN.
+        lowest_version (int): Required lowest cuDNN version. It must be
+            non-negative.
+
+    Returns:
+        bool: ``True`` if the caller should use cuDNN.
+    """
+    if level not in _SHOULD_USE_MKLDNN:
+        raise ValueError('invalid mkldnn use level: %s '
+                         '(must be either of "==always" or ">=auto")' %
+                         repr(level))
+    flags = _SHOULD_USE_MKLDNN[level]
+
+    if config.use_mkldnn not in flags:
+        raise ValueError('invalid use_mkldnn configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(config.use_mkldnn))
+    return flags[config.use_mkldnn]
 
 def is_debug():
     """Get the debug mode.
