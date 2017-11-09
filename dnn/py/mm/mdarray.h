@@ -179,17 +179,14 @@ public:
                 , cpu_engine }, data_.get()));
   }
   
+  //FIXME
   inline void unpickled_data(void *pdata) {
     data_.reset(reinterpret_cast<avx::byte *>(pdata));
     //m_.set_data_handle(pdata);
     return;
   }
 
-  inline mkldnn::memory memory() const {
-    return *(to_mkldnn_memory());
-  }
-
-    // PEP 3118 interface
+  // PEP 3118 interface
   int build_view(Py_buffer *view, int flags, const Reorderer &reorder) {
       view->buf = reorder.data_.get();
       view->itemsize = reorder.itemsize_;

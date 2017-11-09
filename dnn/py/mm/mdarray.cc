@@ -171,7 +171,7 @@ PyObject *mdarray::axpby(T a, T b, PyObject *o) {
   }
 
   auto x = (reinterpret_cast<py_handle *>(oprd2))->get();
-  py_handle *output = new py_handle(new mdarray(x->memory().get_primitive_desc()));
+  py_handle *output = new py_handle(new mdarray(x->mkldnn_memory().get_primitive_desc()));
 
   /// Switch position for format consistency
   axpby(output->get(), b, x, a, this);
@@ -365,8 +365,8 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
     std::vector<mkldnn::primitive> prims;
     std::unique_ptr<mkldnn::memory> mreorder;
 
-    auto oprd2_internal_m = reorder_if_must(oprd2_mdarr->memory(),
-                               oprd1_mdarr->memory().get_primitive_desc(),
+    auto oprd2_internal_m = reorder_if_must(oprd2_mdarr->mkldnn_memory(),
+                               oprd1_mdarr->mkldnn_memory().get_primitive_desc(),
                                mreorder,
                                &prims);
     mkldnn::stream s(mkldnn::stream::kind::eager);
@@ -691,7 +691,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 
 PyObject *mdarray::flat() {
   long int dims[1] = {static_cast<long int>(this->size())};
-  int typenum = (this->memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
+  int typenum = (this->mkldnn_memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
 
   PyObject *plain_arr = nullptr;
   plain_arr = PyArray_SimpleNewFromData(1, dims, typenum, this->data());
