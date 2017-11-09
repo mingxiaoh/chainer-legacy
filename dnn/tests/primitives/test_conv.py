@@ -2,7 +2,7 @@ import numpy
 import dnn._dnn
 
 #from dnn._dnn import conv_param_t, conv_test
-from dnn._dnn import conv_param_t, Convolution2D_F32
+from dnn._dnn import conv_param_t, Convolution2D_Py_F32
 
 x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
@@ -32,23 +32,23 @@ cp.pad_lh = cp.pad_lw = cp.pad_rh = cp.pad_rw = 1
 cp.with_bias = True
 
 print("fwd")
-y = Convolution2D_F32.Forward(x, w, b, cp)
+y = Convolution2D_Py_F32.Forward(x, w, b, cp)
 print("==============")
-y = Convolution2D_F32.Forward(x, w, b, cp)
+y = Convolution2D_Py_F32.Forward(x, w, b, cp)
 print("==============")
-y = Convolution2D_F32.Forward(y, w, b, cp)
+y = Convolution2D_Py_F32.Forward(y, w, b, cp)
 
 print("==============")
 print("bwd data")
-x = Convolution2D_F32.BackwardData(w, y, cp)
+x = Convolution2D_Py_F32.BackwardData(w, y, cp)
 print("==============")
-x = Convolution2D_F32.BackwardData(w, y, cp)
+x = Convolution2D_Py_F32.BackwardData(w, y, cp)
 print("==============")
-x = Convolution2D_F32.BackwardData(w, x, cp)
+x = Convolution2D_Py_F32.BackwardData(w, x, cp)
 
 print("==============")
 print("bwd weights")
-weights = Convolution2D_F32.BackwardWeights(x, y, cp)
+weights = Convolution2D_Py_F32.BackwardWeights(x, y, cp)
 print("weights=", type(weights))
 print("len=", len(weights))
 print("gw.shape=", weights[0].shape)
@@ -57,7 +57,7 @@ if cp.with_bias:
 print("==============")
 x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
-weights = Convolution2D_F32.BackwardWeights(x, y, cp)
+weights = Convolution2D_Py_F32.BackwardWeights(x, y, cp)
 #print("type=", type(x))
 #print("shape=", y.shape)
 #print("size=", y.size)

@@ -61,25 +61,21 @@
  */
 
 
-#ifndef _CONV_H_
-#define _CONV_H_
+#ifndef _CONV_PY_H_
+#define _CONV_PY_H_
 
-#include <mkldnn.hpp>
 #include <vector>
 #include <memory>
-#include "layer.h"
 #include "op_param.h"
-#include "tensor.h"
+#include "mdarray.h"
+#include "conv.h"
 
 template <typename T>
-class Convolution2D : public Layer<T>
+class Convolution2D_Py
 {
 public:
-    Convolution2D();
-    ~Convolution2D();
-    
     /*
-     * Convolution Forward
+     * Python Convolution Forward
      * Y = W*X + b
      * params:
      * src: input, x
@@ -88,38 +84,104 @@ public:
      * bias: bias, b
      * cp: convolution parameters
      */
-    static Tensor Forward(Tensor &src, 
-                          Tensor &weights, 
-                          Tensor &bias,
-                          conv_param_t &cp);
+    static mdarray Forward(mdarray &src, 
+                           mdarray &weights, 
+                           mdarray &bias,
+                           conv_param_t& cp) {
+        // Shoule be removed in future????
+        implementation::mdarray *src_internal = src.get();
+        implementation::mdarray *w_internal = weights.get();
+        implementation::mdarray *b_internal;
+        if ( cp.with_bias )
+            b_internal = bias.get();
+
+        Tensor dst_tensor = Convolution2D<T>::Forward(
+                dynamic_cast<Tensor&>(*src_internal), 
+                dynamic_cast<Tensor&>(*w_internal), 
+                dynamic_cast<Tensor&>(*b_internal), cp);
+        
+        // FIXME
+        // In future, mdarray will have a Tensor member, no need to create a new one
+        mdarray dst_mdarray = mdarray(
+                                      dst_tensor.ndims(), 
+                                      dst_tensor.dims(),
+                                      dst_tensor.data(),
+                                      dst_tensor.format(),
+                                      dst_tensor.type());
+        //mdarray dst_mdarray;
+        return dst_mdarray;
+    }
 
     /*
-     * Convolution backward weights
+     * Python Convolution backward weights
      * gW = gy*x
      * params:
      * src: input, x
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static std::vector<Tensor> BackwardWeights(Tensor &src, 
-                                               Tensor &diff_dst,
-                                               conv_param_t &cp);
+    static std::vector<mdarray> BackwardWeights(mdarray& src, 
+                                                mdarray& diff_dst,
+                                                conv_param_t& cp) {
+        std::vector<mdarray> grads;
+
+        //FIXME
+        // Should be removed in future
+        implementation::mdarray *src_internal = src.get();
+        implementation::mdarray *diff_dst_internal = diff_dst.get();
+
+        std::vector<Tensor> grads_tensor = Convolution2D<T>::BackwardWeights(
+                                        dynamic_cast<Tensor&>(*src_internal),
+                                        dynamic_cast<Tensor&>(*diff_dst_internal),
+                                        cp);
+        
+        //FIXME
+        for (int i = 0; i < grads_tensor.size(); i++) {
+            grads.push_back( mdarray(
+                                grads_tensor[i].ndims(),
+                                grads_tensor[i].dims(),
+                                grads_tensor[i].data(),
+                                grads_tensor[i].format(),
+                                grads_tensor[i].type()));
+        }
+        return grads;
+    }
 
     /*
-     * Convolution backward data
+     * Python Convolution backward data
      * gx = gy*w
      * param:
      * weights: weights, w
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static Tensor BackwardData(Tensor &weights, 
-                               Tensor &diff_dst,
-                               conv_param_t &cp);
+    static mdarray BackwardData(mdarray& weights, 
+                                mdarray& diff_dst,
+                                conv_param_t& cp) {
+        //FIXME
+        //Should be removed in future
+        implementation::mdarray *w_internal = weights.get();
+        implementation::mdarray *diff_dst_internal = diff_dst.get();
+
+        Tensor diff_src_tensor = Convolution2D<T>::BackwardData(
+                                dynamic_cast<Tensor&>(*w_internal),
+                                dynamic_cast<Tensor&>(*diff_dst_internal),
+                                cp);
+
+        // FIXME
+        // In future, mdarray will have a Tensor member, no need to create a new one
+        mdarray diff_src_mdarray = mdarray(
+                                      diff_src_tensor.ndims(), 
+                                      diff_src_tensor.dims(),
+                                      diff_src_tensor.data(),
+                                      diff_src_tensor.format(),
+                                      diff_src_tensor.type());
+        return diff_src_mdarray;
+    }
 
 };
 
-#endif // _CONV_H_
+#endif // _CONV_PY_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

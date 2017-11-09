@@ -100,7 +100,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
         int pl1, int pl2,
         int pr1, int pr2)
 {
-    //LOG(INFO) << "Convolution forward_setup";
+    LOG(INFO) << "Convolution forward_setup";
     assert(src_d != NULL);
     assert(w_d != NULL);
     assert(bias_d != NULL); // no bias case, expect as NONE_DIMS, not NULL
@@ -167,7 +167,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
 template<typename T>
 void Convolution2DFwd<T>::execute(void* src, void* w, void* b, void* dst)
 {
-//    LOG(INFO) << "Convolution forward";
+    LOG(INFO) << "Convolution forward";
     //LOG(INFO) << "conv_fwd_:" << conv_fwd_;
     //LOG(INFO) << "x=" << x << "; x_size=" << x_d1*x_d2*x_d3*x_d4*4;
     src_mem_->set_data_handle(src);
@@ -189,7 +189,7 @@ void Convolution2DFwd<T>::execute(void* src, void* w, void* b, void* dst)
 template<typename T>
 void Convolution2DFwd<T>::execute(void* src, void* w, void* dst)
 {
-//    LOG(INFO) << "Convolution forward without bias";
+    LOG(INFO) << "Convolution forward without bias";
 //    LOG(INFO) << conv_fwd_;
 
     src_mem_->set_data_handle(src);

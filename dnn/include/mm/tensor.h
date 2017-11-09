@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "mkldnn.hpp"
+#include "mem.h"
 
 using namespace std;
 using namespace mkldnn;
@@ -129,7 +130,7 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
-    Tensor(int ndims, vector<int> &dims, void *data,
+    Tensor(int ndims, vector<int> dims, void *data,
             mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
         : Tensor(ndims, dims, data, type) {
             mm_fmt_ = mm_fmt;
@@ -218,6 +219,14 @@ public:
 
     inline int ndims() const {
         return ndims_;
+    }
+
+    inline vector<int> dims() const {
+        return dims_;
+    }
+
+    inline data_type_t type() const {
+        return type_;
     }
 
     inline mkldnn::memory mkldnn_memory() const {
