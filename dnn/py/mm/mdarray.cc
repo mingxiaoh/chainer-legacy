@@ -4,6 +4,7 @@
 #endif
 #include "mdarray.h"
 #include <mkl_vml_functions.h>
+#include "mkldnn_ex.h"
 
 namespace implementation {
 
@@ -118,9 +119,8 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   }
 
   PyObject *argList = Py_BuildValue("(OiO)", o
-      , reorderer::public_format(
-          static_cast<mkldnn::memory::format>(desc().data.format)
-        ), Py_p_engine);
+      , ::public_format(desc().data.format)
+        , Py_p_engine);
 
   if (argList == nullptr) {
     PyErr_SetString(PyExc_SystemError, "Can not create argument list");
@@ -142,23 +142,7 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
 
 template<class T>
 void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
-  std::vector<mkldnn::primitive> prims;
-  std::unique_ptr<mkldnn::memory> mreorder;
-
-  /// Reorder to x's format
-  auto mid = reorder_if_must(y->m_, x->m_.get_primitive_desc()
-      , mreorder, &prims);
-
-  mkldnn::sum::primitive_desc sum_pd({a, b}
-      , {x->m_.get_primitive_desc(), mid.get_primitive_desc()});
-
-  std::vector<mkldnn::memory::primitive::at> inputs_at {x->m_, mid};
-
-  mkldnn::sum sum_prim(sum_pd, inputs_at, dst->m_);
-  prims.push_back(sum_prim);
-
-  mkldnn::stream s(mkldnn::stream::kind::eager);
-  s.submit(prims).wait();
+    ::axpby((Tensor *)dst, a, (Tensor *)x, b, (Tensor *) y);
 }
 
 template<class T>
@@ -187,7 +171,7 @@ PyObject *mdarray::axpby(T a, T b, PyObject *o) {
   }
 
   auto x = (reinterpret_cast<py_handle *>(oprd2))->get();
-  py_handle *output = new py_handle(new mdarray(x->m_.get_primitive_desc()));
+  py_handle *output = new py_handle(new mdarray(x->memory().get_primitive_desc()));
 
   /// Switch position for format consistency
   axpby(output->get(), b, x, a, this);
@@ -381,8 +365,8 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
     std::vector<mkldnn::primitive> prims;
     std::unique_ptr<mkldnn::memory> mreorder;
 
-    auto oprd2_internal_m = reorder_if_must(oprd2_mdarr->m_,
-                               oprd1_mdarr->m_.get_primitive_desc(),
+    auto oprd2_internal_m = reorder_if_must(oprd2_mdarr->memory(),
+                               oprd1_mdarr->memory().get_primitive_desc(),
                                mreorder,
                                &prims);
     mkldnn::stream s(mkldnn::stream::kind::eager);
@@ -603,7 +587,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
     return -1;
   }
 
-  reorderer *rb;
+  Reorderer *rb;
   int res = SWIG_ConvertPtr(rbobj, reinterpret_cast<void **>(&rb), nullptr, 0);
 
   if (!SWIG_IsOK(res)) {
@@ -614,7 +598,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   if (rb->non_trivial())
     rb->fire(this);
 
-  if (rb->build_view(view, flags)) {
+  if (build_view(view, flags, *rb)) {
     PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
     return -1;
   }
@@ -715,38 +699,6 @@ PyObject *mdarray::flat() {
     PyErr_SetString(PyExc_ValueError, "Can't create plain array with format from mdarray");
 
   return plain_arr;
-}
-
-int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {
-  if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
-    PyErr_SetString(PyExc_ValueError, "carray is not Fortran contiguous");
-    return -1;
-  }
-
-  if (view == nullptr) {
-    PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
-    return -1;
-  }
-
-  // Only for the first, framework do it for us next time
-  if (reorder_ == nullptr) {
-    reorder_.reset(new reorderer(this));
-  }
-  if (reorder_->non_trivial() && (reorder_->is_reordered() == false)) {
-    mkldnn::reorder rb_p = reorder_->fire(this);
-    reorder_->set_reordered();
-  }
-
-  if ( reorder_->build_view(view, flags) ) {
-    PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
-    return -1;
-  }
-
-  view->obj = self;
-  sync_reorder_ = reorder_.get();
-  Py_INCREF(self);
-
-  return 0;
 }
 
 }

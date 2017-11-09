@@ -7,7 +7,7 @@
   #include <memory>
   #include <stdexcept>
 #define SWIG_INLINE
-  #include "mdarray_lite.h"
+  #include "mdarray.h"
 %}
 
 %include exception.i
