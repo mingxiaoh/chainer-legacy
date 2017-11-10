@@ -55,7 +55,7 @@ void g_init() {
   import_array();
 
 #if defined(OPENMP_AFFINITY)
-  google::SetStderrLogging(0);
+  google::SetStderrLogging(1);
   google::InitGoogleLogging("mkldnn");
   OpenMpManager::bindOpenMpThreads();
   OpenMpManager::printVerboseInformation();

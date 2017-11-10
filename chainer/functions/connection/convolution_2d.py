@@ -13,8 +13,6 @@ from chainer import mkld
 import dnn._dnn
 from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
 
-from chainer import variable
-
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn

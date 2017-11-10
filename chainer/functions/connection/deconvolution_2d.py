@@ -10,6 +10,9 @@ from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
 
+import dnn._dnn
+from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
@@ -90,6 +93,55 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[1]
             )
+
+    def forward_ia(self, inputs):
+        self.retain_inputs((0, 1))  # only retain x and W
+        x, W = inputs[:2]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        out_c, in_c, kh, kw = W.shape
+        n, out_c, in_h, in_w = x.shape
+        if self.outh is None:
+            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph,
+                                                d=self.dy)
+            assert self.outh > 0, 'Height in the output should be positive.'
+        if self.outw is None:
+            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
+                                                d=self.dx)
+            assert self.outw > 0, 'Width in the output should be positive.'
+
+        self._set_cover_all(x, W)
+    
+        """
+        Use convolution bwd data to implement deconv forward 
+        DeConvolution fwd: y = x * W
+        Convolution bwd data: gx = gy * W
+        deconv x == conv gy
+        deconv W == conv W
+        deconv y == conv gx
+        """
+        # create conv parameter
+        # for IA specific
+        self.cp = conv_param_t()
+        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = n, in_c, self.outh, self.outw
+        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = out_c, in_c, kh, kw # deconv's weight dims should be different with conv's w
+        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = n, out_c, in_h, in_w
+        self.cp.sy, self.cp.sx = self.sy, self.sx
+        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.ph, self.pw
+        # use conv bwd data to implement deconv fwd, not bias support 
+        self.cp.bias_d1 = -1
+        self.cp.with_bias = False
+
+        if isinstance(x, numpy.ndarray):
+            x = mdarray(x)
+        if isinstance(W, numpy.ndarray):
+            W = mdarray(W)
+
+        y = Convolution2D_Py_F32.BackwardData(W, x, self.cp)
+
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+        return y,
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
