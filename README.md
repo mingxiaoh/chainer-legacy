@@ -3,7 +3,7 @@
 [![coveralls](https://img.shields.io/coveralls/intel/chainer.svg)](https://coveralls.io/github/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
-# Chainer: a neural network framework
+# IntelChainer: Optimized-Chainer for Intel architectures
 
 ## Requirements
 
@@ -122,8 +122,8 @@ The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIP
 
 - Official site: http://chainer.org/
 - Official document: http://docs.chainer.org/
-- pfn chainer github: https://github.com/pfnet/chainer
-- intel chainer github: https://github.com/intel/chainer
+- Pfn chainer github: https://github.com/pfnet/chainer
+- Intel chainer github: https://github.com/intel/chainer
 - Forum: https://groups.google.com/forum/#!forum/chainer
 - Forum (Japanese): https://groups.google.com/forum/#!forum/chainer-jp
 - Twitter: https://twitter.com/ChainerOfficial
