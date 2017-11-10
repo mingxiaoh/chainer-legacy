@@ -9,7 +9,7 @@ available = False
 try:
     import dnn._dnn
     from dnn._dnn import mdarray
-    
+
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)
@@ -19,7 +19,7 @@ except Exception as ex:
 
 
 def is_enabled():
-    # Check whether mkldnn installed
+    # Check whether ideep installed
 
     return available
 
@@ -32,23 +32,23 @@ def all_ready(inputs, check_with_ndim):
 
     if isinstance(_inputs[0], mdarray):
         return True
-    # Check whether mkldnn configured and used correctly
+    # Check whether ideep configured and used correctly
     elif isinstance(_inputs[0], numpy.ndarray):
-        _should_use_mkldnn = True
+        _should_use_ideep = True
 
         for x in _inputs:
-            _should_use_mkldnn = _should_use_mkldnn and \
+            _should_use_ideep = _should_use_ideep and \
                                  x.dtype == numpy.dtype('float32')
-        if _should_use_mkldnn:
-            _should_use_mkldnn = _should_use_mkldnn and \
-                                 chainer.should_use_mkldnn('>=auto')
-        if not _should_use_mkldnn:
+        if _should_use_ideep:
+            _should_use_ideep = _should_use_ideep and \
+                                 chainer.should_use_ideep('>=auto')
+        if not _should_use_ideep:
             return False
     # cuda.ndarray
     else:
         return False
 
-    # Check with mkldnn supported dimension of input data
+    # Check with ideep supported dimension of input data
     valid_ndim = False
     for ndim in check_with_ndim:
         valid_ndim = valid_ndim or _inputs[0].ndim == ndim

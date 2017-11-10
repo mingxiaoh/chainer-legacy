@@ -13,8 +13,6 @@ from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
 
-from chainer import mkld
-
 
 class FunctionNode(object):
 
@@ -317,7 +315,7 @@ class FunctionNode(object):
         assert len(inputs) > 0
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
-        elif mkld.all_ready(inputs, ()):
+        elif chainer.ideepy.all_ready(inputs, ()):
             return self.forward_ia(inputs)
         return self.forward_cpu(inputs)
 

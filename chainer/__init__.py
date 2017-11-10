@@ -3,10 +3,10 @@ import os
 import threading
 import warnings
 
-from chainer import mkld
 from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
+from chainer import ideepy  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
@@ -90,7 +90,7 @@ global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 
-global_config.use_mkldnn = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
+global_config.use_ideep = os.environ.get('CHAINER_USE_MKLDNN', 'auto')
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},
@@ -160,7 +160,7 @@ def should_use_cudnn_tensor_core(dtype):
 
     return use_tensor_core
 
-def should_use_mkldnn(level):
+def should_use_ideep(level):
     """Determines if we should use cuDNN.
 
     This function checks ``chainer.config.use_cudnn``,
@@ -178,16 +178,16 @@ def should_use_mkldnn(level):
         bool: ``True`` if the caller should use cuDNN.
     """
     if level not in _SHOULD_USE_MKLDNN:
-        raise ValueError('invalid mkldnn use level: %s '
+        raise ValueError('invalid ideep use level: %s '
                          '(must be either of "==always" or ">=auto")' %
                          repr(level))
     flags = _SHOULD_USE_MKLDNN[level]
 
-    if config.use_mkldnn not in flags:
-        raise ValueError('invalid use_mkldnn configuration: %s '
+    if config.use_ideep not in flags:
+        raise ValueError('invalid use_ideep configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_mkldnn))
-    return flags[config.use_mkldnn]
+                         repr(config.use_ideep))
+    return flags[config.use_ideep]
 
 def is_debug():
     """Get the debug mode.

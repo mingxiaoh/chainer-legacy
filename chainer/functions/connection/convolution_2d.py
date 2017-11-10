@@ -8,7 +8,7 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
-from chainer import mkld
+from chainer import ideepy
 
 import dnn._dnn
 from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
