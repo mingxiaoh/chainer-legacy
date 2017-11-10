@@ -1,7 +1,6 @@
-[![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
-[![GitHub license](https://img.shields.io/github/license/pfnet/chainer.svg)](https://github.com/pfnet/chainer)
-[![travis](https://img.shields.io/travis/pfnet/chainer/master.svg)](https://travis-ci.org/pfnet/chainer)
-[![coveralls](https://img.shields.io/coveralls/pfnet/chainer.svg)](https://coveralls.io/github/pfnet/chainer)
+[![GitHub license](https://img.shields.io/github/license/intel/chainer.svg)](https://github.com/intel/chainer)
+[![travis](https://img.shields.io/travis/intel/chainer/master.svg)](https://travis-ci.org/intel/chainer)
+[![coveralls](https://img.shields.io/coveralls/intel/chainer.svg)](https://coveralls.io/github/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
 # Chainer: a neural network framework
@@ -110,17 +109,6 @@ pip install h5py
 ```
 
 
-## Run with Docker
-
-We provide the official Docker image.
-Use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) command to run Chainer image with GPU.
-You can login to the environment with bash, and run the Python interpreter.
-
-```
-$ nvidia-docker run -it chainer/chainer /bin/bash
-```
-
-
 ## Reference
 
 Tokui, S., Oono, K., Hido, S. and Clayton, J.,
@@ -134,7 +122,8 @@ The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIP
 
 - Official site: http://chainer.org/
 - Official document: http://docs.chainer.org/
-- github: https://github.com/pfnet/chainer
+- pfn chainer github: https://github.com/pfnet/chainer
+- intel chainer github: https://github.com/intel/chainer
 - Forum: https://groups.google.com/forum/#!forum/chainer
 - Forum (Japanese): https://groups.google.com/forum/#!forum/chainer-jp
 - Twitter: https://twitter.com/ChainerOfficial
