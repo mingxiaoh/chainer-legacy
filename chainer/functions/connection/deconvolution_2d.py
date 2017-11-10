@@ -95,6 +95,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             )
 
     def forward_ia(self, inputs):
+        # FIXME: only support dilate == 1 currently
+        if self.dy != 1 or self.dx != 1:
+            return self.forward_cpu(self, inputs)
+        
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None

@@ -72,6 +72,10 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
     def forward_ia(self, inputs):
+        # FIXME: only support dilate == 1 currently
+        if self.dy != 1 or self.dx != 1:
+            return self.forward_cpu(self, inputs)
+
         self.retain_inputs((0, 1))  # retain only x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
@@ -256,6 +260,10 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
 
     def forward_ia(self, inputs):
+        # FIXME: only support dilate == 1 currently
+        if self.dy != 1 or self.dx != 1:
+            return self.forward_cpu(self, inputs)
+        
         self.retain_inputs((0, 1))
         x, gy = inputs
 
