@@ -142,7 +142,7 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
 
 template<class T>
 void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
-    ::axpby((Tensor *)dst, a, (Tensor *)x, b, (Tensor *) y);
+    ::axpby(dst->tensor(), a, x->tensor(), b, y->tensor());
 }
 
 template<class T>
@@ -596,7 +596,7 @@ int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
   }
 
   if (rb->non_trivial())
-    rb->fire(this);
+    rb->fire(this->tensor());
 
   if (build_view(view, flags, *rb)) {
     PyErr_SetString(PyExc_RuntimeError, "Can't build Py_buffer!");
@@ -680,7 +680,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
     ret = PyObject_SetItem(surrogate, ind, op);
 
   if (sync_reorder_ && sync_reorder_->non_trivial()) {
-    sync_reorder_->sync(this);
+    sync_reorder_->sync(this->tensor());
   }
 
   Py_DECREF(surrogate);

@@ -95,19 +95,14 @@ public:
         if ( cp.with_bias )
             b_internal = bias.get();
 
-        Tensor dst_tensor = Convolution2D<T>::Forward(
-                dynamic_cast<Tensor&>(*src_internal), 
-                dynamic_cast<Tensor&>(*w_internal), 
-                dynamic_cast<Tensor&>(*b_internal), cp);
+        Tensor *dst_tensor = Convolution2D<T>::Forward(
+                (*(src_internal->tensor())), 
+                (*(w_internal->tensor())), 
+                (*(b_internal->tensor())), cp);
         
         // FIXME
         // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray dst_mdarray = mdarray(
-                                      dst_tensor.ndims(), 
-                                      dst_tensor.dims(),
-                                      dst_tensor.data(),
-                                      dst_tensor.format(),
-                                      dst_tensor.type());
+        mdarray dst_mdarray = mdarray(dst_tensor);
         //mdarray dst_mdarray;
         return dst_mdarray;
     }
@@ -130,19 +125,14 @@ public:
         implementation::mdarray *src_internal = src.get();
         implementation::mdarray *diff_dst_internal = diff_dst.get();
 
-        std::vector<Tensor> grads_tensor = Convolution2D<T>::BackwardWeights(
-                                        dynamic_cast<Tensor&>(*src_internal),
-                                        dynamic_cast<Tensor&>(*diff_dst_internal),
+        std::vector<Tensor *> grads_tensor = Convolution2D<T>::BackwardWeights(
+                                        (*(src_internal->tensor())),
+                                        (*(diff_dst_internal->tensor())),
                                         cp);
         
         //FIXME
         for (int i = 0; i < grads_tensor.size(); i++) {
-            grads.push_back( mdarray(
-                                grads_tensor[i].ndims(),
-                                grads_tensor[i].dims(),
-                                grads_tensor[i].data(),
-                                grads_tensor[i].format(),
-                                grads_tensor[i].type()));
+            grads.push_back( mdarray(grads_tensor[i]) );
         }
         return grads;
     }
@@ -163,19 +153,14 @@ public:
         implementation::mdarray *w_internal = weights.get();
         implementation::mdarray *diff_dst_internal = diff_dst.get();
 
-        Tensor diff_src_tensor = Convolution2D<T>::BackwardData(
-                                dynamic_cast<Tensor&>(*w_internal),
-                                dynamic_cast<Tensor&>(*diff_dst_internal),
+        Tensor *diff_src_tensor = Convolution2D<T>::BackwardData(
+                                (*(w_internal->tensor())),
+                                (*(diff_dst_internal->tensor())),
                                 cp);
 
         // FIXME
         // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray diff_src_mdarray = mdarray(
-                                      diff_src_tensor.ndims(), 
-                                      diff_src_tensor.dims(),
-                                      diff_src_tensor.data(),
-                                      diff_src_tensor.format(),
-                                      diff_src_tensor.type());
+        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
         return diff_src_mdarray;
     }
 

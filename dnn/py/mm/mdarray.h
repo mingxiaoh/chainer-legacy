@@ -115,7 +115,8 @@ namespace implementation {
   } \
 
 
-class mdarray : public Tensor {
+//class mdarray : public Tensor {
+class mdarray {
 public:
   // It is exposed to python
   //
@@ -124,7 +125,7 @@ public:
   class Reorder_buffer : Reorderer {
   public:
     Reorder_buffer(const py_handle in)
-        :Reorderer((Tensor *)in.get()) {}
+        :Reorderer(in.get()->tensor()) {}
   };
 
 public:
@@ -135,18 +136,20 @@ public:
   mdarray();
   virtual ~mdarray() = default;
 
+  mdarray(Tensor *tensor) : tensor_(tensor) {}
+
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt
       , mkldnn::memory::format format
       , const mkldnn::engine &engine)
-    : Tensor(dims, dt, format, engine) {}
+    : tensor_(new Tensor(dims, dt, format, engine)) {}
 
   mdarray(mkldnn::memory::primitive_desc pd)
-    : Tensor(pd) {}
+    : tensor_(new Tensor(pd)) {}
 
   mdarray(int ndims, vector<int> dims, void *data,
           mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
-    : Tensor(ndims, dims, data, mm_fmt, type) {}
+    : tensor_(new Tensor(ndims, dims, data, mm_fmt, type)) {}
 
   mdarray(Py_buffer *view) {
     data_type_t dt;
@@ -165,6 +168,11 @@ public:
       throw mkldnn::error(mkldnn_invalid_arguments
           , "MKLDNN does not support itemsize other than 4");
     }
+    vector<int> dims(view->shape, view->shape + view->ndim);
+    //std::unique_ptr<Tensor> tensor(new Tensor(view->ndim, dims, view->buf, dt)); 
+    tensor_.reset(new Tensor(view->ndim, dims, view->buf, dt)); 
+
+#if 0
     ndims_ = view->ndim;
     dims_.assign(view->shape, view->shape + view->ndim);
     size_ = view->len / view->itemsize;
@@ -177,11 +185,12 @@ public:
     mem_.reset(new mkldnn::memory(
                 { { { dims_ }, type, static_cast<memory::format>(mm_fmt_) }
                 , cpu_engine }, data_.get()));
+#endif
   }
   
   //FIXME
   inline void unpickled_data(void *pdata) {
-    data_.reset(reinterpret_cast<avx::byte *>(pdata));
+    //data_.reset(reinterpret_cast<avx::byte *>(pdata));
     //m_.set_data_handle(pdata);
     return;
   }
@@ -321,6 +330,30 @@ public:
   PyObject *mp_subscript(PyObject *self, PyObject *op);
   int mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op);
 
+  inline Tensor* tensor() {
+      return tensor_.get();
+  }
+  inline Tensor &tensor2() {
+      return *(tensor_.get());
+  }
+  inline int ndims() const {
+      return tensor_->ndims();
+  }
+  inline memory::desc desc() const {
+      return tensor_->desc();
+  }
+  inline size_type size() const {
+      return tensor_->size();
+  }
+  inline void *data() const {
+      return tensor_->data();
+  }
+  inline mkldnn::engine get_engine() const {
+      return tensor_->get_engine();
+  }
+  inline mkldnn::memory mkldnn_memory() const {
+      return tensor_->mkldnn_memory();
+  }
 private:
   struct WeDontManageIt {
     void operator() (const Py_buffer *view) {
@@ -332,6 +365,7 @@ private:
   std::unique_ptr<const Py_buffer, WeDontManageIt> view_;
 
 protected:
+  std::unique_ptr<Tensor> tensor_;
   Reorderer *sync_reorder_;
 
 #if 0
@@ -375,6 +409,9 @@ public:
   //FIXME 
   //yli135: add default constructor so that we can pass vector<mdarray> form native
   mdarray() {};
+
+  mdarray(Tensor *tensor)
+    : py_handle(std::make_shared<implementation::mdarray>(tensor)) {}
 
   mdarray(mkldnn::memory::dims &dims
       , mkldnn::memory::data_type dt

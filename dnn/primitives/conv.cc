@@ -94,7 +94,7 @@ Convolution2D<T>::~Convolution2D()
 }
 
 template<typename T>
-Tensor Convolution2D<T>::Forward(
+Tensor *Convolution2D<T>::Forward(
                 Tensor &src, Tensor &weights,
                 Tensor &bias,
                 conv_param_t &cp)
@@ -164,13 +164,13 @@ Tensor Convolution2D<T>::Forward(
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    Tensor dst_tensor = Tensor(dst_dims, src.cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
+    Tensor *dst_tensor = new Tensor(dst_dims, src.cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
     
     // do forward
     if (cp.with_bias) {
-        conv2d_forward->execute(src_tmp, w_tmp, bias.data(), dst_tensor.data());
+        conv2d_forward->execute(src_tmp, w_tmp, bias.data(), dst_tensor->data());
     } else {
-        conv2d_forward->execute(src_tmp, w_tmp, dst_tensor.data());
+        conv2d_forward->execute(src_tmp, w_tmp, dst_tensor->data());
     }
 
     //FIXME here may cause performance issue
@@ -186,11 +186,11 @@ Tensor Convolution2D<T>::Forward(
  * gW = gy *x
  */
 template<typename T>
-std::vector<Tensor> Convolution2D<T>::BackwardWeights(
+std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
                 Tensor &src, Tensor &diff_dst,
                 conv_param_t &cp)
 {
-    std::vector<Tensor> bwd_weight_vec;
+    std::vector<Tensor *> bwd_weight_vec;
 
     // sanity check
     mkldnn::memory::dims src_dims = {cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4};
@@ -252,16 +252,16 @@ std::vector<Tensor> Convolution2D<T>::BackwardWeights(
     }
 
     //assum dst and src have same data type
-    Tensor diff_w_tensor = Tensor(diff_w_dims, src.cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
+    Tensor *diff_w_tensor = new Tensor(diff_w_dims, src.cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
         // do execute
     if (cp.with_bias) {
         // asume bias's format is always mkldnn::memory::format::x
-        Tensor diff_b_tensor = Tensor(diff_b_dims, src.cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
-        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor.data(), diff_b_tensor.data(), diff_dst_tmp);
+        Tensor *diff_b_tensor = new Tensor(diff_b_dims, src.cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
+        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_b_tensor->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_tensor);
         bwd_weight_vec.push_back(diff_b_tensor);
     } else {
-        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor.data(), diff_dst_tmp);
+        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_tensor);
     }
 
@@ -274,7 +274,7 @@ std::vector<Tensor> Convolution2D<T>::BackwardWeights(
 }
 
 template<typename T>
-Tensor Convolution2D<T>::BackwardData(
+Tensor *Convolution2D<T>::BackwardData(
                 Tensor &weights, Tensor &diff_dst,
                 conv_param_t &cp)
 {
@@ -328,9 +328,9 @@ Tensor Convolution2D<T>::BackwardData(
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor diff_src_tensor = Tensor(diff_src_dims, diff_dst.cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
+    Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst.cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
     
-    conv2d_bwd_data->execute(diff_src_tensor.data(), w_tmp, diff_dst_tmp);
+    conv2d_bwd_data->execute(diff_src_tensor->data(), w_tmp, diff_dst_tmp);
 
     // free
     if (w_reorder != NULL)

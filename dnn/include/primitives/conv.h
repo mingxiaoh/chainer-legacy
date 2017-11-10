@@ -88,7 +88,7 @@ public:
      * bias: bias, b
      * cp: convolution parameters
      */
-    static Tensor Forward(Tensor &src, 
+    static Tensor *Forward(Tensor &src, 
                           Tensor &weights, 
                           Tensor &bias,
                           conv_param_t &cp);
@@ -101,7 +101,7 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static std::vector<Tensor> BackwardWeights(Tensor &src, 
+    static std::vector<Tensor *> BackwardWeights(Tensor &src, 
                                                Tensor &diff_dst,
                                                conv_param_t &cp);
 
@@ -113,7 +113,7 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static Tensor BackwardData(Tensor &weights, 
+    static Tensor *BackwardData(Tensor &weights, 
                                Tensor &diff_dst,
                                conv_param_t &cp);
 

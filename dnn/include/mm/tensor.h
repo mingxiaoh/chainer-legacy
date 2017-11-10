@@ -101,7 +101,7 @@ class Tensor {
 public:
     // Allocate memory in constructor
     Tensor() : ndims_(0), type_(UNKNOWN_TYPE), size_(0), data_(nullptr) {}
-    virtual ~Tensor() {}
+    virtual ~Tensor() = default; 
 
     Tensor(int ndims, vector<int> &dims, data_type_t type=FLOAT32)
         : ndims_(ndims), dims_(dims), type_(type) {
@@ -134,6 +134,10 @@ public:
             mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
         : Tensor(ndims, dims, data, type) {
             mm_fmt_ = mm_fmt;
+            memory::data_type dt = to_mkldnn_type();
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
         }
         
     Tensor(mkldnn::memory::dims &dims
@@ -230,14 +234,11 @@ public:
     }
 
     inline mkldnn::memory mkldnn_memory() const {
-        return *mem_;
-    }
-    inline shared_ptr<mkldnn::memory> to_mkldnn_memory() const {
-        return mem_;
+        return *(to_mkldnn_memory());
     }
 
     inline memory::desc desc() const {
-        return mem_->get_primitive_desc().desc();
+        return to_mkldnn_memory()->get_primitive_desc().desc();
     }
 
     inline mkldnn_memory_format_t format() const {
@@ -268,4 +269,7 @@ protected:
     mkldnn_memory_format_t mm_fmt_;
     std::shared_ptr<mkldnn::memory> mem_;
 private:
+    inline shared_ptr<mkldnn::memory> to_mkldnn_memory() const {
+        return mem_;
+    }
 };
