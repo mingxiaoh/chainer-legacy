@@ -74,7 +74,7 @@ class Convolution2DFunction(function_node.FunctionNode):
     def forward_ia(self, inputs):
         # FIXME: only support dilate == 1 currently
         if self.dy != 1 or self.dx != 1:
-            return self.forward_cpu(self, inputs)
+            return self.forward_cpu(inputs)
 
         self.retain_inputs((0, 1))  # retain only x and W
         x, W = inputs[:2]
@@ -271,7 +271,7 @@ class Convolution2DGradW(function_node.FunctionNode):
     def forward_ia(self, inputs):
         # FIXME: only support dilate == 1 currently
         if self.dy != 1 or self.dx != 1:
-            return self.forward_cpu(self, inputs)
+            return self.forward_cpu(inputs)
         
         self.retain_inputs((0, 1))
         x, gy = inputs
