@@ -84,21 +84,28 @@ public:
      * bias: bias, b
      * cp: convolution parameters
      */
-    static mdarray Forward(mdarray &src, 
-                           mdarray &weights, 
-                           mdarray &bias,
-                           conv_param_t& cp) {
+    static mdarray Forward(mdarray *src, 
+                           mdarray *weights, 
+                           mdarray *bias,
+                           conv_param_t *cp) {
         // Shoule be removed in future????
-        implementation::mdarray *src_internal = src.get();
-        implementation::mdarray *w_internal = weights.get();
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *w_internal = weights->get();
         implementation::mdarray *b_internal;
-        if ( cp.with_bias )
-            b_internal = bias.get();
-
-        Tensor *dst_tensor = Convolution2D<T>::Forward(
-                (*(src_internal->tensor())), 
-                (*(w_internal->tensor())), 
-                (*(b_internal->tensor())), cp);
+        if ( cp->with_bias )
+            b_internal = bias->get();
+        
+        Tensor *dst_tensor;
+        if ( cp->with_bias )
+            dst_tensor = Convolution2D<T>::Forward(
+                    (src_internal->tensor()), 
+                    (w_internal->tensor()), 
+                    (b_internal->tensor()), cp);
+        else
+            dst_tensor = Convolution2D<T>::Forward(
+                    (src_internal->tensor()), 
+                    (w_internal->tensor()), 
+                    NULL, cp);
         
         // FIXME
         // In future, mdarray will have a Tensor member, no need to create a new one
@@ -115,19 +122,19 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static std::vector<mdarray> BackwardWeights(mdarray& src, 
-                                                mdarray& diff_dst,
-                                                conv_param_t& cp) {
+    static std::vector<mdarray> BackwardWeights(mdarray *src, 
+                                                mdarray *diff_dst,
+                                                conv_param_t *cp) {
         std::vector<mdarray> grads;
 
         //FIXME
         // Should be removed in future
-        implementation::mdarray *src_internal = src.get();
-        implementation::mdarray *diff_dst_internal = diff_dst.get();
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
 
         std::vector<Tensor *> grads_tensor = Convolution2D<T>::BackwardWeights(
-                                        (*(src_internal->tensor())),
-                                        (*(diff_dst_internal->tensor())),
+                                        (src_internal->tensor()),
+                                        (diff_dst_internal->tensor()),
                                         cp);
         
         //FIXME
@@ -145,17 +152,17 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static mdarray BackwardData(mdarray& weights, 
-                                mdarray& diff_dst,
-                                conv_param_t& cp) {
+    static mdarray BackwardData(mdarray *weights, 
+                                mdarray *diff_dst,
+                                conv_param_t *cp) {
         //FIXME
         //Should be removed in future
-        implementation::mdarray *w_internal = weights.get();
-        implementation::mdarray *diff_dst_internal = diff_dst.get();
+        implementation::mdarray *w_internal = weights->get();
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
 
         Tensor *diff_src_tensor = Convolution2D<T>::BackwardData(
-                                (*(w_internal->tensor())),
-                                (*(diff_dst_internal->tensor())),
+                                (w_internal->tensor()),
+                                (diff_dst_internal->tensor()),
                                 cp);
 
         // FIXME

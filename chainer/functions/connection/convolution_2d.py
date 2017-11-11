@@ -101,13 +101,22 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
 
         if isinstance(x, numpy.ndarray):
+            if x.flags.contiguous is False:
+                x = numpy.ascontiguousarray(x)
             x = mdarray(x)
         if isinstance(W, numpy.ndarray):
+            if W.flags.contiguous is False:
+                W = numpy.ascontiguousarray(W)
             W = mdarray(W)
         if self.cp.with_bias and isinstance(b, numpy.ndarray):
+            if b.flags.contiguous is False:
+                b = numpy.ascontiguousarray(b)
             b = mdarray(b)
-
-        y = Convolution2D_Py_F32.Forward(x, W, b, self.cp)
+	
+        if self.cp.with_bias:
+            y = Convolution2D_Py_F32.Forward(x, W, b, self.cp)
+        else:
+            y = Convolution2D_Py_F32.Forward(x, W, None, self.cp)
 
         return y,
 
@@ -285,8 +294,12 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.cp.with_bias = False
 
         if isinstance(x, numpy.ndarray):
+            if x.flags.contiguous is False:
+                x = numpy.ascontiguousarray(x)
             x = mdarray(x)
         if isinstance(gy, numpy.ndarray):
+            if gy.flags.contiguous is False:
+                gy = numpy.ascontiguousarray(gy)
             gy = mdarray(gy)
 
         # only calculate gW, no gb

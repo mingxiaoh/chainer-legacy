@@ -113,6 +113,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
                                                 d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
+        self.pd = self.sy*(in_h-1) + kh - self.outh - self.ph
+        self.pr = self.sx*(in_w-1) + kw - self.outw - self.pw
 
         self._set_cover_all(x, W)
     
@@ -131,14 +133,18 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = W.shape # deconv's weight dims should be different with conv's w
         self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = x.shape
         self.cp.sy, self.cp.sx = self.sy, self.sx
-        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.ph, self.pw
+        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
         # use conv bwd data to implement deconv fwd, not bias support 
         self.cp.bias_d1 = -1
         self.cp.with_bias = False
 
         if isinstance(x, numpy.ndarray):
+            if x.flags.contiguous is False:
+                x = numpy.ascontiguousarray(x)
             x = mdarray(x) # x should be gy in conv bwd data
         if isinstance(W, numpy.ndarray):
+            if W.flags.contiguous is False:
+                W = numpy.ascontiguousarray(W)
             W = mdarray(W)
 
         y = Convolution2D_Py_F32.BackwardData(W, x, self.cp) # y should be gx in conv bwd data
