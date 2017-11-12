@@ -103,7 +103,7 @@ public:
     Tensor() : ndims_(0), type_(UNKNOWN_TYPE), size_(0), data_(nullptr) {}
     virtual ~Tensor() = default; 
 
-    Tensor(int ndims, vector<int> &dims, data_type_t type=FLOAT32)
+    Tensor(int ndims, vector<int> dims, data_type_t type=FLOAT32)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -116,7 +116,7 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
-    Tensor(int ndims, vector<int> &dims, void *data, data_type_t type=FLOAT32)
+    Tensor(int ndims, vector<int> dims, void *data, data_type_t type=FLOAT32)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -150,7 +150,7 @@ public:
                         , cpu_engine }, data_.get()));
         }
         
-    Tensor(mkldnn::memory::dims &dims
+    Tensor(mkldnn::memory::dims dims
         , mkldnn::memory::data_type dt
         , mkldnn::memory::format format
         , const mkldnn::engine &engine)

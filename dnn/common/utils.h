@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 #include <mkldnn.hpp>
 #include <iostream>
+#include "op_param.h"
 using namespace mkldnn;
 
 memory::format get_desired_format(int channel);
@@ -30,15 +31,6 @@ static mkldnn::memory::data_type memory_data_type() {
 
     LOG(ERROR) << "Not support type";
     return mkldnn::memory::data_type::data_undef;
-}
-
-inline void reorder_func (mkldnn::memory src, mkldnn::memory dst) {
-    if ( src.get_primitive_desc() != dst.get_primitive_desc()) {
-        std::shared_ptr<mkldnn::stream> reorder_stream;
-        reorder_stream.reset(new mkldnn::stream(mkldnn::stream::kind::eager));
-        mkldnn::reorder reorder_prim = reorder(src, dst);
-        reorder_stream->submit({reorder_prim});
-    }
 }
 
 // utils function conver int/double/bool/dims/ to string
@@ -73,6 +65,22 @@ static inline std::string long_to_string(size_t value) {
     std::ostringstream os;
     os << std::hex << "L" << value << "_";
     return os.str();
+}
+
+static inline mkldnn::algorithm pooling_algo_convert(pooling_param_t::algorithm input) {
+    switch(input) {
+        case pooling_param_t::algorithm::pooling_max:
+            return mkldnn::pooling_max;
+        case pooling_param_t::algorithm::pooling_avg:
+            return mkldnn::pooling_avg;
+        case pooling_param_t::algorithm::pooling_avg_include_padding:
+            return mkldnn::pooling_avg_include_padding;
+        case pooling_param_t::algorithm::pooling_avg_exclude_padding:
+            return mkldnn::pooling_avg_exclude_padding;
+        default:
+            LOG(ERROR) << "Not a valid pooling algo";
+            return mkldnn::pooling_max;
+    }
 }
 
 #endif // _UTILS_H_

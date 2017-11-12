@@ -8,3 +8,4 @@
 %include "mdarray.i"
 %include "relu.i"
 %include "conv.i"
+%include "pooling.i"

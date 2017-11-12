@@ -59,36 +59,79 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#include <glog/logging.h>
+#include <iostream>
+#include "mkldnn.hpp"
+#include "op_factory.h"
+#include "pooling_fwd_factory.h"
+
+using namespace mkldnn;
+
+template<typename T>
+Pooling2DFwdFactory<T>::Pooling2DFwdFactory()
+{
+}
+
+template<typename T>
+Pooling2DFwdFactory<T>::~Pooling2DFwdFactory()
+{
+}
+
+#define POOLING2D_FWD_PREFIX "pooling2d_fwd_"
+template<typename T>
+Op<T>*  Pooling2DFwdFactory<T>::get_pooling2d_fwd( 
+                          mkldnn::memory::dims src_d, 
+                          mkldnn::memory::dims dst_d,
+                          int ker_h, int ker_w,
+                          int sy, int sx, 
+                          int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                          mkldnn::algorithm alg_kind) {
+    std::string key = POOLING2D_FWD_PREFIX;
+
+    key += dims_to_string(src_d);
+    key += dims_to_string(dst_d);
+    key += int_to_string(ker_h);
+    key += int_to_string(ker_w);
+    key += int_to_string(sy);
+    key += int_to_string(sx);
+    key += int_to_string(pad_lh);
+    key += int_to_string(pad_lw);
+    key += int_to_string(pad_rh);
+    key += int_to_string(pad_rw);
+    key += int_to_string(alg_kind);
+
+    return this->get_op(key);
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
+template<typename T>
+void Pooling2DFwdFactory<T>::set_pooling2d_fwd( 
+                          mkldnn::memory::dims src_d, 
+                          mkldnn::memory::dims dst_d,
+                          int ker_h, int ker_w,
+                          int sy, int sx,
+                          int pad_lh, int pad_lw, int pad_rh, int pad_rw, 
+                          mkldnn::algorithm alg_kind,
+                          Op<T>*     op) {
+    std::string key = POOLING2D_FWD_PREFIX;
 
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
+    key += dims_to_string(src_d);
+    key += dims_to_string(dst_d);
+    key += int_to_string(ker_h);
+    key += int_to_string(ker_w);
+    key += int_to_string(sy);
+    key += int_to_string(sx);
+    key += int_to_string(pad_lh);
+    key += int_to_string(pad_lw);
+    key += int_to_string(pad_rh);
+    key += int_to_string(pad_rw);
+    key += int_to_string(alg_kind);
+
+    return this->set_op(key, op);
 };
 
-#endif // _OP_PARAM_H_
+template class Pooling2DFwdFactory<float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

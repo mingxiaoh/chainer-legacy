@@ -59,36 +59,71 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _POOLING_FWD_FACTORY_
+#define _POOLING_FWD_FACTORY_
+#include <mkldnn.hpp>
+#include <string>
+#include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
+#include "utils.h"
+#include "pooling_fwd.h"
+
+template <typename T>
+class Pooling2DFwdFactory : public OpFactory<T> 
+{
+private:
+    Pooling2DFwdFactory();
+    ~Pooling2DFwdFactory();
+
+public:
+    static Pooling2DFwd<T>* get( mkldnn::memory::dims src_d, 
+                                 mkldnn::memory::dims dst_d,
+                                 int ker_h, int ker_w,
+                                 int sy, int sx,
+                                 int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                                 mkldnn::algorithm alg_kind) {
+        Pooling2DFwd<T>* pooling2d_forward = NULL;
+
+        //try to find a suitable one in pool
+        pooling2d_forward = dynamic_cast<Pooling2DFwd<T>*> (
+                            Pooling2DFwdFactory<T>::get_instance().get_pooling2d_fwd( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind));
+        
+        if (pooling2d_forward == NULL) {
+            LOG(INFO) << "create a new one for pooling fwd: " << alg_kind;
+            pooling2d_forward = new Pooling2DFwd<T>( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
+            Pooling2DFwdFactory<T>::get_instance().set_pooling2d_fwd( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind, pooling2d_forward);
+        } else {
+            LOG(INFO) << "reuse exist one for pooling fwd: " << alg_kind;
+        }
+        return pooling2d_forward;
+    }
+
+    static Pooling2DFwdFactory& get_instance() {
+        static Pooling2DFwdFactory instance_;
+        return instance_;
+    }
+
+private:    
+    Op<T>* get_pooling2d_fwd( mkldnn::memory::dims src_d, 
+                              mkldnn::memory::dims dst_d,
+                              int ker_h, int ker_w,
+                              int sy, int sx, 
+                              int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                              mkldnn::algorithm alg_kind);
+
+    void set_pooling2d_fwd( mkldnn::memory::dims src_d, 
+                            mkldnn::memory::dims dst_d,
+                            int ker_h, int ker_w,
+                            int sy, int sx,
+                            int pad_lh, int pad_lw, int pad_rh, int pad_rw, 
+                            mkldnn::algorithm alg_kind,
+                            Op<T>*     op);
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-#endif // _OP_PARAM_H_
+#endif // _POOLING_FWD_FACTORY_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

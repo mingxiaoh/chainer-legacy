@@ -43,6 +43,8 @@ if system() == 'Linux':
            'dnn/primitives/ops/conv_bwd_data.cc', 'dnn/primitives/prim_mgr/conv_bwd_data_factory.cc',
            'dnn/primitives/ops/reorder_op.cc', 'dnn/primitives/prim_mgr/reorder_factory.cc',
            'dnn/primitives/conv.cc',
+           'dnn/primitives/ops/pooling_fwd.cc', 'dnn/primitives/prim_mgr/pooling_fwd_factory.cc',
+           'dnn/primitives/pooling.cc',
           ]
 else:
     # TODO

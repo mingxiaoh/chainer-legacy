@@ -8,3 +8,18 @@ struct conv_param_t {
     int pad_lh, pad_lw, pad_rh, pad_rw; //padding
     bool with_bias;
 };
+
+struct pooling_param_t {
+    int src_d1, src_d2, src_d3, src_d4; // input shape
+    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
+    int kh, kw; // kernel size
+    int sy, sx; // stride
+    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
+
+    enum algorithm {
+        pooling_max,
+        pooling_avg,
+        pooling_avg_include_padding,
+        pooling_avg_exclude_padding,
+    } algo_kind;
+};

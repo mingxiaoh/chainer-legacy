@@ -59,36 +59,79 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _POOLING_PY_H_
+#define _POOLING_PY_H_
+
+#include <vector>
+#include <memory>
+#include "op_param.h"
+#include "mdarray.h"
+#include "pooling.h"
+
+template <typename T>
+class Pooling2D_Py
+{
+public:
+    /*
+     * Python Pooling Forward
+     * params:
+     * src: input, x
+     * pp: pooling parameters
+     */
+    static std::vector<mdarray> Forward(mdarray *src, 
+                                        pooling_param_t *pp) {
+        std::vector<mdarray> outputs;
+
+        // Shoule be removed in future????
+        implementation::mdarray *src_internal = src->get();
+        
+        std::vector<Tensor *> outputs_tensor = Pooling2D<T>::Forward(
+                                                    (src_internal->tensor()),
+                                                    pp);
+        // FIXME
+        //FIXME
+        for (int i = 0; i < outputs_tensor.size(); i++) {
+            outputs.push_back( mdarray(outputs_tensor[i]) );
+        }
+
+        return outputs;
+    }
+
+    /*
+     * Python Pooling backward
+     * param:
+     * diff_dst: diff dst, gy
+     * ws: workspace
+     * pp: pooling parameters
+     */
+    static mdarray Backward(mdarray *diff_dst,
+                            mdarray *ws,
+                            pooling_param_t *pp) {
+        mdarray dst = mdarray();
+        return dst;
+        /*
+        //FIXME
+        //Should be removed in future
+        implementation::mdarray *w_internal = weights->get();
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
+
+        Tensor *diff_src_tensor = Convolution2D<T>::BackwardData(
+                                (w_internal->tensor()),
+                                (diff_dst_internal->tensor()),
+                                cp);
+
+        // FIXME
+        // In future, mdarray will have a Tensor member, no need to create a new one
+        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
+        return diff_src_mdarray;
+        */
+    }
+
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-#endif // _OP_PARAM_H_
+#endif // _POOLING_PY_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

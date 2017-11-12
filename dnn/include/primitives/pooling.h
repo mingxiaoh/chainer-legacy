@@ -59,36 +59,52 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _POOLING_H_
+#define _POOLING_H_
+
+#include <mkldnn.hpp>
+#include <vector>
+#include <memory>
+#include "layer.h"
+#include "op_param.h"
+#include "tensor.h"
+
+template <typename T>
+class Pooling2D : public Layer<T>
+{
+public:
+    Pooling2D();
+    ~Pooling2D();
+    
+    /*
+     * Pooling Forward
+     * params:
+     * src: input, x
+     * pp: pooling parameters
+     *
+     * ret
+     * vector<Tensor*>:
+     * Max pooling: return dst and workspace
+     * Avg pooling: return dst
+     */
+    static std::vector<Tensor *> Forward(Tensor *src, 
+                                         pooling_param_t *pp);
+
+    /*
+     * Pooling backward
+     * param:
+     * diff_dst: diff dst, gy
+     * pp: pooling parameters
+     */
+    static Tensor *Backward(Tensor *diff_dst,
+                            Tensor *ws,
+                            pooling_param_t *pp);
+
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-#endif // _OP_PARAM_H_
+#endif // _POOLING_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
