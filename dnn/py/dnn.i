@@ -6,4 +6,5 @@
 %}
 
 %include "mdarray.i"
+%include "relu.i"
 %include "conv.i"

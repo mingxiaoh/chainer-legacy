@@ -130,6 +130,16 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
+    Tensor(int ndims, vector<int> dims,
+            mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
+        : Tensor(ndims, dims, type) {
+            mm_fmt_ = mm_fmt;
+            memory::data_type dt = to_mkldnn_type();
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
+        }
+        
     Tensor(int ndims, vector<int> dims, void *data,
             mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
         : Tensor(ndims, dims, data, type) {
