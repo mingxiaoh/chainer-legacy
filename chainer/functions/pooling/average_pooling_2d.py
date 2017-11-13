@@ -6,6 +6,8 @@ from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
+import dnn._dnn
+from dnn._dnn import mdarray, pooling_param_t, Pooling2D_Py_F32
 
 class AveragePooling2D(pooling_2d.Pooling2D):
 
@@ -21,6 +23,37 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         y = col.mean(axis=(2, 3))
         return y,
 
+    def forward_ia(self, x):
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
+        n, c, h, w = x[0].shape
+        y_h = conv.get_conv_outsize(
+            h, self.kh, self.sy, self.ph, self.cover_all)
+        assert y_h > 0, 'Height in the output should be positive.'
+        y_w = conv.get_conv_outsize(
+            w, self.kw, self.sx, self.pw, self.cover_all)
+        assert y_w > 0, 'Width in the output should be positive.'
+        self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
+        self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
+
+        pp = pooling_param_t()
+        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
+        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
+        pp.kh, pp.kw = self.kh, self.kw
+        pp.sy, pp.sx = self.sy, self.sx
+        pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg # by default = pooling_avg_exclude_padding
+       
+        x_mdarray = x[0]
+        if isinstance(x_mdarray, numpy.ndarray):
+            if x_mdarray.flags.contiguous is False:
+                x_mdarray = numpy.ascontiguousarray(x_mdarray)
+            x_mdarray = mdarray(x_mdarray)
+        
+        (y,) = Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        return y, 
+    
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
             self.retain_inputs((0,))
@@ -92,6 +125,30 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         gx /= self.kh * self.kw
         return gx,
 
+    def forward_ia(self, gy):
+        n, c, h, w = self._in_shape
+        y_h, y_w = gy[0].shape[2:]
+
+        self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
+        self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
+        
+        pp = pooling_param_t()
+        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
+        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
+        pp.kh, pp.kw = self.kh, self.kw
+        pp.sy, pp.sx = self.sy, self.sx
+        pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg # by default = pooling_avg_exclude_padding
+
+        gy_mdarray = gy[0]
+        if isinstance(gy_mdarray, numpy.ndarray):
+            if gy_mdarray.flags.contiguous is False:
+                gy_mdarray = numpy.ascontiguousarray(gy_mdarray)
+            gy_mdarray = mdarray(gy_mdarray)
+        
+        gx = Pooling2D_Py_F32.Backward(gy_mdarray, None, pp)
+        return gx,
+    
     def forward_gpu(self, gy):
         if self._used_cudnn:
             x, = self.apool2d.get_retained_inputs()
