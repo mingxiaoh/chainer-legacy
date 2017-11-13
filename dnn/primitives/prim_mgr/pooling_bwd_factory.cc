@@ -85,6 +85,7 @@ Op<T>*  Pooling2DBwdFactory<T>::get_pooling2d_bwd(
                           mkldnn::memory::dims src_d, 
                           mkldnn::memory::dims dst_d,
                           mkldnn::memory::dims ws_d,
+                          mkldnn::memory::data_type ws_dt,
                           int ker_h, int ker_w,
                           int sy, int sx, 
                           int pad_lh, int pad_lw, int pad_rh, int pad_rw,
@@ -94,6 +95,7 @@ Op<T>*  Pooling2DBwdFactory<T>::get_pooling2d_bwd(
     key += dims_to_string(src_d);
     key += dims_to_string(dst_d);
     key += dims_to_string(ws_d);
+    key += int_to_string(ws_dt);
     key += int_to_string(ker_h);
     key += int_to_string(ker_w);
     key += int_to_string(sy);
@@ -112,6 +114,7 @@ void Pooling2DBwdFactory<T>::set_pooling2d_bwd(
                           mkldnn::memory::dims src_d, 
                           mkldnn::memory::dims dst_d,
                           mkldnn::memory::dims ws_d,
+                          mkldnn::memory::data_type ws_dt,
                           int ker_h, int ker_w,
                           int sy, int sx,
                           int pad_lh, int pad_lw, int pad_rh, int pad_rw, 
@@ -122,6 +125,7 @@ void Pooling2DBwdFactory<T>::set_pooling2d_bwd(
     key += dims_to_string(src_d);
     key += dims_to_string(dst_d);
     key += dims_to_string(ws_d);
+    key += int_to_string(ws_dt);
     key += int_to_string(ker_h);
     key += int_to_string(ker_w);
     key += int_to_string(sy);

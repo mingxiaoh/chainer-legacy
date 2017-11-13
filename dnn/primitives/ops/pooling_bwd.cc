@@ -76,6 +76,7 @@ template<typename T>
 Pooling2DBwd<T>::Pooling2DBwd(mkldnn::memory::dims diff_src_d,
                               mkldnn::memory::dims diff_dst_d,
                               mkldnn::memory::dims ws_d,
+                              mkldnn::memory::data_type ws_dt,
                               int ker_h, int ker_w,
                               int sy, int sx,
                               int pad_lh, int pad_lw, int pad_rh, int pad_rw,
@@ -84,7 +85,7 @@ Pooling2DBwd<T>::Pooling2DBwd(mkldnn::memory::dims diff_src_d,
     bwd_stream_.reset(new stream(stream::kind::eager));
     // setup
     if ( bwd_ == NULL) 
-        setup(diff_src_d, diff_dst_d, ws_d, ker_h, ker_w, sy, sx,
+        setup(diff_src_d, diff_dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx,
                 pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
 }
 
@@ -97,6 +98,7 @@ template<typename T>
 void Pooling2DBwd<T>::setup(mkldnn::memory::dims diff_src_d,
                            mkldnn::memory::dims diff_dst_d,
                            mkldnn::memory::dims ws_d,
+                           mkldnn::memory::data_type ws_dt,
                            int ker_h, int ker_w,
                            int sy, int sx,
                            int pad_lh, int pad_lw, int pad_rh, int pad_rw,
@@ -159,7 +161,7 @@ void Pooling2DBwd<T>::setup(mkldnn::memory::dims diff_src_d,
         //Pooling backward doesn't expose to get the workspace_primitive_desc, we need to hard set here
         // store workspace's dims and fmt to create ws tensor
         ws_fmt_ = get_desired_format(ws_d[1]);
-        ws_mem_.reset(new memory({{{ws_d}, memory_data_type<T>(), ws_fmt_}, cpu_engine}, dummy)); // use ws dims's channel to decide format
+        ws_mem_.reset(new memory({{{ws_d}, ws_dt, ws_fmt_}, cpu_engine}, dummy)); // use ws dims's channel to decide format
         
         bwd_.reset(new pooling_backward(
                 *bwd_pd_, *diff_dst_mem_, *ws_mem_, *diff_src_mem_));

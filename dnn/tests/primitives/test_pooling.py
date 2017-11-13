@@ -33,6 +33,7 @@ print("==============")
 
 print ("y.shape=", y.shape)
 print ("ws.shape=", ws.shape)
+print ("ws.dtype=", ws.data)
 
 print("==============")
 print("bwd")

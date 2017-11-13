@@ -148,6 +148,7 @@ void Pooling2DFwd<T>::setup(mkldnn::memory::dims src_d,
         // store workspace's dims and fmt to create ws tensor
         ws_fmt_ = static_cast<mkldnn::memory::format>(ws_pd.format);
         ws_dims_.assign(ws_pd.dims, ws_pd.dims+ws_pd.ndims);
+        ws_dt_ = static_cast<mkldnn::memory::data_type>(ws_pd.data_type);
 
         ws_mem_.reset(new memory(fwd_pd_.get()->workspace_primitive_desc(), dummy));
         fwd_.reset(new pooling_forward(
