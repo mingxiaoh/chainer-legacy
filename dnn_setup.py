@@ -38,12 +38,13 @@ if system() == 'Linux':
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
            'dnn/primitives/ops/relu_fwd.cc', 'dnn/primitives/prim_mgr/relu_fwd_factory.cc',
            'dnn/primitives/relu.cc',
-	       'dnn/primitives/ops/conv_fwd.cc', 'dnn/primitives/prim_mgr/conv_fwd_factory.cc',
+	   'dnn/primitives/ops/conv_fwd.cc', 'dnn/primitives/prim_mgr/conv_fwd_factory.cc',
            'dnn/primitives/ops/conv_bwd_weights.cc', 'dnn/primitives/prim_mgr/conv_bwd_weights_factory.cc',
            'dnn/primitives/ops/conv_bwd_data.cc', 'dnn/primitives/prim_mgr/conv_bwd_data_factory.cc',
            'dnn/primitives/ops/reorder_op.cc', 'dnn/primitives/prim_mgr/reorder_factory.cc',
            'dnn/primitives/conv.cc',
            'dnn/primitives/ops/pooling_fwd.cc', 'dnn/primitives/prim_mgr/pooling_fwd_factory.cc',
+           'dnn/primitives/ops/pooling_bwd.cc', 'dnn/primitives/prim_mgr/pooling_bwd_factory.cc',
            'dnn/primitives/pooling.cc',
           ]
 else:

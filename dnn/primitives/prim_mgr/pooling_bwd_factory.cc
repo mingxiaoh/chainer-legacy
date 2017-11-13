@@ -61,83 +61,81 @@
  */
 
 
-#ifndef _POOLING_PY_H_
-#define _POOLING_PY_H_
+#include <glog/logging.h>
+#include <iostream>
+#include "mkldnn.hpp"
+#include "op_factory.h"
+#include "pooling_bwd_factory.h"
 
-#include <vector>
-#include <memory>
-#include "op_param.h"
-#include "mdarray.h"
-#include "pooling.h"
+using namespace mkldnn;
 
-template <typename T>
-class Pooling2D_Py
+template<typename T>
+Pooling2DBwdFactory<T>::Pooling2DBwdFactory()
 {
-public:
-    /*
-     * Python Pooling Forward
-     * params:
-     * src: input, x
-     * pp: pooling parameters
-     */
-    static std::vector<mdarray> Forward(mdarray *src, 
-                                        pooling_param_t *pp) {
-        std::vector<mdarray> outputs;
+}
 
-        // Shoule be removed in future????
-        implementation::mdarray *src_internal = src->get();
-        
-        std::vector<Tensor *> outputs_tensor = Pooling2D<T>::Forward(
-                                                    (src_internal->tensor()),
-                                                    pp);
-        // FIXME
-        //FIXME
-        for (int i = 0; i < outputs_tensor.size(); i++) {
-            outputs.push_back( mdarray(outputs_tensor[i]) );
-        }
+template<typename T>
+Pooling2DBwdFactory<T>::~Pooling2DBwdFactory()
+{
+}
 
-        return outputs;
-    }
+#define POOLING2D_BWD_PREFIX "pooling2d_bwd_"
+template<typename T>
+Op<T>*  Pooling2DBwdFactory<T>::get_pooling2d_bwd( 
+                          mkldnn::memory::dims src_d, 
+                          mkldnn::memory::dims dst_d,
+                          mkldnn::memory::dims ws_d,
+                          int ker_h, int ker_w,
+                          int sy, int sx, 
+                          int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                          mkldnn::algorithm alg_kind) {
+    std::string key = POOLING2D_BWD_PREFIX;
 
-    /*
-     * Python Pooling backward
-     * param:
-     * diff_dst: diff dst, gy
-     * ws: workspace
-     * pp: pooling parameters
-     */
-    static mdarray Backward(mdarray *diff_dst,
-                            mdarray *ws,
-                            pooling_param_t *pp) {
-        //FIXME
-        //Should be removed in future
-        implementation::mdarray *diff_dst_internal = diff_dst->get();
-        implementation::mdarray *ws_internal;
-        if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max)
-            ws_internal = ws->get();
-        
-        Tensor *diff_src_tensor;
-        if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
-            diff_src_tensor = Pooling2D<T>::Backward(
-                                    (diff_dst_internal->tensor()),
-                                    (ws_internal->tensor()),
-                                    pp);
-        } else {
-            diff_src_tensor = Pooling2D<T>::Backward(
-                                    (diff_dst_internal->tensor()),
-                                    NULL,
-                                    pp);
-        }
+    key += dims_to_string(src_d);
+    key += dims_to_string(dst_d);
+    key += dims_to_string(ws_d);
+    key += int_to_string(ker_h);
+    key += int_to_string(ker_w);
+    key += int_to_string(sy);
+    key += int_to_string(sx);
+    key += int_to_string(pad_lh);
+    key += int_to_string(pad_lw);
+    key += int_to_string(pad_rh);
+    key += int_to_string(pad_rw);
+    key += int_to_string(alg_kind);
 
-        // FIXME
-        // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
-        return diff_src_mdarray;
-    }
-
+    return this->get_op(key);
 };
 
-#endif // _POOLING_PY_H_
+template<typename T>
+void Pooling2DBwdFactory<T>::set_pooling2d_bwd( 
+                          mkldnn::memory::dims src_d, 
+                          mkldnn::memory::dims dst_d,
+                          mkldnn::memory::dims ws_d,
+                          int ker_h, int ker_w,
+                          int sy, int sx,
+                          int pad_lh, int pad_lw, int pad_rh, int pad_rw, 
+                          mkldnn::algorithm alg_kind,
+                          Op<T>*     op) {
+    std::string key = POOLING2D_BWD_PREFIX;
+
+    key += dims_to_string(src_d);
+    key += dims_to_string(dst_d);
+    key += dims_to_string(ws_d);
+    key += int_to_string(ker_h);
+    key += int_to_string(ker_w);
+    key += int_to_string(sy);
+    key += int_to_string(sx);
+    key += int_to_string(pad_lh);
+    key += int_to_string(pad_lw);
+    key += int_to_string(pad_rh);
+    key += int_to_string(pad_rw);
+    key += int_to_string(alg_kind);
+
+    return this->set_op(key, op);
+};
+
+template class Pooling2DBwdFactory<float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

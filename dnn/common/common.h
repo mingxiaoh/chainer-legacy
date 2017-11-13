@@ -66,6 +66,7 @@
 
 #include <mkldnn.hpp>
 
+const mkldnn::memory::dims NONE_DIMS = {}; 
 #define PAGE_SIZE 4096
 extern unsigned char dummy[PAGE_SIZE];
 #endif // _COMMON_H_

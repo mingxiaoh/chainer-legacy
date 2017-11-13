@@ -80,7 +80,6 @@
 
 using namespace mkldnn;
 
-const mkldnn::memory::dims NONE_DIMS = {}; 
 extern engine cpu_engine;
 
 template<typename T>

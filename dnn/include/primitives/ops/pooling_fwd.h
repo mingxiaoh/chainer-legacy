@@ -114,11 +114,11 @@ public:
 
     // algo
     mkldnn::algorithm alg_kind_;
-    
+private:
     // pooling primitive
     std::shared_ptr<mkldnn::pooling_forward> fwd_;
     std::shared_ptr<mkldnn::stream> fwd_stream_;
-private:
+    
     // MKL-DNN memory, just dummy data
     std::shared_ptr<mkldnn::memory> ws_mem_;
     std::shared_ptr<mkldnn::memory> src_mem_;

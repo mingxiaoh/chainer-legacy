@@ -70,13 +70,14 @@
 #include "pooling.h"
 #include "utils.h"
 #include "pooling_fwd.h"
+#include "pooling_bwd.h"
 #include "pooling_fwd_factory.h"
+#include "pooling_bwd_factory.h"
 #include "reorder_op.h"
 #include "reorder_factory.h"
 
 using namespace mkldnn;
 
-const mkldnn::memory::dims NONE_DIMS = {}; 
 extern engine cpu_engine;
 
 template<typename T>
@@ -115,7 +116,6 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
                 pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
                 pooling_algo_convert(pp->algo_kind));
     
-    // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
 
     void *src_tmp = src->data();
@@ -168,70 +168,77 @@ Tensor *Pooling2D<T>::Backward(
                 Tensor *ws,
                 pooling_param_t *pp)
 {
-    return NULL;
-    /*
     //sanity check
-    mkldnn::memory::dims diff_src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
-    assert(w_dims == weights->cxx_dims() && diff_dst_dims == diff_dst->cxx_dims());
+    mkldnn::memory::dims diff_src_dims = {pp->src_d1, pp->src_d2, pp->src_d3, pp->src_d4};
+    mkldnn::memory::dims diff_dst_dims = {pp->dst_d1, pp->dst_d2, pp->dst_d3, pp->dst_d4};
+    assert(diff_dst_dims == diff_dst->cxx_dims());
 
+    mkldnn::memory::dims ws_dims;
+    if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
+        ws_dims = ws->cxx_dims();
+    }
     // sanity check for data type
     // assuem all x/w/b should have same data type as T
     // FIXME
     // yli135: Is it possible x and w have different data type????
-    assert(memory_data_type<T>() == weights->cxx_data_type());
     assert(memory_data_type<T>() == diff_dst->cxx_data_type());
 
     // get a conv2d bwd data from primitive pool
-    Convolution2DBwdData<T> *conv2d_bwd_data = NULL;
-    conv2d_bwd_data = Convolution2DBwdDataFactory<T>::get( diff_src_dims, w_dims, diff_dst_dims,
-            cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+    Pooling2DBwd<T> *pooling2d_bwd = NULL;
+    if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
+        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, ws_dims,
+                pp->kh, pp->kw, pp->sy, pp->sx,
+                pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
+                pooling_algo_convert(pp->algo_kind));
+    } else {
+        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, NONE_DIMS,
+                pp->kh, pp->kw, pp->sy, pp->sx,
+                pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
+                pooling_algo_convert(pp->algo_kind));
+    }
 
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
-    mkldnn::memory::format w_fmt = weights->cxx_format();
-    mkldnn::memory::format diff_dst_fmt = diff_dst->cxx_format();
+    mkldnn::memory::format ws_fmt;
+    void* ws_tmp;
+    void* ws_reorder = NULL;
+    if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
+        ws_fmt = ws->cxx_format();
+        ws_tmp = ws->data();
+    }
     
-    void* w_tmp = weights->data();
+    mkldnn::memory::format diff_dst_fmt = diff_dst->cxx_format();
     void* diff_dst_tmp = diff_dst->data();
-    void* w_reorder = NULL;
     void* diff_dst_reorder = NULL;
 
-    if (w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
-        LOG(INFO) << "conv2d bwd data primitive fmt matched";
-    } else {
-        LOG(INFO) << "conv2d bwd data fmt not match, need to reorder";
-
-        if (w_fmt != conv2d_bwd_data->weights_fmt_) {
-            LOG(INFO) << "weight_fmt=" << w_fmt << ", conv2d_bwd_data->weights_fmt_="<< conv2d_bwd_data->weights_fmt_;
-            ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, conv2d_bwd_data->weights_fmt_);
-            w_reorder = new avx::byte[weights->len()];
-            reorder_w_op->execute(w_tmp, w_reorder);
-            w_tmp = w_reorder;
-        } 
-        if (diff_dst_fmt != conv2d_bwd_data->diff_dst_fmt_) {
-            LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_data->diff_dst_fmt_=" << conv2d_bwd_data->diff_dst_fmt_;
-            ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_data->diff_dst_fmt_);
-            diff_dst_reorder = new avx::byte[diff_dst->len()];
-            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
-            diff_dst_tmp = diff_dst_reorder;
-        }
+    if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max &&
+            ws_fmt != pooling2d_bwd->ws_fmt_) {
+        LOG(INFO) << "ws_fmt=" << ws_fmt << ", pooling2d_bwd->ws_fmt_="<< pooling2d_bwd->ws_fmt_;
+        ReorderOp<T>* reorder_ws_op = ReorderFactory<T>::get(ws_dims, ws_fmt, pooling2d_bwd->ws_fmt_);
+        ws_reorder = new avx::byte[ws->len()];
+        reorder_ws_op->execute(ws_tmp, ws_reorder);
+        ws_tmp = ws_reorder;
+    } 
+    if (diff_dst_fmt != pooling2d_bwd->diff_dst_fmt_) {
+        LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", pooling2d_bwd->diff_dst_fmt_=" << pooling2d_bwd->diff_dst_fmt_;
+        ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, pooling2d_bwd->diff_dst_fmt_);
+        diff_dst_reorder = new avx::byte[diff_dst->len()];
+        reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
+        diff_dst_tmp = diff_dst_reorder;
     }
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
+    Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), pooling2d_bwd->diff_src_fmt_, cpu_engine);
     
-    conv2d_bwd_data->execute(diff_src_tensor->data(), w_tmp, diff_dst_tmp);
+    pooling2d_bwd->execute(diff_src_tensor->data(), diff_dst_tmp, ws_tmp);
 
     // free
-    if (w_reorder != NULL)
-        delete static_cast<avx::byte *>(w_reorder);
+    if (ws_reorder != NULL)
+        delete static_cast<avx::byte *>(ws_reorder);
     if (diff_dst_reorder != NULL)
         delete static_cast<avx::byte *>(diff_dst_reorder);
 
     return diff_src_tensor;
-    */
 }
 
 

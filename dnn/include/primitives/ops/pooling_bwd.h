@@ -61,83 +61,84 @@
  */
 
 
-#ifndef _POOLING_PY_H_
-#define _POOLING_PY_H_
+#pragma once
+#ifndef _POOLING_BWD_H_
+#define _POOLING_BWD_H_
 
+#include <glog/logging.h>
+#include <iostream>
+#include <mkldnn.hpp>
 #include <vector>
-#include <memory>
-#include "op_param.h"
-#include "mdarray.h"
-#include "pooling.h"
+#include "op.h"
 
 template <typename T>
-class Pooling2D_Py
-{
+class Pooling2DBwd: public Op<T>{
 public:
+    Pooling2DBwd(mkldnn::memory::dims diff_src_d, 
+                 mkldnn::memory::dims diff_dst_d,
+                 mkldnn::memory::dims ws_d,
+                 int ker_h, int ker_w,
+                 int sy, int sx,
+                 int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                 mkldnn::algorithm alg_kind); // alg_kind = pooling_max
+                                            // or pooling_avg
+    ~Pooling2DBwd();
+    
     /*
-     * Python Pooling Forward
+     * Pooling backward primitive setup
+     * Params:
+     * diff_src_d: diff src
+     * diff_dst_d: diff dst
+     */
+    void setup(mkldnn::memory::dims diff_src_d, 
+               mkldnn::memory::dims diff_dst_d,
+               mkldnn::memory::dims ws_d,
+               int ker_h, int ker_w,
+               int sy, int sx,
+               int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+               mkldnn::algorithm alg_kind); // alg_kind = pooling_max
+                                            // or pooling_avg
+
+    /*
+     * Pooling backward execute 
      * params:
-     * src: input, x
-     * pp: pooling parameters
-     */
-    static std::vector<mdarray> Forward(mdarray *src, 
-                                        pooling_param_t *pp) {
-        std::vector<mdarray> outputs;
-
-        // Shoule be removed in future????
-        implementation::mdarray *src_internal = src->get();
-        
-        std::vector<Tensor *> outputs_tensor = Pooling2D<T>::Forward(
-                                                    (src_internal->tensor()),
-                                                    pp);
-        // FIXME
-        //FIXME
-        for (int i = 0; i < outputs_tensor.size(); i++) {
-            outputs.push_back( mdarray(outputs_tensor[i]) );
-        }
-
-        return outputs;
-    }
-
-    /*
-     * Python Pooling backward
-     * param:
-     * diff_dst: diff dst, gy
+     * diff_src: diff_src
+     * diff_dst: diff_dst
      * ws: workspace
-     * pp: pooling parameters
      */
-    static mdarray Backward(mdarray *diff_dst,
-                            mdarray *ws,
-                            pooling_param_t *pp) {
-        //FIXME
-        //Should be removed in future
-        implementation::mdarray *diff_dst_internal = diff_dst->get();
-        implementation::mdarray *ws_internal;
-        if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max)
-            ws_internal = ws->get();
-        
-        Tensor *diff_src_tensor;
-        if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
-            diff_src_tensor = Pooling2D<T>::Backward(
-                                    (diff_dst_internal->tensor()),
-                                    (ws_internal->tensor()),
-                                    pp);
-        } else {
-            diff_src_tensor = Pooling2D<T>::Backward(
-                                    (diff_dst_internal->tensor()),
-                                    NULL,
-                                    pp);
-        }
+    void execute(void *diff_src, void *diff_dst, void *ws=NULL);
 
-        // FIXME
-        // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
-        return diff_src_mdarray;
-    }
+public:
+    // expected memory format
+    mkldnn::memory::format diff_src_fmt_;
+    mkldnn::memory::format diff_dst_fmt_;
+    mkldnn::memory::format ws_fmt_;
 
+    // algo
+    mkldnn::algorithm alg_kind_;
+private:
+    // pooling primitive
+    std::shared_ptr<mkldnn::pooling_backward> bwd_;
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
+    
+    // MKL-DNN memory, just dummy data
+    std::shared_ptr<mkldnn::memory> ws_mem_;
+    std::shared_ptr<mkldnn::memory> diff_src_mem_;
+    std::shared_ptr<mkldnn::memory> diff_dst_mem_;
+    std::shared_ptr<mkldnn::memory::desc> diff_src_md_;
+    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_;
+
+    // fwd hint
+    std::shared_ptr<mkldnn::pooling_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::pooling_forward::primitive_desc> fwd_pd_;
+    
+    std::shared_ptr<mkldnn::pooling_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::pooling_backward::primitive_desc> bwd_pd_;
+    
+    std::vector<mkldnn::primitive> bwd_primitives_;
 };
 
-#endif // _POOLING_PY_H_
+#endif // _POOLING_BWD_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
