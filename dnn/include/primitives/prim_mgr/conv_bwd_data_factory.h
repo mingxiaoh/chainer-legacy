@@ -22,42 +22,6 @@
  *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *THE SOFTWARE.
  *
- *
- *######################################################################
- *# The CuPy is designed based on NumPy's API.
- *# CuPy's source code and documents contain the original NumPy ones.
- *######################################################################
- *Copyright (c) 2005-2016, NumPy Developers.
- *All rights reserved.
- *
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are
- *met:
- *
- *    * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *
- *    * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *
- *    * Neither the name of the NumPy Developers nor the names of any
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- *LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- *DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- *THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *######################################################################
  */
 
 
@@ -72,24 +36,24 @@
 #include "conv_bwd_data.h"
 
 template <typename T>
-class Convolution2DBwdDataFactory : public OpFactory<T> 
+class Convolution2DBwdDataFactory : public OpFactory<T>
 {
 private:
     Convolution2DBwdDataFactory();
     ~Convolution2DBwdDataFactory();
 
 public:
-    static Convolution2DBwdData<T>* get( mkldnn::memory::dims diff_src, 
-                         mkldnn::memory::dims w,
-                         mkldnn::memory::dims diff_dst,
-                         int sy, int sx,
-                         int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
+    static Convolution2DBwdData<T>* get(mkldnn::memory::dims diff_src,
+                                        mkldnn::memory::dims w,
+                                        mkldnn::memory::dims diff_dst,
+                                        int sy, int sx,
+                                        int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
         Convolution2DBwdData<T>* conv2d_backward_data = NULL;
 
         //try to find a suitable one in pool
         conv2d_backward_data = dynamic_cast<Convolution2DBwdData<T>*> (
                             Convolution2DBwdDataFactory<T>::get_instance().get_conv2d_bwd_data( diff_src, w, diff_dst, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
-        
+
         if (conv2d_backward_data == NULL) {
             LOG(INFO) << "create a new one for conv2d bwd data";
             conv2d_backward_data = new Convolution2DBwdData<T>( diff_src, w, diff_dst, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
@@ -105,19 +69,48 @@ public:
         return instance_;
     }
 
-private:    
-    Op<T>* get_conv2d_bwd_data( mkldnn::memory::dims diff_src, 
-                              mkldnn::memory::dims w,
-                              mkldnn::memory::dims diff_dst,
-                              int sy, int sx, 
-                              int pad_lh, int pad_lw, int pad_rh, int pad_rw);
+private:
+#define CONVOLUTION2D_BWD_DATA_PREFIX "conv2d_bwd_data_"
+    Op<T>* get_conv2d_bwd_data(mkldnn::memory::dims diff_src,
+                               mkldnn::memory::dims w,
+                               mkldnn::memory::dims diff_dst,
+                               int sy, int sx,
+                               int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
+        std::string key = CONVOLUTION2D_BWD_DATA_PREFIX;
 
-    void set_conv2d_bwd_data( mkldnn::memory::dims diff_src, 
-                         mkldnn::memory::dims w,
-                         mkldnn::memory::dims diff_dst,
-                         int sy, int sx,
-                         int pad_lh, int pad_lw, int pad_rh, int pad_rw, 
-                         Op<T>*     op);
+        key += dims_to_string(diff_src);
+        key += dims_to_string(w);
+        key += dims_to_string(diff_dst);
+        key += int_to_string(sy);
+        key += int_to_string(sx);
+        key += int_to_string(pad_lh);
+        key += int_to_string(pad_lw);
+        key += int_to_string(pad_rh);
+        key += int_to_string(pad_rw);
+
+        return this->get_op(key);
+    }
+
+    void set_conv2d_bwd_data(mkldnn::memory::dims diff_src,
+                             mkldnn::memory::dims w,
+                             mkldnn::memory::dims diff_dst,
+                             int sy, int sx,
+                             int pad_lh, int pad_lw, int pad_rh, int pad_rw,
+                             Op<T> *op) {
+        std::string key = CONVOLUTION2D_BWD_DATA_PREFIX;
+
+        key += dims_to_string(diff_src);
+        key += dims_to_string(w);
+        key += dims_to_string(diff_dst);
+        key += int_to_string(sy);
+        key += int_to_string(sx);
+        key += int_to_string(pad_lh);
+        key += int_to_string(pad_lw);
+        key += int_to_string(pad_rh);
+        key += int_to_string(pad_rw);
+
+        this->set_op(key, op);
+    }
 };
 
 #endif // _CONV_BWD_DATA_FACTORY_
