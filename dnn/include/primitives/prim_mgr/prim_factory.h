@@ -32,5 +32,6 @@
 #include "pooling_fwd_factory.h"
 #include "pooling_bwd_factory.h"
 #include "relu_fwd_factory.h"
+#include "relu_bwd_factory.h"
 
 #endif // _PRIM_FACTORY_

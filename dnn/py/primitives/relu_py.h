@@ -81,26 +81,19 @@ public:
         return dst_mdarray;
     }
 
-#if 0
-    static mdarray BackwardData(mdarray& weights, 
-                                mdarray& diff_dst,
-                                conv_param_t& cp) {
+    static mdarray Backward(mdarray& src, mdarray& diff_dst) {
         //FIXME
         //Should be removed in future
-        implementation::mdarray *w_internal = weights.get();
-        implementation::mdarray *diff_dst_internal = diff_dst.get();
+        Tensor *src_tensor = src.get()->tensor();
+        Tensor *diff_dst_tensor = diff_dst.get()->tensor();
 
-        Tensor *diff_src_tensor = Relu<T>::BackwardData(
-                                (*(w_internal->tensor())),
-                                (*(diff_dst_internal->tensor())),
-                                cp);
+        Tensor *diff_src_tensor = Relu<T>::Backward(src_tensor, diff_dst_tensor);
 
         // FIXME
         // In future, mdarray will have a Tensor member, no need to create a new one
         mdarray diff_src_mdarray = mdarray(diff_src_tensor);
         return diff_src_mdarray;
     }
-#endif
 
 };
 

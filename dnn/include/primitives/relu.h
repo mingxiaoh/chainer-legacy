@@ -93,7 +93,7 @@ public:
      * dst: output, gx
      * gx = gy*y
      */
-    static Tensor *BackwardData(Tensor *src, Tensor *diff_dst);
+    static Tensor *Backward(Tensor *src, Tensor *diff_dst);
 };
 
 

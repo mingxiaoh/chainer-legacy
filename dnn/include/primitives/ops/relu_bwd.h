@@ -61,80 +61,67 @@
  */
 
 
-#include <glog/logging.h>
-#include <iostream>
-#include "mkldnn.hpp"
-#include "relu_fwd.h"
-#include "utils.h"
-#include "common.h"
+#pragma once
 
-using namespace mkldnn;
+#include <mkldnn.hpp>
+#include <vector>
+#include "op.h"
 
-extern engine cpu_engine;
-
-template<typename T>
-ReluFwd<T>::ReluFwd(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
+template <typename T>
+class ReluBwd : public Op<T>
 {
-    fwd_stream_.reset(new stream(stream::kind::eager));
-    // create relu primitive
-    if (relu_fwd_ == nullptr) {
-        setup(src_d, src_fmt);
-    }
-}
+public:
+    ReluBwd(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
+    ~ReluBwd();
 
-template<typename T>
-ReluFwd<T>::~ReluFwd()
-{
-}
+    /*
+     * Relu backward primitive setup
+     * Params:
+     * src_d: input, (n,c,h,w)
+     * dst_d: output, (n, out_c, out_h, out_w)
+     */
+    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
 
-template<typename T>
-void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
-{
-    LOG(INFO) << "Relu forward_setup";
-    assert(src_d != nullptr);
+    /*
+     * Relu backward execute
+     */
+    void execute(void* src, void* dst_diff, void *src_diff);
 
-    /* create memory descriptors for relu data w/ no specified format */
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
-                                   src_fmt));
-    src_mpd_.reset(new memory::primitive_desc(*src_md_, cpu_engine));
-    /* create a relu*/
-    fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, algorithm::eltwise_relu,
-                                             *src_md_, 0.0, 0.0));
-
-    fwd_pd_.reset(new eltwise_forward::primitive_desc(*fwd_desc_, cpu_engine));
-
-    //store the expected memory format
-    src_fmt_ = src_fmt;
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
+public:
+    // expected memory format for this primitive instance
+    // backward
+    mkldnn::memory::format src_diff_fmt_;
     
-    // create memory primitive based on dummy data
-    src_mem_.reset(new memory(*src_mpd_, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
+    // Relu primitive
+    std::shared_ptr<mkldnn::primitive> relu_bwd_;
 
-    /* create relu primitive and add it to net */
-    relu_fwd_.reset(new eltwise_forward(*fwd_pd_, *src_mem_, *dst_mem_));
+private:
+    //MKLDNN memory
+    //backward
+    std::shared_ptr<mkldnn::memory> src_mem_; // x
+    std::shared_ptr<mkldnn::memory> dst_diff_mem_; //gy
+    std::shared_ptr<mkldnn::memory> src_diff_mem_; //gx
 
-    fwd_primitives_.push_back(*relu_fwd_);
-    return;
-}
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
+    std::vector<mkldnn::primitive> bwd_primitives_;
 
-template<typename T>
-void ReluFwd<T>::execute(void* src, void* dst)
-{
-    LOG(INFO) << "Relu forward";
+    //desc & prmitive desc
+    //backward
+    std::shared_ptr<mkldnn::eltwise_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_backward::primitive_desc> bwd_pd_;
 
-    src_mem_->set_data_handle(src);
-    dst_mem_->set_data_handle(dst);
-    fwd_stream_->submit(fwd_primitives_);
-    
-    //after exec, set data handle back
-    src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
-    
-    return;
-}
+    //memory desc
+    std::shared_ptr<mkldnn::memory::desc> src_md_; //x 
+    std::shared_ptr<mkldnn::memory::desc> dst_diff_md_; // gy 
 
-template class ReluFwd<float>;
+    //memory primitive desc
+    std::shared_ptr<mkldnn::memory::primitive_desc> src_mpd_; //x 
+    std::shared_ptr<mkldnn::memory::primitive_desc> dst_diff_mpd_; //gy 
+
+    // fwd primitive desc
+    std::shared_ptr<mkldnn::eltwise_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_forward::primitive_desc> fwd_pd_;
+};
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
