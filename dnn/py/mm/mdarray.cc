@@ -108,19 +108,7 @@ void mdarray::__setstate__(PyObject *state) {
 }
 
 PyObject *mdarray::py_mdarray_from(PyObject *o) const {
-  mkldnn::engine p_e = get_engine();
-
-  PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
-      , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
-
-  if (Py_p_engine == nullptr) {
-    PyErr_SetString(PyExc_SystemError, "Can not create mkldnn cpu engine pyobject");
-    return nullptr;
-  }
-
-  PyObject *argList = Py_BuildValue("(OiO)", o
-      , ::public_format(desc().data.format)
-        , Py_p_engine);
+  PyObject *argList = Py_BuildValue("(O)", o);
 
   if (argList == nullptr) {
     PyErr_SetString(PyExc_SystemError, "Can not create argument list");
@@ -130,7 +118,6 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   o = PyObject_CallObject(PyType_mdarray, argList);
 
   Py_DECREF(argList);
-  Py_DECREF(Py_p_engine);
 
   if (o == nullptr) {
     PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
