@@ -36,7 +36,7 @@ if system() == 'Linux':
     libraries += ['boost_system', 'glog', 'm']
     src = ['dnn/py/dnn.i', 'dnn/mm/mem.cc', 'dnn/py/mm/mdarray.cc',
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
-           'dnn/primitives/ops/relu_fwd.cc', 'dnn/primitives/prim_mgr/relu_fwd_factory.cc',
+           'dnn/primitives/ops/relu_fwd.cc',
            'dnn/primitives/ops/relu_bwd.cc', 'dnn/primitives/prim_mgr/relu_bwd_factory.cc',
            'dnn/primitives/relu.cc',
            'dnn/primitives/ops/conv_fwd.cc',
