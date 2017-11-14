@@ -49,7 +49,7 @@ if system() == 'Linux':
            'dnn/primitives/pooling.cc',
            'dnn/primitives/ops/linear_fwd.cc',
            'dnn/primitives/ops/linear_bwd_weights.cc','dnn/primitives/prim_mgr/linear_bwd_weights_factory.cc',
-           'dnn/primitives/ops/linear_bwd_data.cc','dnn/primitives/prim_mgr/linear_bwd_data_factory.cc',
+           'dnn/primitives/ops/linear_bwd_data.cc',
            'dnn/primitives/linear.cc',
            'dnn/primitives/ops/bn_fwd.cc',
           ]
