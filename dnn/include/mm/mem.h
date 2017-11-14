@@ -106,7 +106,7 @@ void dnn_free(void *p, mem_pool_t pool=MPOOL_ANON);
 
 // Just grab it from MKL-DNN
 namespace avx {
-#if 1
+#if 0
     inline void* malloc(size_t size, int alignment) {
         return ::dnn_malloc(size);
     }

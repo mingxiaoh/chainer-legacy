@@ -111,6 +111,7 @@ public:
     mkldnn::memory::format ws_fmt_;
     //workspace size
     mkldnn::memory::dims ws_dims_;
+    mkldnn::memory::data_type ws_dt_;
 
     // algo
     mkldnn::algorithm alg_kind_;

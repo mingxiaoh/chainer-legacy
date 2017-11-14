@@ -82,6 +82,7 @@ public:
     static Pooling2DBwd<T>* get( mkldnn::memory::dims src_d, 
                                  mkldnn::memory::dims dst_d,
                                  mkldnn::memory::dims ws_d,
+                                 mkldnn::memory::data_type ws_dt,
                                  int ker_h, int ker_w,
                                  int sy, int sx,
                                  int pad_lh, int pad_lw, int pad_rh, int pad_rw,
@@ -90,12 +91,12 @@ public:
 
         //try to find a suitable one in pool
         pooling2d_backward = dynamic_cast<Pooling2DBwd<T>*> (
-                             Pooling2DBwdFactory<T>::get_instance().get_pooling2d_bwd( src_d, dst_d, ws_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind));
+                             Pooling2DBwdFactory<T>::get_instance().get_pooling2d_bwd( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind));
         
         if (pooling2d_backward == NULL) {
             LOG(INFO) << "create a new one for pooling bwd: " << alg_kind;
-            pooling2d_backward = new Pooling2DBwd<T>( src_d, dst_d, ws_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
-            Pooling2DBwdFactory<T>::get_instance().set_pooling2d_bwd( src_d, dst_d, ws_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind, pooling2d_backward);
+            pooling2d_backward = new Pooling2DBwd<T>( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
+            Pooling2DBwdFactory<T>::get_instance().set_pooling2d_bwd( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind, pooling2d_backward);
         } else {
             LOG(INFO) << "reuse exist one for pooling bwd: " << alg_kind;
         }
@@ -111,6 +112,7 @@ private:
     Op<T>* get_pooling2d_bwd( mkldnn::memory::dims src_d, 
                               mkldnn::memory::dims dst_d,
                               mkldnn::memory::dims ws_d,
+                              mkldnn::memory::data_type ws_dt,
                               int ker_h, int ker_w,
                               int sy, int sx, 
                               int pad_lh, int pad_lw, int pad_rh, int pad_rw,
@@ -119,6 +121,7 @@ private:
     void set_pooling2d_bwd( mkldnn::memory::dims src_d,
                             mkldnn::memory::dims dst_d,
                             mkldnn::memory::dims ws_d,
+                            mkldnn::memory::data_type ws_dt,
                             int ker_h, int ker_w,
                             int sy, int sx,
                             int pad_lh, int pad_lw, int pad_rh, int pad_rw, 

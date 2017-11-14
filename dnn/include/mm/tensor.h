@@ -13,6 +13,9 @@ enum data_type_t {
     UNKNOWN_TYPE = 0,
     FLOAT32,
     SINT32,
+    SINT16,
+    SINT8,
+    UINT8,
 };
 
 inline int type2size(data_type_t type) {
@@ -23,6 +26,15 @@ inline int type2size(data_type_t type) {
             break;
         case SINT32:
             size = 4;
+            break;
+        case SINT16:
+            size = 2;
+            break;
+        case SINT8:
+            size = 1;
+            break;
+        case UINT8:
+            size = 1;
             break;
         default:
             break;
@@ -198,6 +210,15 @@ public:
             case SINT32:
                 type = memory::data_type::s32;
                 break;
+            case SINT16:
+                type = memory::data_type::s16;
+                break;
+            case SINT8:
+                type = memory::data_type::s8;
+                break;
+            case UINT8:
+                type = memory::data_type::u8;
+                break;
             default:
                 type = memory::data_undef;
                 break;
@@ -213,6 +234,15 @@ public:
                 break;
             case mkldnn_s32:
                 dt = SINT32;
+                break;
+            case mkldnn_s16:
+                dt = SINT16;
+                break;
+            case mkldnn_s8:
+                dt = SINT8;
+                break;
+            case mkldnn_u8:
+                dt = UINT8;
                 break;
             default:
                 dt = UNKNOWN_TYPE;

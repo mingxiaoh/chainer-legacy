@@ -22,42 +22,6 @@
  *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *THE SOFTWARE.
  *
- *
- *######################################################################
- *# The CuPy is designed based on NumPy's API.
- *# CuPy's source code and documents contain the original NumPy ones.
- *######################################################################
- *Copyright (c) 2005-2016, NumPy Developers.
- *All rights reserved.
- *
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are
- *met:
- *
- *    * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *
- *    * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *
- *    * Neither the name of the NumPy Developers nor the names of any
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- *LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- *DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- *THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *######################################################################
  */
 
 
@@ -71,10 +35,8 @@
 #include "utils.h"
 #include "pooling_fwd.h"
 #include "pooling_bwd.h"
-#include "pooling_fwd_factory.h"
-#include "pooling_bwd_factory.h"
+#include "prim_factory.h"
 #include "reorder_op.h"
-#include "reorder_factory.h"
 
 using namespace mkldnn;
 
@@ -145,7 +107,9 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     // do forward
     // for max pooling, need to return workspace
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
-        Tensor *ws_tensor = new Tensor((pooling2d_forward->ws_dims_), src->cxx_data_type(), pooling2d_forward->ws_fmt_, cpu_engine);
+        LOG(INFO) << "ws_dt_=" << pooling2d_forward->ws_dt_;
+        // workspace must be int tensor
+        Tensor *ws_tensor = new Tensor((pooling2d_forward->ws_dims_), pooling2d_forward->ws_dt_, pooling2d_forward->ws_fmt_, cpu_engine);
 
         pooling2d_forward->execute(src_tmp, dst_tensor->data(), ws_tensor->data());
         outputs.push_back(dst_tensor);
@@ -174,8 +138,11 @@ Tensor *Pooling2D<T>::Backward(
     assert(diff_dst_dims == diff_dst->cxx_dims());
 
     mkldnn::memory::dims ws_dims;
+    mkldnn::memory::data_type ws_dt;
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
         ws_dims = ws->cxx_dims();
+        ws_dt = ws->cxx_data_type();
+        
     }
     // sanity check for data type
     // assuem all x/w/b should have same data type as T
@@ -186,12 +153,12 @@ Tensor *Pooling2D<T>::Backward(
     // get a conv2d bwd data from primitive pool
     Pooling2DBwd<T> *pooling2d_bwd = NULL;
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
-        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, ws_dims,
+        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, ws_dims, ws_dt,
                 pp->kh, pp->kw, pp->sy, pp->sx,
                 pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
                 pooling_algo_convert(pp->algo_kind));
     } else {
-        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, NONE_DIMS,
+        pooling2d_bwd = Pooling2DBwdFactory<T>::get( diff_src_dims, diff_dst_dims, NONE_DIMS, mkldnn::memory::data_type::data_undef, 
                 pp->kh, pp->kw, pp->sy, pp->sx,
                 pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
                 pooling_algo_convert(pp->algo_kind));
