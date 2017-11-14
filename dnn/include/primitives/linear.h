@@ -59,44 +59,60 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _LINEAR_H_
+#define _LINEAR_H_
+
+#include <mkldnn.hpp>
+#include <vector>
+#include <memory>
+#include "layer.h"
+#include "op_param.h"
+#include "tensor.h"
+
+template <typename T>
+class Linear : public Layer<T>
+{
+public:
+    Linear();
+    ~Linear();
+    /*
+     *Linear forward
+     * Y = W*X + b
+     * params:
+     * src: input, x
+     * weights: weights, w
+     * dst: output, y
+     * bias: bias, b
+     * lp: linear parameters
+     */
+    static Tensor *Forward( Tensor* src,
+                            Tensor* weights,
+                            Tensor* bias,
+                            linear_param_t* lp);
+    /*
+     * Linear backward weights
+     * gW = gy*x
+     * params:
+     * src: input, x
+     * diff_dst: diff dst, gy
+     * lp: linear parameters
+     */
+    static std::vector<Tensor*> BackwardWeights(Tensor* src,
+                                                Tensor* diff_dst,
+                                                linear_param_t* lp);
+    /*
+     * Linear backward data
+     * gx = gy*w
+     * param:
+     * weights: weights, w
+     * diff_dst: diff dst, gy
+     * lp: linear parameters
+     */
+    static Tensor *BackwardData(Tensor* weights,
+                                Tensor* diff_dst,
+                                linear_param_t* lp);
 };
+#endif //_LINEAR_H_
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

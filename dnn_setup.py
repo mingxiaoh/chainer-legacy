@@ -46,6 +46,10 @@ if system() == 'Linux':
            'dnn/primitives/ops/pooling_fwd.cc', 'dnn/primitives/prim_mgr/pooling_fwd_factory.cc',
            'dnn/primitives/ops/pooling_bwd.cc', 'dnn/primitives/prim_mgr/pooling_bwd_factory.cc',
            'dnn/primitives/pooling.cc',
+           'dnn/primitives/ops/linear_fwd.cc', 'dnn/primitives/prim_mgr/linear_fwd_factory.cc',
+           'dnn/primitives/ops/linear_bwd_weights.cc','dnn/primitives/prim_mgr/linear_bwd_weights_factory.cc',
+           'dnn/primitives/ops/linear_bwd_data.cc','dnn/primitives/prim_mgr/linear_bwd_data_factory.cc',
+           'dnn/primitives/linear.cc',
           ]
 else:
     # TODO

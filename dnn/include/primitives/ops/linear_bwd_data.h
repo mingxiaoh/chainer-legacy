@@ -59,44 +59,106 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _LINEAR_BWD_DATA_H_
+#define _LINEAR_BWD_DATA_H_
+
+#include <mkldnn.hpp>
+#include <vector>
+#include <memory>
+#include "op.h"
+
+template <typename T>
+class LinearBwdData : public Op<T>
+{
+public:
+    LinearBwdData(mkldnn::memory::dims diff_src_d,
+                  mkldnn::memory::dims w_d,
+                  mkldnn::memory::dims diff_dst_d);
+    ~LinearBwdData();
+    /*
+     * Linear backward data primitive setup
+     * Params:
+     * diff_src_d: input, (n,c,h,w)
+     * w_d: diff weight, (out_c, in_c, h, w)
+     * diff_dst_d: output, (n, out_c, out_h, out_w)
+     */
+    void setup(mkldnn::memory::dims diff_src_d,
+               mkldnn::memory::dims w_d,
+               mkldnn::memory::dims diff_dst_d);
+    /*
+     * Linear backward weights without bias
+     */
+    void execute(void* diff_src, void* w, void* diff_dst);
+public:
+    // expected memory format for this primitive instance
+    // forward
+    mkldnn::memory::format diff_src_fmt_;
+    mkldnn::memory::format weights_fmt_;
+    mkldnn::memory::format diff_dst_fmt_;
+
+    //linear primitive
+    std::shared_ptr<mkldnn::primitive> linear_bwd_data_;
+private:
+    //MKLDNN memory
+    //backward weights
+    std::shared_ptr<mkldnn::memory> diff_src_mem_; // gx
+    std::shared_ptr<mkldnn::memory> weights_mem_;//w
+    std::shared_ptr<mkldnn::memory> diff_dst_mem_; //gy
+
+    //
+    std::shared_ptr<mkldnn::stream> bwd_data_stream_;
+    std::vector<mkldnn::primitive> bwd_data_primitives_;
+    
+    //desc & primitive desc
+    //backward weights
+    std::shared_ptr<mkldnn::inner_product_backward_data::desc> bwd_data_desc_;
+    std::shared_ptr<mkldnn::inner_product_backward_data::primitive_desc> bwd_data_pd_;
+    
+    //FIXME
+    //forward hint, will be removed in the future;
+    std::shared_ptr<mkldnn::inner_product_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::inner_product_forward::primitive_desc> fwd_pd_;
+
+    //memory desc
+    //forward & backward can share the same mem desc
+    std::shared_ptr<mkldnn::memory::desc> diff_src_md_; //gx
+    std::shared_ptr<mkldnn::memory::desc> weights_md_; // W
+    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_; //gy
 };
-
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
+#endif //_LINEAR_BWD_DATA_H
 
 
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

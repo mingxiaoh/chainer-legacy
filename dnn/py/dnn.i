@@ -9,3 +9,4 @@
 %include "relu.i"
 %include "conv.i"
 %include "pooling.i"
+%include "linear.i"

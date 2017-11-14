@@ -59,44 +59,50 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _LINEAR_FWD_FACTORY_
+#define _LINEAR_FWD_FACTORY_
+#include <mkldnn.hpp>
+#include <string>
+#include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
+#include "utils.h"
+#include "linear_fwd.h"
+
+template <typename T>
+class LinearFwdFactory : public OpFactory<T>
+{
+private:
+    LinearFwdFactory();
+    ~LinearFwdFactory();
+public:
+    static LinearFwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims w,
+            mkldnn::memory::dims b, mkldnn::memory::dims y) {
+        LinearFwd<T>* linear_forward = NULL;
+        //try to find a suitable one in pool
+        linear_forward = dynamic_cast<LinearFwd<T>*> (
+                LinearFwdFactory<T>::get_instance().get_linear_fwd(x, w, b, y));
+        if (linear_forward == NULL) {
+            LOG(INFO) << "create a new one for linear fwd";
+            linear_forward = new LinearFwd<T>(x, w, b, y);
+            LinearFwdFactory<T>::get_instance().set_linear_fwd(x, w, b, y, linear_forward);
+        } else {
+            LOG(INFO) << "reuse exist one linear fwd";
+        }
+        return linear_forward;
+    }
+    static LinearFwdFactory& get_instance() {
+        static LinearFwdFactory instance_;
+        return instance_;
+    }
+private:
+    Op<T>* get_linear_fwd(mkldnn::memory::dims x, mkldnn::memory::dims w,
+            mkldnn::memory::dims b, mkldnn::memory::dims y);
+    void set_linear_fwd(mkldnn::memory::dims x, mkldnn::memory::dims w, 
+            mkldnn::memory::dims b, mkldnn::memory::dims y, Op<T>* op);
+    
 };
+#endif //_LINEAR_FWD_FACTORY
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
