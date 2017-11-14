@@ -42,7 +42,7 @@ if system() == 'Linux':
            'dnn/primitives/ops/conv_fwd.cc',
            'dnn/primitives/ops/conv_bwd_weights.cc',
            'dnn/primitives/ops/conv_bwd_data.cc',
-           'dnn/primitives/ops/reorder_op.cc', 'dnn/primitives/prim_mgr/reorder_factory.cc',
+           'dnn/primitives/ops/reorder_op.cc',
            'dnn/primitives/conv.cc',
            'dnn/primitives/ops/pooling_fwd.cc',
            'dnn/primitives/ops/pooling_bwd.cc',
