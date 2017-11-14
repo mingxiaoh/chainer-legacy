@@ -60,42 +60,148 @@
  *######################################################################
  */
 
-#pragma once
+
+#ifndef _LINEAR_PY_H_
+#define _LINEAR_PY_H_
 
 #include <vector>
 #include <memory>
+#include "op_param.h"
 #include "mdarray.h"
-#include "relu.h"
+#include "linear.h"
 
 template <typename T>
-class Relu_Py
+class Linear_Py
 {
 public:
-    static mdarray Forward(mdarray &src) {
-        // Shoule be removed in future????
-        implementation::mdarray *src_internal = src.get();
-        Tensor *dst_tensor = Relu<T>::Forward(
-                src_internal->tensor()); 
-        
+    /*
+     * Python Linear Forward
+     * Y = W * X + b
+     * params:
+     * src: input, x
+     * weight, weights, w
+     * dst: output, y
+     * bias: bias, b
+     * lp: linear parameters
+     */
+     static mdarray Forward(mdarray *src, 
+                            mdarray *weights,
+                            mdarray *bias,
+                            linear_param_t* lp) {
+        //Shoud be removed in future???
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *w_internal = weights->get();
+        implementation::mdarray *b_internal;
+        if (lp->with_bias)
+            b_internal  = bias->get();
+        Tensor *dst_tensor;
+        if (lp->with_bias)
+            dst_tensor = Linear<T>::Forward(
+                    (src_internal->tensor()),
+                    (w_internal->tensor()),
+                    (b_internal->tensor()),
+                    lp);
+        else 
+            dst_tensor = Linear<T>::Forward(
+                    (src_internal->tensor()),
+                    (w_internal->tensor()),
+                    NULL,
+                    lp);
+ 
+        //FIXME
+        // In the future, mdarray will have a Tensor member, no need to create a new one
         mdarray dst_mdarray = mdarray(dst_tensor);
         return dst_mdarray;
-    }
-
-    static mdarray Backward(mdarray& src, mdarray& diff_dst) {
+     }
+     /*
+      * Python Linear backward weights
+      * gW = gy *x
+      * params:
+      * src: input, x
+      * diff_dst: diff dst, gy
+      * lp: linear parameters
+      */
+     static std::vector<mdarray> BackwardWeights(mdarray* src, 
+                                                 mdarray* diff_dst,
+                                                 linear_param_t* lp) {
+        std::vector<mdarray> grads;
+        //FIXME
+        //shoud be removed in future 
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
+        std::vector<Tensor *> grads_tensor = Linear<T>::BackwardWeights(
+                                                (src_internal->tensor()),
+                                                (diff_dst_internal->tensor()),
+                                                lp);
+        //FIXME
+        for (int i = 0; i < grads_tensor.size(); i++) {
+            grads.push_back(mdarray(grads_tensor[i]));
+        }
+        return grads;
+     }
+     /*
+      * Python Linear backward data
+      * gx = gy*w
+      * params:
+      * weights: weights, w
+      * diff_dst: diff dst, gy
+      * lp: linear parameters
+      */
+     static mdarray BackwardData(mdarray* weights,
+                                 mdarray* diff_dst,
+                                 linear_param_t* lp) {
         //FIXME
         //Should be removed in future
-        Tensor *src_tensor = src.get()->tensor();
-        Tensor *diff_dst_tensor = diff_dst.get()->tensor();
-
-        Tensor *diff_src_tensor = Relu<T>::Backward(src_tensor, diff_dst_tensor);
-
-        // FIXME
-        // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
-        return diff_src_mdarray;
-    }
-
+         implementation::mdarray *w_internal = weights->get();
+         implementation::mdarray *diff_dst_internal = diff_dst->get();
+         Tensor *diff_src_tensor = Linear<T>::BackwardData(
+                                    (w_internal->tensor()),
+                                    (diff_dst_internal->tensor()),
+                                    lp);
+         //FIXME
+         //in future, mdarray will have a Tensor member, no need to create a new one
+         mdarray diff_src_mdarray = mdarray(diff_src_tensor);
+         return diff_src_mdarray;
+     }
 };
 
+#endif //_LINEAR_PY_H
 
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

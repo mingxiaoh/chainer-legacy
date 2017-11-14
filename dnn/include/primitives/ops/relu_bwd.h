@@ -59,44 +59,69 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#pragma once
+
+#include <mkldnn.hpp>
+#include <vector>
+#include "op.h"
+
+template <typename T>
+class ReluBwd : public Op<T>
+{
+public:
+    ReluBwd(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
+    ~ReluBwd();
+
+    /*
+     * Relu backward primitive setup
+     * Params:
+     * src_d: input, (n,c,h,w)
+     * dst_d: output, (n, out_c, out_h, out_w)
+     */
+    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
+
+    /*
+     * Relu backward execute
+     */
+    void execute(void* src, void* dst_diff, void *src_diff);
+
+public:
+    // expected memory format for this primitive instance
+    // backward
+    mkldnn::memory::format src_diff_fmt_;
+    
+    // Relu primitive
+    std::shared_ptr<mkldnn::primitive> relu_bwd_;
+
+private:
+    //MKLDNN memory
+    //backward
+    std::shared_ptr<mkldnn::memory> src_mem_; // x
+    std::shared_ptr<mkldnn::memory> dst_diff_mem_; //gy
+    std::shared_ptr<mkldnn::memory> src_diff_mem_; //gx
+
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
+    std::vector<mkldnn::primitive> bwd_primitives_;
+
+    //desc & prmitive desc
+    //backward
+    std::shared_ptr<mkldnn::eltwise_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_backward::primitive_desc> bwd_pd_;
+
+    //memory desc
+    std::shared_ptr<mkldnn::memory::desc> src_md_; //x 
+    std::shared_ptr<mkldnn::memory::desc> dst_diff_md_; // gy 
+
+    //memory primitive desc
+    std::shared_ptr<mkldnn::memory::primitive_desc> src_mpd_; //x 
+    std::shared_ptr<mkldnn::memory::primitive_desc> dst_diff_mpd_; //gy 
+
+    // fwd primitive desc
+    std::shared_ptr<mkldnn::eltwise_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_forward::primitive_desc> fwd_pd_;
 };
-
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

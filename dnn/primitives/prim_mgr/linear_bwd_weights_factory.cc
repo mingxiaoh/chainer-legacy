@@ -59,44 +59,53 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
-
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
-};
-
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
 
 
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
+#include <glog/logging.h>
+#include <iostream>
+#include "mkldnn.hpp"
+#include "op_factory.h"
+#include "linear_bwd_weights_factory.h"
+
+using namespace mkldnn;
+template<typename T>
+LinearBwdWeightsFactory<T>::LinearBwdWeightsFactory()
+{
+}
+
+template<typename T>
+LinearBwdWeightsFactory<T>::~LinearBwdWeightsFactory()
+{
+}
+
+#define LINEAR_BWD_WEIGHTS_PREFIX "linear_bwd_weights_"
+template<typename T>
+Op<T>*  LinearBwdWeightsFactory<T>::get_linear_bwd_weights(
+        mkldnn::memory::dims x,
+        mkldnn::memory::dims diff_w,
+        mkldnn::memory::dims diff_b,
+        mkldnn::memory::dims diff_y) {
+    std::string key = LINEAR_BWD_WEIGHTS_PREFIX;
+    key += dims_to_string(x);
+    key += dims_to_string(diff_w);
+    key += dims_to_string(diff_b);
+    key += dims_to_string(diff_y);
+    return this->get_op(key);
+}
+
+template<typename T>
+void LinearBwdWeightsFactory<T>::set_linear_bwd_weights(
+        mkldnn::memory::dims x,
+        mkldnn::memory::dims diff_w,
+        mkldnn::memory::dims diff_b,
+        mkldnn::memory::dims diff_y,
+        Op<T>*  op) {
+    std::string key = LINEAR_BWD_WEIGHTS_PREFIX;
+    key += dims_to_string(x);
+    key += dims_to_string(diff_w);
+    key += dims_to_string(diff_b);
+    key += dims_to_string(diff_y);
+    return this->set_op(key, op);
+}
+
+template class LinearBwdWeightsFactory<float>;

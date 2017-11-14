@@ -59,44 +59,89 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#ifndef _LINEAR_BWD_WEIGHTS_FACTORY_
+#define _LINEAR_BWD_WEIGHTS_FACTORY_
+#include <mkldnn.hpp>
+#include <string>
+#include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
+#include "utils.h"
+#include "linear_bwd_weights.h"
+
+template <typename T>
+class LinearBwdWeightsFactory : public OpFactory<T>
+{
+private:
+    LinearBwdWeightsFactory();
+    ~LinearBwdWeightsFactory();
+public:
+    static LinearBwdWeights<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
+            mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y) {
+        LinearBwdWeights<T>* linear_backward_weights = NULL;
+        //try to find a suit one in pool
+        linear_backward_weights = dynamic_cast<LinearBwdWeights<T>*>(
+                LinearBwdWeightsFactory<T>::get_instance().get_linear_bwd_weights(x, diff_w, diff_b, diff_y));
+        if (linear_backward_weights == NULL) {
+            LOG(INFO) << "create a new one for linear bwd weights";
+            linear_backward_weights = new LinearBwdWeights<T>(x, diff_w, diff_b, diff_y);
+            LinearBwdWeightsFactory<T>::get_instance().set_linear_bwd_weights(x, diff_w, diff_b, diff_y, linear_backward_weights);
+        } else {
+            LOG(INFO) << "reuse existed one for linear bwd weights";
+        }
+        return linear_backward_weights;
+    }
+    static LinearBwdWeightsFactory& get_instance() {
+        static LinearBwdWeightsFactory instance_;
+        return instance_;
+    }
+private:
+    Op<T>* get_linear_bwd_weights(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
+                                mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y);
+    void set_linear_bwd_weights(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
+                                mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y, 
+                                Op<T>*    op);
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
+#endif//_LINEAR_BWD_WEIGHTS_FACTORY_
 
 
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

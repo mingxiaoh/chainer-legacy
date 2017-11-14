@@ -59,44 +59,51 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+
+#include <glog/logging.h>
+#include <iostream>
+#include "mkldnn.hpp"
+#include "op_factory.h"
+#include "relu_bwd_factory.h"
+
+using namespace mkldnn;
+
+template<typename T>
+ReluBwdFactory<T>::ReluBwdFactory()
+{
+}
+
+template<typename T>
+ReluBwdFactory<T>::~ReluBwdFactory()
+{
+}
+
+#define RELU_BWD_PREFIX "relu_bwd_"
+template<typename T>
+Op<T>*  ReluBwdFactory<T>::get_relu_bwd(mkldnn::memory::dims x,
+                                        mkldnn::memory::format dst_fmt) {
+    std::string key = RELU_BWD_PREFIX;
+
+    key += dims_to_string(x);
+    key += int_to_string(dst_fmt);
+
+    return this->get_op(key);
 };
 
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
+template<typename T>
+void ReluBwdFactory<T>::set_relu_bwd(mkldnn::memory::dims x,
+                                     mkldnn::memory::format dst_fmt,
+                                     Op<T>* op) {
+    std::string key = RELU_BWD_PREFIX;
 
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
+    key += dims_to_string(x);
+    key += int_to_string(dst_fmt);
+
+    return this->set_op(key, op);
 };
 
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
+template class ReluBwdFactory<float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

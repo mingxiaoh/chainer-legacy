@@ -59,44 +59,52 @@
  *OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *######################################################################
  */
-#ifndef _OP_PARAM_H_
-#define _OP_PARAM_H_
 
-struct conv_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool with_bias; 
+#pragma once
+
+#include <mkldnn.hpp>
+#include <string>
+#include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
+#include "utils.h"
+#include "relu_bwd.h"
+
+template <typename T>
+class ReluBwdFactory : public OpFactory<T> 
+{
+private:
+    ReluBwdFactory();
+    ~ReluBwdFactory();
+
+public:
+    static ReluBwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt) {
+        ReluBwd<T>* relu_backward = nullptr;
+
+        //try to find a suitable one in pool
+        relu_backward = dynamic_cast<ReluBwd<T>*> (
+                            ReluBwdFactory<T>::get_instance().get_relu_bwd(x, dst_diff_fmt));
+        
+        if (relu_backward == nullptr) {
+            LOG(INFO) << "create a new one for relu bwd";
+            relu_backward = new ReluBwd<T>(x, dst_diff_fmt);
+            ReluBwdFactory<T>::get_instance().set_relu_bwd(x, dst_diff_fmt, relu_backward);
+        } else {
+            LOG(INFO) << "reuse exist one for relu bwd";
+        }
+        return relu_backward;
+    }
+
+    static ReluBwdFactory& get_instance() {
+        static ReluBwdFactory instance_;
+        return instance_;
+    }
+
+private:    
+    Op<T>* get_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt);
+
+    void set_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt, Op<T>* op);
 };
-
-struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int kh, kw; // kernel size
-    int sy, sx; // stride
-    int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-
-    enum algorithm {
-        pooling_max,
-        pooling_avg,
-        pooling_avg_include_padding,
-        pooling_avg_exclude_padding,
-    } algo_kind;
-};
-
-struct linear_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
-    int bias_d1; // bias shape
-    bool with_bias; 
-};
-
-#endif // _OP_PARAM_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

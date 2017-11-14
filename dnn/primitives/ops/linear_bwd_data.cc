@@ -64,7 +64,7 @@
 #include <glog/logging.h>
 #include <iostream>
 #include "mkldnn.hpp"
-#include "relu_fwd.h"
+#include "linear_bwd_data.h"
 #include "utils.h"
 #include "common.h"
 
@@ -73,68 +73,79 @@ using namespace mkldnn;
 extern engine cpu_engine;
 
 template<typename T>
-ReluFwd<T>::ReluFwd(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
+LinearBwdData<T>::LinearBwdData(
+        mkldnn::memory::dims diff_src_d,
+        mkldnn::memory::dims w_d,
+        mkldnn::memory::dims diff_dst_d
+        )
 {
-    fwd_stream_.reset(new stream(stream::kind::eager));
-    // create relu primitive
-    if (relu_fwd_ == nullptr) {
-        setup(src_d, src_fmt);
+    bwd_data_stream_.reset(new stream(stream::kind::eager));
+    //create linear primitive
+    if (linear_bwd_data_ == NULL) {
+        setup(diff_src_d, w_d, diff_dst_d);
     }
 }
-
 template<typename T>
-ReluFwd<T>::~ReluFwd()
+LinearBwdData<T>::~LinearBwdData()
 {
 }
 
 template<typename T>
-void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
+void LinearBwdData<T>::setup(
+        mkldnn::memory::dims diff_src_d,
+        mkldnn::memory::dims w_d,
+        mkldnn::memory::dims diff_dst_d
+        ) 
 {
-    LOG(INFO) << "Relu forward_setup";
-    assert(src_d != nullptr);
+    assert(diff_src_d != NULL);
+    assert(w_d != NULL);
+    assert(diff_dst_d != NULL);
 
-    /* create memory descriptors for relu data w/ no specified format */
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
-                                   src_fmt));
-    src_mpd_.reset(new memory::primitive_desc(*src_md_, cpu_engine));
-    /* create a relu*/
-    fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, algorithm::eltwise_relu,
-                                             *src_md_, 0.0, 0.0));
+    diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(), memory::format::any));
+    weights_md_.reset(new memory::desc({w_d}, memory_data_type<T>(), memory::format::any));
+    diff_dst_md_.reset(new memory::desc({diff_dst_d}, memory_data_type<T>(), memory::format::any));
 
-    fwd_pd_.reset(new eltwise_forward::primitive_desc(*fwd_desc_, cpu_engine));
+    /*create a linear descriptor*/
+    bwd_data_desc_.reset(new inner_product_backward_data::desc(*diff_src_md_, *weights_md_, *diff_dst_md_));
 
+    //jiangzho: Current linear bwd need a fwd pd as hint, will remove in future
+    fwd_desc_.reset(new inner_product_forward::desc(prop_kind::forward, *diff_src_md_, *weights_md_, *diff_dst_md_));
+    fwd_pd_.reset(new inner_product_forward::primitive_desc(*fwd_desc_, cpu_engine));
+
+    /* create backward linear prim desc*/
+    bwd_data_pd_.reset(new inner_product_backward_data::primitive_desc(*bwd_data_desc_, cpu_engine, *fwd_pd_));
+    
     //store the expected memory format
-    src_fmt_ = src_fmt;
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
-    
+    diff_src_fmt_ = static_cast<mkldnn::memory::format>(bwd_data_pd_.get()->diff_src_primitive_desc().desc().data.format);
+    weights_fmt_ = static_cast<mkldnn::memory::format>(bwd_data_pd_.get()->weights_primitive_desc().desc().data.format);
+    diff_dst_fmt_ = static_cast<mkldnn::memory::format>(bwd_data_pd_.get()->diff_dst_primitive_desc().desc().data.format); 
+
     // create memory primitive based on dummy data
-    src_mem_.reset(new memory(*src_mpd_, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
-
-    /* create relu primitive and add it to net */
-    relu_fwd_.reset(new eltwise_forward(*fwd_pd_, *src_mem_, *dst_mem_));
-
-    fwd_primitives_.push_back(*relu_fwd_);
+    diff_src_mem_.reset(new memory(bwd_data_pd_.get()->diff_src_primitive_desc(), dummy));
+    weights_mem_.reset(new memory(bwd_data_pd_.get()->weights_primitive_desc(), dummy)); 
+    diff_dst_mem_.reset(new memory(bwd_data_pd_.get()->diff_dst_primitive_desc(), dummy)); 
+    
+    //create linear primitive and add it to net
+    linear_bwd_data_.reset(new inner_product_backward_data(*bwd_data_pd_, *diff_dst_mem_, *weights_mem_, *diff_src_mem_));
+    bwd_data_primitives_.push_back(*linear_bwd_data_);
     return;
 }
 
 template<typename T>
-void ReluFwd<T>::execute(void* src, void* dst)
+void LinearBwdData<T>::execute(void* diff_src, void* w, void* diff_dst)
 {
-    LOG(INFO) << "Relu forward";
-
-    src_mem_->set_data_handle(src);
-    dst_mem_->set_data_handle(dst);
-    fwd_stream_->submit(fwd_primitives_);
-    
-    //after exec, set data handle back
-    src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
-    
+    //LOG(INFO) << "linear fwd without bias"
+    diff_src_mem_->set_data_handle(diff_src);
+    weights_mem_->set_data_handle(w);
+    diff_dst_mem_->set_data_handle(diff_dst);
+    //linear_bwd->execute();
+    bwd_data_stream_->submit(bwd_data_primitives_);
+    diff_src_mem_->set_data_handle(dummy);
+    weights_mem_->set_data_handle(dummy);
+    diff_dst_mem_->set_data_handle(dummy);
     return;
 }
 
-template class ReluFwd<float>;
+template class LinearBwdData<float>;
 
 
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
