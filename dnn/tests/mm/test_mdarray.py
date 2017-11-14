@@ -1,10 +1,11 @@
 import numpy
 from chainer import testing
+from chainer import utils
 import dnn._dnn
 
 x1 = numpy.ndarray(shape=(2,2,2,2), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x1)
-print(type(x))
+print(x)
 print("ndims=", x.ndim)
 print("shape=", x.shape)
 print("size=", x.size)
@@ -18,4 +19,12 @@ x1 += x
 x += x
 x2 = numpy.array(x)
 testing.assert_allclose(x1, x2)
+
+
+x1 = numpy.ones(shape=(2,2,2,2), dtype=numpy.float32, order='C')
+x = dnn._dnn.mdarray(x1)
+#x1 = x1/2
+x + x1
+utils.force_array(x * x1)
+
 
