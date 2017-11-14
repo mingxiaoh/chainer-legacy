@@ -198,7 +198,7 @@ public:
     }
 
     inline bool incompatible() const {
-        return (public_format(mm_fmt_) == mm_fmt_);
+        return (public_format(mm_fmt_) != mm_fmt_);
     }
 
     inline memory::data_type to_mkldnn_type() const {
