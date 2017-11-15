@@ -35,16 +35,23 @@
 template <typename T>
 class batch_normalization_fwd : public Op<T> {
 public:
-    batch_normalization_fwd() : bn_fwd_(nullptr), src_mem_(nullptr),
-                                flags_(0), pkind_(mkldnn::forward_training),
-                                w_mem_(nullptr), dst_mem_(nullptr),
-                                mean_mem_(nullptr), var_mem_(nullptr),
-                                fwd_stream_(new mkldnn::stream(mkldnn::stream::kind::eager)) {}
+    batch_normalization_fwd(mkldnn::memory::dims src_d,
+                            float eps,
+                            bool scale_shift,
+                            bool global_stats,
+                            bool training) :
+                            bn_fwd_(nullptr), src_mem_(nullptr),
+                            flags_(0), pkind_(mkldnn::forward_training),
+                            w_mem_(nullptr), dst_mem_(nullptr),
+                            mean_mem_(nullptr), var_mem_(nullptr),
+                            fwd_stream_(new mkldnn::stream(mkldnn::stream::kind::eager)) {
+        setup(src_d, eps, scale_shift, global_stats, training);
+    }
 
     ~batch_normalization_fwd() {}
 
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
-               float eps, bool global_stats, bool training);
+    void setup(mkldnn::memory::dims src_d, float eps,
+               bool scale_shift, bool global_stats, bool training);
 
     void execute(void *src, void *w, void *dst, void *mean, void *var);
 

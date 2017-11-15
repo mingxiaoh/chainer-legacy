@@ -44,17 +44,20 @@ private:
     ~batch_normalization_fwd_factory() {}
 
 public:
-    static batch_normalization_fwd<T> * get(mkldnn::memory::dims src_d,
-            float mean, float var, float eps, bool global_stats, bool training) {
+    static batch_normalization_fwd<T> * get(
+            mkldnn::memory::dims src_d, float eps,
+            bool scale_shift, bool global_stats, bool training) {
+
         auto bn_fwd = dynamic_cast<batch_normalization_fwd<T>*>(
                       batch_normalization_fwd_factory<T>::get_instance().get_bn_fwd(
-                      src_d, mean, var, eps, global_stats, training));
+                      src_d, eps, scale_shift, global_stats, training));
 
         if (bn_forward == nullptr) {
             LOG(INFO) << "create a new one for bn fwd";
-            bn_forward = new batch_normalization_fwd<T>();
+            bn_forward = new batch_normalization_fwd<T>(
+                         src_d, eps, scale_shift, global_stats, training);
             batch_normalization_fwd_factory<T>::get_instance().set_bn_fwd(
-                    src_d, mean, var, eps, global_stats, training, bn_forward);
+                    src_d, eps, scale_shift, global_stats, training, bn_forward);
         } else {
             LOG(INFO) << "reuse exist one for bn fwd";
         }
@@ -69,28 +72,28 @@ public:
 
 private:
 #define BN_FWD_PREFIX "bn_fwd_"
-    Op<T> * get_bn_fwd(mkldnn::memory::dims src_d, float mean,
-            float var, float eps, bool global_stats, bool training) {
+    Op<T> * get_bn_fwd(mkldnn::memory::dims src_d, float mean, bool scale_shift,
+                       bool global_stats, bool training) {
+
         std::string key = BN_FWD_PREFIX;
 
         key += dims_to_string(src_d);
-        key += float_to_string(mean);
-        key += float_to_string(var);
         key += float_to_string(eps);
+        key += bool_to_string(scale_shift);
         key += bool_to_string(global_stats);
         key += bool_to_string(training);
 
         return this->get_op(key);
     }
 
-    void set_bn_fwd(mkldnn::memory::dims src_d, float mean, float var,
-            float eps, bool global_stats, bool training, Op<T> *op) {
+    void set_bn_fwd(mkldnn::memory::dims src_d, float eps, bool scale_shift,
+                    bool global_stats, bool training, Op<T> *op) {
+
         std::string key = BN_FWD_PREFIX;
 
         key += dims_to_string(src_d);
-        key += float_to_string(mean);
-        key += float_to_string(var);
         key += float_to_string(eps);
+        key += bool_to_string(scale_shift);
         key += bool_to_string(global_stats);
         key += bool_to_string(training);
 

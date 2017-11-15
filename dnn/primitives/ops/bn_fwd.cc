@@ -38,8 +38,10 @@ extern engine cpu_engine;
 
 template<typename T>
 void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
-        mkldnn::memory::dims w_d, float eps, bool global_stats, bool training) {
-    flags_ |= reinterpret_cast<void *>(w_d) ? use_scale_shift : 0;
+                                       float eps, bool scale_shift,
+                                       bool global_stats, bool training) {
+
+    flags_ |= scale_shift ? use_scale_shift : 0;
     flags_ |= global_stats ? use_global_stats : 0;
 
     pkind_ = training ?
