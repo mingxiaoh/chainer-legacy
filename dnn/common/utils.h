@@ -21,6 +21,9 @@ void eltwise_multiply(T* x1, T* x2, T* y, size_t n) {
 //// map C type with mkldnn's
 //// float -> memory::data_type::f32
 //// int -> memory::data_type::s32
+//// int16_t -> memory::data_type::s16
+//// int8_t -> memory::data_type::s8
+//// uint8_t -> memory::data_type::u8
 //
 template<typename T>
 static mkldnn::memory::data_type memory_data_type() {
@@ -28,6 +31,12 @@ static mkldnn::memory::data_type memory_data_type() {
         return mkldnn::memory::data_type::f32;
     else if (typeid(T) == typeid(int))
         return mkldnn::memory::data_type::s32;
+    else if (typeid(T) == typeid(int16_t))
+        return mkldnn::memory::data_type::s16;
+    else if (typeid(T) == typeid(int8_t))
+        return mkldnn::memory::data_type::s8;
+    else if (typeid(T) == typeid(uint8_t))
+        return mkldnn::memory::data_type::u8;
 
     LOG(ERROR) << "Not support type";
     return mkldnn::memory::data_type::data_undef;

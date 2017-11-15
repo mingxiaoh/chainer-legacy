@@ -43,7 +43,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
-        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg # by default = pooling_avg_exclude_padding
+        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
        
         x_mdarray = x[0]
         if isinstance(x_mdarray, numpy.ndarray):
@@ -138,7 +138,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
-        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg # by default = pooling_avg_exclude_padding
+        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
 
         gy_mdarray = gy[0]
         if isinstance(gy_mdarray, numpy.ndarray):
