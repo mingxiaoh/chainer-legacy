@@ -1,5 +1,5 @@
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/intel/chainer)
-[![travis](https://img.shields.io/travis/intel/chainer/master.svg)](https://travis-ci.org/intel/chainer)
+[![travis](https://img.shields.io/travis/intel/chainer/master_v2.svg)](https://travis-ci.org/intel/chainer)
 [![coveralls](https://img.shields.io/coveralls/intel/chainer.svg)](https://coveralls.io/github/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
