@@ -28,5 +28,8 @@ y = x * x1
 y2 = numpy.array(y)
 testing.assert_allclose(y2, x1*x1)
 
-print(type(y))
-y.ravel()
+x1 = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
+x = dnn._dnn.mdarray(x1)
+z1 = (x1 > 0).astype(x1.dtype)
+z = (x > 0).astype(x1.dtype)
+testing.assert_allclose(z, z1)

@@ -16,7 +16,9 @@
 %include asnumber.i
 %include asmap.i
 %include attribute.i
+%include tp.i
 
+%tp_richcompare(mdarray)
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
