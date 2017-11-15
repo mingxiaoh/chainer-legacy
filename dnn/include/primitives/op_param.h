@@ -91,7 +91,6 @@ struct pooling_param_t {
 struct linear_param_t {
     int src_d1, src_d2, src_d3, src_d4;
     int src_ndims;
-    int bias_d1; // bias shape
     bool with_bias; 
 };
 

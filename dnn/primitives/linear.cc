@@ -186,8 +186,6 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     mkldnn::memory::dims diff_dst_dims = diff_dst->cxx_dims();
     mkldnn::memory::dims diff_w_dims;
     mkldnn::memory::dims diff_b_dims;
-    if (lp->with_bias) 
-        diff_b_dims = {lp->bias_d1};
     if (src->ndims() == 4) {
         diff_w_dims = {diff_dst_dims[1], src_dims[1], src_dims[2], src_dims[3]};
     } else if (src->ndims() == 2){
@@ -195,6 +193,8 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     } else {
         LOG(INFO) << "Error:: src only support 2 dims or 4 dims";
     }
+    if (lp->with_bias) 
+        diff_b_dims = {diff_w_dims[0]};
     // sanity check for data type
     // FIXME
     // is it possible y and w ave different data type?
