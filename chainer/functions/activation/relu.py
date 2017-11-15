@@ -5,6 +5,8 @@ from chainer import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import dnn._dnn
+from dnn._dnn import mdarray, Relu_Py_F32
 
 
 if cuda.cudnn_enabled:
@@ -24,6 +26,13 @@ class ReLU(function_node.FunctionNode):
             in_types[0].dtype.kind == 'f',
         )
 
+    def forward_ia(self, x):
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+        y = Relu_Py_F32.Forward(x[0])
+        return y,
+
+
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
@@ -41,12 +50,12 @@ class ReLU(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, gy):
+        x = self.get_retained_inputs()[0]
         y = self.get_retained_outputs()[0]
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
-            x = self.get_retained_inputs()[0]
             return ReLUGrad3(x, y).apply((gy[0],))
         else:
-            return ReLUGrad2(y).apply((gy[0],))
+            return ReLUGrad2(x, y).apply((gy[0],))
 
 
 def _heaviside(x):
@@ -65,9 +74,14 @@ class ReLUGrad2(function_node.FunctionNode):
     we do not backpropagate errors toward b for computational efficiency.
     """
 
-    def __init__(self, b):
+    def __init__(self, a, b):
         super(ReLUGrad2, self).__init__()
+        self.a = a.data
         self.b = b.data
+
+    def forward_ia(self, inputs):
+        gx = Relu_Py_F32.Backward(self.a, inputs[0])
+        return gx,
 
     def forward_cpu(self, inputs):
         y = (self.b > 0) * inputs[0]
