@@ -57,6 +57,9 @@ public:
 
 public:
     std::shared_ptr<mkldnn::primitive> bn_fwd_;
+    mkldnn::memory::format dst_fmt_;
+    mkldnn::memory::format mean_fmt_;
+    mkldnn::memory::format var_fmt_;
 
 private:
     unsigned long flags_;
