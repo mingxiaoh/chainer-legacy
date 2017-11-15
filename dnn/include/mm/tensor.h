@@ -109,6 +109,25 @@ inline mkldnn_memory_format_t public_format(mkldnn_memory_format_t origin)
     return ret;
 }
 
+inline mkldnn_memory_format_t format_2_as_4(mkldnn_memory_format_t origin)
+{
+    mkldnn_memory_format_t ret;
+    // review this relations carefully
+    switch(origin) {
+        case mkldnn_nc:
+            ret = mkldnn_nchw;
+            break;
+        case mkldnn_oi:
+            ret = mkldnn_oihw;
+            break;
+        default:
+            ret = origin;
+            break;
+    }
+    return ret;
+}
+
+
 class Tensor {
 public:
     // Allocate memory in constructor
@@ -190,6 +209,14 @@ public:
         memory::data_type dt = to_mkldnn_type();
         mem_.reset(new mkldnn::memory(
                     { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                    , cpu_engine }, data_.get()));
+    }
+
+    inline void reset_memory(mkldnn_memory_format_t mkldnn_mfmt, vector<int> dims) {
+        mm_fmt_ = mkldnn_mfmt;
+        memory::data_type dt = to_mkldnn_type();
+        mem_.reset(new mkldnn::memory(
+                    { { { dims }, dt, static_cast<memory::format>(mm_fmt_) }
                     , cpu_engine }, data_.get()));
     }
 

@@ -56,11 +56,43 @@ public:
     void execute(void *src, void *w, void *dst, void *mean, void *var);
 
 public:
-    std::shared_ptr<mkldnn::primitive> bn_fwd_;
+    mkldnn::memory::format get_src_fmt() {
+        return get_desc_data(src_mem_).format;
+    }
+
+    mkldnn::memory::format get_dst_fmt() {
+        return get_desc_data(dst_mem_).format;
+    }
+
+    mkldnn::memory::format get_mean_fmt() {
+        return get_desc_data(mean_mem_).format;
+    }
+
+    int get_mean_ndims() {
+        return static_cast<int>(get_desc_data(mean_mem_).ndims);
+    }
+
+    mkldnn::memory::dims get_mean_dims() {
+        return get_desc_data(mean_mem_).dims;
+    }
+
+    mkldnn::memory::format get_var_fmt() {
+        return get_desc_data(var_mem_).format;
+    }
+
+    int get_var_ndims() {
+        return static_cast<int>(get_desc_data(var_mem_).ndims);
+    }
+
+    mkldnn::memory::dims get_var_dims() {
+        return get_desc_data(var_mem_).dims;
+    }
 
 private:
     unsigned long flags_;
     mkldnn::prop_kind pkind_;
+
+    std::shared_ptr<mkldnn::primitive> bn_fwd_;
 
     std::shared_ptr<mkldnn::memory> src_mem_;
     std::shared_ptr<mkldnn::memory> w_mem_;
@@ -70,6 +102,10 @@ private:
 
     std::vector<mkldnn::primitive> fwd_primitives_;
     std::shared_ptr<mkldnn::stream> fwd_stream_;
+
+    mkldnn::memory::desc get_desc_data(mkldnn::memory m) {
+        return m.get_primitive_desc().desc().data;
+    }
 };
 
 #endif // _BN_FWD_H_

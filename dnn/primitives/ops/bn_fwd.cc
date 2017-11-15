@@ -97,6 +97,7 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
     }
 
     fwd_primitives_.push_back(*bn_fwd_);
+
     return;
 }
 

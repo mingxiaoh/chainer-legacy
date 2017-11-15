@@ -75,7 +75,6 @@
 #include "linear_bwd_weights_factory.h"
 #include "reorder_op.h"
 #include "reorder_factory.h"
-
 using namespace mkldnn;
 
 extern const mkldnn::memory::dims NONE_DIMS; 
@@ -100,15 +99,22 @@ Tensor *Linear<T>::Forward(
         linear_param_t *lp)
 {
     //sanity check
-    mkldnn::memory::dims src_dims = {lp->src_d1, lp->src_d2, lp->src_d3, lp->src_d4};
-    mkldnn::memory::dims w_dims = {lp->weights_d1, lp->weights_d2, lp->weights_d3, lp->weights_d4};
+    mkldnn::memory::dims src_dims = src->cxx_dims();
+    mkldnn::memory::dims w_dims = weights->cxx_dims();
     mkldnn::memory::dims b_dims;
-    mkldnn::memory::dims dst_dims =  {lp->dst_d1, lp->dst_d2, lp->dst_d3, lp->dst_d4};
+    mkldnn::memory::dims dst_dims ;
     if (lp->with_bias) {
-        b_dims = {lp->bias_d1};
+        b_dims = bias->cxx_dims();
         assert(b_dims == bias->cxx_dims());
     }
-    assert(src_dims == src->cxx_dims() && w_dims == weights->cxx_dims());
+
+    if (src->ndims() != weights->ndims()) {
+        assert(weights->ndims() == 2 && src->ndims() == 4);
+        w_dims = {w_dims[0], src_dims[1], src_dims[2], src_dims[3]};
+        weights->reset_memory(format_2_as_4(weights->format()), w_dims);
+    }
+    dst_dims = {src_dims[0], w_dims[0]};
+
     //sanity check for data type
     //FIXME
     //is it possible y and w have different data type?
@@ -176,13 +182,19 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
             Tensor *src, Tensor* diff_dst, linear_param_t *lp)
 {
     std::vector<Tensor *> bwd_weight_vec;
-    mkldnn::memory::dims src_dims = {lp->src_d1, lp->src_d2, lp->src_d3, lp->src_d4};
-    mkldnn::memory::dims diff_w_dims = {lp->weights_d1, lp->weights_d2, lp->weights_d3, lp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {lp->dst_d1, lp->dst_d2, lp->dst_d3, lp->dst_d4};
+    mkldnn::memory::dims src_dims = src->cxx_dims();
+    mkldnn::memory::dims diff_dst_dims = diff_dst->cxx_dims();
+    mkldnn::memory::dims diff_w_dims;
     mkldnn::memory::dims diff_b_dims;
     if (lp->with_bias) 
         diff_b_dims = {lp->bias_d1};
-    assert(src_dims == src->cxx_dims() && diff_dst_dims == diff_dst->cxx_dims());
+    if (src->ndims() == 4) {
+        diff_w_dims = {diff_dst_dims[1], src_dims[1], src_dims[2], src_dims[3]};
+    } else if (src->ndims() == 2){
+        diff_w_dims = {diff_dst_dims[1], src_dims[1]};
+    } else {
+        LOG(INFO) << "Error:: src only support 2 dims or 4 dims";
+    }
     // sanity check for data type
     // FIXME
     // is it possible y and w ave different data type?
@@ -251,10 +263,21 @@ Tensor *Linear<T>::BackwardData(
             linear_param_t *lp)
 {
     //sanity check
-    mkldnn::memory::dims diff_src_dims = {lp->src_d1, lp->src_d2, lp->src_d3, lp->src_d4};
-    mkldnn::memory::dims w_dims = {lp->weights_d1, lp->weights_d2, lp->weights_d3, lp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {lp->dst_d1, lp->dst_d2, lp->dst_d3, lp->dst_d4};
-    assert(w_dims == weights->cxx_dims() && diff_dst_dims ==  diff_dst->cxx_dims());
+    mkldnn::memory::dims w_dims = weights->cxx_dims();
+    mkldnn::memory::dims diff_dst_dims = diff_dst->cxx_dims();
+    mkldnn::memory::dims diff_src_dims;
+    if (lp->src_ndims == 2) {
+        assert(weights->ndims() == 2);
+        diff_src_dims = {lp->src_d1, lp->src_d2};
+    } else if (lp->src_ndims == 4) {
+        diff_src_dims = {lp->src_d1, lp->src_d2, lp->src_d3, lp->src_d4};
+        if (weights->ndims() != 4) {
+            w_dims = {w_dims[0], diff_src_dims[1], diff_src_dims[2], diff_src_dims[3]};
+            weights->reset_memory(format_2_as_4(weights->format()), w_dims);
+        }
+    } else {
+        LOG(INFO) << "Error:: src ndim not support(2 or 4 only)";
+    }
     //sanity check for data type
     //assume all a/w/b should have the same type as T
     //FIXME
@@ -304,35 +327,4 @@ Tensor *Linear<T>::BackwardData(
     return diff_src_tensor;
 }
 template class Linear<float>;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -52,17 +52,17 @@ public:
                       batch_normalization_fwd_factory<T>::get_instance().get_bn_fwd(
                       src_d, eps, scale_shift, global_stats, training));
 
-        if (bn_forward == nullptr) {
+        if (bn_fwd == nullptr) {
             LOG(INFO) << "create a new one for bn fwd";
-            bn_forward = new batch_normalization_fwd<T>(
+            bn_fwd = new batch_normalization_fwd<T>(
                          src_d, eps, scale_shift, global_stats, training);
             batch_normalization_fwd_factory<T>::get_instance().set_bn_fwd(
-                    src_d, eps, scale_shift, global_stats, training, bn_forward);
+                    src_d, eps, scale_shift, global_stats, training, bn_fwd);
         } else {
             LOG(INFO) << "reuse exist one for bn fwd";
         }
 
-        return bn_forward;
+        return bn_fwd;
     }
 
     static batch_normalization_fwd_factory & get_instance() {
@@ -72,7 +72,7 @@ public:
 
 private:
 #define BN_FWD_PREFIX "bn_fwd_"
-    Op<T> * get_bn_fwd(mkldnn::memory::dims src_d, float mean, bool scale_shift,
+    Op<T> * get_bn_fwd(mkldnn::memory::dims src_d, float eps, bool scale_shift,
                        bool global_stats, bool training) {
 
         std::string key = BN_FWD_PREFIX;
