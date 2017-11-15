@@ -56,7 +56,9 @@ public:
     void execute(void *src, void *w, void *dst, void *mean, void *var);
 
 public:
-    std::shared_ptr<mkldnn::primitive> bn_fwd_;
+    mkldnn::memory::format get_src_fmt() {
+        return get_desc_data(src_mem_).format;
+    }
 
     mkldnn::memory::format get_dst_fmt() {
         return get_desc_data(dst_mem_).format;
@@ -89,6 +91,8 @@ public:
 private:
     unsigned long flags_;
     mkldnn::prop_kind pkind_;
+
+    std::shared_ptr<mkldnn::primitive> bn_fwd_;
 
     std::shared_ptr<mkldnn::memory> src_mem_;
     std::shared_ptr<mkldnn::memory> w_mem_;

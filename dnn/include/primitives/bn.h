@@ -1,4 +1,7 @@
 /*
+ *COPYRIGHT
+ *All modification made by Intel Corporation: © 2017 Intel Corporation.
+ *Copyright (c) 2015 Preferred Infrastructure, Inc.
  *Copyright (c) 2015 Preferred Networks, Inc.
  *
  *Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,17 +25,27 @@
  */
 
 
-#ifndef _PRIM_FACTORY_
-#define _PRIM_FACTORY_
+#ifndef _BN_H_
+#define _BN_H_
 
-#include "reorder_factory.h"
-#include "conv_fwd_factory.h"
-#include "conv_bwd_data_factory.h"
-#include "conv_bwd_weights_factory.h"
-#include "pooling_fwd_factory.h"
-#include "pooling_bwd_factory.h"
-#include "relu_fwd_factory.h"
-#include "relu_bwd_factory.h"
-#include "bn_fwd_factory.h"
+#include <mkldnn.hpp>
+#include <vector>
+#include <memory>
+#include "layer.h"
+#include "tensor.h"
 
-#endif // _PRIM_FACTORY_
+template <typename T>
+class batch_normalization : public Layer<T>
+{
+public:
+    batch_normalization() {};
+    ~batch_normalization() {};
+    
+    static std::vector<Tensor *> Forward(Tensor *src,
+                                         Tensor *w,
+                                         Tensor *mean,
+                                         Tensor *var,
+                                         float eps); 
+};
+
+#endif
