@@ -98,10 +98,6 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
 
     fwd_primitives_.push_back(*bn_fwd_);
 
-    dst_fmt_ = fwd_pd.dst_primitive_desc().desc().data.format;
-    mean_fmt_ = fwd_pd.mean_primitive_desc().desc().data.format;
-    var_fmt_ = fwd_pd.variance_primitive_desc().desc().data.format;
-
     return;
 }
 
