@@ -34,6 +34,18 @@ public:
                 strcpy(format_, "i");
                 itemsize_ = 4;
                 break;
+            case mkldnn::memory::s16:
+                strcpy(format_, "h");
+                itemsize_ = 2;
+                break;
+            case mkldnn::memory::s8:
+                strcpy(format_, "b");
+                itemsize_ = 1;
+                break;
+            case mkldnn::memory::u8:
+                strcpy(format_, "B");
+                itemsize_ = 1;
+                break;
             default:
                 break;
         }

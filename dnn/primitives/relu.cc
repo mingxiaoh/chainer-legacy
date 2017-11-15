@@ -34,7 +34,7 @@
 #include "tensor.h"
 #include "relu.h"
 #include "relu_fwd.h"
-//#include "relu_bwd_data.h"
+#include "relu_bwd.h"
 #include "prim_factory.h"
 #include "reorder_op.h"
 
@@ -57,7 +57,6 @@ template<typename T>
 Tensor *Relu<T>::Forward(Tensor *src)
 {
     //sanity check for data type
-    //yli135: Is it possible x and w have different data type????
     assert(memory_data_type<T>() == src.cxx_data_type());
 
     // get a relu fwd from primitive pool
@@ -68,9 +67,10 @@ Tensor *Relu<T>::Forward(Tensor *src)
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    //Tensor *dst_tensor = new Tensor(src->dims(), src->cxx_data_type(), relu_fwd->dst_fmt_, cpu_engine);
+    // Tensor *dst_tensor = new Tensor(src->dims(), src->cxx_data_type(), relu_fwd->dst_fmt_, cpu_engine);
     Tensor *dst_tensor = new Tensor(src->ndims(), src->dims(),
-            (mkldnn_memory_format_t)relu_fwd->dst_fmt_, src->type());
+                                    (mkldnn_memory_format_t)relu_fwd->dst_fmt_,
+                                    src->type());
 
     // do forward
     relu_fwd->execute(src->data(), dst_tensor->data());
@@ -79,9 +79,42 @@ Tensor *Relu<T>::Forward(Tensor *src)
 }
 
 template<typename T>
-Tensor *Relu<T>::BackwardData(Tensor *src, Tensor *diff_dst)
+Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
 {
-    return nullptr;
+    // sanity check for data type
+    assert(memory_data_type<T>() == diff_dst->cxx_data_type());
+    assert(src->ndims() == diff_dst->ndims());
+    assert(src->size() == diff_dst->size());
+
+    // get a relu bwd data from primitive pool
+    ReluBwd<T> *relu_bwd = nullptr;
+    relu_bwd = ReluBwdFactory<T>::get(diff_dst->dims(), diff_dst->cxx_format());
+
+    void *src_buf = src->data();
+    avx::byte *src_reorder = nullptr;
+
+    if (src->cxx_format() != diff_dst->cxx_format()) {
+        LOG(INFO) << "relu bwd data fmt not match, need to reorder";
+        LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
+        ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
+        src_reorder = new avx::byte[diff_dst->len()];
+        reorder_src_op->execute(src_buf, src_reorder);
+        src_buf = src_reorder;
+    }
+
+    // create tensor based on selected primitive
+    // assume dst and src have same data type
+    Tensor *diff_src = new Tensor(src->ndims(), src->dims(),
+                                    (mkldnn_memory_format_t)relu_bwd->src_diff_fmt_,
+                                    src->type());
+    
+    relu_bwd->execute(src_buf, diff_dst->data(), diff_src->data());
+
+    // free
+    if (src_reorder != nullptr)
+        delete src_reorder;
+
+    return diff_src;
 }
 
 template class Relu<float>;

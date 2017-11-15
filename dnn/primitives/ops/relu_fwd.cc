@@ -98,9 +98,8 @@ void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fm
                                    src_fmt));
     src_mpd_.reset(new memory::primitive_desc(*src_md_, cpu_engine));
     /* create a relu*/
-    const double negative_slope = 0.0;
     fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, algorithm::eltwise_relu,
-                                             *src_md_, negative_slope));
+                                             *src_md_, 0.0, 0.0));
 
     fwd_pd_.reset(new eltwise_forward::primitive_desc(*fwd_desc_, cpu_engine));
 

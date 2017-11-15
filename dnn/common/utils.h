@@ -21,38 +21,53 @@ void eltwise_multiply(T* x1, T* x2, T* y, size_t n) {
 //// map C type with mkldnn's
 //// float -> memory::data_type::f32
 //// int -> memory::data_type::s32
+//// int16_t -> memory::data_type::s16
+//// int8_t -> memory::data_type::s8
+//// uint8_t -> memory::data_type::u8
 //
 template<typename T>
-static mkldnn::memory::data_type memory_data_type() {
+static inline mkldnn::memory::data_type memory_data_type() {
     if (typeid(T) == typeid(float))
         return mkldnn::memory::data_type::f32;
     else if (typeid(T) == typeid(int))
         return mkldnn::memory::data_type::s32;
+    else if (typeid(T) == typeid(int16_t))
+        return mkldnn::memory::data_type::s16;
+    else if (typeid(T) == typeid(int8_t))
+        return mkldnn::memory::data_type::s8;
+    else if (typeid(T) == typeid(uint8_t))
+        return mkldnn::memory::data_type::u8;
 
     LOG(ERROR) << "Not support type";
     return mkldnn::memory::data_type::data_undef;
 }
 
 // utils function conver int/double/bool/dims/ to string
-static std::string int_to_string(int value) {
+static inline std::string int_to_string(int value) {
     std::ostringstream os;
     os << std::hex << "I" << value << "_";
     return os.str();
 }
 
-static std::string double_to_string(double value) {
+static inline std::string double_to_string(double value) {
     std::ostringstream os;
     os << "D" << value << "_";
     return os.str();
 }
 
-static std::string bool_to_string(bool value) {
+static inline std::string float_to_string(float value) {
     std::ostringstream os;
-    os << "D" << value << "_";
+    os << "F" << value << "_";
     return os.str();
 }
 
-static std::string dims_to_string(mkldnn::memory::dims dims) {
+static inline std::string bool_to_string(bool value) {
+    std::ostringstream os;
+    os << "B" << value << "_";
+    return os.str();
+}
+
+static inline std::string dims_to_string(mkldnn::memory::dims dims) {
    std::ostringstream os;
    os << "DIMS:";
    for (int i = 0; i < dims.size(); i++)

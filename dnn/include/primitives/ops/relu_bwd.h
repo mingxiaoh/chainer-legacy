@@ -60,48 +60,68 @@
  *######################################################################
  */
 
-#include <glog/logging.h>
-#include <iostream>
-#include "mkldnn.hpp"
-#include "op_factory.h"
-#include "linear_bwd_data_factory.h"
 
-using namespace mkldnn;
-template<typename T>
-LinearBwdDataFactory<T>::LinearBwdDataFactory()
+#pragma once
+
+#include <mkldnn.hpp>
+#include <vector>
+#include "op.h"
+
+template <typename T>
+class ReluBwd : public Op<T>
 {
-}
+public:
+    ReluBwd(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
+    ~ReluBwd();
 
-template<typename T>
-LinearBwdDataFactory<T>::~LinearBwdDataFactory()
-{
-}
+    /*
+     * Relu backward primitive setup
+     * Params:
+     * src_d: input, (n,c,h,w)
+     * dst_d: output, (n, out_c, out_h, out_w)
+     */
+    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
 
-#define LINEAR_BWD_DATA_PREFIX "linear_bwd_data_"
-template<typename T>
-Op<T>*  LinearBwdDataFactory<T>::get_linear_bwd_data(
-        mkldnn::memory::dims diff_src,
-        mkldnn::memory::dims w,
-        mkldnn::memory::dims diff_dst
-        ) {
-    std::string key = LINEAR_BWD_DATA_PREFIX;
-    key += dims_to_string(diff_src);
-    key += dims_to_string(w);
-    key += dims_to_string(diff_dst);
-    return this->get_op(key);
-}
+    /*
+     * Relu backward execute
+     */
+    void execute(void* src, void* dst_diff, void *src_diff);
 
-template<typename T>
-void LinearBwdDataFactory<T>::set_linear_bwd_data(
-        mkldnn::memory::dims diff_src,
-        mkldnn::memory::dims w,
-        mkldnn::memory::dims diff_dst,
-        Op<T>* op) {
-    std::string key = LINEAR_BWD_DATA_PREFIX;
-    key += dims_to_string(diff_src);
-    key += dims_to_string(w);
-    key += dims_to_string(diff_dst);
-    return this->set_op(key, op);
-}
+public:
+    // expected memory format for this primitive instance
+    // backward
+    mkldnn::memory::format src_diff_fmt_;
+    
+    // Relu primitive
+    std::shared_ptr<mkldnn::primitive> relu_bwd_;
 
-template class LinearBwdDataFactory<float>;
+private:
+    //MKLDNN memory
+    //backward
+    std::shared_ptr<mkldnn::memory> src_mem_; // x
+    std::shared_ptr<mkldnn::memory> dst_diff_mem_; //gy
+    std::shared_ptr<mkldnn::memory> src_diff_mem_; //gx
+
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
+    std::vector<mkldnn::primitive> bwd_primitives_;
+
+    //desc & prmitive desc
+    //backward
+    std::shared_ptr<mkldnn::eltwise_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_backward::primitive_desc> bwd_pd_;
+
+    //memory desc
+    std::shared_ptr<mkldnn::memory::desc> src_md_; //x 
+    std::shared_ptr<mkldnn::memory::desc> dst_diff_md_; // gy 
+
+    //memory primitive desc
+    std::shared_ptr<mkldnn::memory::primitive_desc> src_mpd_; //x 
+    std::shared_ptr<mkldnn::memory::primitive_desc> dst_diff_mpd_; //gy 
+
+    // fwd primitive desc
+    std::shared_ptr<mkldnn::eltwise_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::eltwise_forward::primitive_desc> fwd_pd_;
+};
+
+
+// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

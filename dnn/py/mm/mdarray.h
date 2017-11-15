@@ -154,19 +154,20 @@ public:
   mdarray(Py_buffer *view) {
     data_type_t dt;
     std::string format(view->format);
-    if (view->itemsize == 4) {
-      if (std::string::npos != format.find_last_of('f')) {
-        dt = FLOAT32;
-      } else if (std::string::npos != format.find_last_of('i')) {
-        dt = SINT32;
-      } else {
-        throw mkldnn::error(mkldnn_invalid_arguments
-            , std::string("MKLDNN does not support data type: ")
-            + format);
-      }
+    if (std::string::npos != format.find_last_of('f')) {
+      dt = FLOAT32;
+    } else if (std::string::npos != format.find_last_of('i')) {
+      dt = SINT32;
+    } else if (std::string::npos != format.find_last_of('h')) {
+      dt = SINT16;
+    } else if (std::string::npos != format.find_last_of('b')) {
+      dt = SINT8;
+    } else if (std::string::npos != format.find_last_of('B')) {
+      dt = UINT8;
     } else {
       throw mkldnn::error(mkldnn_invalid_arguments
-          , "MKLDNN does not support itemsize other than 4");
+          , std::string("MKLDNN does not support data type: ")
+          + format);
     }
     vector<int> dims(view->shape, view->shape + view->ndim);
     //std::unique_ptr<Tensor> tensor(new Tensor(view->ndim, dims, view->buf, dt)); 
@@ -465,6 +466,15 @@ public:
         break;
       case mkldnn::memory::s32:
         pd= PyArray_DescrFromType(NPY_INT);
+        break;
+      case mkldnn::memory::s16:
+        pd= PyArray_DescrFromType(NPY_INT16);
+        break;
+      case mkldnn::memory::s8:
+        pd= PyArray_DescrFromType(NPY_INT8);
+        break;
+      case mkldnn::memory::u8:
+        pd= PyArray_DescrFromType(NPY_UINT8);
         break;
       default:
         PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");

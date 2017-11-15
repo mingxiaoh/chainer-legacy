@@ -32,54 +32,54 @@
 #include "op_factory.h"
 #include <unordered_map>
 #include "utils.h"
-#include "relu_fwd.h"
+#include "relu_bwd.h"
 
 template <typename T>
-class ReluFwdFactory : public OpFactory<T>
+class ReluBwdFactory : public OpFactory<T>
 {
 private:
-    ReluFwdFactory() {}
-    ~ReluFwdFactory() {}
+    ReluBwdFactory() {}
+    ~ReluBwdFactory() {}
 
 public:
-    static ReluFwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format src_fmt) {
-        ReluFwd<T>* relu_forward = nullptr;
+    static ReluBwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt) {
+        ReluBwd<T>* relu_backward = nullptr;
 
         //try to find a suitable one in pool
-        relu_forward = dynamic_cast<ReluFwd<T>*> (
-                            ReluFwdFactory<T>::get_instance().get_relu_fwd(x, src_fmt));
+        relu_backward = dynamic_cast<ReluBwd<T>*> (
+                            ReluBwdFactory<T>::get_instance().get_relu_bwd(x, dst_diff_fmt));
 
-        if (relu_forward == nullptr) {
-            LOG(INFO) << "create a new one for relu fwd";
-            relu_forward = new ReluFwd<T>(x, src_fmt);
-            ReluFwdFactory<T>::get_instance().set_relu_fwd(x, src_fmt, relu_forward);
+        if (relu_backward == nullptr) {
+            LOG(INFO) << "create a new one for relu bwd";
+            relu_backward = new ReluBwd<T>(x, dst_diff_fmt);
+            ReluBwdFactory<T>::get_instance().set_relu_bwd(x, dst_diff_fmt, relu_backward);
         } else {
-            LOG(INFO) << "reuse exist one for relu fwd";
+            LOG(INFO) << "reuse exist one for relu bwd";
         }
-        return relu_forward;
+        return relu_backward;
     }
 
-    static ReluFwdFactory& get_instance() {
-        static ReluFwdFactory instance_;
+    static ReluBwdFactory& get_instance() {
+        static ReluBwdFactory instance_;
         return instance_;
     }
 
 private:
-#define RELU_FWD_PREFIX "relu_fwd_"
-    Op<T>* get_relu_fwd(mkldnn::memory::dims x, mkldnn::memory::format src_fmt) {
-        std::string key = RELU_FWD_PREFIX;
+#define RELU_BWD_PREFIX "relu_bwd_"
+    Op<T>* get_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt) {
+        std::string key = RELU_BWD_PREFIX;
 
         key += dims_to_string(x);
-        key += int_to_string(src_fmt);
+        key += int_to_string(dst_diff_fmt);
 
         return this->get_op(key);
     }
 
-    void set_relu_fwd(mkldnn::memory::dims x, mkldnn::memory::format src_fmt, Op<T>* op) {
-        std::string key = RELU_FWD_PREFIX;
+    void set_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt, Op<T> *op) {
+        std::string key = RELU_BWD_PREFIX;
 
         key += dims_to_string(x);
-        key += int_to_string(src_fmt);
+        key += int_to_string(dst_diff_fmt);
 
         this->set_op(key, op);
     }

@@ -25,56 +25,27 @@
  */
 
 
-#ifndef _OP_FACTORY_
-#define _OP_FACTORY_
+#ifndef _BN_H_
+#define _BN_H_
 
-#include <unordered_map>
-#include <string>
-#include "op.h"
-#include "config.h"
-
-extern bool enable_prim_reuse;
+#include <mkldnn.hpp>
+#include <vector>
+#include <memory>
+#include "layer.h"
+#include "tensor.h"
 
 template <typename T>
-class OpFactory {
+class batch_normalization : public Layer<T>
+{
 public:
-    OpFactory() {};
-    ~OpFactory() {};
-    virtual Op<T>* get() {return NULL;}
-
-    Op<T>* get_op(std::string key) {
-        // if not enable primitive reuse
-        // just return NULL
-        if (!enable_prim_reuse)
-            return NULL;
-
-        auto stream_iter = map_.find(key);
-        if (stream_iter == map_.end()) {
-            return NULL;
-        } else {
-            return stream_iter->second;
-        }
-    };
-
-    void set_op(std::string key, Op<T>* op) {
-        // if not enable primitive reuse
-        // just return
-        if (!enable_prim_reuse)
-            return;
-
-        auto stream_iter = map_.find(key);
-        if (stream_iter == map_.end()) {
-            map_[key]=op;
-        } else {
-            throw new std::invalid_argument("cannot set same key to a new stream");
-        }
-    };
-
-public:
-    std::unordered_map<std::string, Op<T>*> map_;
+    batch_normalization() {};
+    ~batch_normalization() {};
+    
+    static std::vector<Tensor *> Forward(Tensor *src,
+                                         Tensor *w,
+                                         Tensor *mean,
+                                         Tensor *var,
+                                         float eps); 
 };
 
-#endif // _OP_FACTORY_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
+#endif

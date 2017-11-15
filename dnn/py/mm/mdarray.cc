@@ -108,19 +108,7 @@ void mdarray::__setstate__(PyObject *state) {
 }
 
 PyObject *mdarray::py_mdarray_from(PyObject *o) const {
-  mkldnn::engine p_e = get_engine();
-
-  PyObject *Py_p_engine = SWIG_Python_NewPointerObj(nullptr
-      , SWIG_as_voidptr(&p_e), SwigTy_engine, 0);
-
-  if (Py_p_engine == nullptr) {
-    PyErr_SetString(PyExc_SystemError, "Can not create mkldnn cpu engine pyobject");
-    return nullptr;
-  }
-
-  PyObject *argList = Py_BuildValue("(OiO)", o
-      , ::public_format(desc().data.format)
-        , Py_p_engine);
+  PyObject *argList = Py_BuildValue("(O)", o);
 
   if (argList == nullptr) {
     PyErr_SetString(PyExc_SystemError, "Can not create argument list");
@@ -130,7 +118,6 @@ PyObject *mdarray::py_mdarray_from(PyObject *o) const {
   o = PyObject_CallObject(PyType_mdarray, argList);
 
   Py_DECREF(argList);
-  Py_DECREF(Py_p_engine);
 
   if (o == nullptr) {
     PyErr_SetString(PyExc_BufferError, "Cannot create mdarray from input");
@@ -392,7 +379,10 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
     }
 
     assert(mkldnn::memory::f32 == res_dtype ||
-           mkldnn::memory::s32 == res_dtype);
+           mkldnn::memory::s32 == res_dtype ||
+           mkldnn::memory::s16 == res_dtype ||
+           mkldnn::memory::s8 == res_dtype ||
+           mkldnn::memory::u8 == res_dtype );
     assert(mmult == mult_or_div ||
            mdiv == mult_or_div);
     if (mkldnn::memory::f32 == res_dtype) {
@@ -424,6 +414,54 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
         plain_div(reinterpret_cast<const int *>(oprd1_mdarr->data()),
                   reinterpret_cast<const int *>(oprd2_internal_m.get_data_handle()),
                   reinterpret_cast<int *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
+      }
+    } else if (mkldnn::memory::s16 == res_dtype) {
+      switch (mult_or_div) {
+      case mmult:
+        plain_mult(reinterpret_cast<const int16_t *>(oprd1_mdarr->data()),
+                   reinterpret_cast<const int16_t *>(oprd2_internal_m.get_data_handle()),
+                   reinterpret_cast<int16_t *>(res_mdarr->data()),
+                   static_cast<int>(oprd1_mdarr->size()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const int16_t *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const int16_t *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<int16_t *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
+      }
+    } else if (mkldnn::memory::s8 == res_dtype) {
+      switch (mult_or_div) {
+      case mmult:
+        plain_mult(reinterpret_cast<const int8_t *>(oprd1_mdarr->data()),
+                   reinterpret_cast<const int8_t *>(oprd2_internal_m.get_data_handle()),
+                   reinterpret_cast<int8_t *>(res_mdarr->data()),
+                   static_cast<int>(oprd1_mdarr->size()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const int8_t *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const int8_t *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<int8_t *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
+      }
+    } else if (mkldnn::memory::u8 == res_dtype) {
+      switch (mult_or_div) {
+      case mmult:
+        plain_mult(reinterpret_cast<const uint8_t *>(oprd1_mdarr->data()),
+                   reinterpret_cast<const uint8_t *>(oprd2_internal_m.get_data_handle()),
+                   reinterpret_cast<uint8_t *>(res_mdarr->data()),
+                   static_cast<int>(oprd1_mdarr->size()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const uint8_t *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const uint8_t *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<uint8_t *>(res_mdarr->data()),
                   static_cast<int>(oprd1_mdarr->size()));
         break;
       }
@@ -691,7 +729,28 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 
 PyObject *mdarray::flat() {
   long int dims[1] = {static_cast<long int>(this->size())};
-  int typenum = (this->mkldnn_memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
+
+  int typenum;
+  switch(static_cast<mkldnn::memory::data_type>(this->mkldnn_memory().get_primitive_desc().desc().data.data_type)) {
+    case mkldnn::memory::f32:
+      typenum = NPY_FLOAT32;
+      break;
+    case mkldnn::memory::s32:
+      typenum = NPY_INT;
+      break;
+    case mkldnn::memory::s16:
+      typenum = NPY_INT16;
+      break;
+    case mkldnn::memory::s8:
+      typenum = NPY_INT8;
+      break;
+    case mkldnn::memory::u8:
+      typenum = NPY_UINT8;
+      break;
+    default:
+      PyErr_SetString(PyExc_ValueError, "Bad mdarray data_type");
+      break;
+  }
 
   PyObject *plain_arr = nullptr;
   plain_arr = PyArray_SimpleNewFromData(1, dims, typenum, this->data());
