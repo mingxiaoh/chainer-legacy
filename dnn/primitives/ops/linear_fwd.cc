@@ -104,6 +104,9 @@ void LinearFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
                 memory::format::any));
     dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
                 memory::format::any));
+    LOG(INFO) << "src_d" << src_d[0]<<","<< src_d[1];
+    LOG(INFO) << "weight" << w_d[0] << "," << w_d[1];
+    LOG(INFO) << "dst_d" << dst_d[0] << "," << dst_d[1];
     //create linear layer descriptor
     if(!b_d.empty()) {
         bias_md_.reset(new memory::desc({b_d}, memory_data_type<T>(),
@@ -112,7 +115,7 @@ void LinearFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
                     *weights_md_, *bias_md_, *dst_md_));
     } else {
         fwd_desc_.reset(new inner_product_forward::desc(prop_kind::forward, *src_md_,
-                    *weights_md_, *bias_md_, *dst_md_));
+                    *weights_md_, *dst_md_));
     }
     //-----------Determing engine to use------------------
     //Current, treat the engine is MKLDNN::CPU
@@ -174,49 +177,5 @@ void LinearFwd<T>::execute(void* src, void* w, void* dst)
     return;
 }
 template class LinearFwd<float>;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
