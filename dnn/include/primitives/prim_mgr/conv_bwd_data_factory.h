@@ -39,8 +39,8 @@ template <typename T>
 class Convolution2DBwdDataFactory : public OpFactory<T>
 {
 private:
-    Convolution2DBwdDataFactory();
-    ~Convolution2DBwdDataFactory();
+    Convolution2DBwdDataFactory() {}
+    ~Convolution2DBwdDataFactory() {}
 
 public:
     static Convolution2DBwdData<T>* get(mkldnn::memory::dims diff_src,
@@ -114,6 +114,3 @@ private:
 };
 
 #endif // _CONV_BWD_DATA_FACTORY_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

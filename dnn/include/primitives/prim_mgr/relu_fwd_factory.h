@@ -38,8 +38,8 @@ template <typename T>
 class ReluFwdFactory : public OpFactory<T>
 {
 private:
-    ReluFwdFactory();
-    ~ReluFwdFactory();
+    ReluFwdFactory() {}
+    ~ReluFwdFactory() {}
 
 public:
     static ReluFwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format src_fmt) {
@@ -84,6 +84,3 @@ private:
         this->set_op(key, op);
     }
 };
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

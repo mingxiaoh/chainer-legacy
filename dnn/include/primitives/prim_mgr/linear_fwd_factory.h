@@ -39,8 +39,8 @@ template <typename T>
 class LinearFwdFactory : public OpFactory<T>
 {
 private:
-    LinearFwdFactory();
-    ~LinearFwdFactory();
+    LinearFwdFactory() {}
+    ~LinearFwdFactory() {}
 
 public:
     static LinearFwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims w,

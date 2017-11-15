@@ -39,8 +39,8 @@ template <typename T>
 class Pooling2DBwdFactory : public OpFactory<T>
 {
 private:
-    Pooling2DBwdFactory();
-    ~Pooling2DBwdFactory();
+    Pooling2DBwdFactory() {}
+    ~Pooling2DBwdFactory() {}
 
 public:
     static Pooling2DBwd<T>* get(mkldnn::memory::dims src_d,
@@ -131,6 +131,3 @@ private:
 };
 
 #endif // _POOLING_BWD_FACTORY_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

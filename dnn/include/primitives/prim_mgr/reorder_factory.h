@@ -39,8 +39,8 @@ template <typename T>
 class ReorderFactory : public OpFactory<T>
 {
 private:
-    ReorderFactory();
-    ~ReorderFactory();
+    ReorderFactory() {}
+    ~ReorderFactory() {}
 
 public:
     static ReorderOp<T>* get(mkldnn::memory::dims dims, mkldnn::memory::format src_fmt, mkldnn::memory::format dst_fmt) {
@@ -94,6 +94,3 @@ private:
 };
 
 #endif // _REORDER_FACTORY_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

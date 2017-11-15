@@ -39,8 +39,8 @@ template <typename T>
 class LinearBwdDataFactory : public OpFactory<T>
 {
 private:
-    LinearBwdDataFactory();
-    ~LinearBwdDataFactory();
+    LinearBwdDataFactory() {}
+    ~LinearBwdDataFactory() {}
 
 public:
     static LinearBwdData<T>* get(mkldnn::memory::dims diff_src,

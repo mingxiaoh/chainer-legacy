@@ -39,8 +39,8 @@ template <typename T>
 class LinearBwdWeightsFactory : public OpFactory<T>
 {
 private:
-    LinearBwdWeightsFactory();
-    ~LinearBwdWeightsFactory();
+    LinearBwdWeightsFactory() {}
+    ~LinearBwdWeightsFactory() {}
 
 public:
     static LinearBwdWeights<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
@@ -97,42 +97,3 @@ private:
 };
 
 #endif//_LINEAR_BWD_WEIGHTS_FACTORY_
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

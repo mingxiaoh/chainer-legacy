@@ -39,8 +39,8 @@ template <typename T>
 class Convolution2DBwdWeightsFactory : public OpFactory<T>
 {
 private:
-    Convolution2DBwdWeightsFactory();
-    ~Convolution2DBwdWeightsFactory();
+    Convolution2DBwdWeightsFactory() {}
+    ~Convolution2DBwdWeightsFactory() {}
 
 public:
     static Convolution2DBwdWeights<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
@@ -113,6 +113,3 @@ private:
 };
 
 #endif // _CONV_BWD_WEIGHTS_FACTORY_
-
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
