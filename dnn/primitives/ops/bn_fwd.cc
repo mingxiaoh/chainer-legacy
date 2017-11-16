@@ -48,6 +48,9 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
              prop_kind::forward_training :
              prop_kind::forward_scoring;
 
+    // FIXME:
+    bn_size_ = src_d[1];
+
     // memory desc
     auto src_md = memory::desc({src_d}, memory_data_type<T>(), get_desired_format(src_d[1]));
 
@@ -104,8 +107,6 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
 template<typename T>
 void batch_normalization_fwd<T>::execute(void *src, void *w, void *dst,
                                          void *mean, void *var) {
-    LOG(INFO) << "batch normalization forward";
-
     // couple with buffer
     src_mem_->set_data_handle(src);
     dst_mem_->set_data_handle(dst);

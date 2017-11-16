@@ -67,11 +67,11 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
     mean = training ?
            new Tensor(bn_fwd->get_mean_ndims(), bn_fwd->get_mean_dims(),
                       (mkldnn_memory_format_t)bn_fwd->get_mean_fmt(),
-                      src->type()) : nullptr;
+                      src->type()) : mean;
     var = training ?
           new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(),
                      (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
-                     src->type()) : nullptr;
+                     src->type()) : var;
 
     bn_fwd->execute(src_data, (w ? w->data() : nullptr),
                     dst->data(), (mean ? mean->data() : nullptr),

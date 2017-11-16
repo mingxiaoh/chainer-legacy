@@ -41,7 +41,7 @@ public:
                             bool global_stats,
                             bool training) :
                             flags_(0), pkind_(mkldnn::forward_training),
-                            bn_fwd_(nullptr), src_mem_(nullptr),
+                            bn_size_(0), bn_fwd_(nullptr), src_mem_(nullptr),
                             w_mem_(nullptr), dst_mem_(nullptr),
                             mean_mem_(nullptr), var_mem_(nullptr),
                             fwd_stream_(new mkldnn::stream(mkldnn::stream::kind::eager)) {
@@ -73,9 +73,8 @@ public:
     }
 
     mkldnn::memory::dims get_mean_dims() {
-        std::vector<int> dims((*mean_mem_).get_primitive_desc().desc().data.dims,
-                              (*mean_mem_).get_primitive_desc().desc().data.dims +
-                              (*mean_mem_).get_primitive_desc().desc().data.ndims);
+        std::vector<int> dims;
+        dims.push_back(bn_size_);
         return dims;
     }
 
@@ -88,15 +87,15 @@ public:
     }
 
     mkldnn::memory::dims get_var_dims() {
-        std::vector<int> dims((*var_mem_).get_primitive_desc().desc().data.dims,
-                              (*var_mem_).get_primitive_desc().desc().data.dims +
-                              (*var_mem_).get_primitive_desc().desc().data.ndims);
+        std::vector<int> dims;
+        dims.push_back(bn_size_);
         return dims;
     }
 
 private:
     unsigned long flags_;
     mkldnn::prop_kind pkind_;
+    int bn_size_;
 
     std::shared_ptr<mkldnn::primitive> bn_fwd_;
 
