@@ -56,3 +56,21 @@ def all_ready(inputs, check_with_ndim):
     if check_with_ndim and not valid_ndim:
         return False
     return True
+
+# ----------------------------------------------------------------------
+# ideepy mdarray allocation
+# ---------------------------------------------------------------------
+def to_ia(array):
+    """ 
+    Copy the given ndarray to mdarray
+    """
+    if not is_enabled():
+        raise Exception ( "ideepy is not installed coorectly" )
+
+    if not isinstance(array, numpy.ndarray):
+        raise TypeError( "The array send to ia must be numpy.ndarray")
+
+    if array.flags.contiguous is False:
+        array = numpy.ascontiguousarray(array)
+ 
+    return mdarray(array)

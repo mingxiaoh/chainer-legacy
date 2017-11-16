@@ -10,6 +10,7 @@ from chainer import cuda
 from chainer import initializers
 from chainer import variable
 
+from chainer import ideepy
 
 def _is_shape(value):
     if value is None:
@@ -376,6 +377,21 @@ Assign a Parameter object directly to an attribute within a \
         self._cpu = False
         return self
 
+    def to_ia(self):
+        """Copies parameter variables and persistent values to CPU.
+        """
+        if not ideepy.is_enabled():
+            raise Exception("ideepy is not installed correctly!")
+        
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_ia()
+        for name in self._persistent:
+            value = d[name]
+            if isinstance(value, numpy.ndarray):
+                d[name] = ideepy.to_ia(value)
+        return self
+
     def params(self, include_uninit=True):
         """Returns a generator of all parameters under the link hierarchy.
 
@@ -733,6 +749,13 @@ Assign a Link object directly to an attribute within a \
                 d[name].to_gpu()
         return self
 
+    def to_ia(self):
+        super(Chain, self).to_ia()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_ia()
+        return self
+
     def params(self, include_uninit=True):
         for param in super(Chain, self).params(include_uninit):
             yield param
@@ -889,6 +912,12 @@ class ChainList(Link):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
+        return self
+
+    def to_ia(self):
+        super(ChainList, self).to_ia()
+        for link in self._children:
+            link.to_ia()
         return self
 
     def params(self, include_uninit=True):

@@ -722,7 +722,19 @@ Actual: {0}'''.format(type(data))
             node = self._node
             if node._data is not None:
                 node.retain_data()
-
+    
+    def to_ia(self):
+        """ Copies the data and gradient arrays to ia specific mdarray
+        """
+        if self.data is not None:
+            self._data = [chainer.ideepy.to_ia(self.data)]
+        if self._grad_var is not None:
+            self._grad_var.to_ia()
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+    
     def cleargrad(self):
         """Clears the gradient array."""
         self._grad_var = None
@@ -1226,6 +1238,11 @@ class Parameter(Variable):
                 device = cuda.Device().id
             self._initial_device = device
 
+    def to_ia(self):
+        super(Parameter, self).to_ia()
+        if self.data is None:
+            self._initial_device = None
+            
     def cleargrad(self):
         super(Parameter, self).cleargrad()
         if self.data is None:
@@ -1251,7 +1268,6 @@ class Parameter(Variable):
         xp = numpy if self._initial_device is None else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
-
             ginit = self._grad_initializer
             grad = None if ginit is None else initializers.generate_array(
                 ginit, shape, xp)

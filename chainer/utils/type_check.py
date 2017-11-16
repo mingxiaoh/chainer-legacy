@@ -7,6 +7,7 @@ import numpy
 
 from chainer import cuda
 
+from dnn._dnn import mdarray
 
 _thread_local = threading.local()
 
@@ -91,9 +92,9 @@ def _get_type(name, index, array, accept_none):
     if accept_none and array is None:
         # case that gradient is not given
         return Variable(TypeInfo((), None), var)
-
     assert(isinstance(array, numpy.ndarray) or
-           isinstance(array, cuda.ndarray))
+           isinstance(array, cuda.ndarray) or
+           isinstance(array, mdarray))
     return Variable(TypeInfo(array.shape, array.dtype), var)
 
 
@@ -516,7 +517,8 @@ def expect(*bool_exprs):
 
 def same_types(*arrays):
     for x in arrays:
-        if not isinstance(x, numpy.ndarray):
+        # ndarray and mdarray can be treated as same
+        if not isinstance(x, (numpy.ndarray, mdarray)):
             break
     else:
         return True
