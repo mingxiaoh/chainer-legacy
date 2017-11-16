@@ -40,7 +40,7 @@ class OpFactory {
 public:
     OpFactory() {};
     ~OpFactory() {};
-    virtual Op<T>* get() {return NULL;}
+    // virtual Op<T>* get() {return NULL;}
 
     Op<T>* get_op(std::string key) {
         // if not enable primitive reuse

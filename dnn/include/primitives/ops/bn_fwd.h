@@ -40,8 +40,8 @@ public:
                             bool scale_shift,
                             bool global_stats,
                             bool training) :
-                            bn_fwd_(nullptr), src_mem_(nullptr),
                             flags_(0), pkind_(mkldnn::forward_training),
+                            bn_fwd_(nullptr), src_mem_(nullptr),
                             w_mem_(nullptr), dst_mem_(nullptr),
                             mean_mem_(nullptr), var_mem_(nullptr),
                             fwd_stream_(new mkldnn::stream(mkldnn::stream::kind::eager)) {
@@ -56,36 +56,42 @@ public:
     void execute(void *src, void *w, void *dst, void *mean, void *var);
 
 public:
-    mkldnn::memory::format get_src_fmt() {
-        return get_desc_data(src_mem_).format;
+    mkldnn_memory_format_t get_src_fmt() {
+        return (*src_mem_).get_primitive_desc().desc().data.format;
     }
 
-    mkldnn::memory::format get_dst_fmt() {
-        return get_desc_data(dst_mem_).format;
+    mkldnn_memory_format_t get_dst_fmt() {
+        return (*dst_mem_).get_primitive_desc().desc().data.format;
     }
 
-    mkldnn::memory::format get_mean_fmt() {
-        return get_desc_data(mean_mem_).format;
+    mkldnn_memory_format_t get_mean_fmt() {
+        return (*mean_mem_).get_primitive_desc().desc().data.format;
     }
 
     int get_mean_ndims() {
-        return static_cast<int>(get_desc_data(mean_mem_).ndims);
+        return static_cast<int>((*mean_mem_).get_primitive_desc().desc().data.ndims);
     }
 
     mkldnn::memory::dims get_mean_dims() {
-        return get_desc_data(mean_mem_).dims;
+        std::vector<int> dims((*mean_mem_).get_primitive_desc().desc().data.dims,
+                              (*mean_mem_).get_primitive_desc().desc().data.dims +
+                              (*mean_mem_).get_primitive_desc().desc().data.ndims);
+        return dims;
     }
 
-    mkldnn::memory::format get_var_fmt() {
-        return get_desc_data(var_mem_).format;
+    mkldnn_memory_format_t get_var_fmt() {
+        return (*var_mem_).get_primitive_desc().desc().data.format;
     }
 
     int get_var_ndims() {
-        return static_cast<int>(get_desc_data(var_mem_).ndims);
+        return static_cast<int>((*var_mem_).get_primitive_desc().desc().data.ndims);
     }
 
     mkldnn::memory::dims get_var_dims() {
-        return get_desc_data(var_mem_).dims;
+        std::vector<int> dims((*var_mem_).get_primitive_desc().desc().data.dims,
+                              (*var_mem_).get_primitive_desc().desc().data.dims +
+                              (*var_mem_).get_primitive_desc().desc().data.ndims);
+        return dims;
     }
 
 private:

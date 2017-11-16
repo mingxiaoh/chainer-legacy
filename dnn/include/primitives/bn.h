@@ -40,12 +40,12 @@ class batch_normalization : public Layer<T>
 public:
     batch_normalization() {};
     ~batch_normalization() {};
-    
+
     static std::vector<Tensor *> Forward(Tensor *src,
                                          Tensor *w,
                                          Tensor *mean,
                                          Tensor *var,
-                                         float eps); 
+                                         float eps);
 };
 
 #endif

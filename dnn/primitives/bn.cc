@@ -35,39 +35,43 @@
 #include "prim_factory.h"
 #include "reorder_op.h"
 
-// using namespace mkldnn;
-
 template<typename T>
 std::vector<Tensor *> batch_normalization<T>::Forward(
     Tensor *src, Tensor *w, Tensor *mean, Tensor *var, float eps) {
 
     assert(memory_data_type<T>() == src.cxx_data_type());
 
-    auto scale_shift = w ? true : false;
-    auto global_stats = mean ? true : false;
-    auto training = mean ? false : true;
+    bool scale_shift = w ? true : false;
+    bool global_stats = mean ? true : false;
+    bool training = mean ? false : true;
 
     auto bn_fwd = batch_normalization_fwd_factory<T>::get(
-            src->dims, eps, scale_shift, global_stats, training);
+            (mkldnn::memory::dims)src->dims(),
+            eps, scale_shift, global_stats, training);
 
     void *src_data = src->data();
     void *src_itnl = nullptr;
     if (src->cxx_format() != bn_fwd->get_src_fmt()) {
         auto reorder = ReorderFactory<T>::get(
-            src->dims(), src->cxx_format(), bn_fwd->get_src_fmt());
+            (mkldnn::memory::dims)src->dims(),
+            (mkldnn::memory::format)src->cxx_format(),
+            (mkldnn::memory::format)bn_fwd->get_src_fmt());
         src_itnl = new avx::byte[src->len()];
         reorder->execute(src_data, src_itnl);
         src_data = src_itnl;
     }
 
     auto dst = new Tensor(src->ndims(), src->dims(),
-                          bn_fwd->get_dst_fmt(), src->type());
+                          (mkldnn_memory_format_t)bn_fwd->get_dst_fmt(),
+                          src->type());
     mean = training ?
            new Tensor(bn_fwd->get_mean_ndims(), bn_fwd->get_mean_dims(),
-                      bn_fwd->get_mean_fmt(), src->type()) : nullptr;
+                      (mkldnn_memory_format_t)bn_fwd->get_mean_fmt(),
+                      src->type()) : nullptr;
     var = training ?
           new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(),
-                     bn_fwd->get_var_fmt(), src->type()) : nullptr;
+                     (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
+                     src->type()) : nullptr;
 
     bn_fwd->execute(src_data, (w ? w->data() : nullptr),
                     dst->data(), (mean ? mean->data() : nullptr),
@@ -81,7 +85,9 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
     }
 
     if (src_itnl)
-        delete dynamic_cast<avx::byte *>(src_itnl);
+        delete static_cast<avx::byte *>(src_itnl);
 
     return outs;
 }
+
+template class batch_normalization<float>;

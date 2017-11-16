@@ -137,3 +137,5 @@ void batch_normalization_fwd<T>::execute(void *src, void *w, void *dst,
 
     return;
 }
+
+template class batch_normalization_fwd<float>;
