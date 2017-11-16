@@ -329,6 +329,7 @@ class FunctionNode(object):
                 cosim.cosim_verify(self, y, inputs_nd)
 
                 return y
+            return self.forward_ia(inputs)
         return self.forward_cpu(inputs)
 
     def forward_ia(self, inputs):
