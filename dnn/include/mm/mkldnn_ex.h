@@ -54,7 +54,7 @@ void axpby(Tensor *dst, T a, Tensor *x, T b, Tensor *y) {
     auto mid = reorder_if_must(y->mkldnn_memory(), x->mkldnn_memory().get_primitive_desc()
             , mreorder, &prims);
 
-    mkldnn::sum::primitive_desc sum_pd({a, b}
+    mkldnn::sum::primitive_desc sum_pd(std::vector<float>({a, b})
             , {x->mkldnn_memory().get_primitive_desc(), mid.get_primitive_desc()});
 
     std::vector<mkldnn::memory::primitive::at> inputs_at {x->mkldnn_memory(), mid};
