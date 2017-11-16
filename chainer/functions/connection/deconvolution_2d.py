@@ -128,15 +128,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        self.cp = conv_param_t()
-        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = n, in_c, self.outh, self.outw
-        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = W.shape # deconv's weight dims should be different with conv's w
-        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = x.shape
-        self.cp.sy, self.cp.sx = self.sy, self.sx
-        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        cp = conv_param_t()
+        cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = n, in_c, self.outh, self.outw
+        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape # deconv's weight dims should be different with conv's w
+        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
+        cp.sy, cp.sx = self.sy, self.sx
+        cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
         # use conv bwd data to implement deconv fwd, not bias support 
-        self.cp.bias_d1 = -1
-        self.cp.with_bias = False
+        cp.bias_d1 = -1
+        cp.with_bias = False
 
         if isinstance(x, numpy.ndarray):
             if x.flags.contiguous is False:
@@ -147,7 +147,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 W = numpy.ascontiguousarray(W)
             W = mdarray(W)
 
-        y = Convolution2D_Py_F32.BackwardData(W, x, self.cp) # y should be gx in conv bwd data
+        y = Convolution2D_Py_F32.BackwardData(W, x, cp) # y should be gx in conv bwd data
 
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)

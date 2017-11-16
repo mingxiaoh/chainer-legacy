@@ -119,6 +119,14 @@ Tensor *Convolution2D<T>::Forward(
             w_reorder = new avx::byte[weights->len()];
             reorder_w_op->execute(w_tmp, w_reorder);
             w_tmp = w_reorder;
+            
+            
+            // set internal fmt back to weight tensor
+            if ( cp->with_weights_opt ) {
+                weights->reset_memory(
+                        static_cast<mkldnn_memory_format_t>(conv2d_forward->weights_fmt_),
+                        static_cast<avx::byte *>(w_reorder));
+            }
         }
     }
 
@@ -136,7 +144,7 @@ Tensor *Convolution2D<T>::Forward(
     //FIXME here may cause performance issue
     if (src_reorder != NULL)
         delete static_cast<avx::byte *>(src_reorder);
-    if (w_reorder != NULL)
+    if ( !cp->with_weights_opt && w_reorder != NULL)
         delete static_cast<avx::byte *>(w_reorder);
 
     return dst_tensor;

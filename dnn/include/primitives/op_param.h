@@ -71,6 +71,7 @@ struct conv_param_t {
     int sy, sx; // stride
     int pad_lh, pad_lw, pad_rh, pad_rw; //padding
     bool with_bias; 
+    bool with_weights_opt = false; // whether pass back optimized weight
 };
 
 struct pooling_param_t {

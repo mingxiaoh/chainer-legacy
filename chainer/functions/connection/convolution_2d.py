@@ -91,32 +91,38 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        self.cp = conv_param_t()
-        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = x.shape
-        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = W.shape
-        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = n, out_c, out_h, out_w
-        self.cp.bias_d1 = inputs[2].shape[0] if len(inputs) ==  3 else -1
-        self.cp.with_bias = True if len(inputs) == 3 else False
-        self.cp.sy, self.cp.sx = self.sy, self.sx
-        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        cp = conv_param_t()
+        cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
+        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
+        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
+        cp.bias_d1 = inputs[2].shape[0] if len(inputs) ==  3 else -1
+        cp.with_bias = True if len(inputs) == 3 else False
+        cp.sy, cp.sx = self.sy, self.sx
+        cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
 
         if isinstance(x, numpy.ndarray):
             if x.flags.contiguous is False:
                 x = numpy.ascontiguousarray(x)
             x = mdarray(x)
+
         if isinstance(W, numpy.ndarray):
             if W.flags.contiguous is False:
                 W = numpy.ascontiguousarray(W)
             W = mdarray(W)
-        if self.cp.with_bias and isinstance(b, numpy.ndarray):
+            cp.with_weights_opt = False
+        elif isinstance(W, mdarray):
+            # if weight is mdarray, we can do weights opt (pass optimized weight back)
+            cp.with_weights_opt = True
+
+        if cp.with_bias and isinstance(b, numpy.ndarray):
             if b.flags.contiguous is False:
                 b = numpy.ascontiguousarray(b)
             b = mdarray(b)
 	
-        if self.cp.with_bias:
-            y = Convolution2D_Py_F32.Forward(x, W, b, self.cp)
+        if cp.with_bias:
+            y = Convolution2D_Py_F32.Forward(x, W, b, cp)
         else:
-            y = Convolution2D_Py_F32.Forward(x, W, None, self.cp)
+            y = Convolution2D_Py_F32.Forward(x, W, None, cp)
 
         return y,
 
@@ -285,15 +291,15 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        self.cp = conv_param_t()
-        self.cp.src_d1, self.cp.src_d2, self.cp.src_d3, self.cp.src_d4 = x.shape
-        self.cp.weights_d1, self.cp.weights_d2, self.cp.weights_d3, self.cp.weights_d4 = out_c, input_c, self.kh, self.kw
-        self.cp.dst_d1, self.cp.dst_d2, self.cp.dst_d3, self.cp.dst_d4 = gy.shape
-        self.cp.sy, self.cp.sx = self.sy, self.sx
-        self.cp.pad_lh, self.cp.pad_lw, self.cp.pad_rh, self.cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        cp = conv_param_t()
+        cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
+        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = out_c, input_c, self.kh, self.kw
+        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = gy.shape
+        cp.sy, cp.sx = self.sy, self.sx
+        cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
         # Chainer's this function is only to calculate gW, MUST no gb
-        self.cp.bias_d1 = -1
-        self.cp.with_bias = False
+        cp.bias_d1 = -1
+        cp.with_bias = False
 
         if isinstance(x, numpy.ndarray):
             if x.flags.contiguous is False:
@@ -305,7 +311,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             gy = mdarray(gy)
 
         # only calculate gW, no gb
-        (gW,) = Convolution2D_Py_F32.BackwardWeights(x, gy, self.cp)
+        (gW,) = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
         return gW,
 
     def forward_cpu(self, inputs):
