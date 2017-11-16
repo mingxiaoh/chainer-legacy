@@ -2,7 +2,7 @@ import logging
 import numpy as np
 
 from chainer import variable
-from chainer.utils import force_array, type_check
+from chainer.utils import force_array
 
 from dnn import is_cosim
 from dnn._dnn import mdarray
@@ -79,6 +79,29 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
     if acts is None and refs is None:
         logging.warning('input results are None!')
         return True
+    elif acts is None or refs is None:
+        logging.error('cosim: input results are None!')
+        return False
+
+    if len(acts) != len(refs):
+        logging.error('cosim: lengths of results are different <acts_size={0} refs_size={1}>!'
+                      .format(len(acts), len(refs)))
+        return False
+
+    check_options = {'atol': 1e-3, 'rtol': 1e-2, 'verbose': True}
+
+    index = -1
+    for (act, ref) in zip(acts, refs):
+        index += 1
+        if ref is None and act is None:
+            continue
+        elif ref is None or act is None:
+            logging.warning('cosim: one input result is None!')
+            return False
+
+        if not expect_allclose(*plain_array((act, ref)), **check_options):
+            logging.error('cosim: mismatched in {0} #{1} result!'.format(func.__class__.__name__, index))
+            return False
 
     return True
 
@@ -90,7 +113,7 @@ def cosim_verify(func, acts, inputs, out_grads=None):
     if not out_grads:   # forward
         logging.info('cosim test for forward of function {0}'.format(func.__class__.__name__))
 
-        refs = plain_array(func.forward_cpu(*plain_array(inputs)))
+        refs = plain_array(func.forward_cpu(plain_array(inputs)))
 
         if not verify_results(func, acts, refs, inputs):
             logging.error('cosim test failed during forward of function {0}'.format(func.__class__.__name__))
