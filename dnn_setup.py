@@ -80,4 +80,4 @@ ext = Extension(
 
 ext_modules.append(ext)
 
-packages = ['dnn']
+packages = ['dnn', 'dnn.cosim']
