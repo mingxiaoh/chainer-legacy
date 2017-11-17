@@ -25,8 +25,8 @@
  */
 
 
-#ifndef _BN_FWD_FACTORY_
-#define _BN_FWD_FACTORY_
+#ifndef _BN_BWD_FACTORY_
+#define _BN_BWD_FACTORY_
 
 #include <mkldnn.hpp>
 #include <string>
@@ -34,68 +34,66 @@
 #include "op_factory.h"
 #include <unordered_map>
 #include "utils.h"
-#include "bn_fwd.h"
+#include "bn_bwd.h"
 
 template <typename T>
-class batch_normalization_fwd_factory : public OpFactory<T> {
+class batch_normalization_bwd_factory : public OpFactory<T> {
 
 private:
-    batch_normalization_fwd_factory() {}
-    ~batch_normalization_fwd_factory() {}
+    batch_normalization_bwd_factory() {}
+    ~batch_normalization_bwd_factory() {}
 
 public:
-    static batch_normalization_fwd<T> * get(
-            mkldnn::memory::dims src_d, float eps,
-            bool scale_shift, bool global_stats, bool training) {
+    static batch_normalization_bwd<T> * get(mkldnn::memory::dims src_d,
+            mkldnn::memory::dims diff_dst_d, float eps, bool scale_shift) {
+        auto bn_bwd = dynamic_cast<batch_normalization_bwd<T>*>(
+                      batch_normalization_bwd_factory<T>::get_instance().get_bn_bwd(
+                      src_d, diff_dst_d, eps, scale_shift));
 
-        auto bn_fwd = dynamic_cast<batch_normalization_fwd<T>*>(
-                      batch_normalization_fwd_factory<T>::get_instance().get_bn_fwd(
-                      src_d, eps, scale_shift, global_stats, training));
-
-        if (bn_fwd == nullptr) {
-            bn_fwd = new batch_normalization_fwd<T>(
-                         src_d, eps, scale_shift, global_stats, training);
-            batch_normalization_fwd_factory<T>::get_instance().set_bn_fwd(
-                    src_d, eps, scale_shift, global_stats, training, bn_fwd);
+        if (bn_bwd == nullptr) {
+            bn_bwd = new batch_normalization_bwd<T>(
+                     src_d, diff_dst_d, eps, scale_shift);
+            batch_normalization_bwd_factory<T>::get_instance().set_bn_bwd(
+                     src_d, diff_dst_d, eps, scale_shift);
         }
 
-        return bn_fwd;
+        return bn_bwd;
     }
 
-    static batch_normalization_fwd_factory & get_instance() {
-        static batch_normalization_fwd_factory instance_;
+    static batch_normalization_bwd_factory & get_instance() {
+        static batch_normalization_bwd_factory instance_;
         return instance_;
     }
 
 private:
-#define BN_FWD_PREFIX "bn_fwd_"
-    Op<T> * get_bn_fwd(mkldnn::memory::dims src_d, float eps, bool scale_shift,
-                       bool global_stats, bool training) {
+#define BN_BWD_PREFIX "bn_bwd_"
+    Op<T> * get_bn_bwd(mkldnn::memory::dims src_d,
+                       mkldnn::memory::dims diff_dst_d,
+                       float eps, bool scale_shift) {
 
-        std::string key = BN_FWD_PREFIX;
+        std::string key = BN_BWD_PREFIX;
 
         key += dims_to_string(src_d);
+        key += dims_to_string(diff_dst_d);
         key += float_to_string(eps);
         key += bool_to_string(scale_shift);
-        key += bool_to_string(global_stats);
-        key += bool_to_string(training);
 
         return this->get_op(key);
     }
 
-    void set_bn_fwd(mkldnn::memory::dims src_d, float eps, bool scale_shift,
-                    bool global_stats, bool training, Op<T> *op) {
+    void set_bn_bwd(mkldnn::memory::dims src_d,
+                    mkldnn::memory::dims diff_dst_d,
+                    float eps, bool scale_shift, Op<T> *op) {
 
-        std::string key = BN_FWD_PREFIX;
+        std::string key = BN_BWD_PREFIX;
 
         key += dims_to_string(src_d);
+        key += dims_to_string(diff_dst_d);
         key += float_to_string(eps);
         key += bool_to_string(scale_shift);
-        key += bool_to_string(global_stats);
-        key += bool_to_string(training);
 
         this->set_op(key, op);
     }
 };
 
-#endif // _BN_FWD_FACTORY_
+#endif // _BN_BWD_FACTORY_
