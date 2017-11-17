@@ -4,8 +4,8 @@ import os
 
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
-from chainer import variable
-from chainer.utils import force_array
+from chainer import variable  # NOQA
+from chainer.utils import force_array  # NOQA
 
 from dnn._dnn import mdarray
 
@@ -84,9 +84,7 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
     return True
 
 
-def verify_results(func, acts, refs, inputs, out_grads=None):
-    logging.info('cosim verify for {0}'.format(func.__class__.__name__))
-
+def verify_results(func, acts, refs, inputs):
     if acts is None and refs is None:
         logging.warning('input results are None!')
         return True
@@ -115,18 +113,16 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
     return True
 
 
-def cosim_verify(func, acts, inputs, out_grads=None):
+def cosim_verify(func, acts, inputs):
     if not is_cosim():
         return
 
-    if not out_grads:  # forward
-        logging.info('cosim test for forward of function {0}'.format(func.__class__.__name__))
+    logging.info('cosim test for function {0}'.format(func.__class__.__name__))
 
-        refs = plain_array(func.forward_cpu(plain_array(inputs)))
+    refs = plain_array(func.forward_cpu(plain_array(inputs)))
 
-        if not verify_results(func, acts, refs, inputs):
-            logging.error('cosim test failed during forward of function {0}'.format(func.__class__.__name__))
-            raise RuntimeError
+    if not verify_results(func, acts, refs, inputs):
+        logging.error('cosim test FAILED in function {0}'.format(func.__class__.__name__))
+        raise RuntimeError
 
-    else:  # backward
-        pass
+    logging.info('cosim test PASS in function {0}'.format(func.__class__.__name__))
