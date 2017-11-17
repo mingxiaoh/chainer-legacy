@@ -17,6 +17,9 @@
 %include asmap.i
 %include attribute.i
 %include tp.i
+%include std_vector.i
+
+%template(MdarrayVector) std::vector<mdarray>;
 
 %tp_richcompare(mdarray)
 %buffer_protocol_producer(mdarray)

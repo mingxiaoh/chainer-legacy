@@ -9,7 +9,6 @@
 %include "pooling_py.h"
 
 %template(Pooling2D_Py_F32) Pooling2D_Py<float>;
-%template(MdarrayVector) std::vector<mdarray>;
 
 //
 // Python API for Pooling2D

@@ -11,3 +11,4 @@
 %include "pooling.i"
 %include "linear.i"
 %include "bn.i"
+%include "concat.i"

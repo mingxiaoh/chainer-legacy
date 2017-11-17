@@ -5,11 +5,9 @@
 %}
 
 %include "param.i"
-%include "std_vector.i"
 %include "conv_py.h"
 
 %template(Convolution2D_Py_F32) Convolution2D_Py<float>;
-%template(MdarrayVector) std::vector<mdarray>;
 
 //
 // Python API for Convolution2D

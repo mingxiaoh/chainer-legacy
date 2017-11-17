@@ -1,22 +1,33 @@
 import logging
 import numpy as np
+import os
 
+from chainer.configuration import config  # NOQA
+from chainer.configuration import global_config  # NOQA
 from chainer import variable
 from chainer.utils import force_array
 
-from dnn import is_cosim
 from dnn._dnn import mdarray
 
-
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s]: %(message)s')
+global_config.cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
+
+
+def is_cosim():
+    """Get the cosim mode.
+
+    Returns:
+        bool: Return ``True`` if chainer is in cosim mode.
+    """
+    return config.cosim
 
 
 def plain_array(params):
     assert isinstance(params, tuple) \
-            or isinstance(params, list) \
-            or isinstance(params, mdarray) \
-            or isinstance(params, np.ndarray) \
-            or isinstance(params, variable.Variable)
+           or isinstance(params, list) \
+           or isinstance(params, mdarray) \
+           or isinstance(params, np.ndarray) \
+           or isinstance(params, variable.Variable)
 
     _params = ()
 
@@ -31,9 +42,9 @@ def plain_array(params):
         if isinstance(p, variable.Variable):
             p = np.array(p.data)
         if isinstance(p, mdarray):
-            _params += (np.array(p), )
+            _params += (np.array(p),)
         else:
-            _params += (p, )
+            _params += (p,)
 
     return _params
 
@@ -90,17 +101,15 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
 
     check_options = {'atol': 1e-3, 'rtol': 1e-2, 'verbose': True}
 
-    index = -1
-    for (act, ref) in zip(acts, refs):
-        index += 1
+    for (i, (act, ref)) in enumerate(zip(acts, refs)):
         if ref is None and act is None:
             continue
         elif ref is None or act is None:
-            logging.warning('cosim: one input result is None!')
+            logging.error('cosim: one input result is None!')
             return False
 
         if not expect_allclose(*plain_array((act, ref)), **check_options):
-            logging.error('cosim: mismatched in {0} #{1} result!'.format(func.__class__.__name__, index))
+            logging.error('cosim: mismatched in {0} #{1} result!'.format(func.__class__.__name__, i))
             return False
 
     return True
@@ -110,7 +119,7 @@ def cosim_verify(func, acts, inputs, out_grads=None):
     if not is_cosim():
         return
 
-    if not out_grads:   # forward
+    if not out_grads:  # forward
         logging.info('cosim test for forward of function {0}'.format(func.__class__.__name__))
 
         refs = plain_array(func.forward_cpu(plain_array(inputs)))
@@ -119,5 +128,5 @@ def cosim_verify(func, acts, inputs, out_grads=None):
             logging.error('cosim test failed during forward of function {0}'.format(func.__class__.__name__))
             raise RuntimeError
 
-    else:   # backward
+    else:  # backward
         pass

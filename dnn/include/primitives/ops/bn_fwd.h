@@ -41,7 +41,7 @@ public:
                             bool global_stats,
                             bool training) :
                             flags_(0), pkind_(mkldnn::forward_training),
-                            bn_size_(0), bn_fwd_(nullptr), src_mem_(nullptr),
+                            bn_size_(src_d[1]), bn_fwd_(nullptr), src_mem_(nullptr),
                             w_mem_(nullptr), dst_mem_(nullptr),
                             mean_mem_(nullptr), var_mem_(nullptr),
                             fwd_stream_(new mkldnn::stream(mkldnn::stream::kind::eager)) {

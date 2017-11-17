@@ -25,8 +25,6 @@
  */
 
 
-#include <glog/logging.h>
-#include <iostream>
 #include "mkldnn.hpp"
 #include "bn_fwd.h"
 #include "utils.h"
@@ -48,13 +46,10 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
              prop_kind::forward_training :
              prop_kind::forward_scoring;
 
-    // FIXME:
-    bn_size_ = src_d[1];
-
     // memory desc
     auto src_md = memory::desc({src_d}, memory_data_type<T>(), get_desired_format(src_d[1]));
 
-    // bn desc & primitive desc
+    // fwd desc & primitive desc
     auto fwd_desc = batch_normalization_forward::desc(pkind_, src_md, eps, flags_);
     auto fwd_pd = batch_normalization_forward::primitive_desc(fwd_desc, cpu_engine);
 
