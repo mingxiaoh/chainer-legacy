@@ -46,6 +46,13 @@ public:
                                          Tensor *mean,
                                          Tensor *var,
                                          float eps);
+
+    static std::vector<Tensor *> Backward(Tensor *src,
+                                          Tensor *diff_dst,
+                                          Tensor *mean,
+                                          Tensor *var,
+                                          Tensor *w,
+                                          float eps);
 };
 
 #endif

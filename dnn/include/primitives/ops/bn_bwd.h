@@ -57,6 +57,21 @@ public:
                  void *var, void *w, void *diff_src, void *diff_w);
 
 public:
+    mkldnn_memory_format_t get_src_fmt() {
+        return (*src_mem_).get_primitive_desc().desc().data.format;
+    }
+
+    mkldnn_memory_format_t get_diff_dst_fmt() {
+        return (*diff_dst_mem_).get_primitive_desc().desc().data.format;
+    }
+
+    mkldnn_memory_format_t get_diff_src_fmt() {
+        return (*diff_src_mem_).get_primitive_desc().desc().data.format;
+    }
+
+    mkldnn_memory_format_t get_diff_w_fmt() {
+        return (*diff_w_mem_).get_primitive_desc().desc().data.format;
+    }
 
 private:
     unsigned long flags_;

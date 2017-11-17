@@ -54,7 +54,7 @@ public:
             bn_bwd = new batch_normalization_bwd<T>(
                      src_d, diff_dst_d, eps, scale_shift);
             batch_normalization_bwd_factory<T>::get_instance().set_bn_bwd(
-                     src_d, diff_dst_d, eps, scale_shift);
+                     src_d, diff_dst_d, eps, scale_shift, bn_bwd);
         }
 
         return bn_bwd;
