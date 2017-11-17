@@ -90,17 +90,15 @@ def verify_results(func, acts, refs, inputs, out_grads=None):
 
     check_options = {'atol': 1e-3, 'rtol': 1e-2, 'verbose': True}
 
-    index = -1
-    for (act, ref) in zip(acts, refs):
-        index += 1
+    for (i, (act, ref)) in enumerate(zip(acts, refs)):
         if ref is None and act is None:
             continue
         elif ref is None or act is None:
-            logging.warning('cosim: one input result is None!')
+            logging.error('cosim: one input result is None!')
             return False
 
         if not expect_allclose(*plain_array((act, ref)), **check_options):
-            logging.error('cosim: mismatched in {0} #{1} result!'.format(func.__class__.__name__, index))
+            logging.error('cosim: mismatched in {0} #{1} result!'.format(func.__class__.__name__, i))
             return False
 
     return True
