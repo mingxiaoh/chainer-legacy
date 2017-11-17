@@ -4,6 +4,10 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
+import dnn._dnn
+from dnn._dnn import mdarray, linear_param_t, Linear_Py_F32
+
+
 
 class LinearFunction(function_node.FunctionNode):
 
@@ -26,11 +30,41 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
+    def forward_ia(self, inputs):
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+        # create linear parameter
+        # for IA specific
+        self.lp = linear_param_t()
+        self.lp.with_bias = True if len(inputs) == 3 else False
+        if isinstance(x, numpy.ndarray):
+            if x.flags.contiguous is False:
+                x = numpy.ascontiguousarray(x)
+            x = mdarray(x)
+        if isinstance(W, numpy.ndarray):
+            if W.flags.contiguous is False:
+                W = numpy.ascontiguousarray(W)
+            W = mdarray(W)
+        if self.lp.with_bias and isinstance(b, numpy.ndarray):
+            if b.flags.contiguous is False:
+                b = numpy.ascontiguousarray(b)
+            b = mdarray(b)
+        if self.lp.with_bias:
+            y = Linear_Py_F32.Forward(x, W, b, self.lp)
+        else:
+            y = Linear_Py_F32.Forward(x, W, None, self.lp)
+        self.retain_inputs((0, 1)) # b is not retained 
+        return y,
+
 
     def forward(self, inputs):
         x = inputs[0]
         W = inputs[1]
-
+        
+        if (chainer.ideepy.all_ready(inputs, (2, 4))):
+            return self.forward_ia(inputs)
+ 
         if not type_check.same_types(*inputs):
             raise ValueError('numpy and cupy must not be used together\n'
                              'type(W): {0}, type(x): {1}'
@@ -54,7 +88,6 @@ class LinearFunction(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
-
         ret = []
         if 0 in indexes:
             gx = linear(gy, W.T)
@@ -65,10 +98,9 @@ class LinearFunction(function_node.FunctionNode):
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=0)
             ret.append(gb)
-
         return ret
 
-
+        
 def linear(x, W, b=None):
     """Linear function, or affine transformation.
 
@@ -109,7 +141,7 @@ def linear(x, W, b=None):
     """
     if x.ndim > 2:
         x = x.reshape(len(x), -1)
-
+    
     if b is None:
         args = x, W
     else:
