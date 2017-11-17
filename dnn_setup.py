@@ -27,8 +27,18 @@ ccxx_opts = ['-std=c++11']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack',
              '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
-includes = [get_include(), 'dnn/include', 'dnn/include/mkl', 'dnn/common', 'dnn/include/mm',
-            'dnn/py/mm', 'dnn/py/primitives', 'dnn/include/primitives', 'dnn/include/primitives/ops', 'dnn/include/primitives/prim_mgr', mkldnn_root + '/include']
+includes = [get_include(), 
+            'dnn/include', 
+            'dnn/include/mkl', 
+            'dnn/common', 
+            'dnn/include/mm',
+            'dnn/py/mm', 
+            'dnn/py/primitives', 
+            'dnn/include/primitives', 
+            'dnn/include/primitives/ops', 
+            'dnn/include/primitives/prim_mgr', 
+            mkldnn_root + '/include']
+
 libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':
@@ -53,6 +63,8 @@ if system() == 'Linux':
            'dnn/primitives/linear.cc',
            'dnn/primitives/bn.cc',
            'dnn/primitives/ops/bn_fwd.cc',
+           'dnn/primitives/ops/concat_fwd.cc',
+           'dnn/primitives/concat.cc',
           ]
 else:
     # TODO

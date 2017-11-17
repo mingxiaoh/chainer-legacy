@@ -34,5 +34,6 @@
 #include "relu_fwd_factory.h"
 #include "relu_bwd_factory.h"
 #include "bn_fwd_factory.h"
+#include "concat_fwd_factory.h"
 
 #endif // _PRIM_FACTORY_
