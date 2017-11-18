@@ -1,10 +1,9 @@
-[![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
-[![GitHub license](https://img.shields.io/github/license/pfnet/chainer.svg)](https://github.com/pfnet/chainer)
-[![travis](https://img.shields.io/travis/pfnet/chainer/master.svg)](https://travis-ci.org/pfnet/chainer)
-[![coveralls](https://img.shields.io/coveralls/pfnet/chainer.svg)](https://coveralls.io/github/pfnet/chainer)
+[![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/intel/chainer)
+[![travis](https://img.shields.io/travis/intel/chainer/master_v2.svg)](https://travis-ci.org/intel/chainer)
+[![coveralls](https://img.shields.io/coveralls/intel/chainer.svg)](https://coveralls.io/github/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
-# Chainer: a neural network framework
+# IntelChainer: Optimized-Chainer for Intel architectures
 
 ## Requirements
 
@@ -14,12 +13,7 @@ Minimum requirements:
 - Python 2.7.6+, 3.4.3+, 3.5.1+, 3.6.0+
 - NumPy 1.9, 1.10, 1.11, 1.12
 - Six 1.9
-- Swig 3.0.12
-- Boost 1.64.0
-- Glog 0.3.5
-- Cmake 2.8.0 
-- Doxygen 1.8.5 
-- C++ compiler with C++11 standard support
+- Swig 3.0.9
 
 Requirements for some features:
 - CUDA support
@@ -33,9 +27,6 @@ Requirements for some features:
     - protobuf>=3.0.0 is required for Py3
 - Image dataset support
   - Pillow
-  - opencv-python 3.3.0.10
-- Plot support
-  - matplotlib 2.0.2
 - HDF5 serialization support
   - h5py 2.5.0
 - Testing utilities
@@ -60,11 +51,6 @@ pip install chainer
 You can also install Chainer from the source code:
 ```
 python setup.py install
-```
-During the installation, external library mkl-dnn will be installed automatically, the mkl-dnn libraries will be put in the `$HOME/.chainer/lib` after the installation, the next thing is to append this path to the environment variable `$LD_LIBRARY_PATH$`.
-```
-export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib"
-export LIBRARY_PATH="$LD_LIBRARY_PATH"
 ```
 
 
@@ -122,17 +108,13 @@ pip install cython
 pip install h5py
 ```
 
-
 ## Run with Docker
 
-We provide the official Docker image.
-Use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) command to run Chainer image with GPU.
-You can login to the environment with bash, and run the Python interpreter.
+We provide the Dockerfile for cpu based on python2 and python3, respectively. You can refer to wiki
 
-```
-$ nvidia-docker run -it chainer/chainer /bin/bash
-```
+https://github.com/intel/chainer/wiki/How-to-build-and-run-Intel-Chainer-Docker-image
 
+to check how to build/run with docker.
 
 ## Reference
 
@@ -147,7 +129,8 @@ The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIP
 
 - Official site: http://chainer.org/
 - Official document: http://docs.chainer.org/
-- github: https://github.com/pfnet/chainer
+- Pfn chainer github: https://github.com/pfnet/chainer
+- Intel chainer github: https://github.com/intel/chainer
 - Forum: https://groups.google.com/forum/#!forum/chainer
 - Forum (Japanese): https://groups.google.com/forum/#!forum/chainer-jp
 - Twitter: https://twitter.com/ChainerOfficial
