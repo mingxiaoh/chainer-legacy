@@ -52,6 +52,24 @@ public:
 
         return outs;
     }
+
+    static std::vector<mdarray> Backward(mdarray *src, mdarray *diff_dst,
+        mdarray *mean, mdarray *var, mdarray *w, float eps) {
+
+        std::vector<mdarray> outs;
+        auto tensors = batch_normalization<T>::Backward(
+                           (src->get()->tensor()),
+                           (diff_dst->get()->tensor()),
+                           (mean->get()->tensor()),
+                           (var->get()->tensor()),
+                           (w ? w->get()->tensor() : nullptr),
+                           eps);
+
+        for (int i = 0; i < tensors.size(); i++)
+            outs.push_back(mdarray(tensors[i]));
+
+        return outs;
+    }
 };
 
 #endif // _BN_PY_H_
