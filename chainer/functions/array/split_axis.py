@@ -7,6 +7,8 @@ from chainer import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
+from chainer import ideepy
+from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
 
 class SplitAxis(function_node.FunctionNode):
 
@@ -39,8 +41,19 @@ class SplitAxis(function_node.FunctionNode):
             sections = type_check.make_variable(
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
+    
+    def forward_ia(self, inputs):
+        x, = inputs
+        
+        offsets = IntVector()
+        for i in self.indices_or_sections:
+            offsets.push_back(i)
+        return Concat_Py_F32.Backward(x, offsets, self.axis)
 
     def forward(self, inputs):
+        if self.axis == 1 and ideepy.all_ready((inputs),(4,)): # currently, only support axis == 1 and 4 dims
+            return self.forward_ia(inputs)
+
         x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
             cdimx = x.shape[self.axis]

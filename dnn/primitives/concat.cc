@@ -80,6 +80,7 @@ Tensor *Concat<T>::Forward(
         out_channel += (src[i]->cxx_dims())[1];
     }
     dst_d = {src_ds[0][0], out_channel, src_ds[0][2], src_ds[0][3]};
+    LOG(INFO) << "dst_d={" << dst_d[0] << "," << dst_d[1] << "," << dst_d[2] << "," << dst_d[3] << "}";
     
     // get a concat fwd from primitive pool
     ConcatFwd<T> *concat_forward = NULL;
