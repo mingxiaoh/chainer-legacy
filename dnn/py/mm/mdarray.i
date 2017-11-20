@@ -20,6 +20,7 @@
 %include std_vector.i
 
 %template(MdarrayVector) std::vector<mdarray>;
+%template(IntVector) std::vector<int>;
 
 %tp_richcompare(mdarray)
 %buffer_protocol_producer(mdarray)

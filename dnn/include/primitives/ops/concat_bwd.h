@@ -61,41 +61,65 @@
  */
 
 
-#ifndef _CONCAT_H_
-#define _CONCAT_H_
+#ifndef _CONCAT_BWD_H_
+#define _CONCAT_BWD_H_
 
 #include <mkldnn.hpp>
 #include <vector>
 #include <memory>
-#include "layer.h"
-#include "op_param.h"
-#include "tensor.h"
+#include "op.h"
 
 template <typename T>
-class Concat : public Layer<T>
+class ConcatBwd : public Op<T>
 {
 public:
-    Concat();
-    ~Concat();
-    
-    /*
-     * Concat Forward
-     * params:
-     * src: input vector
-     * axis
-     */
-    static Tensor *Forward(std::vector<Tensor*> src, int axis); 
+    ConcatBwd(std::vector<mkldnn::memory::dims> diff_src_ds,
+              mkldnn::memory::dims diff_dst_d,
+              int axis);
+    ~ConcatBwd();
 
     /*
-     * Concat backward
-     * params:
-     * diff_dst: input vector
-     * axis
+     * Concat backward primitive setup
+     * Params:
+     * src_ds: inputs
+     * dst_d: output, (n, out_c, out_h, out_w)
+     * axis: axis to concat
      */
-    static std::vector<Tensor*> Backward(Tensor *diff_dst, std::vector<int> offsets, int axis); 
+    void setup(std::vector<mkldnn::memory::dims> diff_src_ds,
+               mkldnn::memory::dims diff_dst_d,
+               int axis);
+
+    /*
+     * Concat forward execute with bias
+     */
+    void execute(std::vector<void*> diff_srcs, void *diff_dst);
+
+public:
+    // expected memory format for this primitive instance
+    // forward
+    std::vector<mkldnn::memory::format> diff_src_fmts_;
+    mkldnn::memory::format diff_dst_fmt_;
+    
+private:
+    int axis_;
+
+    //MKLDNN memory
+    //memory desc
+    std::vector<mkldnn::memory> diff_src_mems_; // gxs
+    
+    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_; // gy 
+    std::shared_ptr<mkldnn::memory::primitive_desc> diff_dst_mpd_; // gy 
+    std::shared_ptr<mkldnn::memory> diff_dst_mem_; // gy
+
+    //desc & prmitive desc
+    std::shared_ptr<mkldnn::reorder::primitive_desc> reorder_pd_;
+    std::shared_ptr<mkldnn::reorder> reorder_prim_;
+    
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
+    std::vector<mkldnn::primitive> bwd_primitives_; //bwd primitive vector
 };
 
-#endif // _CONCAT_H_
+#endif // _CONCAT_BWD_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

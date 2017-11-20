@@ -120,6 +120,74 @@ Tensor *Concat<T>::Forward(
 }
 
 
+template<typename T>
+std::vector<Tensor*> Concat<T>::Backward(
+                Tensor *diff_dst,
+                std::vector<int> offsets,
+                int axis)
+{
+    //
+    assert (axis == 1);
+    assert (offsets.size() > 0);
+
+    std::vector<Tensor*> gxs;
+    std::vector<void*> gxs_data;
+
+    mkldnn::memory::format expected_dst_fmt; // expected format
+    void *diff_dst_data = NULL;
+    void *diff_dst_reorder = NULL; 
+
+    // get diff src fmts
+    // offset store the offsets of concat
+    // Example
+    // inputs: [2, 2, 3, 3], [2, 3, 3, 3], [2, 1, 3, 3], [2, 1, 3, 3]
+    // outputs: [2, 7, 3, 3]
+    // offsets: [2, 5, 6]
+    std::vector<mkldnn::memory::dims> diff_src_d;
+    mkldnn::memory::dims diff_dst_d = diff_dst->cxx_dims();
+    diff_src_d.push_back({diff_dst_d[0], offsets[0], diff_dst_d[2], diff_dst_d[3]});//get first element
+    for (int i = 1; i < offsets.size(); i++) {
+        int axis_value = offsets[i] - offsets[i-1]; 
+        diff_src_d.push_back({diff_dst_d[0], axis_value, diff_dst_d[2], diff_dst_d[3]});
+    }
+    diff_src_d.push_back({diff_dst_d[0], (diff_dst_d[1]-offsets.back()), diff_dst_d[2], diff_dst_d[3]}); // get last element
+
+    // get a concat bwd from primitive pool
+    ConcatBwd<T> *concat_backward = NULL;
+    concat_backward = ConcatBwdFactory<T>::get(diff_src_d, diff_dst_d, axis);
+
+    //check whether diff dst fmt is same
+    expected_dst_fmt = concat_backward->diff_dst_fmt_;
+    diff_dst_data = diff_dst->data();
+    if (expected_dst_fmt != diff_dst->cxx_format()) {
+        LOG(INFO) << "Concat diff dst fmt not match: diff_dst_fmt="
+            << diff_dst->cxx_format() << "; expected fmt = " << expected_dst_fmt;
+
+        // From reorder factory to find one reorder
+        ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst->cxx_dims(), diff_dst->cxx_format(), expected_dst_fmt);
+        diff_dst_reorder = new avx::byte[diff_dst->len()];
+        reorder_diff_dst_op->execute(diff_dst_data, diff_dst_reorder);
+        diff_dst_data = diff_dst_reorder;
+    }
+
+    // create diff src tensors to execute concat backward
+    assert(diff_src_d.szie() == concat_backward->diff_src_fmts_.size());
+    for (int i = 0; i < diff_src_d.size(); i++) {
+        Tensor *diff_src_tensor = new Tensor(diff_src_d[i], diff_dst->cxx_data_type(), concat_backward->diff_src_fmts_[i], cpu_engine);
+        gxs.push_back(diff_src_tensor);
+        gxs_data.push_back(diff_src_tensor->data());
+    }
+
+    // do concat backward
+    concat_backward->execute(gxs_data, diff_dst_data);
+
+    //
+    if (diff_dst_reorder != NULL)
+        delete static_cast<avx::byte *>(diff_dst_reorder);
+
+    return gxs;
+}
+
 template class Concat<float>;
 
 

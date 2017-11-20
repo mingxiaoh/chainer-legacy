@@ -92,6 +92,27 @@ public:
         return dst_mdarray;
     }
 
+    /*
+     * Python Concat Backward
+     */
+    static std::vector<mdarray> Backward(mdarray *diff_dst,
+                                         std::vector<int> offsets,
+                                         int axis) {
+        std::vector<mdarray> gxs;
+
+        std::vector<Tensor *> gxs_tensor = Concat<T>::Backward(
+                                            (diff_dst->get()->tensor()),
+                                            offsets,
+                                            axis);
+
+        //
+        for (int i = 0; i < gxs_tensor.size(); i++){
+            gxs.push_back(mdarray(gxs_tensor[i]));
+        }
+
+        return gxs;
+    }
+
 };
 
 #endif // _CONCAT_PY_H_

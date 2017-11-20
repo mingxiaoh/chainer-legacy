@@ -13,4 +13,8 @@
 //
 // mdarray Concat_Py::Forward(
 //                        std::vector<mdarray> src,
-//                        int axis); 
+//                        int axis);
+// std::vector<mdarray> Concat_Py::Backward(
+//                        mdarray *diff_dst,
+//                        std::vector<int> offsets,
+//                        int axis);

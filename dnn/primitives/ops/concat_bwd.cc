@@ -64,7 +64,7 @@
 #include <glog/logging.h>
 #include <iostream>
 #include "mkldnn.hpp"
-#include "concat_fwd.h"
+#include "concat_bwd.h"
 #include "utils.h"
 #include "common.h"
 
@@ -73,98 +73,104 @@ using namespace mkldnn;
 extern engine cpu_engine;
 
 template<typename T>
-ConcatFwd<T>::ConcatFwd( std::vector<mkldnn::memory::dims> src_ds, 
-                         mkldnn::memory::dims dst_d, int axis)
+ConcatBwd<T>::ConcatBwd( std::vector<mkldnn::memory::dims> diff_src_ds,
+                         mkldnn::memory::dims diff_dst_d,
+                         int axis)
 {
-    fwd_stream_.reset(new stream(stream::kind::eager));
+    bwd_stream_.reset(new stream(stream::kind::eager));
     // create concat primitive
-    if (concat_fwd_ == NULL) {
-        setup(src_ds, dst_d, axis);
-    }
+    setup(diff_src_ds, diff_dst_d,  axis);
 }
 
 template<typename T>
-ConcatFwd<T>::~ConcatFwd()
+ConcatBwd<T>::~ConcatBwd()
 {
 }
 
 template<typename T>
-void ConcatFwd<T>::setup( std::vector<mkldnn::memory::dims> src_ds, 
-                          mkldnn::memory::dims dst_d,
+void ConcatBwd<T>::setup( std::vector<mkldnn::memory::dims> diff_src_ds, 
+                          mkldnn::memory::dims diff_dst_d,
                           int axis)
 {
-    LOG(INFO) << "Concat forward_setup";
+    LOG(INFO) << "Concat backward_setup";
     
-    assert(src_ds.size() > 0);
+    assert(diff_src_ds.size() > 0);
     axis_ = axis;
 
-    LOG(INFO) << "dst dims: [" << dst_d[0] << "," << dst_d[1] 
-        << "," << dst_d[2] << "," << dst_d[3] << "]";
+    /* init the offset */
+    memory::dims offsets = {0, 0, 0, 0};
+
+    LOG(INFO) << "diff dst dims: [" << diff_dst_d[0] << "," << diff_dst_d[1] 
+        << "," << diff_dst_d[2] << "," << diff_dst_d[3] << "]";
 
     //FIXME
-    // Currently, concat's src fms is hard set
-    memory::format src_fmt = get_desired_format(src_ds[0][1]); //
+    // Currently, concat backward's diff_dst fmt is hard set, and store it
+    memory::format diff_dst_fmt = get_desired_format(diff_dst_d[1]); //
+    diff_dst_fmt_ = diff_dst_fmt;
 
-    for (int i = 0; i < src_ds.size(); i++) {
+    // create diff dst md/mpt/mem
+    diff_dst_mpd_.reset(new memory::primitive_desc(
+                {{diff_dst_d}, memory_data_type<T>(), diff_dst_fmt}, cpu_engine));
+    diff_dst_mem_.reset(new memory(
+                {{{diff_dst_d}, memory_data_type<T>(), diff_dst_fmt}, cpu_engine}, dummy));
+
+    for (int i = 0; i < diff_src_ds.size(); i++) {
         //FIXME
-        //Currently, concat's src fmt hard set as nchw, need to pay attention in future for performance issue
-        memory::dims src_tz = src_ds[i];
+        //Currently, concat's diff src fmt hard set as diff_dst fmt, need to pay attention in future for performance issue
+        memory::dims diff_src_tz = diff_src_ds[i];
+        LOG(INFO) << "diff src dims: [" << diff_src_tz[0] << "," << diff_src_tz[1] 
+            << "," << diff_src_tz[2] << "," << diff_src_tz[3] << "]";
         
-        auto src_mpd = memory::primitive_desc(
-                {{src_tz}, memory_data_type<T>(), src_fmt}, cpu_engine);
-        auto src_mem = memory({src_mpd}, dummy);
+        auto diff_src_mpd = memory::primitive_desc(
+                {{diff_src_tz}, memory_data_type<T>(), diff_dst_fmt}, cpu_engine);
+        auto diff_src_mem = memory({diff_src_mpd}, dummy);
 
-        src_mpds_.push_back(src_mpd);
-        src_mems_.push_back(src_mem);
+        // store diff src fmt, same as diff dst
+        diff_src_fmts_.push_back(diff_dst_fmt);
 
-        // concat only accept mkldnn::primitive::at parameter
-        src_prim_at_.push_back(primitive::at(src_mem));
+        diff_src_mems_.push_back(diff_src_mem);
 
+        // create view from gy to gxs[i]
+        std::shared_ptr<view::primitive_desc> view_pd;
+        view_pd.reset(new view::primitive_desc(*diff_dst_mpd_, diff_src_tz, offsets));
+        // create reorder primitive from gy to gxs[i]
+        std::shared_ptr<reorder::primitive_desc> reorder_pd;
+        reorder_pd.reset(new reorder::primitive_desc(view_pd.get()->dst_primitive_desc(), diff_src_mpd));
 
-        // store src fmt
-        src_fmts_.push_back(src_fmt);
+        std::shared_ptr<mkldnn::reorder> reorder_prim;
+        reorder_prim.reset(new reorder(*reorder_pd, *diff_dst_mem_, diff_src_mems_[i]));
+    
+        bwd_primitives_.push_back(*reorder_prim);
+    
+        offsets[axis_] += diff_src_tz[axis_];
     }
-
-    // FIXME
-    // here, if set format as any, will create memory fail?????
-    dst_md_.reset(new memory::desc(dst_d, memory_data_type<T>(), src_fmt));
-    dst_mem_.reset(new memory({{{dst_d}, memory_data_type<T>(), src_fmt}, cpu_engine}, dummy));
-    //dst_md_.reset(new memory::desc(dst_d, memory_data_type<T>(), mkldnn::memory::format::any));
-    //dst_mem_.reset(new memory({{{dst_d}, memory_data_type<T>(), mkldnn::memory::format::any}, cpu_engine}, dummy));
-
-    // create concat pd/primitive
-    concat_pd_.reset(new concat::primitive_desc(*dst_md_, axis_, src_mpds_));
-    concat_fwd_.reset(new concat(*concat_pd_, src_prim_at_, *dst_mem_));
-
-    // store dst fmr
-    dst_fmt_ = static_cast<mkldnn::memory::format>(concat_pd_.get()->dst_primitive_desc().desc().data.format);
 
     return;
 }
 
 template<typename T>
-void ConcatFwd<T>::execute(std::vector<void*> src, void *dst)
+void ConcatBwd<T>::execute(std::vector<void*> diff_src, void *diff_dst)
 {
-    LOG(INFO) << "Concat forward";
-    assert(src.size() == src_mems_.size());
+    LOG(INFO) << "Concat backward";
+    assert(diff_src.size() == diff_src_mems_.size());
 
-    for (int i = 0; i < src_mems_.size(); i++) {
-        src_mems_[i].set_data_handle(src[i]);
+    for (int i = 0; i < diff_src_mems_.size(); i++) {
+        diff_src_mems_[i].set_data_handle(diff_src[i]);
     }
-    dst_mem_->set_data_handle(dst);
+    diff_dst_mem_->set_data_handle(diff_dst);
 
-    fwd_stream_->submit({*concat_fwd_});
+    bwd_stream_->submit(bwd_primitives_);
 
     //after exec, set data handle back
-    for (int i = 0; i < src_mems_.size(); i++) {
-        src_mems_[i].set_data_handle(dummy);
+    for (int i = 0; i < diff_src_mems_.size(); i++) {
+        diff_src_mems_[i].set_data_handle(dummy);
     }
-    dst_mem_->set_data_handle(dummy);
+    diff_dst_mem_->set_data_handle(dummy);
 
     return;
 }
 
-template class ConcatFwd<float>;
+template class ConcatBwd<float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

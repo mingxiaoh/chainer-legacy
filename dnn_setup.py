@@ -65,6 +65,7 @@ if system() == 'Linux':
            'dnn/primitives/ops/bn_fwd.cc',
            'dnn/primitives/ops/bn_bwd.cc',
            'dnn/primitives/ops/concat_fwd.cc',
+           'dnn/primitives/ops/concat_bwd.cc',
            'dnn/primitives/concat.cc',
           ]
 else:
