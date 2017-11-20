@@ -52,7 +52,8 @@ void batch_normalization_bwd<T>::setup(mkldnn::memory::dims src_d,
 
     // bwd desc & primitive desc
     auto bwd_desc = batch_normalization_backward::desc(
-                    prop_kind::backward, diff_dst_md, src_md, eps, flags_);
+                    scale_shift ? prop_kind::backward : prop_kind::backward_data,
+                    diff_dst_md, src_md, eps, flags_);
     auto bwd_pd = batch_normalization_backward::primitive_desc(
                   bwd_desc, cpu_engine, fwd_pd);
 
@@ -64,7 +65,7 @@ void batch_normalization_bwd<T>::setup(mkldnn::memory::dims src_d,
     diff_src_mem_.reset(new memory({src_md, cpu_engine}, dummy));
 
     // bn bwd primitive
-    if (flags_ & use_scale_shift) {
+    if ((flags_ & use_scale_shift) && mkldnn_use_scaleshift) {
         w_mem_.reset(new memory(bwd_pd.weights_primitive_desc(), dummy));
         diff_w_mem_.reset(new memory(bwd_pd.diff_weights_primitive_desc(), dummy));
 

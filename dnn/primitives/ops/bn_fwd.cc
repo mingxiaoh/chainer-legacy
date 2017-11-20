@@ -67,7 +67,7 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
 
     // bn fwd primitive
     if (!training && !(flags_ & use_global_stats)) {
-        if (flags_ & use_scale_shift) {
+        if ((flags_ & use_scale_shift) && mkldnn_use_scaleshift) {
             bn_fwd_.reset(new batch_normalization_forward(
                           fwd_pd, *src_mem_, *w_mem_, *dst_mem_));
         } else {
@@ -75,7 +75,7 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
                           fwd_pd, *src_mem_, *dst_mem_));
         }
     } else if (flags_ & use_global_stats) {
-        if (flags_ & use_scale_shift) {
+        if ((flags_ & use_scale_shift) && mkldnn_use_scaleshift) {
             bn_fwd_.reset(new batch_normalization_forward(
                           fwd_pd, *src_mem_, (const primitive::at)*mean_mem_,
                           (const primitive::at)*var_mem_, *w_mem_, *dst_mem_));
@@ -85,7 +85,7 @@ void batch_normalization_fwd<T>::setup(mkldnn::memory::dims src_d,
                           (const primitive::at)*var_mem_, *dst_mem_));
         }
     } else {
-        if (flags_ & use_scale_shift) {
+        if ((flags_ & use_scale_shift) && mkldnn_use_scaleshift) {
             bn_fwd_.reset(new batch_normalization_forward(
                           fwd_pd, *src_mem_, *w_mem_, *dst_mem_, *mean_mem_, *var_mem_));
         } else {
