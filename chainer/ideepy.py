@@ -81,7 +81,7 @@ def to_mdarray(xs):
     for x in xs:
         if isinstance(x, numpy.ndarray):
             if x.flags.contiguous is False:
-                y = numpy.ascontiguousarray(x)
+                x = numpy.ascontiguousarray(x)
             ys += mdarray(x),
         else:
             ys += x,
