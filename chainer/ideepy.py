@@ -61,7 +61,7 @@ def all_ready(inputs, check_with_ndim):
 # ideepy mdarray allocation
 # ---------------------------------------------------------------------
 def to_ia(array):
-    """ 
+    """
     Copy the given ndarray to mdarray
     """
     if not is_enabled():
@@ -72,5 +72,17 @@ def to_ia(array):
 
     if array.flags.contiguous is False:
         array = numpy.ascontiguousarray(array)
- 
+
     return mdarray(array)
+
+
+def to_mdarray(xs):
+    ys = ()
+    for x in xs:
+        if isinstance(x, numpy.ndarray):
+            if x.flags.contiguous is False:
+                y = numpy.ascontiguousarray(x)
+            ys += mdarray(x),
+        else:
+            ys += x,
+    return ys
