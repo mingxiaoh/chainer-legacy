@@ -29,6 +29,8 @@ class ReLU(function_node.FunctionNode):
     def forward_ia(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
+        if isinstance(x[0], numpy.ndarray):
+            x[0] = ideepy.to_ia(x[0])
         y = Relu_Py_F32.Forward(x[0])
         return y,
 
@@ -80,7 +82,13 @@ class ReLUGrad2(function_node.FunctionNode):
         self.b = b.data
 
     def forward_ia(self, inputs):
-        gx = Relu_Py_F32.Backward(self.a, inputs[0])
+        x = self.a
+        gy = inputs[0]
+        if isinstance(x, numpy.ndarray):
+            x = ideepy.to_ia(x)
+        if isinstance(gy, numpy.ndarray):
+            gy = ideepy.to_ia(gy)
+        gx = Relu_Py_F32.Backward(x, gy)
         return gx,
 
     def forward_cpu(self, inputs):
