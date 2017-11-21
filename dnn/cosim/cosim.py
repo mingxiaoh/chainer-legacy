@@ -3,14 +3,13 @@ import numpy as np
 import os
 
 from chainer.configuration import config  # NOQA
-from chainer.configuration import global_config  # NOQA
 from chainer import variable  # NOQA
 from chainer.utils import force_array  # NOQA
 
 from dnn._dnn import mdarray
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s]: %(message)s')
-global_config.cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
+global_config_cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
 
 
 def is_cosim():
@@ -19,7 +18,7 @@ def is_cosim():
     Returns:
         bool: Return ``True`` if chainer is in cosim mode.
     """
-    return config.cosim
+    return global_config_cosim
 
 
 def plain_array(params):

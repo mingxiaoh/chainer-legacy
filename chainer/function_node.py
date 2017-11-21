@@ -13,8 +13,6 @@ from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
 
-from dnn import cosim
-
 
 class FunctionNode(object):
 
@@ -318,7 +316,7 @@ class FunctionNode(object):
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
         elif chainer.ideepy.all_ready(inputs, (2, 4)):
-            if cosim.is_cosim():
+            if chainer.ideepy.cosim.is_cosim():
                 inputs_nd = ()
                 # Before the executing forward function to avoid conflicts of in-place operations
                 for data in inputs:
@@ -326,7 +324,7 @@ class FunctionNode(object):
 
                 y = self.forward_ia(inputs)
 
-                cosim.cosim_verify(self, y, inputs_nd)
+                chainer.ideepy.cosim.cosim_verify(self, y, inputs_nd)
 
                 return y
             return self.forward_ia(inputs)

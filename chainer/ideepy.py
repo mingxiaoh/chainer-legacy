@@ -9,6 +9,7 @@ available = False
 try:
     import dnn._dnn
     from dnn._dnn import mdarray
+    from dnn import cosim
 
     available = True
 except Exception as ex:
