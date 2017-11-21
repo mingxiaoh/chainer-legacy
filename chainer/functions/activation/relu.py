@@ -52,12 +52,13 @@ class ReLU(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, gy):
-        x = self.get_retained_inputs()[0]
         y = self.get_retained_outputs()[0]
-        if chainer.should_use_cudnn('==always') and self._use_cudnn:
+        if (ideepy.all_ready(gy, (2, 4))) or \
+                (chainer.should_use_cudnn('==always') and self._use_cudnn):
+            x = self.get_retained_inputs()[0]
             return ReLUGrad3(x, y).apply((gy[0],))
         else:
-            return ReLUGrad2(x, y).apply((gy[0],))
+            return ReLUGrad2(y).apply((gy[0],))
 
 
 def _heaviside(x):
@@ -76,15 +77,9 @@ class ReLUGrad2(function_node.FunctionNode):
     we do not backpropagate errors toward b for computational efficiency.
     """
 
-    def __init__(self, a, b):
+    def __init__(self, b):
         super(ReLUGrad2, self).__init__()
-        self.a = a.data
         self.b = b.data
-
-    def forward_ia(self, inputs):
-        x, gy = ideepy.to_mdarray((self.a, inputs[0]))
-        gx = Relu_Py_F32.Backward(x, gy)
-        return gx,
 
     def forward_cpu(self, inputs):
         y = (self.b > 0) * inputs[0]
@@ -119,6 +114,11 @@ class ReLUGrad3(function_node.FunctionNode):
         self.a = a.data
         self.b = b.data
 
+    def forward_ia(self, inputs):
+        x, gy = ideepy.to_mdarray((self.a, inputs[0]))
+        gx = Relu_Py_F32.Backward(x, gy)
+        return gx,
+    
     def forward_cpu(self, inputs):
         return (self.b > 0) * inputs[0],
 
