@@ -7,7 +7,6 @@ from chainer import function_node
 from chainer.utils import type_check
 
 from chainer import ideepy
-from dnn._dnn import mdarray, MdarrayVector, Concat_Py_F32
 
 class Concat(function_node.FunctionNode):
 
@@ -42,11 +41,11 @@ class Concat(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
     
     def forward_ia(self, xs):
-        xs_mdarray = MdarrayVector()
+        xs_mdarray = ideepy.MdarrayVector()
         ys = ideepy.to_mdarray(xs)
         for yi in ys:
             xs_mdarray.push_back(yi)
-        return Concat_Py_F32.Forward(xs_mdarray, self.axis),
+        return ideepy.Concat_Py_F32.Forward(xs_mdarray, self.axis),
 
     def forward(self, xs):
         if ideepy.all_ready(xs, (4,)): # only support 4 dims now

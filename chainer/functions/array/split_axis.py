@@ -8,7 +8,6 @@ from chainer import function_node
 from chainer.utils import type_check
 
 from chainer import ideepy
-from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
 
 class SplitAxis(function_node.FunctionNode):
 
@@ -45,10 +44,10 @@ class SplitAxis(function_node.FunctionNode):
     def forward_ia(self, inputs):
         x, = ideepy.to_mdarray(inputs)
 
-        offsets = IntVector()
+        offsets = ideepy.IntVector()
         for i in self.indices_or_sections:
             offsets.push_back(i)
-        ret = Concat_Py_F32.Backward(x, offsets, self.axis)
+        ret = ideepy.Concat_Py_F32.Backward(x, offsets, self.axis)
         self._shapes = [r.shape for r in ret]
         return ret
 

@@ -5,9 +5,8 @@ from chainer import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
+from chainer import ideepy
 
-import dnn._dnn
-from dnn._dnn import mdarray, pooling_param_t, Pooling2D_Py_F32
 
 class AveragePooling2D(pooling_2d.Pooling2D):
 
@@ -37,21 +36,16 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
         self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
 
-        pp = pooling_param_t()
+        pp = ideepy.pooling_param_t()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
-        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
+        pp.algo_kind = ideepy.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
        
-        x_mdarray = x[0]
-        if isinstance(x_mdarray, numpy.ndarray):
-            if x_mdarray.flags.contiguous is False:
-                x_mdarray = numpy.ascontiguousarray(x_mdarray)
-            x_mdarray = mdarray(x_mdarray)
-        
-        (y,) = Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        (x_mdarray,) = ideepy.to_mdarray((x[0],))
+        (y,) = ideepy.Pooling2D_Py_F32.Forward(x_mdarray, pp)
         return y, 
     
     def forward_gpu(self, x):
@@ -132,21 +126,16 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
         self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
         
-        pp = pooling_param_t()
+        pp = ideepy.pooling_param_t()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
-        pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
+        pp.algo_kind = ideepy.pooling_param_t.pooling_avg_include_padding # by default = pooling_avg_include_padding
 
-        gy_mdarray = gy[0]
-        if isinstance(gy_mdarray, numpy.ndarray):
-            if gy_mdarray.flags.contiguous is False:
-                gy_mdarray = numpy.ascontiguousarray(gy_mdarray)
-            gy_mdarray = mdarray(gy_mdarray)
-        
-        gx = Pooling2D_Py_F32.Backward(gy_mdarray, None, pp)
+        (gy_mdarray,) = ideepy.to_mdarray((gy[0],))
+        gx = ideepy.Pooling2D_Py_F32.Backward(gy_mdarray, None, pp)
         return gx,
     
     def forward_gpu(self, gy):
