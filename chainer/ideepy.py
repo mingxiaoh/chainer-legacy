@@ -7,9 +7,10 @@ from chainer import variable
 available = False
 
 try:
+    from dnn import cosim
     import dnn._dnn
     from dnn._dnn import mdarray
-    from dnn import cosim
+    from dnn._dnn import batchNormalizationF32
 
     available = True
 except Exception as ex:
@@ -25,6 +26,13 @@ def is_enabled():
     return available
 
 
+def array(x):
+    if isinstance(x, numpy.ndarray):
+        return mdarray(x)
+    else:
+        return x
+
+
 def all_ready(inputs, check_with_ndim):
     if not is_enabled():
         return False
@@ -35,10 +43,10 @@ def all_ready(inputs, check_with_ndim):
     valid_ndim = False
     for ndim in check_with_ndim:
         valid_ndim = valid_ndim or _inputs[0].ndim == ndim
-    
+
     if check_with_ndim and not valid_ndim:
         return False
-    
+
     if isinstance(_inputs[0], mdarray):
         return True
     # Check whether ideep configured and used correctly

@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import ideepy
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
@@ -47,7 +48,7 @@ class BatchNormalization(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1))
+        self.retain_inputs((0, 1, 2))
         x, gamma, beta = inputs
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
@@ -62,8 +63,45 @@ class BatchNormalization(function_node.FunctionNode):
         self.expander = expander
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
         self.use_cudnn = self.mode.can_use_cudnn(xp)
+        self.use_ideep = self.mode.can_use_ideep()
 
-        if self.use_cudnn:
+        if self.use_ideep:
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+
+            gamma = gamma[expander]
+            beta = beta[expander]
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            y, self.mean, self.var = ideepy.batchNormalizationF32.Forward(
+                ideepy.array(x),
+                ideepy.array(W),
+                None,
+                None,
+                self.eps
+            )
+
+            m = x.size // gamma.size
+            adjust = m / max(m - 1., 1.)
+            if isinstance(self.running_mean, ideepy.mdarray) and \
+               isinstance(self.running_var, ideepy.mdarray):
+                self.running_mean.inplace_axpby(self.decay, self.mean, (1 - self.decay))
+                self.running_mean.inplace_axpby(self.decay, self.var * adjust, (1 - self.decay))
+            else:
+                self.running_mean *= self.decay
+                self.running_mean += self.mean * (1 - self.decay)
+                self.running_var *= self.decay
+                self.running_var += self.var * adjust * (1 - self.decay)
+
+            # ndarray ?
+            if expand_dim:
+                y = numpy.squeeze(y, axis=(2, 3))
+
+            self.inv_std = (self.var + self.eps) ** (-0.5)
+
+        elif self.use_cudnn:
             x = cuda.cupy.ascontiguousarray(x)
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -141,36 +179,67 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var *= self.decay
             self.running_var += (1 - self.decay) * adjust * var
 
+        # FIXME: dummy self.var for numpy & cudnn
+        if not hasattr(self, 'var'):
+            self.var = xp.zeros_like(self.mean)
+
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x, gamma = self.get_retained_inputs()
+        x, gamma, beta = self.get_retained_inputs()
         gy, = grad_outputs
+
         f = BatchNormalizationGrad(
             self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
-            self.mean, self.inv_std)
-        return f(x, gamma, gy)
+            self.mean, self.var, self.inv_std)
+        return f(x, gamma, beta, gy)
 
 
 class BatchNormalizationGrad(function.Function):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, inv_std):
+    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, var, inv_std):
         self.eps = eps
         self.use_cudnn = use_cudnn
+        self.use_ideep = mode.can_use_ideep()
         self.mode = mode
         self.expander = expander
         self.axis = axis
         self.mean = mean
+        self.var = var
         self.inv_std = inv_std
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
-        x, gamma, gy = inputs
+        self.retain_inputs((0, 1, 3))
+        x, gamma, beta, gy = inputs
         expander = self.expander
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         xp = cuda.get_array_module(x)
 
-        if self.use_cudnn:
+        if self.use_ideep:
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+                gy = gy[:, :, None, None]
+
+            gamma = gamma[self.expander]
+            beta = beta[self.expander]
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            gx, gW = ideepy.batchNormalizationF32.Backward(
+                ideepy.array(x),
+                ideepy.array(gy),
+                self.mean,
+                self.var,
+                ideepy.array(W),
+                self.eps
+            )
+
+            ggamma, gbeta = gW[:2]
+
+            if expand_dim:
+                gx = numpy.squeeze(gx, axis=(2, 3))
+        elif self.use_cudnn:
             cudnn_mode = self.mode.get_cudnn_mode()
             x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -227,7 +296,8 @@ class BatchNormalizationGrad(function.Function):
     def backward(self, inputs, grad_outputs):
         expander = self.expander
 
-        x, gamma, gy = inputs
+        x, gamma, beta, gy = inputs
+
         gx1, ggamma1, _ = self.output_data
         ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = cuda.get_array_module(x)
@@ -433,6 +503,10 @@ class _BNMode(object):
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
+        self.ideep_ok = ideepy.all_ready((x, ), (2, 4)) and is_gamma_1d
+
+    def can_use_ideep(self):
+        return self.ideep_ok
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
