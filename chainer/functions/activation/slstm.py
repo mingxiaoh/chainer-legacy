@@ -1,11 +1,11 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
-from dnn._dnn import mdarray
 
 def _extract_gates(x):
     r = x.reshape((x.shape[0], x.shape[1] // 4, 4) + x.shape[2:])
@@ -88,7 +88,7 @@ class SLSTM(function.Function):
         a1, i1, f1, o1 = _extract_gates(x1)
         a2, i2, f2, o2 = _extract_gates(x2)
 
-        if isinstance(x1, (numpy.ndarray, mdarray)):
+        if isinstance(x1, (numpy.ndarray, chainer.ideepy.mdarray)):
             self.a1 = numpy.tanh(a1)
             self.i1 = _sigmoid(i1)
             self.f1 = _sigmoid(f1)
