@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
+from dnn._dnn import mdarray
 
 def _extract_gates(x, n_split=5):
     """Extract gates by split.
@@ -90,7 +91,7 @@ class TreeLSTM(function.Function):
         a, i, o = gates[:3]
         fs = gates[3:]
 
-        if isinstance(x, numpy.ndarray):
+        if isinstance(x, (numpy.ndarray, mdarray)):
             self.a = numpy.tanh(a)
             self.i = _sigmoid(i)
             self.o = _sigmoid(o)
