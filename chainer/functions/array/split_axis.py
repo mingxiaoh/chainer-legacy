@@ -48,7 +48,9 @@ class SplitAxis(function_node.FunctionNode):
         offsets = IntVector()
         for i in self.indices_or_sections:
             offsets.push_back(i)
-        return Concat_Py_F32.Backward(x, offsets, self.axis)
+        ret = Concat_Py_F32.Backward(x, offsets, self.axis)
+        self._shapes = [r.shape for r in ret]
+        return ret
 
     def forward(self, inputs):
         if self.axis == 1 and ideepy.all_ready((inputs),(4,)): # currently, only support axis == 1 and 4 dims
