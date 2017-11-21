@@ -43,8 +43,8 @@ class SplitAxis(function_node.FunctionNode):
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
     
     def forward_ia(self, inputs):
-        x, = inputs
-        
+        x, = ideepy.to_mdarray(inputs)
+
         offsets = IntVector()
         for i in self.indices_or_sections:
             offsets.push_back(i)
