@@ -192,7 +192,7 @@ class BatchNormalization(function_node.FunctionNode):
         f = BatchNormalizationGrad(
             self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
             self.mean, self.var, self.inv_std)
-        return f(x, gamma, beta, gy)
+        return f(x, gamma, gy)
 
 
 class BatchNormalizationGrad(function.Function):
@@ -209,8 +209,8 @@ class BatchNormalizationGrad(function.Function):
         self.inv_std = inv_std
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1, 3))
-        x, gamma, beta, gy = inputs
+        self.retain_inputs((0, 1, 2))
+        x, gamma, gy = inputs
         expander = self.expander
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         xp = cuda.get_array_module(x)
@@ -223,7 +223,7 @@ class BatchNormalizationGrad(function.Function):
                 gy = gy[:, :, None, None]
 
             gamma = gamma[self.expander]
-            beta = beta[self.expander]
+            beta = numpy.zeros_like(gamma)
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
             gx, gW = ideepy.batchNormalizationF32.Backward(
@@ -296,7 +296,7 @@ class BatchNormalizationGrad(function.Function):
     def backward(self, inputs, grad_outputs):
         expander = self.expander
 
-        x, gamma, beta, gy = inputs
+        x, gamma, gy = inputs
 
         gx1, ggamma1, _ = self.output_data
         ggx1, gggamma1, ggbeta1 = grad_outputs
