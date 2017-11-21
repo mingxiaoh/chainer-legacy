@@ -30,6 +30,14 @@ def all_ready(inputs, check_with_ndim):
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
 
+    # Check with ideep supported dimension of input data
+    valid_ndim = False
+    for ndim in check_with_ndim:
+        valid_ndim = valid_ndim or _inputs[0].ndim == ndim
+    
+    if check_with_ndim and not valid_ndim:
+        return False
+    
     if isinstance(_inputs[0], mdarray):
         return True
     # Check whether ideep configured and used correctly
@@ -48,13 +56,6 @@ def all_ready(inputs, check_with_ndim):
     else:
         return False
 
-    # Check with ideep supported dimension of input data
-    valid_ndim = False
-    for ndim in check_with_ndim:
-        valid_ndim = valid_ndim or _inputs[0].ndim == ndim
-
-    if check_with_ndim and not valid_ndim:
-        return False
     return True
 
 # ----------------------------------------------------------------------
