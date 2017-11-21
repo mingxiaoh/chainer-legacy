@@ -13,8 +13,6 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
 
-from dnn._dnn import mdarray
-
 
 def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
@@ -23,7 +21,7 @@ def _check_grad_type(func, x, gx):
     # FIXME
     # yli135: in some case, gx's type is mdarray, but x.data's type is ndarray
     # this should be legal in intel chainer
-    if not isinstance(gx, numpy.ndarray) and not isinstance(gx, mdarray):
+    if not isinstance(gx, numpy.ndarray) and not isinstance(gx, chainer.ideepy.mdarray):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
         typ = TypeError
@@ -453,7 +451,7 @@ class Variable(object):
                 ('requires_grad', True))
 
         if (data is not None and
-                not isinstance(data, (numpy.ndarray, cuda.ndarray, mdarray))):
+                not isinstance(data, (numpy.ndarray, cuda.ndarray, chainer.ideepy.mdarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)

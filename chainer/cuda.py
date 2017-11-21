@@ -31,7 +31,6 @@ import six
 
 import chainer
 
-from dnn._dnn import mdarray
 
 available = False
 cudnn_enabled = False
@@ -318,7 +317,7 @@ def to_cpu(array, stream=None):
             return array.get(stream)
     elif isinstance(array, (numpy.number, numpy.bool_)):
         return numpy.asarray(array)
-    elif isinstance(array, (numpy.ndarray, mdarray)):
+    elif isinstance(array, (numpy.ndarray, chainer.ideepy.mdarray)):
         return array
     else:
         raise TypeError(
