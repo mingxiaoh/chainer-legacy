@@ -10,8 +10,6 @@ from chainer.utils import conv
 from chainer.utils import type_check
 from chainer import ideepy
 
-import dnn._dnn
-from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -91,7 +89,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = conv_param_t()
+        cp = ideepy.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
@@ -100,29 +98,19 @@ class Convolution2DFunction(function_node.FunctionNode):
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
 
-        if isinstance(x, numpy.ndarray):
-            if x.flags.contiguous is False:
-                x = numpy.ascontiguousarray(x)
-            x = mdarray(x)
 
         if isinstance(W, numpy.ndarray):
-            if W.flags.contiguous is False:
-                W = numpy.ascontiguousarray(W)
-            W = mdarray(W)
             cp.with_weights_opt = False
-        elif isinstance(W, mdarray):
+        elif isinstance(W, ideepy.mdarray):
             # if weight is mdarray, we can do weights opt (pass optimized weight back)
             cp.with_weights_opt = True
 
-        if cp.with_bias and isinstance(b, numpy.ndarray):
-            if b.flags.contiguous is False:
-                b = numpy.ascontiguousarray(b)
-            b = mdarray(b)
-	
+        (x, W) = ideepy.to_mdarray((x, W))	
         if cp.with_bias:
-            y = Convolution2D_Py_F32.Forward(x, W, b, cp)
+            (b, ) = ideepy.to_mdarray((b,))
+            y = ideepy.Convolution2D_Py_F32.Forward(x, W, b, cp)
         else:
-            y = Convolution2D_Py_F32.Forward(x, W, None, cp)
+            y = ideepy.Convolution2D_Py_F32.Forward(x, W, None, cp)
 
         return y,
 
@@ -291,7 +279,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = conv_param_t()
+        cp = ideepy.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = out_c, input_c, self.kh, self.kw
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = gy.shape
@@ -301,17 +289,9 @@ class Convolution2DGradW(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        if isinstance(x, numpy.ndarray):
-            if x.flags.contiguous is False:
-                x = numpy.ascontiguousarray(x)
-            x = mdarray(x)
-        if isinstance(gy, numpy.ndarray):
-            if gy.flags.contiguous is False:
-                gy = numpy.ascontiguousarray(gy)
-            gy = mdarray(gy)
-
+        (x, gy) = ideepy.to_mdarray((x, gy))
         # only calculate gW, no gb
-        (gW,) = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        (gW,) = ideepy.Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
         return gW,
 
     def forward_cpu(self, inputs):

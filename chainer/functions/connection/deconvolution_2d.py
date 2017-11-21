@@ -9,9 +9,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
-
-import dnn._dnn
-from dnn._dnn import mdarray, conv_param_t, Convolution2D_Py_F32
+from chainer import ideepy
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -128,7 +126,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        cp = conv_param_t()
+        cp = ideepy.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = n, in_c, self.outh, self.outw
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape # deconv's weight dims should be different with conv's w
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
@@ -138,16 +136,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        if isinstance(x, numpy.ndarray):
-            if x.flags.contiguous is False:
-                x = numpy.ascontiguousarray(x)
-            x = mdarray(x) # x should be gy in conv bwd data
-        if isinstance(W, numpy.ndarray):
-            if W.flags.contiguous is False:
-                W = numpy.ascontiguousarray(W)
-            W = mdarray(W)
-
-        y = Convolution2D_Py_F32.BackwardData(W, x, cp) # y should be gx in conv bwd data
+        (x, W) = ideepy.to_mdarray((x, W))
+        y = ideepy.Convolution2D_Py_F32.BackwardData(W, x, cp) # y should be gx in conv bwd data
 
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)

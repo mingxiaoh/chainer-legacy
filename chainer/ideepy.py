@@ -12,6 +12,7 @@ try:
     from dnn._dnn import mdarray
     from dnn._dnn import batchNormalizationF32
     from dnn._dnn import Relu_Py_F32
+    from dnn._dnn import conv_param_t, Convolution2D_Py_F32
 
     available = True
 except Exception as ex:
