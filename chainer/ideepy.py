@@ -11,6 +11,7 @@ try:
     import dnn._dnn
     from dnn._dnn import mdarray
     from dnn._dnn import batchNormalizationF32
+    from dnn._dnn import Relu_Py_F32
 
     available = True
 except Exception as ex:

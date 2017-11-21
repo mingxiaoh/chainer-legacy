@@ -5,8 +5,10 @@ import dnn._dnn
 
 x1 = numpy.ndarray(shape=(2,2,2,2), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x1)
-
 x = x + 1
+testing.assert_allclose(x1+1, x)
+
+x = dnn._dnn.mdarray(x1)
 
 print(x)
 print("ndims=", x.ndim)

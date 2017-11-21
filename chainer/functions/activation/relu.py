@@ -6,8 +6,6 @@ from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 from chainer import ideepy
-import dnn._dnn
-from dnn._dnn import Relu_Py_F32
 
 
 if cuda.cudnn_enabled:
@@ -31,7 +29,7 @@ class ReLU(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         mx, = ideepy.to_mdarray((x[0],))
-        y = Relu_Py_F32.Forward(mx)
+        y = ideepy.Relu_Py_F32.Forward(mx)
         return y,
 
 
@@ -116,9 +114,9 @@ class ReLUGrad3(function_node.FunctionNode):
 
     def forward_ia(self, inputs):
         x, gy = ideepy.to_mdarray((self.a, inputs[0]))
-        gx = Relu_Py_F32.Backward(x, gy)
+        gx = ideepy.Relu_Py_F32.Backward(x, gy)
         return gx,
-    
+
     def forward_cpu(self, inputs):
         return (self.b > 0) * inputs[0],
 
