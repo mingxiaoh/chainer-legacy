@@ -48,7 +48,7 @@ class BatchNormalization(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
+        self.retain_inputs((0, 1))
         x, gamma, beta = inputs
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
@@ -186,7 +186,7 @@ class BatchNormalization(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x, gamma, beta = self.get_retained_inputs()
+        x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
         f = BatchNormalizationGrad(
@@ -370,7 +370,32 @@ class FixedBatchNormalization(function_node.FunctionNode):
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
 
         mode = _BNMode(x, gamma)
-        if mode.can_use_cudnn(xp):
+        if mode.can_use_ideep():
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+
+            gamma = gamma[expander]
+            beta = beta[expander]
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            y, = ideepy.batchNormalizationF32.Forward(
+                ideepy.array(x),
+                ideepy.array(W),
+                ideepy.array(mean),
+                ideepy.array(var),
+                self.eps
+            )
+
+            # ndarray ?
+            if expand_dim:
+                y = numpy.squeeze(y, axis=(2, 3))
+
+            # lazy
+            self.inv_var = None
+            self.inv_std = None
+        elif mode.can_use_cudnn(xp):
             x = cuda.cupy.ascontiguousarray(x)
 
             gamma = cuda.cupy.ascontiguousarray(gamma)

@@ -98,4 +98,16 @@ static inline mkldnn::algorithm pooling_algo_convert(pooling_param_t::algorithm 
     }
 }
 
+static inline mkldnn::algorithm lrn_algo_convert(lrn_param_t::algorithm input) {
+    switch(input) {
+        case lrn_param_t::algorithm::lrn_across_channels:
+            return mkldnn::lrn_across_channels;
+        case lrn_param_t::algorithm::lrn_within_channel:
+            return mkldnn::lrn_within_channel;
+        default:
+            LOG(ERROR) << "Not a valid lrn algo";
+            return mkldnn::lrn_across_channels;
+    }
+}
+
 #endif // _UTILS_H_

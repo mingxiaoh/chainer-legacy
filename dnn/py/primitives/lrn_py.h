@@ -61,82 +61,75 @@
  */
 
 
-#pragma once
-#ifndef _LRN_BWD_H_
-#define _LRN_BWD_H_
+#ifndef _LRN_PY_H_
+#define _LRN_PY_H_
 
-#include <glog/logging.h>
-#include <iostream>
-#include <mkldnn.hpp>
 #include <vector>
-#include "op.h"
+#include <memory>
+#include "op_param.h"
+#include "mdarray.h"
+#include "lrn.h"
 
 template <typename T>
-class LocalResponseNormalizationFwdBwd: public Op<T>{
+class LocalResponseNormalization_Py
+{
 public:
-    LocalResponseNormalizationFwdBwd(mkldnn::memory::dims diff_src_d, 
-            mkldnn::memory::dims diff_dst_d,
-            mkldnn::memory::dims ws_d,
-            mkldnn::memory::data_type ws_dt,
-            int n, double k, double alpha, double beta,
-            mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
-
-    ~LocalResponseNormalizationFwdBwd();
-    
     /*
-     * lrn backward primitive setup
-     * Params:
-     * diff_src_d: diff src
-     * diff_dst_d: diff dst
-     */
-    void setup(mkldnn::memory::dims diff_src_d, 
-               mkldnn::memory::dims diff_dst_d,
-               mkldnn::memory::dims ws_d,
-               mkldnn::memory::data_type ws_dt,
-               int n, double k, double alpha, double beta,
-               mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
-
-    /*
-     * lrn backward execute 
+     * Python Lrn Forward
      * params:
-     * diff_src: diff_src
-     * diff_dst: diff_dst
-     * ws: workspace
+     * src: input, x
+     * pp: lrn parameters
      */
-    void execute(void *diff_src, void *diff_dst, void *ws=NULL);
+    static std::vector<mdarray> Forward(mdarray *src, 
+                                        lrn_param_t *pp) {
+        std::vector<mdarray> outputs;
 
-public:
-    // expected memory format
-    mkldnn::memory::format diff_src_fmt_;
-    mkldnn::memory::format diff_dst_fmt_;
-    mkldnn::memory::format ws_fmt_;
+        // Shoule be removed in future????
+        implementation::mdarray *src_internal = src->get();
+        
+        std::vector<Tensor *> outputs_tensor = LocalResponseNormalization<T>::Forward(
+                                                    (src_internal->tensor()),
+                                                    pp);
+        //FIXME
+        for (int i = 0; i < outputs_tensor.size(); i++) {
+            outputs.push_back( mdarray(outputs_tensor[i]) );
+        }
 
-    // algo
-    mkldnn::algorithm alg_kind_;
-    int local_size_;
-private:
-    // lrn primitive
-    std::shared_ptr<mkldnn::lrn_backward> bwd_;
-    std::shared_ptr<mkldnn::stream> bwd_stream_;
-    
-    // MKL-DNN memory, just dummy data
-    std::shared_ptr<mkldnn::memory> ws_mem_;
-    std::shared_ptr<mkldnn::memory> diff_src_mem_;
-    std::shared_ptr<mkldnn::memory> diff_dst_mem_;
-    std::shared_ptr<mkldnn::memory::desc> diff_src_md_;
-    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_;
+        return outputs;
+    }
 
-    // fwd hint
-    std::shared_ptr<mkldnn::lrn_forward::desc> fwd_desc_;
-    std::shared_ptr<mkldnn::lrn_forward::primitive_desc> fwd_pd_;
-    
-    std::shared_ptr<mkldnn::lrn_backward::desc> bwd_desc_;
-    std::shared_ptr<mkldnn::lrn_backward::primitive_desc> bwd_pd_;
-    
-    std::vector<mkldnn::primitive> bwd_primitives_;
+    /*
+     * Python Lrn backward
+     * param:
+     * diff_dst: diff dst, gy
+     * ws: workspace
+     * pp: lrn parameters
+     */
+    static mdarray Backward(mdarray *diff_dst,
+                            mdarray *ws,
+                            lrn_param_t *pp) {
+        //FIXME
+        //Should be removed in future
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
+        implementation::mdarray *ws_internal;
+        ws_internal = ws->get();
+        
+        Tensor *diff_src_tensor;
+        diff_src_tensor = LocalResponseNormalization<T>::Backward(
+                                    (diff_dst_internal->tensor()),
+                                    (ws_internal->tensor()),
+                                    pp);
+      
+
+        // FIXME
+        // In future, mdarray will have a Tensor member, no need to create a new one
+        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
+        return diff_src_mdarray;
+    }
+
 };
 
-#endif // _LRN_BWD_H_
+#endif // _LRN_PY_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

@@ -61,27 +61,38 @@
  */
 
 
+#include <glog/logging.h>
+#include <iostream>
+#include "common.h"
+#include "mkldnn.hpp"
+#include "lrn_bwd.h"
+#include "utils.h"
+
+using namespace mkldnn;
+
+extern engine cpu_engine;
+
 template <typename T>
-LocalResponseNormalizationFwdBwd<T>::LocalResponseNormalizationFwdBwd(
+LocalResponseNormalizationBwd<T>::LocalResponseNormalizationBwd(
     mkldnn::memory::dims diff_src_d, 
     mkldnn::memory::dims diff_dst_d,
     mkldnn::memory::dims ws_d,
     mkldnn::memory::data_type ws_dt,
     int n, double k, double alpha, double beta,
-    mkldnn::algorithm alg_kind):alg_kind(mkldnn::algorithm::lrn_across_channels)
+    mkldnn::algorithm alg_kind):alg_kind_(mkldnn::algorithm::lrn_across_channels)
 {
     bwd_stream_.reset(new stream(stream::kind::eager));
     // setup
     if ( bwd_ == NULL){
-        setup(diff_src_d, diff_dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind);
+        setup(diff_src_d, diff_dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind_);
     }
 }
 
 template <typename T>
-LocalResponseNormalizationFwdBwd<T>::~LocalResponseNormalizationFwdBwd(){}
+LocalResponseNormalizationBwd<T>::~LocalResponseNormalizationBwd(){}
 
 template <typename T>
-void LocalResponseNormalizationFwdBwd<T>::setup(
+void LocalResponseNormalizationBwd<T>::setup(
     mkldnn::memory::dims diff_src_d, 
     mkldnn::memory::dims diff_dst_d,
     mkldnn::memory::dims ws_d,
@@ -92,7 +103,6 @@ void LocalResponseNormalizationFwdBwd<T>::setup(
     LOG(INFO) << "lrn backward_setup";
     
     alg_kind_ = alg_kind;
-    local_size_ = n;
 
     // create memory desc
     diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(),
@@ -103,13 +113,13 @@ void LocalResponseNormalizationFwdBwd<T>::setup(
 
     //Need a forward hint to create backward, will be removed in future
     // create a lrn descriptor
-    fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind,
-        *diff_src_md_, *diff_dst_md_,
-        local_size, alpha, beta, k));
+    fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind_,
+        *diff_dst_md_, n, alpha, beta, k));
     fwd_pd_.reset(new lrn_forward::primitive_desc( *fwd_desc_, cpu_engine));
+
     bwd_desc_.reset(new lrn_backward::desc(alg_kind_,
         *diff_src_md_, *diff_dst_md_,
-        local_size_, alpha, beta, k));
+        n, alpha, beta, k));
     bwd_pd_.reset(new lrn_backward::primitive_desc(*bwd_desc_, cpu_engine,
         *fwd_pd_));
 
@@ -125,7 +135,7 @@ void LocalResponseNormalizationFwdBwd<T>::setup(
     ws_fmt_ = get_desired_format(ws_d[1]);
     ws_mem_.reset(new memory({{{ws_d}, ws_dt, ws_fmt_}, cpu_engine}, dummy)); // use ws dims's channel to decide format
     
-    bwd_.reset(new pooling_backward(
+    bwd_.reset(new lrn_backward(
             *bwd_pd_, *diff_dst_mem_, *ws_mem_, *diff_src_mem_));
 
     bwd_primitives_.push_back(*bwd_);
@@ -133,7 +143,7 @@ void LocalResponseNormalizationFwdBwd<T>::setup(
 }
 
 template<typename T>
-void LocalResponseNormalizationFwdBwd<T>::execute(void *diff_src, void *diff_dst, void *ws)
+void LocalResponseNormalizationBwd<T>::execute(void *diff_src, void *diff_dst, void *ws)
 {
     LOG(INFO) << "lrn backward";
     
@@ -156,4 +166,4 @@ void LocalResponseNormalizationFwdBwd<T>::execute(void *diff_src, void *diff_dst
     return;
 }
 
-template class LocalResponseNormalizationFwdBwd<float>;
+template class LocalResponseNormalizationBwd<float>;

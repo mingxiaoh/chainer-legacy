@@ -110,7 +110,7 @@ public:
 
     // algo
     mkldnn::algorithm alg_kind_;
-    int local_size_;
+    // int local_size_;
 private:
     // lrn primitive
     std::shared_ptr<mkldnn::lrn_forward> fwd_;

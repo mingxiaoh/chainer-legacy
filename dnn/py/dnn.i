@@ -12,3 +12,4 @@
 %include "linear.i"
 %include "bn.i"
 %include "concat.i"
+%include "lrn.i"

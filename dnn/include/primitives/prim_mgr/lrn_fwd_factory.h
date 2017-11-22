@@ -61,101 +61,85 @@
  */
 
 
-#include <glog/logging.h>
-#include <iostream>
-#include "common.h"
-#include "mkldnn.hpp"
-#include "lrn_fwd.h"
+#ifndef _LRN_FWD_FACTORY_
+#define _LRN_FWD_FACTORY_
+#include <mkldnn.hpp>
+#include <string>
+#include "op.h"
+#include "op_factory.h"
+#include <unordered_map>
 #include "utils.h"
+#include "lrn_fwd.h"
 
-using namespace mkldnn;
-
-extern engine cpu_engine;
-
-template<typename T>
-LocalResponseNormalizationFwd<T>::LocalResponseNormalizationFwd(
-    mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm)
-    :alg_kind_(algorithm::lrn_across_channels)
+template <typename T>
+class LocalResponseNormalizationFwdFactory : public OpFactory<T>
 {
+private:
+    LocalResponseNormalizationFwdFactory() {}
+    ~LocalResponseNormalizationFwdFactory() {}
 
-    fwd_stream_.reset(new stream(stream::kind::eager));
-    // setup
-    if (fwd_ == NULL){
-        setup(src_d, dst_d, n, k, alpha, beta, alg_kind_);
+public:
+    static LocalResponseNormalizationFwd<T>* get(
+            mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+            int n, double k, double alpha, double beta,
+            mkldnn::algorithm alg_kind)
+    {
+        LocalResponseNormalizationFwd<T>* lrn_forward = NULL;
+
+        //try to find a suitable one in pool
+        lrn_forward = dynamic_cast<LocalResponseNormalizationFwd<T>*> (
+            LocalResponseNormalizationFwdFactory<T>::get_instance().get_lrn_fwd( src_d, dst_d, n, k, alpha, beta, alg_kind));
+
+        if (lrn_forward == NULL) {
+            LOG(INFO) << "create a new one for lrn fwd: " << alg_kind;
+            lrn_forward = new LocalResponseNormalizationFwd<T>( src_d, dst_d, n, k, alpha, beta, alg_kind);
+            LocalResponseNormalizationFwdFactory<T>::get_instance().set_lrn_fwd( src_d, dst_d, n, k, alpha, beta, alg_kind, lrn_forward);
+        } else {
+            LOG(INFO) << "reuse exist one for lrn fwd: " << alg_kind;
+        }
+        return lrn_forward;
     }
-}
 
-template<typename T>
-LocalResponseNormalizationFwd<T>::~LocalResponseNormalizationFwd(){}
+    static LocalResponseNormalizationFwdFactory& get_instance() {
+        static LocalResponseNormalizationFwdFactory instance_;
+        return instance_;
+    }
 
-template<typename T>
-void LocalResponseNormalizationFwd<T>::setup(
-    mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm alg_kind)
-{
-    LOG(INFO) << "lrn forward_setup";
+private:
+#define LRN_FWD_PREFIX "lrn_fwd_"
+    Op<T>* get_lrn_fwd(mkldnn::memory::dims src_d,
+                        mkldnn::memory::dims dst_d,
+                        int n, double k, double alpha, double beta,
+                        mkldnn::algorithm alg_kind) {
+        std::string key = LRN_FWD_PREFIX;
 
-    alg_kind_ = alg_kind;
-    // local_size_ = n;
+        key += dims_to_string(src_d);
+        key += dims_to_string(dst_d);
+        key += int_to_string(n);
+        key += double_to_string(k);
+        key += double_to_string(alpha);
+        key += double_to_string(beta);
+        key += int_to_string(alg_kind);
 
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
-        get_desired_format(src_d[1]))); // use src's input channel to decide expected fmt
-    dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
-        memory::format::any));
+        return this->get_op(key);
+    }
 
-    //LOG(INFO) << "lrn_fwd_desc_";
-    fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind_, 
-        *src_md_, n, alpha, beta, k));
-    fwd_pd_.reset(new lrn_forward::primitive_desc(*fwd_desc_, cpu_engine));
+    void set_lrn_fwd(mkldnn::memory::dims src_d,
+            mkldnn::memory::dims dst_d,
+            int n, double k, double alpha, double beta,
+            mkldnn::algorithm alg_kind, Op<T> *op) {
+        std::string key = LRN_FWD_PREFIX;
 
-    // store expected primitive format
-    src_fmt_ = get_desired_format(src_d[1]);
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
+        key += dims_to_string(src_d);
+        key += dims_to_string(dst_d);
+        key += int_to_string(n);
+        key += double_to_string(k);
+        key += double_to_string(alpha);
+        key += double_to_string(beta);
+        key += int_to_string(alg_kind);
 
-    // create MKL-DNN internal memory object with dummy data
-    src_mem_.reset(new memory({{{src_d}, memory_data_type<T>(), src_fmt_}, cpu_engine}, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
+        this->set_op(key, op);
+    }
+};
 
-    //need to return workspace for backward
-    auto ws_pd = fwd_pd_.get()->workspace_primitive_desc().desc().data;
-    // store workspace's dims and fmt to create ws tensor
-    ws_fmt_ = static_cast<mkldnn::memory::format>(ws_pd.format);
-    ws_dims_.assign(ws_pd.dims, ws_pd.dims + ws_pd.ndims);
-    ws_dt_ = static_cast<mkldnn::memory::data_type>(ws_pd.data_type);
-    ws_mem_.reset(new memory(fwd_pd_.get()->workspace_primitive_desc(), dummy));
-
-    fwd_.reset(new lrn_forward(
-            *fwd_pd_, *src_mem_, *dst_mem_, *ws_mem_));
-    
-    fwd_primitives_.push_back(*fwd_);
-    return;
-}
-
-template<typename T>
-void LocalResponseNormalizationFwd<T>::execute(void *src, void *dst, void *ws)
-{
-    LOG(INFO) << "lrn forward";
-    
-    src_mem_->set_data_handle(src); // input
-    dst_mem_->set_data_handle(dst); // output dst
-
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(ws); // output workspace
-        
-    fwd_stream_->submit(fwd_primitives_);
-
-    // set back data handle
-    src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
-    
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(dummy);
-    
-    LOG(INFO) << "lrn forward finish";
-    return;
-}
-
-template class LocalResponseNormalizationFwd<float>;
+#endif // _LRN_FWD_FACTORY_
