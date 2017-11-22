@@ -83,10 +83,10 @@ Tensor *Convolution2D<T>::Forward(
     Convolution2DFwd<T> *conv2d_forward = NULL;
     if (cp->with_bias)
         conv2d_forward = Convolution2DFwdFactory<T>::get(src_dims, w_dims, b_dims, dst_dims,
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
     else
         conv2d_forward = Convolution2DFwdFactory<T>::get(src_dims, w_dims, NONE_DIMS, dst_dims,
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
     
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
@@ -179,10 +179,10 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
     Convolution2DBwdWeights<T> *conv2d_bwd_weights = NULL;
     if (cp->with_bias) {
         conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, diff_b_dims, diff_dst_dims, 
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
     } else {
         conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, NONE_DIMS, diff_dst_dims, 
-                cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
     }
 
     // create tensor based on selected primitive
@@ -262,7 +262,7 @@ Tensor *Convolution2D<T>::BackwardData(
     // get a conv2d bwd data from primitive pool
     Convolution2DBwdData<T> *conv2d_bwd_data = NULL;
     conv2d_bwd_data = Convolution2DBwdDataFactory<T>::get( diff_src_dims, w_dims, diff_dst_dims,
-            cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+            cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
 
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
     mkldnn::memory::format w_fmt = weights->cxx_format();

@@ -68,6 +68,7 @@ struct conv_param_t {
     int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
     int bias_d1; // bias shape
     int kh, kw; // kernel size
+    int dilate_y = 0, dilate_x = 0; // in MKL-DNN, common conv is treated as 0 dilate
     int sy, sx; // stride
     int pad_lh, pad_lw, pad_rh, pad_rw; //padding
     bool with_bias; 

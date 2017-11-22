@@ -34,6 +34,8 @@ def is_enabled():
 
 def array(x):
     if isinstance(x, numpy.ndarray):
+        if x.flags.contiguous is False:
+            x = numpy.ascontiguousarray(x)
         return mdarray(x)
     else:
         return x

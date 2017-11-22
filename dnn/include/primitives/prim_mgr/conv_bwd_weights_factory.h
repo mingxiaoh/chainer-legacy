@@ -45,18 +45,19 @@ private:
 public:
     static Convolution2DBwdWeights<T>* get(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
                                            mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y,
+                                           int dilate_y, int dilate_x,
                                            int sy, int sx,
                                            int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
         Convolution2DBwdWeights<T>* conv2d_backward_weights = NULL;
 
         //try to find a suitable one in pool
         conv2d_backward_weights = dynamic_cast<Convolution2DBwdWeights<T>*> (
-                            Convolution2DBwdWeightsFactory<T>::get_instance().get_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
+                            Convolution2DBwdWeightsFactory<T>::get_instance().get_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
 
         if (conv2d_backward_weights == NULL) {
             LOG(INFO) << "create a new one for conv2d bwd weights";
-            conv2d_backward_weights = new Convolution2DBwdWeights<T>( x, diff_w, diff_b, diff_y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
-            Convolution2DBwdWeightsFactory<T>::get_instance().set_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_backward_weights);
+            conv2d_backward_weights = new Convolution2DBwdWeights<T>( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
+            Convolution2DBwdWeightsFactory<T>::get_instance().set_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_backward_weights);
         } else {
             LOG(INFO) << "reuse existed one for conv2d bwd weights";
         }
@@ -72,6 +73,7 @@ private:
 #define CONVOLUTION2D_BWD_WEIGHTS_PREFIX "conv2d_bwd_weights_"
     Op<T>* get_conv2d_bwd_weights(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
                                   mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y,
+                                  int dilate_y, int dilate_x,
                                   int sy, int sx,
                                   int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
         std::string key = CONVOLUTION2D_BWD_WEIGHTS_PREFIX;
@@ -80,6 +82,8 @@ private:
         key += dims_to_string(diff_w);
         key += dims_to_string(diff_b);
         key += dims_to_string(diff_y);
+        key += int_to_string(dilate_y);
+        key += int_to_string(dilate_x);
         key += int_to_string(sy);
         key += int_to_string(sx);
         key += int_to_string(pad_lh);
@@ -92,6 +96,7 @@ private:
 
     void set_conv2d_bwd_weights(mkldnn::memory::dims x, mkldnn::memory::dims diff_w,
                                 mkldnn::memory::dims diff_b, mkldnn::memory::dims diff_y,
+                                int dilate_y, int dilate_x,
                                 int sy, int sx,
                                 int pad_lh, int pad_lw, int pad_rh, int pad_rw,
                                 Op<T> *op) {
@@ -101,6 +106,8 @@ private:
         key += dims_to_string(diff_w);
         key += dims_to_string(diff_b);
         key += dims_to_string(diff_y);
+        key += int_to_string(dilate_y);
+        key += int_to_string(dilate_x);
         key += int_to_string(sy);
         key += int_to_string(sx);
         key += int_to_string(pad_lh);

@@ -45,18 +45,19 @@ private:
 public:
     static Convolution2DFwd<T>* get( mkldnn::memory::dims x, mkldnn::memory::dims w,
                          mkldnn::memory::dims b, mkldnn::memory::dims y,
+                         int dilate_y, int dilate_x,
                          int sy, int sx,
                          int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
         Convolution2DFwd<T>* conv2d_forward = NULL;
 
         //try to find a suitable one in pool
         conv2d_forward = dynamic_cast<Convolution2DFwd<T>*> (
-                            Convolution2DFwdFactory<T>::get_instance().get_conv2d_fwd( x, w, b, y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
+                            Convolution2DFwdFactory<T>::get_instance().get_conv2d_fwd( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
 
         if (conv2d_forward == NULL) {
             LOG(INFO) << "create a new one for conv2d fwd";
-            conv2d_forward = new Convolution2DFwd<T>( x, w, b, y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
-            Convolution2DFwdFactory<T>::get_instance().set_conv2d_fwd( x, w, b, y, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_forward);
+            conv2d_forward = new Convolution2DFwd<T>( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
+            Convolution2DFwdFactory<T>::get_instance().set_conv2d_fwd( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_forward);
         } else {
             LOG(INFO) << "reuse exist one for conv2d fwd";
         }
@@ -71,15 +72,18 @@ public:
 private:
 #define CONVOLUTION2D_FWD_PREFIX "conv2d_fwd_"
     Op<T>* get_conv2d_fwd( mkldnn::memory::dims x, mkldnn::memory::dims w,
-                              mkldnn::memory::dims b, mkldnn::memory::dims y,
-                              int sy, int sx,
-                              int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
+                           mkldnn::memory::dims b, mkldnn::memory::dims y,
+                           int dilate_y, int dilate_x,
+                           int sy, int sx,
+                           int pad_lh, int pad_lw, int pad_rh, int pad_rw) {
         std::string key = CONVOLUTION2D_FWD_PREFIX;
 
         key += dims_to_string(x);
         key += dims_to_string(w);
         key += dims_to_string(b);
         key += dims_to_string(y);
+        key += int_to_string(dilate_y);
+        key += int_to_string(dilate_x);
         key += int_to_string(sy);
         key += int_to_string(sx);
         key += int_to_string(pad_lh);
@@ -92,6 +96,7 @@ private:
 
     void set_conv2d_fwd( mkldnn::memory::dims x, mkldnn::memory::dims w,
                          mkldnn::memory::dims b, mkldnn::memory::dims y,
+                         int dilate_y, int dilate_x,
                          int sy, int sx,
                          int pad_lh, int pad_lw, int pad_rh, int pad_rw,
                          Op<T> *op) {
@@ -101,6 +106,8 @@ private:
         key += dims_to_string(w);
         key += dims_to_string(b);
         key += dims_to_string(y);
+        key += int_to_string(dilate_y);
+        key += int_to_string(dilate_x);
         key += int_to_string(sy);
         key += int_to_string(sx);
         key += int_to_string(pad_lh);

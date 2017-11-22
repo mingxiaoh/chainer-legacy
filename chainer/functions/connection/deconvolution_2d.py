@@ -93,10 +93,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             )
 
     def forward_ia(self, inputs):
-        # FIXME: only support dilate == 1 currently
-        if self.dy != 1 or self.dx != 1:
-            return self.forward_cpu(inputs)
-        
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
@@ -111,8 +107,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
                                                 d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
-        self.pd = self.sy*(in_h-1) + kh - self.outh - self.ph
-        self.pr = self.sx*(in_w-1) + kw - self.outw - self.pw
+        self.pd = self.sy*(in_h-1) + (kh+(kh-1)*(self.dy-1)) - self.outh - self.ph
+        self.pr = self.sx*(in_w-1) + (kw+(kw-1)*(self.dx-1)) - self.outw - self.pw
 
         self._set_cover_all(x, W)
     
@@ -130,6 +126,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = n, in_c, self.outh, self.outw
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape # deconv's weight dims should be different with conv's w
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
+        # MKLDNN, common conv is treated as 0 dilate, but chainer treat is as 1 dilate, need to handle this
+        cp.dilate_y, cp.dilate_x = (self.dy-1), (self.dx-1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
         # use conv bwd data to implement deconv fwd, not bias support 

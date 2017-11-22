@@ -76,6 +76,7 @@ public:
     Convolution2DBwdData(mkldnn::memory::dims diff_src_d, 
                          mkldnn::memory::dims w_d, 
                          mkldnn::memory::dims diff_dst_d, 
+                         int dilate_y, int dilate_x,
                          int sy, int sx,
                          int pad_lh, int pad_lw, int pad_rh, int pad_rw);
     ~Convolution2DBwdData();
@@ -90,9 +91,10 @@ public:
     void setup(mkldnn::memory::dims diff_src_d, 
                mkldnn::memory::dims w_d,
                mkldnn::memory::dims diff_dst_d,
-               int s1, int s2,
-               int pl1, int pl2,
-               int pr1, int pr2);
+               int dilate_y, int dilate_x,
+               int sy, int sx,
+               int pad_lh, int pad_lw,
+               int pad_rh, int pad_rw);
 
     /*
      * Convolution backward weights without bias
@@ -131,6 +133,7 @@ private:
     std::shared_ptr<mkldnn::convolution_forward::primitive_desc> fwd_pd_;
 
     //memory dims
+    mkldnn::memory::dims dilates_;
     mkldnn::memory::dims strides_;
     mkldnn::memory::dims padding_l_;
     mkldnn::memory::dims padding_r_;
