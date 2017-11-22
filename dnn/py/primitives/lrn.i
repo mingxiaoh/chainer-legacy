@@ -18,6 +18,7 @@
 //                        mdarray *src,
 //                        lrn_prarm_t *pp);
 // mdarray* LocalResponseNormalization_Py::Backward(
+//                        mdarray *src,
 //                        mdarray *diff_dst,
 //                        mdarray *ws,
 //                        lrn_param_t *pp);

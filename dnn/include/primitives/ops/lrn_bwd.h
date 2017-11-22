@@ -74,7 +74,7 @@
 template <typename T>
 class LocalResponseNormalizationBwd: public Op<T>{
 public:
-    LocalResponseNormalizationBwd(mkldnn::memory::dims diff_src_d, 
+    LocalResponseNormalizationBwd(mkldnn::memory::dims src_d, 
             mkldnn::memory::dims diff_dst_d,
             mkldnn::memory::dims ws_d,
             mkldnn::memory::data_type ws_dt,
@@ -86,10 +86,10 @@ public:
     /*
      * lrn backward primitive setup
      * Params:
-     * diff_src_d: diff src
+     * src_d: src
      * diff_dst_d: diff dst
      */
-    void setup(mkldnn::memory::dims diff_src_d, 
+    void setup(mkldnn::memory::dims src_d, 
                mkldnn::memory::dims diff_dst_d,
                mkldnn::memory::dims ws_d,
                mkldnn::memory::data_type ws_dt,
@@ -99,14 +99,16 @@ public:
     /*
      * lrn backward execute 
      * params:
+     * src:
      * diff_src: diff_src
      * diff_dst: diff_dst
      * ws: workspace
      */
-    void execute(void *diff_src, void *diff_dst, void *ws=NULL);
+    void execute(void *src, void *diff_src, void *diff_dst, void *ws=NULL);
 
 public:
     // expected memory format
+    mkldnn::memory::format src_fmt_;
     mkldnn::memory::format diff_src_fmt_;
     mkldnn::memory::format diff_dst_fmt_;
     mkldnn::memory::format ws_fmt_;
@@ -119,9 +121,11 @@ private:
     std::shared_ptr<mkldnn::stream> bwd_stream_;
     
     // MKL-DNN memory, just dummy data
+    std::shared_ptr<mkldnn::memory> src_mem_;
     std::shared_ptr<mkldnn::memory> ws_mem_;
     std::shared_ptr<mkldnn::memory> diff_src_mem_;
     std::shared_ptr<mkldnn::memory> diff_dst_mem_;
+    std::shared_ptr<mkldnn::memory::desc> src_md_;
     std::shared_ptr<mkldnn::memory::desc> diff_src_md_;
     std::shared_ptr<mkldnn::memory::desc> diff_dst_md_;
 

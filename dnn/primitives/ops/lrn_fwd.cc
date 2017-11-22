@@ -74,7 +74,7 @@ extern engine cpu_engine;
 
 template<typename T>
 LocalResponseNormalizationFwd<T>::LocalResponseNormalizationFwd(
-    mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
     int n, double k, double alpha, double beta,
     mkldnn::algorithm)
     :alg_kind_(algorithm::lrn_across_channels)
@@ -83,7 +83,7 @@ LocalResponseNormalizationFwd<T>::LocalResponseNormalizationFwd(
     fwd_stream_.reset(new stream(stream::kind::eager));
     // setup
     if (fwd_ == NULL){
-        setup(src_d, dst_d, n, k, alpha, beta, alg_kind_);
+        setup(src_d, src_fmt, n, k, alpha, beta, alg_kind_);
     }
 }
 
@@ -92,7 +92,7 @@ LocalResponseNormalizationFwd<T>::~LocalResponseNormalizationFwd(){}
 
 template<typename T>
 void LocalResponseNormalizationFwd<T>::setup(
-    mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
     int n, double k, double alpha, double beta,
     mkldnn::algorithm alg_kind)
 {
@@ -103,8 +103,8 @@ void LocalResponseNormalizationFwd<T>::setup(
 
     src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
         get_desired_format(src_d[1]))); // use src's input channel to decide expected fmt
-    dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
-        memory::format::any));
+    // dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
+    //     memory::format::any));
 
     //LOG(INFO) << "lrn_fwd_desc_";
     fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind_, 
@@ -112,7 +112,8 @@ void LocalResponseNormalizationFwd<T>::setup(
     fwd_pd_.reset(new lrn_forward::primitive_desc(*fwd_desc_, cpu_engine));
 
     // store expected primitive format
-    src_fmt_ = get_desired_format(src_d[1]);
+    // src_fmt_ = get_desired_format(src_d[1]);
+    src_fmt_ = src_fmt;
     dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
 
     // create MKL-DNN internal memory object with dummy data

@@ -25,10 +25,10 @@ print ("ws.dtype=", ws.dtype)
 
 print("==============")
 print("bwd")
-x = LocalResponseNormalization_Py_F32.Backward(y, ws, pp)
+gx = LocalResponseNormalization_Py_F32.Backward(x, y, ws, pp)
 print("==============")
-x = LocalResponseNormalization_Py_F32.Backward(y, ws, pp)
-print("x.shape=", x.shape)
+gx = LocalResponseNormalization_Py_F32.Backward(x, y, ws, pp)
+print("gx.shape=", gx.shape)
 print("===== Finish backward=========")
 
 

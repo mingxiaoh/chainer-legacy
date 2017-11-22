@@ -74,7 +74,7 @@ extern engine cpu_engine;
 
 template <typename T>
 LocalResponseNormalizationBwd<T>::LocalResponseNormalizationBwd(
-    mkldnn::memory::dims diff_src_d, 
+    mkldnn::memory::dims src_d, 
     mkldnn::memory::dims diff_dst_d,
     mkldnn::memory::dims ws_d,
     mkldnn::memory::data_type ws_dt,
@@ -84,7 +84,7 @@ LocalResponseNormalizationBwd<T>::LocalResponseNormalizationBwd(
     bwd_stream_.reset(new stream(stream::kind::eager));
     // setup
     if ( bwd_ == NULL){
-        setup(diff_src_d, diff_dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind_);
+        setup(src_d, diff_dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind_);
     }
 }
 
@@ -93,7 +93,7 @@ LocalResponseNormalizationBwd<T>::~LocalResponseNormalizationBwd(){}
 
 template <typename T>
 void LocalResponseNormalizationBwd<T>::setup(
-    mkldnn::memory::dims diff_src_d, 
+    mkldnn::memory::dims src_d, 
     mkldnn::memory::dims diff_dst_d,
     mkldnn::memory::dims ws_d,
     mkldnn::memory::data_type ws_dt,
@@ -105,8 +105,8 @@ void LocalResponseNormalizationBwd<T>::setup(
     alg_kind_ = alg_kind;
 
     // create memory desc
-    diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(),
-    memory::format::any)); //
+    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
+    get_desired_format(src_d[1])));
 
     diff_dst_md_.reset(new memory::desc({diff_dst_d}, memory_data_type<T>(),
     get_desired_format(diff_dst_d[1]))); // use diff dst chanel to decide fmt
@@ -118,16 +118,17 @@ void LocalResponseNormalizationBwd<T>::setup(
     fwd_pd_.reset(new lrn_forward::primitive_desc( *fwd_desc_, cpu_engine));
 
     bwd_desc_.reset(new lrn_backward::desc(alg_kind_,
-        *diff_src_md_, *diff_dst_md_,
-        n, alpha, beta, k));
+        *src_md_, *diff_dst_md_,n, alpha, beta, k));
     bwd_pd_.reset(new lrn_backward::primitive_desc(*bwd_desc_, cpu_engine,
         *fwd_pd_));
 
     // store expected primitive format
     diff_src_fmt_ = static_cast<mkldnn::memory::format>(bwd_pd_.get()->diff_src_primitive_desc().desc().data.format);
     diff_dst_fmt_ = get_desired_format(diff_dst_d[1]);
+    src_fmt_ = get_desired_format(diff_dst_d[1]);
 
     // create MKL-DNN internal memory object with dummy data
+    src_mem_.reset(new memory({{{src_d}, memory_data_type<T>(), src_fmt_}, cpu_engine}, dummy));
     diff_src_mem_.reset(new memory(bwd_pd_.get()->diff_src_primitive_desc(), dummy));
     diff_dst_mem_.reset(new memory({{{diff_dst_d}, memory_data_type<T>(), diff_dst_fmt_}, cpu_engine}, dummy));
 
@@ -136,19 +137,20 @@ void LocalResponseNormalizationBwd<T>::setup(
     ws_mem_.reset(new memory({{{ws_d}, ws_dt, ws_fmt_}, cpu_engine}, dummy)); // use ws dims's channel to decide format
     
     bwd_.reset(new lrn_backward(
-            *bwd_pd_, *diff_dst_mem_, *ws_mem_, *diff_src_mem_));
+            *bwd_pd_, *src_mem_, *diff_dst_mem_, *ws_mem_, *diff_src_mem_));
 
     bwd_primitives_.push_back(*bwd_);
     return;
 }
 
 template<typename T>
-void LocalResponseNormalizationBwd<T>::execute(void *diff_src, void *diff_dst, void *ws)
+void LocalResponseNormalizationBwd<T>::execute(void*src, void *diff_src, void *diff_dst, void *ws)
 {
     LOG(INFO) << "lrn backward";
     
-    diff_src_mem_->set_data_handle(diff_src); // input
-    diff_dst_mem_->set_data_handle(diff_dst); // output dst
+    diff_src_mem_->set_data_handle(diff_src); //
+    diff_dst_mem_->set_data_handle(diff_dst); //
+    src_mem_->set_data_handle(src);
    
     assert(ws!=NULL);
     ws_mem_->set_data_handle(ws); // output workspace
@@ -159,6 +161,7 @@ void LocalResponseNormalizationBwd<T>::execute(void *diff_src, void *diff_dst, v
     // set back data handle
     diff_src_mem_->set_data_handle(dummy);
     diff_dst_mem_->set_data_handle(dummy);
+    src_mem_->set_data_handle(dummy);
     assert(ws!=NULL);
     ws_mem_->set_data_handle(dummy);
     

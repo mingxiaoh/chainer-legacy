@@ -101,24 +101,23 @@ public:
     /*
      * Python Lrn backward
      * param:
+     * src: x
      * diff_dst: diff dst, gy
      * ws: workspace
      * pp: lrn parameters
      */
-    static mdarray Backward(mdarray *diff_dst,
-                            mdarray *ws,
-                            lrn_param_t *pp) {
+    static mdarray Backward(mdarray *src, mdarray *diff_dst, mdarray *ws, lrn_param_t *pp) {
         //FIXME
         //Should be removed in future
         implementation::mdarray *diff_dst_internal = diff_dst->get();
-        implementation::mdarray *ws_internal;
-        ws_internal = ws->get();
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *ws_internal = ws->get();
         
-        Tensor *diff_src_tensor;
-        diff_src_tensor = LocalResponseNormalization<T>::Backward(
-                                    (diff_dst_internal->tensor()),
-                                    (ws_internal->tensor()),
-                                    pp);
+        Tensor *diff_src_tensor = LocalResponseNormalization<T>::Backward(
+            (src_internal->tensor()),
+            (diff_dst_internal->tensor()),
+            (ws_internal->tensor()),
+            pp);
       
 
         // FIXME

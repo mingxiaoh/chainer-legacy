@@ -74,7 +74,7 @@
 template <typename T>
 class LocalResponseNormalizationFwd: public Op<T>{
 public:
-    LocalResponseNormalizationFwd(mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+    LocalResponseNormalizationFwd(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
             int n, double k, double alpha, double beta,
             mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
                                         
@@ -86,7 +86,7 @@ public:
      * src_d: input
      * dst_d: out_put
      */
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
             int n, double k, double alpha, double beta,
             mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels                                      
 

@@ -88,18 +88,17 @@ public:
      * vector<Tensor*>:
      * return dst and workspace
      */
-    static std::vector<Tensor *> Forward(Tensor *src, 
-                                         lrn_param_t *pp);
+    static std::vector<Tensor *> Forward(Tensor *src, lrn_param_t *pp);
 
     /*
      * Lrn backward
      * param:
+     * src: x
      * diff_dst: diff dst, gy
      * pp: lrn parameters
+     * return diff_src gx
      */
-    static Tensor *Backward(Tensor *diff_dst,
-                            Tensor *ws,
-                            lrn_param_t *pp);
+    static Tensor *Backward(Tensor* src, Tensor *diff_dst, Tensor *ws, lrn_param_t* pp);
 
 };
 

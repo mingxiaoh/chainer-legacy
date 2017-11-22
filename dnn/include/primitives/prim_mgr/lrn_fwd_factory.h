@@ -80,7 +80,7 @@ private:
 
 public:
     static LocalResponseNormalizationFwd<T>* get(
-            mkldnn::memory::dims src_d, mkldnn::memory::dims dst_d,
+            mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
             int n, double k, double alpha, double beta,
             mkldnn::algorithm alg_kind)
     {
@@ -88,12 +88,12 @@ public:
 
         //try to find a suitable one in pool
         lrn_forward = dynamic_cast<LocalResponseNormalizationFwd<T>*> (
-            LocalResponseNormalizationFwdFactory<T>::get_instance().get_lrn_fwd( src_d, dst_d, n, k, alpha, beta, alg_kind));
+            LocalResponseNormalizationFwdFactory<T>::get_instance().get_lrn_fwd(src_d, src_fmt, n, k, alpha, beta, alg_kind));
 
         if (lrn_forward == NULL) {
             LOG(INFO) << "create a new one for lrn fwd: " << alg_kind;
-            lrn_forward = new LocalResponseNormalizationFwd<T>( src_d, dst_d, n, k, alpha, beta, alg_kind);
-            LocalResponseNormalizationFwdFactory<T>::get_instance().set_lrn_fwd( src_d, dst_d, n, k, alpha, beta, alg_kind, lrn_forward);
+            lrn_forward = new LocalResponseNormalizationFwd<T>( src_d, src_fmt, n, k, alpha, beta, alg_kind);
+            LocalResponseNormalizationFwdFactory<T>::get_instance().set_lrn_fwd( src_d, src_fmt, n, k, alpha, beta, alg_kind, lrn_forward);
         } else {
             LOG(INFO) << "reuse exist one for lrn fwd: " << alg_kind;
         }
@@ -108,13 +108,13 @@ public:
 private:
 #define LRN_FWD_PREFIX "lrn_fwd_"
     Op<T>* get_lrn_fwd(mkldnn::memory::dims src_d,
-                        mkldnn::memory::dims dst_d,
+                        mkldnn::memory::format src_fmt,
                         int n, double k, double alpha, double beta,
                         mkldnn::algorithm alg_kind) {
         std::string key = LRN_FWD_PREFIX;
 
         key += dims_to_string(src_d);
-        key += dims_to_string(dst_d);
+        key += int_to_string(src_fmt);
         key += int_to_string(n);
         key += double_to_string(k);
         key += double_to_string(alpha);
@@ -125,13 +125,13 @@ private:
     }
 
     void set_lrn_fwd(mkldnn::memory::dims src_d,
-            mkldnn::memory::dims dst_d,
+            mkldnn::memory::format src_fmt,
             int n, double k, double alpha, double beta,
             mkldnn::algorithm alg_kind, Op<T> *op) {
         std::string key = LRN_FWD_PREFIX;
 
         key += dims_to_string(src_d);
-        key += dims_to_string(dst_d);
+        key += int_to_string(src_fmt);
         key += int_to_string(n);
         key += double_to_string(k);
         key += double_to_string(alpha);
