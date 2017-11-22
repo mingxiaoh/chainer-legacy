@@ -101,6 +101,9 @@ void LinearBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
     src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(), memory::format::any));
     diff_weights_md_.reset(new memory::desc({diff_w_d}, memory_data_type<T>(), memory::format::any));
     diff_dst_md_.reset(new memory::desc({diff_dst_d}, memory_data_type<T>(), memory::format::any));
+    LOG(INFO) << "src_d"<<src_d[0] << "," << src_d[1];
+    LOG(INFO) << "weights" << diff_w_d[0] << "," << diff_w_d[1];
+    LOG(INFO) << "dst_d" << diff_dst_d[0] << "," << diff_dst_d[1];
     //create linear
     if (!diff_b_d.empty()) {
         diff_bias_md_.reset(new memory::desc({diff_b_d}, memory_data_type<T>(), memory::format::any));

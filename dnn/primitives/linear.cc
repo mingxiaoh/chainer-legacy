@@ -155,6 +155,12 @@ Tensor *Linear<T>::Forward(
             w_reorder = new avx::byte[weights->len()];
             reorder_w_op->execute(w_tmp, w_reorder);
             w_tmp = w_reorder;
+            //set internal fmt back to weight tensor
+            if (lp->with_weights_opt) {
+                weights->reset_memory(
+                        static_cast<mkldnn_memory_format_t>(linear_forward->weights_fmt_),
+                        static_cast<avx::byte *>(w_reorder));
+            }
         }
     }
     //create mdarray based on primitive's dst
@@ -169,7 +175,7 @@ Tensor *Linear<T>::Forward(
     //FIXME: here  may cause performance issue
     if (src_reorder != NULL) 
         delete static_cast<avx::byte *>(src_reorder);
-    if (w_reorder != NULL)
+    if (!lp->with_weights_opt && w_reorder != NULL)
         delete static_cast<avx::byte *>(w_reorder);
     return dst_tensor;
 }
@@ -186,13 +192,15 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     mkldnn::memory::dims diff_dst_dims = diff_dst->cxx_dims();
     mkldnn::memory::dims diff_w_dims;
     mkldnn::memory::dims diff_b_dims;
+    diff_w_dims = {diff_dst_dims[1], src_dims[1]};
+    /*
     if (src->ndims() == 4) {
         diff_w_dims = {diff_dst_dims[1], src_dims[1], src_dims[2], src_dims[3]};
     } else if (src->ndims() == 2){
         diff_w_dims = {diff_dst_dims[1], src_dims[1]};
     } else {
         LOG(INFO) << "Error:: src only support 2 dims or 4 dims";
-    }
+    }*/
     if (lp->with_bias) 
         diff_b_dims = {diff_w_dims[0]};
     // sanity check for data type
@@ -266,6 +274,8 @@ Tensor *Linear<T>::BackwardData(
     mkldnn::memory::dims w_dims = weights->cxx_dims();
     mkldnn::memory::dims diff_dst_dims = diff_dst->cxx_dims();
     mkldnn::memory::dims diff_src_dims;
+    diff_src_dims = {diff_dst_dims[0], w_dims[1]};
+    /*
     if (lp->src_ndims == 2) {
         assert(weights->ndims() == 2);
         diff_src_dims = {lp->src_d1, lp->src_d2};
@@ -277,7 +287,7 @@ Tensor *Linear<T>::BackwardData(
         }
     } else {
         LOG(INFO) << "Error:: src ndim not support(2 or 4 only)";
-    }
+    }*/
     //sanity check for data type
     //assume all a/w/b should have the same type as T
     //FIXME

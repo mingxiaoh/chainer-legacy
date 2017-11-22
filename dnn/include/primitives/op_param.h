@@ -92,7 +92,8 @@ struct pooling_param_t {
 struct linear_param_t {
     int src_d1, src_d2, src_d3, src_d4;
     int src_ndims;
-    bool with_bias; 
+    bool with_bias;
+    bool with_weights_opt = false;// whether pass back optimized weight
 };
 
 #endif // _OP_PARAM_H_
