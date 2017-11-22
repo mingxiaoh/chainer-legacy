@@ -70,22 +70,18 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
     def forward_ia(self, inputs):
-        # FIXME: only support dilate == 1 currently
-        if self.dy != 1 or self.dx != 1:
-            return self.forward_cpu(inputs)
-
         self.retain_inputs((0, 1))  # retain only x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
         out_c, input_c, kh, kw = W.shape
         n, c, h, w = x.shape
 
-        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph, cover_all=self.cover_all)
+        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph, cover_all=self.cover_all, d=self.dy)
         assert out_h > 0, 'Height in the output should be positive.'
-        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw, cover_all=self.cover_all)
+        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw, cover_all=self.cover_all, d=self.dx)
         assert out_w > 0, 'Width in the output should be positive.'
-        self.pd = self.sy*(out_h-1) + kh - h - self.ph
-        self.pr = self.sx*(out_w-1) + kw - w - self.pw
+        self.pd = self.sy*(out_h-1) + (kh+(kh-1)*(self.dy-1)) - h - self.ph
+        self.pr = self.sx*(out_w-1) + (kw+(kw-1)*(self.dx-1)) - w - self.pw
 
         # create conv parameter
         # for IA specific
@@ -95,6 +91,8 @@ class Convolution2DFunction(function_node.FunctionNode):
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
         cp.bias_d1 = inputs[2].shape[0] if len(inputs) ==  3 else -1
         cp.with_bias = True if len(inputs) == 3 else False
+        # MKLDNN, common conv is treated as 0 dilate, but chainer treat is as 1 dilate, need to handle this
+        cp.dilate_y, cp.dilate_x = (self.dy-1), (self.dx-1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
 
@@ -263,10 +261,10 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
 
     def forward_ia(self, inputs):
-        # FIXME: only support dilate == 1 currently
+        # FIXME
         # Some UT will directly call Backward, but set W.dtype as float16
         # That will skip our cheking for inputs (inputs only have x/gy), workaround here
-        if self.dy != 1 or self.dx != 1 or self.W_dtype != numpy.dtype('float32'):
+        if self.W_dtype != numpy.dtype('float32'):
             return self.forward_cpu(inputs)
         
         self.retain_inputs((0, 1))
@@ -274,8 +272,8 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         n, input_c, h, w = x.shape
         n, out_c, out_h, out_w = gy.shape
-        self.pd = self.sy*(out_h-1) + self.kh - h - self.ph
-        self.pr = self.sx*(out_w-1) + self.kw - w - self.pw
+        self.pd = self.sy*(out_h-1) + (self.kh + (self.kh-1)*(self.dy-1)) - h - self.ph
+        self.pr = self.sx*(out_w-1) + (self.kw + (self.kw-1)*(self.dx-1))- w - self.pw
 
         # create conv parameter
         # for IA specific
@@ -283,6 +281,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = out_c, input_c, self.kh, self.kw
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = gy.shape
+        # MKLDNN, common conv is treated as 0 dilate, but chainer treat is as 1 dilate, need to handle this
+        cp.dilate_y, cp.dilate_x = (self.dy-1), (self.dx-1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
         # Chainer's this function is only to calculate gW, MUST no gb

@@ -77,6 +77,7 @@ Convolution2DBwdData<T>::Convolution2DBwdData(
         mkldnn::memory::dims diff_src_d, 
         mkldnn::memory::dims w_d,
         mkldnn::memory::dims diff_dst_d,
+        int dilate_y, int dilate_x,
         int sy, int sx,
         int pad_lh, int pad_lw, int pad_rh, int pad_rw)
 {
@@ -84,6 +85,7 @@ Convolution2DBwdData<T>::Convolution2DBwdData(
     // create conv primitive
     if (conv_bwd_data_ == NULL) {
         setup(diff_src_d, w_d, diff_dst_d,
+                dilate_y, dilate_x,
                 sy, sx,
                 pad_lh, pad_lw,
                 pad_rh, pad_rw);
@@ -100,25 +102,27 @@ void Convolution2DBwdData<T>::setup(
         mkldnn::memory::dims diff_src_d, 
         mkldnn::memory::dims w_d,
         mkldnn::memory::dims diff_dst_d,
-        int s1, int s2,
-        int pl1, int pl2,
-        int pr1, int pr2)
+        int dilate_y, int dilate_x,
+        int sy, int sx,
+        int pad_lh, int pad_lw,
+        int pad_rh, int pad_rw)
 {
     //LOG(INFO) << "Convolution backward data setup";
     assert(diff_src_d != NULL);
     assert(w_d != NULL);
     assert(diff_dst_d != NULL);
 
-    strides_ = {s1, s2};
-    padding_l_ = {pl1, pl2};
-    padding_r_ = {pr1, pr2};
+    dilates_ = {dilate_y, dilate_x};
+    strides_ = {sy, sx};
+    padding_l_ = {pad_lh, pad_lw};
+    padding_r_ = {pad_rh, pad_rw};
 
     LOG(INFO) << "diff_src[0]=" << diff_src_d[0] << ", diff_src[1]=" << diff_src_d[1] << ", diff_src[2]=" << diff_src_d[2] << ", diff_src[3]=" << diff_src_d[3];
     LOG(INFO) << "w[0]=" << w_d[0] << ", w[1]=" << w_d[1] << ", w=" << w_d[2] << ", w[3]=" << w_d[3];
     LOG(INFO) << "diff_dst[0]=" << diff_dst_d[0] << ", diff_dst[1]=" << diff_dst_d[1] << ", diff_dst[2]=" << diff_dst_d[2] << ", diff_dst[3]=" << diff_dst_d[3];
 
-    LOG(INFO) << "sy=" << s1 << ", sx=" << s2;
-    LOG(INFO) << "pl1=" << pl1 << ", pl2=" << pl2 << ", pr1=" << pr1 << ", pr2=" << pr2;
+    LOG(INFO) << "sy=" << sy << ", sx=" << sx;
+    LOG(INFO) << "pl1=" << pad_lh << ", pl2=" << pad_lw << ", pr1=" << pad_rh << ", pr2=" << pad_rw;
 
     /* create memory descriptors for convolution data w/ no specified format */
     diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(),
@@ -130,13 +134,13 @@ void Convolution2DBwdData<T>::setup(
     /* create a convolution */
     bwd_data_desc_.reset(new convolution_backward_data::desc(
                     convolution_direct, *diff_src_md_, *weights_md_,
-                    *diff_dst_md_, strides_, padding_l_, padding_r_, padding_kind::zero));
+                    *diff_dst_md_, strides_, dilates_, padding_l_, padding_r_, padding_kind::zero));
 
     // FIXME
     // yli135: Current conv bwd need a fwd pd as hint, will remove in future
     fwd_desc_.reset(new convolution_forward::desc(prop_kind::forward,
                 convolution_direct, *diff_src_md_, *weights_md_,
-                *diff_dst_md_, strides_, padding_l_, padding_r_, padding_kind::zero));
+                *diff_dst_md_, strides_, dilates_, padding_l_, padding_r_, padding_kind::zero));
     fwd_pd_.reset(new convolution_forward::primitive_desc(*fwd_desc_, cpu_engine));
 
     /* create backward conv prim desc*/

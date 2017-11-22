@@ -76,6 +76,7 @@ template<typename T>
 Convolution2DBwdWeights<T>::Convolution2DBwdWeights( 
         mkldnn::memory::dims src_d, mkldnn::memory::dims diff_w_d,
         mkldnn::memory::dims diff_b_d, mkldnn::memory::dims diff_dst_d,
+        int dilate_y, int dilate_x,
         int sy, int sx,
         int pad_lh, int pad_lw, int pad_rh, int pad_rw)
 {
@@ -83,6 +84,7 @@ Convolution2DBwdWeights<T>::Convolution2DBwdWeights(
     // create conv primitive
     if (conv_bwd_weights_ == NULL) {
         setup(src_d, diff_w_d, diff_b_d, diff_dst_d,
+                dilate_y, dilate_x,
                 sy, sx,
                 pad_lh, pad_lw,
                 pad_rh, pad_rw);
@@ -97,9 +99,10 @@ Convolution2DBwdWeights<T>::~Convolution2DBwdWeights()
 template<typename T>
 void Convolution2DBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims diff_w_d,
         mkldnn::memory::dims diff_b_d, mkldnn::memory::dims diff_dst_d,
-        int s1, int s2,
-        int pl1, int pl2,
-        int pr1, int pr2)
+        int dilate_y, int dilate_x,
+        int sy, int sx,
+        int pad_lh, int pad_lw,
+        int pad_rh, int pad_rw)
 {
     //LOG(INFO) << "Convolution backward_setup";
     assert(src_d != NULL);
@@ -107,9 +110,10 @@ void Convolution2DBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memor
     assert(diff_b_d != NULL); // no bias case, expect as NONE_DIMS, not NULL
     assert(diff_dst_d != NULL);
 
-    strides_ = {s1, s2};
-    padding_l_ = {pl1, pl2};
-    padding_r_ = {pr1, pr2};
+    dilates_ = {dilate_y, dilate_x};
+    strides_ = {sy, sx};
+    padding_l_ = {pad_lh, pad_lw};
+    padding_r_ = {pad_rh, pad_rw};
 
     /* create memory descriptors for convolution data w/ no specified format */
     src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
@@ -125,11 +129,11 @@ void Convolution2DBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memor
     if (!diff_b_d.empty()) {
         bwd_weights_desc_.reset(new convolution_backward_weights::desc(
                     convolution_direct, *src_md_, *diff_weights_md_,
-                    *diff_bias_md_, *diff_dst_md_, strides_, padding_l_, padding_r_, padding_kind::zero));
+                    *diff_bias_md_, *diff_dst_md_, strides_, dilates_, padding_l_, padding_r_, padding_kind::zero));
     } else {
         bwd_weights_desc_.reset(new convolution_backward_weights::desc(
                     convolution_direct, *src_md_, *diff_weights_md_,
-                    *diff_dst_md_, strides_, padding_l_, padding_r_, padding_kind::zero));
+                    *diff_dst_md_, strides_, dilates_, padding_l_, padding_r_, padding_kind::zero));
 
     }
 
@@ -137,7 +141,7 @@ void Convolution2DBwdWeights<T>::setup(mkldnn::memory::dims src_d, mkldnn::memor
     // yli135: Current conv bwd need a fwd pd as hint, will remove in future
     fwd_desc_.reset(new convolution_forward::desc(prop_kind::forward,
                 convolution_direct, *src_md_, *diff_weights_md_,
-                *diff_dst_md_, strides_, padding_l_, padding_r_, padding_kind::zero));
+                *diff_dst_md_, strides_, dilates_, padding_l_, padding_r_, padding_kind::zero));
     fwd_pd_.reset(new convolution_forward::primitive_desc(*fwd_desc_, cpu_engine));
 
     /* create backward conv prim desc*/

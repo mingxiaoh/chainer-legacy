@@ -75,6 +75,7 @@ extern engine cpu_engine;
 template<typename T>
 Convolution2DFwd<T>::Convolution2DFwd( mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
                                        mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d,
+                                       int dilate_y, int dilate_x,
                                        int sy, int sx,
                                        int pad_lh, int pad_lw, int pad_rh, int pad_rw)
 {
@@ -82,6 +83,7 @@ Convolution2DFwd<T>::Convolution2DFwd( mkldnn::memory::dims src_d, mkldnn::memor
     // create conv primitive
     if (conv_fwd_ == NULL) {
         setup(src_d, w_d, b_d, dst_d,
+                dilate_y, dilate_x,
                 sy, sx,
                 pad_lh, pad_lw,
                 pad_rh, pad_rw);
@@ -96,6 +98,7 @@ Convolution2DFwd<T>::~Convolution2DFwd()
 template<typename T>
 void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
         mkldnn::memory::dims b_d, mkldnn::memory::dims dst_d,
+        int dilate_y, int dilate_x,
         int s1, int s2,
         int pl1, int pl2,
         int pr1, int pr2)
@@ -106,6 +109,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
     assert(bias_d != NULL); // no bias case, expect as NONE_DIMS, not NULL
     assert(dst_d != NULL);
 
+    dilates_ = {dilate_y, dilate_x};
     strides_ = {s1, s2};
     padding_l_ = {pl1, pl2};
     padding_r_ = {pr1, pr2};
@@ -113,6 +117,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
     LOG(INFO) << "src_d1=" << src_d[0] << ", src_d2=" << src_d[1] << "; src_d3=" << src_d[2] << ", src_d4=" << src_d[3];
     LOG(INFO) << "w_d1=" << w_d[0] << ", w_d2=" << w_d[1] << "; w_d3=" << w_d[2] << ", w_d4=" << w_d[3];
     LOG(INFO) << "dst_d1=" << dst_d[0] << ", dst_d2=" << dst_d[1] << "; dst_d3=" << dst_d[2] << ", dst_d4=" << dst_d[3];
+    LOG(INFO) << "dialte_y=" << dilate_y << ", dilate_x=" << dilate_x;
     LOG(INFO) << "sy=" << s1 << ", sx=" << s2;
     LOG(INFO) << "pl1=" << pl1 << ", pl2=" << pl2 << ", pr1=" << pr1 << ", pr2=" << pr2;
 
@@ -130,12 +135,12 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
     if (!b_d.empty()) {
         fwd_desc_.reset(new convolution_forward::desc(prop_kind::forward,
                                                  convolution_direct, *src_md_, *weights_md_, *bias_md_,
-                                                 *dst_md_, strides_, padding_l_, padding_r_,
+                                                 *dst_md_, strides_, dilates_, padding_l_, padding_r_,
                                                  padding_kind::zero));
     } else {
         fwd_desc_.reset(new convolution_forward::desc(prop_kind::forward,
                                                  convolution_direct, *src_md_, *weights_md_,
-                                                 *dst_md_, strides_, padding_l_, padding_r_,
+                                                 *dst_md_, strides_, dilates_, padding_l_, padding_r_,
                                                  padding_kind::zero));
     }
 
