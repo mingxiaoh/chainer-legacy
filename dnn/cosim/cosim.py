@@ -2,10 +2,6 @@ import logging
 import numpy as np
 import os
 
-from chainer.configuration import config  # NOQA
-from chainer import variable  # NOQA
-from chainer.utils import force_array  # NOQA
-
 from dnn._dnn import mdarray
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s]: %(message)s')
@@ -21,31 +17,52 @@ def is_cosim():
     return global_config_cosim
 
 
+# Convert chainer.variable to array out of plain_array
 def plain_array(params):
     assert isinstance(params, tuple) \
            or isinstance(params, list) \
            or isinstance(params, mdarray) \
-           or isinstance(params, np.ndarray) \
-           or isinstance(params, variable.Variable)
+           or isinstance(params, np.ndarray)
+           # plain_array does not support chainer.variable
+           # or isinstance(params, chainer.variable.Variable)
 
     _params = ()
 
-    if isinstance(params, variable.Variable):
-        return np.array(params.data),
-    elif isinstance(params, np.ndarray):
+    # plain_array does not support chainer.variable
+    # if isinstance(params, variable.Variable):
+    #     return np.array(params.data),
+    if isinstance(params, np.ndarray):
         return params,
     elif isinstance(params, mdarray):
         return np.array(params),
 
     for p in params:
-        if isinstance(p, variable.Variable):
-            p = np.array(p.data)
+        # plain_array does not support chainer.variable
+        # if isinstance(p, variable.Variable):
+        #     p = np.array(p.data)
         if isinstance(p, mdarray):
             _params += (np.array(p),)
         else:
             _params += (p,)
 
     return _params
+
+
+def force_array(x, dtype=None):
+    # numpy returns a float value (scalar) when a return value of an operator
+    # is a 0-dimension array.
+    # We need to convert such a value to a 0-dimension array because `Function`
+    # object needs to return an `numpy.ndarray`.
+    if numpy.isscalar(x):
+        if dtype is None:
+            return numpy.array(x)
+        else:
+            return numpy.array(x, dtype)
+    else:
+        if dtype is None:
+            return x
+        else:
+            return x.astype(dtype, copy=False)
 
 
 def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
