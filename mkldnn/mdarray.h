@@ -100,6 +100,19 @@ namespace implementation {
     return res;   \
   }
 
+#define nb_binary_map_impl_with_target_func(method, tfunc) \
+  PyObject * m_ ## method ## _map_impl(PyObject *self, PyObject *o) {    \
+    NPY_ARRAY_SURROGATE_ENTRY(self); \
+                                \
+    if (surrogate == nullptr)   \
+      return nullptr;           \
+                                \
+    PyObject *res = PyNumber_ ## tfunc(surrogate, o); \
+    Py_DECREF(surrogate);   \
+    NPY_ARRAY_SURROGATE_EXIT(); \
+    return res;   \
+  }
+
 #define nb_binary_map(method) \
   nb_binary_map_impl(method) \
   PyObject * m_ ## method (PyObject *self, PyObject *o) {    \
@@ -254,17 +267,26 @@ public:
       // review this relations carefully
       switch(origin) {
       case mkldnn::memory::nchw:
+      case mkldnn::memory::nhwc:
+      case mkldnn::memory::chwn:
       case mkldnn::memory::nChw8c:
       case mkldnn::memory::nChw16c:
         ret = mkldnn::memory::nchw;
         break;
       case mkldnn::memory::oihw:
+      case mkldnn::memory::ihwo:
+      case mkldnn::memory::hwio:
       case mkldnn::memory::OIhw8i8o:
       case mkldnn::memory::OIhw16i16o:
       case mkldnn::memory::OIhw8o8i:
       case mkldnn::memory::OIhw16o16i:
+      case mkldnn::memory::OIhw8i16o2i:
+      case mkldnn::memory::OIhw8o16i2o:
+      case mkldnn::memory::Oihw8o:
+      case mkldnn::memory::Oihw16o:
       case mkldnn::memory::Ohwi8o:
       case mkldnn::memory::Ohwi16o:
+      case mkldnn::memory::OhIw16o4i:
         ret = mkldnn::memory::oihw;
         break;
       default:
@@ -490,7 +512,9 @@ public:
   template<class T>
   PyObject *inplace_axpby(T a, PyObject *self, T b, PyObject *o);
 
-  PyObject *mmult(PyObject *self, PyObject *o, bool inplace);
+  PyObject *flat(void);
+
+  PyObject *m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool inplace);
 
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
@@ -511,6 +535,19 @@ public:
   nb_binary_map_impl(Multiply);
   PyObject *m_InPlaceMultiply(PyObject *self, PyObject *o);
   nb_binary_map_impl(InPlaceMultiply);
+  // SWIG: nb_true_divide (no slot) <= nb_divide
+  PyObject *m_Divide(PyObject *self, PyObject *o);
+#if PY_VERSION_HEX < 0x03000000
+  nb_binary_map_impl(Divide);
+#else
+  nb_binary_map_impl_with_target_func(Divide, TrueDivide);
+#endif
+  PyObject *m_InPlaceDivide(PyObject *self, PyObject *o);
+#if PY_VERSION_HEX < 0x03000000
+  nb_binary_map_impl(InPlaceDivide);
+#else
+  nb_binary_map_impl_with_target_func(InPlaceDivide, InPlaceTrueDivide);
+#endif
 
   nb_binary_map(Remainder);
   nb_binary_map(Divmod);
@@ -531,9 +568,7 @@ public:
   nb_binary_map(InPlaceXor);
   nb_binary_map(InPlaceOr);
   nb_binary_map(FloorDivide);
-  nb_binary_map(TrueDivide);
   nb_binary_map(InPlaceFloorDivide);
-  nb_binary_map(InPlaceTrueDivide);
 #if (PY_VERSION_HEX >= 0x03000000)
   nb_binary_map(MatrixMultiply);
   nb_binary_map(InPlaceMatrixMultiply);
@@ -635,7 +670,7 @@ private:
       dims[i] = view->shape[i];
 
     std::string format(view->format);
-    mkldnn::memory::data_type dt; 
+    mkldnn::memory::data_type dt;
 
     if (view->itemsize == 4) {
       if (std::string::npos != format.find_last_of('f')) {

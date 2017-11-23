@@ -4,7 +4,6 @@
 #endif
 #include "mdarray.h"
 #include <mkl_vml_functions.h>
-
 namespace implementation {
 
 static PyObject *PyType_reorder_buffer = nullptr;
@@ -24,7 +23,8 @@ PyObject *queryPyTypeObject(const char *name) {
   throw mkldnn::error(mkldnn_invalid_arguments
       , "Failed to find reorderer object");
 }
-
+extern "C" int regSig();
+extern "C" void cause_calamity();
 // We brought this to global scope to mitigate it consumption
 #if PY_VERSION_HEX >= 0x03000000
 int g_init() {
@@ -58,6 +58,11 @@ void g_init() {
   google::InitGoogleLogging("mkldnn");
   OpenMpManager::bindOpenMpThreads();
   OpenMpManager::printVerboseInformation();
+#endif
+
+#ifdef _TESTSTACK
+regSig();
+//cause_calamity() ;
 #endif
 
 #if PY_VERSION_HEX >= 0x03000000
@@ -149,7 +154,7 @@ void mdarray::axpby(mdarray *dst, T a, mdarray *x, T b, mdarray *y) {
   auto mid = reorder_if_must(y->m_, x->m_.get_primitive_desc()
       , mreorder, &prims);
 
-  mkldnn::sum::primitive_desc sum_pd({a, b}
+  mkldnn::sum::primitive_desc sum_pd(std::vector<float>({a, b})
       , {x->m_.get_primitive_desc(), mid.get_primitive_desc()});
 
   std::vector<mkldnn::memory::primitive::at> inputs_at {x->m_, mid};
@@ -232,49 +237,111 @@ PyObject *mdarray::inplace_axpby(T a, PyObject *self, T b, PyObject *o) {
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) {
+      static_cast<int>(this->size()))) {
     return m_Add_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    // Make compatibility with Non-C-Contiguous array.
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_Add_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
   } else {
-    return axpby(1.0, 1.0, o);
+    return axpby((float)1.0, (float)1.0, o);
   }
 }
 
 PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) {
+      static_cast<int>(this->size()))) {
     return m_Subtract_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_Subtract_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
   } else {
-    return axpby(1.0, -1.0, o);
+    return axpby((float)1.0, (float)-1.0, o);
   }
 }
 
 PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) {
+      static_cast<int>(this->size()))) {
     return m_InPlaceAdd_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_InPlaceAdd_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
   } else {
-    return inplace_axpby(1.0, self, 1.0, o);
+    return inplace_axpby((float)1.0, self, (float)1.0, o);
   }
 }
 
 PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) {
+      static_cast<int>(this->size()))) {
     return m_InPlaceSubtract_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_InPlaceSubtract_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
   } else {
-    return inplace_axpby(1.0, self, -1.0, o);
+    return inplace_axpby((float)1.0, self, (float)-1.0, o);
   }
 }
 
-PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
+template <typename T>
+void plain_mult(const T *a, const T *b, T *o, int size) {
+  for (int idx = 0; idx < size; idx++)
+    o[idx] = a[idx] * b[idx];
+}
+
+template <typename T>
+void plain_div(const T *a, const T *b, T *o, int size) {
+  for (int idx = 0; idx < size; idx++)
+    o[idx] = a[idx] / b[idx];
+}
+
+enum {mmult, mdiv};
+PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool inplace) {
   struct py_decref {
     void operator () (PyObject *p) {
       Py_DECREF(p);
@@ -347,19 +414,39 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
 
     assert(mkldnn::memory::f32 == res_dtype ||
            mkldnn::memory::s32 == res_dtype);
+    assert(mmult == mult_or_div ||
+           mdiv == mult_or_div);
     if (mkldnn::memory::f32 == res_dtype) {
-      vsMul(oprd1_mdarr->size(),
-            reinterpret_cast<const float *>(oprd1_mdarr->data()),
-            reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
-            reinterpret_cast<float *>(res_mdarr->data()));
+      switch (mult_or_div) {
+      case mmult:
+        vsMul(oprd1_mdarr->size(),
+              reinterpret_cast<const float *>(oprd1_mdarr->data()),
+              reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
+              reinterpret_cast<float *>(res_mdarr->data()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const float *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const float *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<float *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
+      }
     } else if (mkldnn::memory::s32 == res_dtype) {
-      int *a1 = reinterpret_cast<int *>(oprd1_mdarr->data());
-      int *a2 = reinterpret_cast<int *>(oprd2_internal_m.get_data_handle());
-      int *out = reinterpret_cast<int *>(res_mdarr->data());
-      for (int idx = 0; idx < static_cast<int>(oprd1_mdarr->size()); idx++) {
-        int _a1 = a1[idx];
-        int _a2 = a2[idx];
-        out[idx] = _a1 * _a2;
+      switch (mult_or_div) {
+      case mmult:
+        plain_mult(reinterpret_cast<const int *>(oprd1_mdarr->data()),
+                   reinterpret_cast<const int *>(oprd2_internal_m.get_data_handle()),
+                   reinterpret_cast<int *>(res_mdarr->data()),
+                   static_cast<int>(oprd1_mdarr->size()));
+        break;
+
+      case mdiv:
+        plain_div(reinterpret_cast<const int *>(oprd1_mdarr->data()),
+                  reinterpret_cast<const int *>(oprd2_internal_m.get_data_handle()),
+                  reinterpret_cast<int *>(res_mdarr->data()),
+                  static_cast<int>(oprd1_mdarr->size()));
+        break;
       }
     }
 
@@ -378,10 +465,13 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
   }
 
   case MULT_SCALAR: {
-    double a = PyInt_Check(o) ?
-               static_cast<double>(PyInt_AsLong(o)) :
+    float a = PyInt_Check(o) ?
+               static_cast<float>(PyInt_AsLong(o)) :
                PyFloat_AsDouble(o),
            b = 0.0;
+
+    a = (mmult == mult_or_div) ? a : (1 / a);
+
     if (!inplace) {
       resultobj = axpby(a, b, self);
     } else {
@@ -400,11 +490,91 @@ PyObject *mdarray::mmult(PyObject *self, PyObject *o, bool inplace) {
 }
 
 PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
-  return mmult(self, o, false);
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()))) {
+    return m_Multiply_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_Multiply_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
+  } else {
+    return m_mult_div(self, o, mmult, false);
+  }
 }
 
 PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
-  return mmult(self, o, true);
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()))) {
+    return m_InPlaceMultiply_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_InPlaceMultiply_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
+  } else {
+    return m_mult_div(self, o, mmult, true);
+  }
+}
+
+PyObject *mdarray::m_Divide(PyObject *self, PyObject *o) {
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()))) {
+    return m_Divide_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_Divide_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
+  } else {
+    return m_mult_div(self, o, mdiv, false);
+  }
+}
+
+PyObject *mdarray::m_InPlaceDivide(PyObject *self, PyObject *o) {
+  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()))) {
+    return m_InPlaceDivide_map_impl(self, o);
+  } else if (PyArray_Check(o) &&
+      !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
+    PyObject *_o = o;
+#if PY_VERSION_HEX < 0x03000000
+    _o = reinterpret_cast<PyObject *>(PyArray_ContiguousFromAny(
+      o, PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)) ? NPY_FLOAT : NPY_INT, 0, 0));
+#endif
+    PyObject *ret = m_InPlaceDivide_map_impl(self, _o);
+#if PY_VERSION_HEX < 0x03000000
+    Py_DECREF(_o);
+#endif
+    return ret;
+  } else {
+    return m_mult_div(self, o, mdiv, true);
+  }
 }
 
 int mdarray::getbuffer(PyObject *self, Py_buffer *view, int flags) {
@@ -538,6 +708,18 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 
   // TODO: Exception localize
   return ret;
+}
+
+PyObject *mdarray::flat() {
+  long int dims[1] = {static_cast<long int>(this->size())};
+  int typenum = (this->memory().get_primitive_desc().desc().data.data_type == mkldnn::memory::f32) ? NPY_FLOAT32 : NPY_INT32;
+
+  PyObject *plain_arr = nullptr;
+  plain_arr = PyArray_SimpleNewFromData(1, dims, typenum, this->data());
+  if (!plain_arr)
+    PyErr_SetString(PyExc_ValueError, "Can't create plain array with format from mdarray");
+
+  return plain_arr;
 }
 
 int s_op::getbuffer(PyObject *self, Py_buffer *view, int flags) {

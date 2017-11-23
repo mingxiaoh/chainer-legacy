@@ -44,6 +44,7 @@ namespace c_api {
   %include c_api.i
 }
 
+//XXX: DO NOT change the order of below enum values
 enum operation_kind {
     cdump_op_invalid = 0,
     cdump_op_conv_forward,
@@ -54,9 +55,19 @@ enum operation_kind {
     cdump_op_max_pooling_backward,
     cdump_op_avg_pooling_forward,
     cdump_op_avg_pooling_backward,
-    cdump_op_max
+    cdump_op_bn_forward,
+    cdump_op_bn_backward,
+    cdump_op_concat_forward,
+    cdump_op_concat_backward,
+    cdump_op_deconv_forward,
+    cdump_op_deconv_backward,
+    cdump_op_linear_forward,
+    cdump_op_linear_backward,
+    cdump_op_relu_forward,
+    cdump_op_relu_backward,
 };
 
+//XXX: DO NOT change the order of below enum values
 enum parm_kind {
     cdump_memory_invalid = 0,
     cdump_src_memory,
@@ -68,7 +79,10 @@ enum parm_kind {
     cdump_lrn_doulbe_parms,
     cdump_max_pooling_int_parms,
     cdump_avg_pooling_int_parms,
-    cdump_memory_max
+    cdump_bn_int_parms,
+    cdump_bn_doulbe_parms,
+    cdump_concat_int_parms,
+    cdump_deconv_int_parms,
 };
 
 %varargs(TENSOR_MAX_DIMS, int arg = 0) cosim_dump::dump_int_parms;

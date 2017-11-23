@@ -1,11 +1,10 @@
 import numpy
-
 import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-
+from chainer import mkld
 from chainer.functions.math import identity
 
 
@@ -57,6 +56,9 @@ def dropout(x, ratio=.5):
 
     """
     if configuration.config.train:
-        return Dropout(ratio)(x)
+        if mkld.all_ready((x,), (2, 4)):
+            return mkld.DropoutFunctionMKLDNN(ratio)(x)
+        else:
+            return Dropout(ratio)(x)
     elif chainer.should_use_mkldnn('>=auto'):
         return identity.Identity()(x)

@@ -106,6 +106,17 @@ class NpzDeserializer(serializer.Deserializer):
         if value is None:
             return dataset
         elif isinstance(value, numpy.ndarray):
+            if value.shape != dataset.shape:
+                if value.shape[0] != dataset.shape[0]:
+                    raise ValueError('Non-compatible shape (batch) in NpzDeserializer')
+                value_dim = dataset_dim = 1
+                for x in value.shape[1:]:
+                    value_dim = value_dim * x
+                for x in dataset.shape[1:]:
+                    dataset_dim = dataset_dim * x
+                if value_dim != dataset_dim:
+                    raise ValueError('Non-compatible shape (tail) in NpzDeserializer')
+                value = numpy.reshape(value, dataset.shape)
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset))

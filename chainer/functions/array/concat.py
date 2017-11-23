@@ -7,9 +7,6 @@ from chainer import mkld
 from chainer import function
 from chainer.utils import type_check
 
-if mkld.available:
-    ConcatMKLDNN = mkld.concat.ConcatMKLDNN
-
 
 class Concat(function.Function):
 
@@ -94,13 +91,6 @@ def concat(xs, axis=1):
     """
     x = xs[0]
     if mkld.all_ready((x, ), (4, )):
-        func = ConcatMKLDNN(axis=axis)
-        ret = func(*xs)
-        if chainer.is_cosim():
-            func.cosim_func = Concat(axis=axis)
-            xs = mkld.to_plain_array(xs)
-            numpy_result = func.cosim_func(*xs)
-            func.cpu_cosim_verify_result(ret, numpy_result, xs)
-        return ret
+        return mkld.ConcatMKLDNN(axis=axis)(*xs)
     else:
         return Concat(axis=axis)(*xs)

@@ -1,0 +1,122 @@
+import numpy as np
+import mkldnn.api.memory as m
+
+from chainer import function
+from chainer.utils import type_check
+
+from mkldnn.mdarray import mdarray
+from mkldnn.chainer import cosim, is_cosim
+from mkldnn.api.dropout import dropout_f32
+from mkldnn.chainer.runtime import Engine, Stream
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex
+from mkldnn.array import array
+
+
+def _format(ndim):
+    if ndim == 2:
+        return m.memory.nc
+    elif ndim == 4:
+        return m.memory.nchw
+    else:
+        return NotImplemented
+
+
+class DropoutForward(ComputeComplex):
+    cc_type = 'f'
+
+    def __init__(self, inputs, dropout_ratio, pos=(0, 0), e=Engine()):
+        super(DropoutForward, self).__init__()
+
+        self.x = array(inputs[0], _format(inputs[0].ndim), Engine())
+
+        if self.new:
+            self._create_cc(inputs[0], dropout_ratio, e)
+
+    def _create_cc(self, x, dropout_ratio, e=Engine()):
+        self.dropout_op = dropout_f32(dropout_ratio)
+
+        self._mask = mdarray(self.x.memory.get_primitive_desc())
+        self._hint = mdarray(self.x.memory.get_primitive_desc())
+
+    def match(self, inputs, *args):
+        # TODO: refine it
+        x = inputs[0]
+        if(isinstance(x, mdarray) and (x is not self.x)):
+            return False
+        return self.x.shape == x.shape
+
+    def execute_on(self, s=None):
+        self.dropout_op.forward(self.x, self._mask, self._hint)
+        return self._hint
+
+
+class DropoutBackward(ComputeComplex):
+    cc_type = 'bd'
+
+    def __init__(self, dropout_op, mask, gy, hint, pos=(0, 0), e=Engine()):
+        super(DropoutBackward, self).__init__()
+        self._dropout_op = dropout_op
+        self._mask_hint = mask
+        self.gy = array(gy[0], _format(gy[0].ndim), e)
+
+        if self.new:
+            self._create_cc(hint)
+
+    def _create_cc(self, hint):
+        outputs = reorder_if_must(
+            self._mask_hint,
+            self.gy.memory.get_primitive_desc(),
+            Engine(),
+            self.dag_
+        )
+        self._mask = outputs[0]
+        self.gx = mdarray(self.gy.memory.get_primitive_desc())
+        self._hint = hint
+
+    def match(self, dropout_op, mask, gy, hint, *args):
+        # TODO: refine it
+        return (hint is self._hint)
+
+    def execute_on(self, s=None):
+        if s is None:
+            s = Stream()
+
+        s.submit(self.dag_)
+        s.wait()
+
+        self._dropout_op.backward(self.gy, self._mask, self.gx)
+        return self.gx
+
+
+class DropoutFunctionMKLDNN(function.Function):
+    def __init__(self, dropout_ratio):
+        self.dropout_ratio = dropout_ratio
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward(self, x):
+        cc = DropoutForward(x, self.dropout_ratio, pos=(self.rank, self.fanout))
+
+        self.mask = np.array(cc._mask)
+        self._mask = cc._mask
+        self.dropout_op = cc.dropout_op
+        self.hint = cc.hint
+
+        y = cc.execute_on()
+
+        if is_cosim():
+            self.cosim_func = cosim.Dropout(self.dropout_ratio, self._mask)
+
+        cosim.cosim_verify(self, (y, ), x)
+        return y,
+
+    def backward(self, x, gy):
+        cc = DropoutBackward(self.dropout_op, self._mask, gy, self.hint,
+                             pos=(self.rank, self.fanout))
+
+        gx = cc.execute_on()
+
+        cosim.cosim_verify(self, (gx, ), x, gy)
+        return gx,

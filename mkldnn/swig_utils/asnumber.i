@@ -44,6 +44,7 @@
     nb_binary(add, Add);
     nb_binary(subtract, Subtract);
     nb_binary(multiply, Multiply);
+    nb_binary(divide, Divide);
     nb_binary(remainder, Remainder);
     nb_binary(divmod, Divmod);
     nb_ternary(power, Power);
@@ -59,6 +60,7 @@
     nb_binary(inplace_add, InPlaceAdd);
     nb_binary(inplace_subtract, InPlaceSubtract);
     nb_binary(inplace_multiply, InPlaceMultiply);
+    nb_binary(inplace_divide, InPlaceDivide);
     nb_binary(inplace_remainder, InPlaceRemainder);
     nb_ternary(inplace_power, InPlacePower);
     nb_binary(inplace_lshift, InPlaceLshift);
@@ -83,6 +85,7 @@
   %nb_slot(add, type);
   %nb_slot(subtract, type);
   %nb_slot(multiply, type);
+  %nb_slot(divide, type)
   %nb_slot(divmod, type);
   %nb_slot(negative, type);
   %nb_slot(positive, type);
@@ -96,6 +99,7 @@
   %nb_slot(inplace_add, type);
   %nb_slot(inplace_subtract, type);
   %nb_slot(inplace_multiply, type);
+  %nb_slot(inplace_divide, type)
   %nb_slot(inplace_remainder, type);
   %nb_slot(inplace_power, type);
   %nb_slot(inplace_lshift, type);
@@ -104,9 +108,7 @@
   %nb_slot(inplace_xor, type);
   %nb_slot(inplace_or, type);
   %nb_slot(floor_divide, type);
-  %nb_slot(true_divide, type);
   %nb_slot(inplace_floor_divide, type);
-  %nb_slot(inplace_true_divide, type);
   %nb_slot(matrix_multiply, type);
   %nb_slot(inplace_matrix_multiply, type);
 %enddef

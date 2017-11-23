@@ -201,7 +201,7 @@ class Function(object):
         self.rank = max([x.rank for x in inputs]) if inputs else variable.RANK_START
 
         if chainer.mkld.available:
-            self.fanout = chainer.mkld.fanout.FanoutRecorder.new(self)
+            self.fanout = chainer.mkld.FanoutRecorder.new(self)
 
         # Forward prop
         with cuda.get_device(*in_data):
@@ -405,89 +405,6 @@ class Function(object):
             return self.backward_gpu(inputs, grad_outputs)
         else:
             return self.backward_cpu(inputs, grad_outputs)
-
-    def backward_cpu_cosim(self, inputs, grad_outputs):
-        """backward cosim between numpy and MKLDNN
-        """
-        if not chainer.is_cosim():
-            return
-        print('backward_cosim v2')
-        print(self)
-        if not hasattr(self, 'cosim_func'):
-            return
-
-        cosim_inputs = chainer.mkld.to_plain_array(inputs)
-        cosim_grad_outputs = chainer.mkld.to_plain_array(grad_outputs)
-        # cosim_inputs = copy.copy(inputs)
-        # cosim_grad_outputs = copy.copy(grad_outputs)
-
-        chainer.disable_cosim()
-        output_cosim = self.cosim_func.backward(cosim_inputs, cosim_grad_outputs)
-        chainer.enable_cosim()
-        return output_cosim
-
-    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
-        """dump all inputs into file
-
-        Aims to dump the inputs into a file in order to  reproduce offline,
-        if encountering a mismatch in cosim results.
-        To support this feature, implement it for each function.
-
-        Args:
-            inputs: Tuple of input arrays.
-            out_grad: Tuple of output gradient arrays.
-
-        """
-        pass
-
-    def cpu_cosim_dump(self, inputs, out_grad=None):
-        """dump all inputs into a file in order to reprocude errors offline.
-        """
-        inputs = [x if isinstance(x, variable.Variable)
-                  else variable.Variable(x)
-                  for x in inputs]
-        in_data = tuple([x.data for x in inputs])
-        self.cpu_cosim_dump_inner(in_data, out_grad)
-
-    def cpu_cosim_verify_result(self, mkl_result, numpy_result, inputs, out_grad=None):
-        """cosim verify result between MKLDNN and numpy
-        """
-        if not chainer.is_cosim():
-            return
-        check_options = {'atol': 1e-2, 'rtol': 1e-2, 'verbose': True}
-        if numpy_result is None:
-            print('WARNING: cosim numpy result is none')
-            return None
-        print('cpu_cosim_verify_result v2')
-        index = 0
-        for numpy_y in numpy_result:
-            mkl_x = mkl_result[index]
-            if numpy_y is None:
-                if mkl_x is None:
-                    continue
-                else:
-                    raise KeyError('cosim mismatch!')
-            if mkl_x is None:
-                if numpy_y is not None:
-                    raise KeyError('cosim mismatch!')
-            if isinstance(mkl_x, variable.Variable):
-                mkl_x_nd = np.array(mkl_x.data)
-            else:
-                mkl_x_nd = np.array(mkl_x)
-            if isinstance(numpy_y, variable.Variable):
-                numpy_y_nd = np.array(numpy_y.data)
-            else:
-                numpy_y_nd = np.array(numpy_y)
-            index = index + 1
-            if isinstance(mkl_x_nd, np.ndarray):
-                if not testing.expect_allclose(mkl_x_nd, numpy_y_nd, **check_options):
-                    if chainer.is_cosim_continue():
-                        print('WARNING: cosim check failed in %s!' % self.__class__.__name__)
-                    else:
-                        self.cpu_cosim_dump(inputs, out_grad)
-                        raise KeyError('cosim, mismatched in %s!' % self.__class__.__name__)
-            else:
-                raise KeyError('cosim, unexpected in %s!' % self.__class__.__name__)
 
     def backward_cpu(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays on CPU.

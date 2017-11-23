@@ -11,10 +11,6 @@ if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
 
-if mkld.available:
-    BnForward = mkld.bn.BnForward
-    BnBackward = mkld.bn.BnBackward
-
 
 def _as4darray(arr):
     if arr.ndim == 0:
@@ -103,11 +99,7 @@ class BatchNormalizationFunction(function.Function):
         cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        if isinstance(self, BnMKLDNN):
-            self._can_use_cudnn = False
-        else:
-            # Can't touch element of x, it cause mdarray reorder.
-            self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
+        self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
 
         cudnn_updated_running_stats = False
         if (xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and
@@ -158,14 +150,6 @@ class BatchNormalizationFunction(function.Function):
                     derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
-        elif (mkld.all_ready((x, ), (2, 4)) and
-              isinstance(self, BnMKLDNN)):
-            outputs = self.forward_cpu(inputs)
-            y = outputs[0]
-            self.flags = outputs[1]
-            if configuration.config.train:
-                mean = outputs[2]
-                var = outputs[3]
         else:
             if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
@@ -259,10 +243,6 @@ class BatchNormalizationFunction(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean_cache.data.ptr, self.var_cache.data.ptr)
-        elif (mkld.all_ready((x, ), (2, 4)) and
-              isinstance(self, BnMKLDNN)):
-            outputs = self.backward_cpu(inputs, gy)
-            gx, ggamma, gbeta = outputs[:3]
         else:
             gbeta = gy.sum(axis=axis)
             ggamma = (gy * self.x_hat).sum(axis=axis)
@@ -280,71 +260,6 @@ class BatchNormalizationFunction(function.Function):
                     'bn_bwd')(gy, self.x_hat, gamma[expander],
                               self.std[expander], ggamma[expander],
                               gbeta[expander], inv_m)
-        return gx, ggamma, gbeta
-
-
-class BnMKLDNN(BatchNormalizationFunction):
-
-    def __init__(self, *args, **kwargs):
-        super(BnMKLDNN, self).__init__(*args, **kwargs)
-
-    def forward_cpu(self, inputs):
-        self.expand_dim = False
-        x = inputs[0]
-        if x.ndim == 2:
-            self.expand_dim = True
-            x = x[:, :, None, None]
-            inputs = (x,) + inputs[1:]
-        if configuration.config.train:
-            cc = BnForward(
-                inputs, self.eps, None, None,
-                pos=(self.rank, self.fanout))
-        else:
-            cc = BnForward(
-                inputs, self.eps, self.fixed_mean, self.fixed_var,
-                pos=(self.rank, self.fanout))
-
-        self.hint = cc.hint
-        self.fwd_x = cc.x
-        outputs = cc.execute_on()
-        if configuration.config.train:
-            self.mkl_mean = outputs[2]
-            self.mkl_var = outputs[3]
-        y = outputs[0]
-        if self.expand_dim:
-            assert y.ndim == 4
-            y = numpy.squeeze(y, axis=(2, 3))
-        outputs = (y,) + outputs[1:]
-        return outputs
-
-    def backward_cpu(self, inputs, gy):
-        expand_dim = False
-        x = inputs[0]
-        if x.ndim == 2:
-            expand_dim = True
-            x = x[:, :, None, None]
-            gy = gy[:, :, None, None]
-        inputs = (x,) + inputs[1:]
-
-        if configuration.config.train:
-            mean = self.mkl_mean
-            var = self.mkl_var
-        else:
-            mean = self.fixed_mean
-            var = self.fixed_var
-        cc = BnBackward(
-            inputs, self.fwd_x, gy, self.hint, self.flags,
-            self.eps, mean, var,
-            pos=(self.rank, self.fanout))
-
-        outputs = cc.execute_on()
-        gx = outputs[0]
-        gx.reset_buf_order()
-        ggamma = outputs[1][0]
-        gbeta = outputs[1][1]
-        if expand_dim:
-            assert gx.ndim == 4
-            gx = numpy.squeeze(gx, axis=(2, 3))
         return gx, ggamma, gbeta
 
 
@@ -394,7 +309,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     """
 
     if mkld.all_ready((x, ), (2, 4)):
-        return BnMKLDNN(
+        return mkld.BnMKLDNN(
             eps, running_mean, running_var,
             decay)(x, gamma, beta)
     else:
@@ -426,14 +341,6 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
     """
     with configuration.using_config('train', False):
         if mkld.all_ready((x, ), (2, 4)):
-            func = BnMKLDNN(eps, None, None, 0.0)
-            ret = func(x, gamma, beta, mean, var)
-            if chainer.is_cosim():
-                func.cosim_func = BatchNormalizationFunction(eps, None, None, 0.0)
-                x, = mkld.to_plain_array((x, ))
-                numpy_result = func.cosim_func(x, gamma, beta, mean, var)
-                func.cpu_cosim_verify_result(ret, numpy_result, (x, gamma, beta, mean, var))
-            return ret
+            return mkld.BnMKLDNN(eps, None, None, 0.0)(x, gamma, beta, mean, var)
         else:
-            return BatchNormalizationFunction(eps, None, None, 0.0)(
-                x, gamma, beta, mean, var)
+            return BatchNormalizationFunction(eps, None, None, 0.0)(x, gamma, beta, mean, var)

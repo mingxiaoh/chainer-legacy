@@ -308,7 +308,7 @@ class CaffeFunction(link.Chain):
         else:
             raise RuntimeError('Stochastic pooling is not supported')
 
-        fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad)
+        fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad, cover_all=True)
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 

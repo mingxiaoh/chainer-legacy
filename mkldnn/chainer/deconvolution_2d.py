@@ -4,10 +4,12 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
-from mkldnn.api.support import forward, convolution_direct, zero
+from mkldnn.api.support import forward_training, convolution_direct, zero
 
 import mkldnn.api.memory as m
 
@@ -15,6 +17,9 @@ import mkldnn.api.convolution_forward as conv_forward
 import mkldnn.api.convolution_backward_data as conv_backdata
 import mkldnn.api.convolution_backward_weights as conv_backweights
 from mkldnn.mdarray import mdarray
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
+
 
 deconv_f_op = conv_backdata.conv_bd_op  # deconv fwd --> conv bwd data
 deconv_bd_op = conv_forward.conv_f_op  # deconv bwd data --> conv fwd
@@ -97,7 +102,7 @@ def create_backward_data_desc(d_creator, y, inputs, geometry):
         deconv backward data --> convolution forward
         src desc <--> dst desc
     """
-    return d_creator(forward, convolution_direct, y, w_desc, x_desc,
+    return d_creator(forward_training, convolution_direct, y, w_desc, x_desc,
                      strides, padding_ul, padding_dr, zero)
 
 
@@ -210,6 +215,9 @@ class DeconvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return ((hint is not None) and (hint is self._hint))
 
 
@@ -251,6 +259,9 @@ class DeconvolutionBackwardWeights(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return ((hint is not None) and (hint is self._hint))
 
 
@@ -262,6 +273,10 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
         self.outsize = (None, None) if outsize is None else outsize
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.deterministic = deterministic
+
+        if is_cosim():
+            from chainer.functions.connection.deconvolution_2d import Deconvolution2DFunction
+            self.cosim_func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -317,6 +332,7 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
             b = b * tmp
             y += b
 
+        cosim.cosim_verify(self, (y, ), inputs)
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
@@ -336,9 +352,44 @@ class Deconvolution2DFunctionMKLDNN(function.Function):
         gx = cc_data.execute_on()
         gx[0].reset_buf_order()
 
+        ret = None
         b = inputs[2] if len(inputs) == 3 else None
         if b is not None:
             gb = gy.sum(axis=(0, 2, 3))
-            return gx[0], gW[0], gb
+            ret = (gx[0], gW[0], gb)
         else:
-            return gx + gW
+            ret = gx + gW
+
+        cosim.cosim_verify(self, ret, inputs, grad_outputs)
+        return ret
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_deconv_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_deconv_backward)
+
+        e = Engine()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        md_x = array(x, m.memory.nchw, e)
+        cd.dump_memory(cdump_src_memory, md_x.memory)
+
+        md_W = array(W, m.memory.oihw, e)
+        cd.dump_memory(cdump_weight_memory, md_W.memory)
+
+        if b is not None:
+            md_b = array(b, m.memory.x, e)
+            cd.dump_memory(cdump_bias_memory, md_b.memory)
+
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
+
+        cd.dump_int_parms(cdump_deconv_int_parms, 5,
+                          self.sy, self.sx, self.ph, self.pw,
+                          1 if self.deterministic else 0)
+

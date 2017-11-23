@@ -1,14 +1,16 @@
 import math
 import collections
 from chainer import function
+from chainer import configuration
 from chainer.utils import type_check
 from chainer.utils import conv
 
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward_training, zero, pooling_max, at
+from mkldnn.api.support import forward_training, forward_inference, zero, pooling_max, at
 import mkldnn.api.memory as m
 import mkldnn.api.pooling_forward as pooling_forward
 import mkldnn.api.pooling_backward as pooling_backward
@@ -58,13 +60,18 @@ class Pooling2DForward(ComputeComplex):
         p_right = sx * (yw - 1) + kw - w - p_left
         y_md = m.desc(y_shape, m.memory.f32, m.memory.any)
         x_md = self.x.memory.get_primitive_desc().desc()
-        cc_d = pooling_forward.desc(forward_training, self.alg_kind, x_md, y_md,
+        if configuration.config.train:
+            aprop_kind = forward_training
+        else:
+            aprop_kind = forward_inference
+        self.train = configuration.config.train
+        cc_d = pooling_forward.desc(aprop_kind, self.alg_kind, x_md, y_md,
                                     stride, ksize, (p_upper, p_left), (p_down, p_right), zero)
 
         cc_pd = pooling_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
 
-        if self.alg_kind is pooling_max:
+        if self.alg_kind is pooling_max and aprop_kind == forward_training:
             ws = mdarray(cc_pd.workspace_primitive_desc())
             self.dag_.push_back(pooling_forward.pooling_forward(cc_pd, at(self.x.memory), y.memory, ws.memory))
         else:
@@ -81,6 +88,10 @@ class Pooling2DForward(ComputeComplex):
 
     def match(self, inputs, alg_kind, ksize, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
+        if self.train != configuration.config.train:
+            return False
+        if (isinstance(x, mdarray) and (x is not self.x)):
+            return False
         return ((self.x.shape == x.shape) and
                 (self.ksize == ksize) and
                 (self.stride == stride) and
@@ -158,6 +169,8 @@ class Pooling2DBackward(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, hint, *args, **kwargs):
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
 

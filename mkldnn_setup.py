@@ -10,7 +10,7 @@ subdir = 'mkldnn'
 # Sepcify prefix under which you put ipl_mkldnn
 # prefix = '/usr/local'
 mkldnn_root = external.mkldnn.root()
-mkldnn_version = '171572a205c71f5bbb08657de5660c9d06cf2d8f'
+mkldnn_version = 'ba482eca9459e3b9a8256ab07f9afa41dba34b9e'
 
 
 def prepare_mkldnn():
@@ -71,6 +71,9 @@ modules = {
     'mkldnn.api._bn_forward': ['mkldnn/api/bn_forward.i'],
     'mkldnn.api._bn_backward': ['mkldnn/api/bn_backward.i'],
 
+    'mkldnn.api._dropout':
+    ['mkldnn/api/dropout.i'],
+
     'mkldnn.api._cosim_dump':
     ['mkldnn/api/cosim_dump.i', 'mkldnn/api/cosim_dump.cc'],
 }
@@ -87,13 +90,13 @@ if sys.version_info.major < 3:
 ccxx_opts = ['-std=c++11']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack', '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
-includes = [get_include(), 'mkldnn', 'mkldnn/swig_utils', mkldnn_root + '/include']
+includes = [get_include(), 'mkldnn', 'mkldnn/mkl', 'mkldnn/swig_utils', mkldnn_root + '/include']
 libraries = ['mkldnn', 'mklml_intel']
 
 if system() == 'Linux':
-    ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY']
+    ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY', '-g', '-D_TESTSTACK']
     libraries += ['boost_system', 'glog', 'm']
-    mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc', 'mkldnn/cpu_info.cc']
+    mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc', 'mkldnn/cpu_info.cc', 'mkldnn/stack_fpe.c']
 else:
     mdarray_src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']
 
@@ -115,4 +118,12 @@ ext = Extension(
 
 ext_modules.append(ext)
 
+# fpe_src = ['mkldnn/fpe_except.c']
+# fpe_libraries = ['m']
+# ext = Extension(
+# 	'mkldnn._fpe', sources=fpe_src,
+#         libraries=fpe_libraries)
+# ext_modules.append(ext)
+
 packages = ['mkldnn', 'mkldnn.api', 'mkldnn.chainer']
+

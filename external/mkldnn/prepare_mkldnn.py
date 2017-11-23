@@ -6,6 +6,7 @@ MKLDNN_WORK_PATH = os.path.split(os.path.realpath(__file__))[0]
 MKLDNN_LIB_PATH = MKLDNN_ROOT + '/lib'
 MKLDNN_INCLUDE_PATH = MKLDNN_ROOT + '/include'
 MKLDNN_SOURCE_PATH = MKLDNN_WORK_PATH + '/source'
+MKLDNN_BUILD_PATH = MKLDNN_WORK_PATH + '/source/build'
 MKLML_PKG_PATH = MKLDNN_SOURCE_PATH + '/external'
 
 
@@ -18,17 +19,26 @@ def download(mkldnn_version):
     os.chdir(MKLDNN_SOURCE_PATH)
     os.system('git reset --hard %s' % mkldnn_version)
 
+    if not os.path.exists(MKLML_PKG_PATH):
+        os.system('cd scripts && ./prepare_mkl.sh && cd ..')
 
-def install():
+
+def build():
+    print('Building ...')
+
+    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j' % MKLDNN_ROOT)
+
+
+def install(refresh_build):
     print('Installing ...')
 
     os.chdir(MKLDNN_SOURCE_PATH)
 
     # install mkldnn
-    if not os.path.exists(MKLML_PKG_PATH):
-        os.system('cd scripts && ./prepare_mkl.sh && cd ..')
-    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j 8' % MKLDNN_ROOT)
-    os.system('cd build && make install')
+    if refresh_build:
+        os.system('cd build && make -j && make install')
+    else:
+        os.system('cd build && make install')
 
     # install mklml
     mklml_pkg_path_leafs = os.listdir(MKLML_PKG_PATH)
@@ -44,14 +54,20 @@ def install():
         os.system('cp %s/include/* %s' % (mklml_origin_path, MKLDNN_INCLUDE_PATH))
 
 
-def download_and_install(mkldnn_version):
+def build_install():
+    build()
+    install(False)
+
+
+def download_build_install(mkldnn_version):
     download(mkldnn_version)
-    install()
+    build_install()
 
 
 def prepare(mkldnn_version):
     print('Intel mkl-dnn preparing ...')
     mkldnn_prepared = True
+    mkldnn_built = True
     mkldnn_installed = True
 
     if os.path.exists(MKLDNN_SOURCE_PATH):
@@ -59,20 +75,32 @@ def prepare(mkldnn_version):
         res = os.popen('git log | sed -n \'1p\'', 'r')
         commit_head = res.read()
         if mkldnn_version not in commit_head:
-            os.system('rm -rf *')
+            os.chdir(MKLDNN_WORK_PATH)
+            os.system('rm -rf %s' % MKLDNN_SOURCE_PATH)
+            os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+            os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
             mkldnn_prepared = False
         else:
-            if not os.path.exists(MKLDNN_LIB_PATH) or \
-               not os.path.exists(MKLDNN_INCLUDE_PATH):
-                os.system('rm -rf %s %s' % (MKLDNN_LIB_PATH, MKLDNN_INCLUDE_PATH))
+            if not os.path.exists(MKLDNN_BUILD_PATH):
+                os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+                os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
+                mkldnn_built = False
+            elif (not os.path.exists(MKLDNN_LIB_PATH)) or \
+                 (not os.path.exists(MKLDNN_INCLUDE_PATH)):
+                os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+                os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
                 mkldnn_installed = False
     else:
+        os.system('rm -rf %s' % MKLDNN_LIB_PATH)
+        os.system('rm -rf %s' % MKLDNN_INCLUDE_PATH)
         mkldnn_prepared = False
 
     if not mkldnn_prepared:
-        download_and_install(mkldnn_version)
+        download_build_install(mkldnn_version)
+    elif not mkldnn_built:
+        build_install()
     elif not mkldnn_installed:
-        install()
+        install(True)
 
     os.chdir(sys.path[0])
     print('Intel mkl-dnn prepared !')

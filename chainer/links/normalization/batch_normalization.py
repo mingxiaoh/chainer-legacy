@@ -123,7 +123,7 @@ class BatchNormalization(link.Link):
                 decay = self.decay
 
             if mkld.all_ready((x, ), (2, 4)):
-                func = batch_normalization.BnMKLDNN(
+                func = mkld.BnMKLDNN(
                     self.eps, self.avg_mean, self.avg_var, decay)
             else:
                 func = batch_normalization.BatchNormalizationFunction(

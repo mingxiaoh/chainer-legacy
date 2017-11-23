@@ -6,16 +6,14 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
-from chainer.functions.activation import relu
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+from chainer.mkld import ReLUMKLDNN
 
-from mkldnn.chainer.runtime import Engine
 import mkldnn.api.memory as m
-from mkldnn.chainer.fanout import *
-from mkldnn.mdarray import *
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2)],
@@ -54,7 +52,7 @@ class TestReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-                relu.ReLUMKLDNN(), x_data, y_grad,
+                ReLUMKLDNN(), x_data, y_grad,
                 **self.check_backward_options)
 
 #    @condition.retry(3)

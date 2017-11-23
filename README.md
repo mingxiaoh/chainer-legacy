@@ -1,6 +1,5 @@
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/intel/chainer)
 [![travis](https://img.shields.io/travis/intel/chainer/master_v2.svg)](https://travis-ci.org/intel/chainer)
-[![coveralls](https://img.shields.io/coveralls/intel/chainer.svg)](https://coveralls.io/github/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
 # IntelChainer: Optimized-Chainer for Intel architectures
@@ -108,6 +107,13 @@ pip install cython
 pip install h5py
 ```
 
+## Run with Docker
+
+We provide the Dockerfile for cpu based on python2 and python3, respectively. You can refer to wiki
+
+https://github.com/intel/chainer/wiki/How-to-build-and-run-Intel-Chainer-Docker-image
+
+to check how to build/run with docker.
 
 ## Reference
 

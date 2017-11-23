@@ -10,9 +10,6 @@ if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
 
-if mkld.available:
-    AvgPooling2DMKLDNN = mkld.avg_pooling_2d.AvgPooling2DMKLDNN
-
 
 class AveragePooling2D(pooling_2d.Pooling2D):
 
@@ -111,7 +108,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
             libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
-def average_pooling_2d(x, ksize, stride=None, pad=0):
+def average_pooling_2d(x, ksize, stride=None, pad=0, cover_all=False):
     """Spatial average pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -138,13 +135,6 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
 
     """
     if mkld.all_ready((x, ), ()):
-        func = AvgPooling2DMKLDNN(ksize, stride, pad, False)
-        ret = func(x)
-        if chainer.is_cosim():
-            func.cosim_func = AveragePooling2D(ksize, stride, pad, False)
-            x, = mkld.to_plain_array((x, ))
-            numpy_result = func.cosim_func(x)
-            func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
-        return ret
+        return mkld.AvgPooling2DMKLDNN(ksize, stride, pad, cover_all)(x)
     else:
-        return AveragePooling2D(ksize, stride, pad, False)(x)
+        return AveragePooling2D(ksize, stride, pad, cover_all)(x)

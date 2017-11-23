@@ -1,14 +1,23 @@
+from chainer import function
+from chainer import configuration
+from chainer.utils import type_check
+
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward
+from mkldnn.api.support import forward_training, forward_inference
 import mkldnn.api.memory as m
 import mkldnn.api.inner_product_forward as ip_forward
 import mkldnn.api.inner_product_backward_data as ip_backdata
 import mkldnn.api.inner_product_backward_weights as ip_backweights
 from mkldnn.mdarray import mdarray
+from mkldnn.chainer.optimization import WeightReorderOptimization, weight_optimization_trigger
 
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 from mkldnn.api.inner_product_forward import linear_f_op
 from mkldnn.api.inner_product_backward_data import linear_bd_op
 from mkldnn.api.inner_product_backward_weights import linear_bw_op
@@ -38,11 +47,15 @@ def create_forward_desc(d_creator, o_expect, *inputs):
                 for v in inputs if v is not None]
     x_m = inputs_d[0]
     W_m = inputs_d[1]
+    if configuration.config.train:
+        aprop_kind = forward_training
+    else:
+        aprop_kind = forward_inference
     if len(inputs_d) == 3:
         b_m = inputs_d[2]
-        return d_creator(forward, x_m, W_m, b_m, o_expect)
+        return d_creator(aprop_kind, x_m, W_m, b_m, o_expect)
     else:
-        return d_creator(forward, x_m, W_m, o_expect)
+        return d_creator(aprop_kind, x_m, W_m, o_expect)
 
 
 def create_backward_desc(d_creator, *inputs):
@@ -55,9 +68,22 @@ def create_backward_desc(d_creator, *inputs):
 class LinearForward(ComputeComplex):
     cc_type = 'f'
 
+    def __init__(self, inputs, pos=(0, 0), e=Engine()):
+        super(LinearForward, self).__init__()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+        self.argc = len(inputs)
+
+        if self.new:
+            self._create_cc(x, W, b, e)
+        else:
+            self._reuse_cc(x, W, b, e)
+
     def _create_cc(self, x, W, b, e=Engine()):
         y_d = m.desc((x.shape[0], W.shape[0]), m.memory.f32, m.memory.any)
         # Create primitive_desc from any
+        self.train = configuration.config.train
         cc_d = create_forward_desc(ip_forward.desc, y_d, x, W, b)
         cc_pd = ip_forward.primitive_desc(cc_d, e)
 
@@ -70,6 +96,11 @@ class LinearForward(ComputeComplex):
             self.W, self.itm_arr = outputs[:2]
         else:
             self.W = outputs[0]
+
+        wro = WeightReorderOptimization()
+        wro.reorder = (self.dag_.size() - 1) if self.usr_w is not self.W else -1
+        wro.optimized = False
+        self.weight_reorder_opt = wro
 
         if b is not None:
             self.b = array(b, m.memory.x, e)
@@ -102,32 +133,29 @@ class LinearForward(ComputeComplex):
 
     def _reuse_cc(self, x, W, b, e=Engine()):
         reuse_buffer(self.x, x)
-        reuse_buffer(self.W, W)
+        if self.W is not W:
+            reuse_buffer(self.usr_w, W)
+        else:
+            if self.weight_reorder_opt.optimized is False:
+                if self.weight_reorder_opt.reorder != -1:
+                    self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
+                self.weight_reorder_opt.optimized = True
+
         if b is not None:
             reuse_buffer(self.b, b)
 
     def match(self, inputs):
+        if self.train != configuration.config.train:
+            return False
         if len(inputs) != self.argc:
             return False
         x, W = inputs[:2]
         if (x.shape != self.x.shape) or (W.shape != self.W.shape):
-            print('WARNING: LinearForard x or w shape mismatch', x.shape, self.x.shape, W.shape, self.W.shape)
+            # print('WARNING: LinearForard x or w shape mismatch', x.shape, self.x.shape, W.shape, self.W.shape)
             return False
         if(isinstance(x, mdarray) and (x is not self.x)):
             return False
         return True
-
-    def __init__(self, inputs, pos=(0, 0), e=Engine()):
-        super(LinearForward, self).__init__()
-        x = inputs[0]
-        W = inputs[1]
-        b = inputs[2] if len(inputs) == 3 else None
-        self.argc = len(inputs)
-
-        if self.new:
-            self._create_cc(x, W, b, e)
-        else:
-            self._reuse_cc(x, W, b, e)
 
 
 class LinearBackwardData(ComputeComplex):
@@ -191,6 +219,20 @@ class LinearBackwardData(ComputeComplex):
 class LinearBackwardWeighs(ComputeComplex):
     cc_type = 'bw'
 
+    def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
+        super(LinearBackwardWeighs, self).__init__()
+        x = inputs[0]
+        gy = grad_outputs[0]
+        self.argc = len(inputs)
+
+        if self.new:
+            W = inputs[1]
+            b = inputs[2] if self.argc == 3 else None
+
+            self._create_cc(x, W, b, gy, hint, e)
+        else:
+            self._reuse_cc(x, gy)
+
     def _create_cc(self, x, W, b, gy, hint, e):
         cc_d = create_backward_desc(ip_backweights.desc, x, W, b, gy)
         cc_pd = ip_backweights.primitive_desc(cc_d, e, hint)
@@ -247,16 +289,86 @@ class LinearBackwardWeighs(ComputeComplex):
 
         return (hint is self._hint)
 
-    def __init__(self, inputs, grad_outputs, hint, pos, e=Engine()):
-        super(LinearBackwardWeighs, self).__init__()
+
+class LinearFunctionMKLDNN(function.Function):
+
+    def __init__(self):
+        if is_cosim():
+            from chainer.functions.connection.linear import LinearFunction
+            self.cosim_func = LinearFunction()
+
+    def check_type_forward(self, in_types):
+        n_in = in_types.size()
+        type_check.expect(2 <= n_in, n_in <= 3)
+        x_type, w_type = in_types[:2]
+
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            w_type.dtype.kind == 'f',
+            x_type.ndim >= 2,
+            w_type.ndim >= 2,
+            type_check.prod(x_type.shape[1:]) == type_check.prod(w_type.shape[1:]),
+        )
+        if type_check.eval(n_in) == 3:
+            b_type = in_types[2]
+            type_check.expect(
+                b_type.dtype == x_type.dtype,
+                b_type.ndim == 1,
+                b_type.shape[0] == w_type.shape[0],
+            )
+
+    def forward(self, inputs):
+        cc = LinearForward(inputs,
+                           pos=(self.rank, self.fanout))
+        self.hint = cc.hint
+        self.W = cc.W
+        weight_optimization_trigger(self)
+
+        y, = cc.execute_on()
+        y.reset_buf_order()
+
         x = inputs[0]
-        gy = grad_outputs[0]
-        self.argc = len(inputs)
+        W = inputs[1]
+        cosim.cosim_verify(self, (y, ), inputs)
+        return y,
 
-        if self.new:
-            W = inputs[1]
-            b = inputs[2] if self.argc == 3 else None
+    def backward(self, inputs, grad_outputs):
+        cc_data = LinearBackwardData(inputs, grad_outputs, self.hint, self.W,
+                                     pos=(self.rank, self.fanout))
+        cc_weight = LinearBackwardWeighs(inputs, grad_outputs, self.hint,
+                                         pos=(self.rank, self.fanout))
 
-            self._create_cc(x, W, b, gy, hint, e)
+        gx = cc_data.execute_on()
+        gx[0].reset_buf_order()
+        gW_b = cc_weight.execute_on()
+        gW_b[0].reset_buf_order()
+
+        cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
+        return gx + gW_b
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_linear_forward)
         else:
-            self._reuse_cc(x, gy)
+            cd = cdump.cosim_dump(cdump_op_linear_backward)
+
+        e = Engine()
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
+
+        md_x = array(x, _x_format(x.ndim), e)
+        cd.dump_memory(cdump_src_memory, md_x.memory)
+
+        md_W = array(W, _W_format(W.ndim), e)
+        cd.dump_memory(cdump_weight_memory, md_W.memory)
+
+        if b is not None:
+            md_b = array(b, m.memory.x, e)
+            cd.dump_memory(cdump_bias_memory, md_b.memory)
+
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nc, e)
+            cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
+

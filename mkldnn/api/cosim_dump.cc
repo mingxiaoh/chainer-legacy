@@ -53,6 +53,36 @@ cosim_dump::cosim_dump(operation_kind aop_kind) {
         case cdump_op_avg_pooling_backward:
             dname = "AvgPooling_backward.cdump";
             break;
+        case cdump_op_bn_forward:
+            dname = "BN_forward.cdump";
+            break;
+        case cdump_op_bn_backward:
+            dname = "BN_backward.cdump";
+            break;
+        case cdump_op_concat_forward:
+            dname = "Concat_forward.cdump";
+            break;
+        case cdump_op_concat_backward:
+            dname = "Concat_backward.cdump";
+            break;
+        case cdump_op_deconv_forward:
+            dname = "Deconv_forward.cdump";
+            break;
+        case cdump_op_deconv_backward:
+            dname = "Deconv_backward.cdump";
+            break;
+        case cdump_op_linear_forward:
+            dname = "Linear_forward.cdump";
+            break;
+        case cdump_op_linear_backward:
+            dname = "Linear_backward.cdump";
+            break;
+        case cdump_op_relu_forward:
+            dname = "ReLU_forward.cdump";
+            break;
+        case cdump_op_relu_backward:
+            dname = "ReLU_backward.cdump";
+            break;
         default:
             dname =  "Cosim_dump.cdump";
             break;
@@ -221,12 +251,13 @@ void cosim_check::set_view(Py_buffer *view, cosim_check::buf_view *buf) {
     buf->buf = view->buf;
 }
 
+#define MAX_PRINTOUTS   10
 bool cosim_check::expect_allclose(double atol, double rtol) {
     if ((act.len != ref.len) ||
         (act.dtype != ref.dtype) ||
         (act.itemsize != ref.itemsize) ||
         (act.ndim != ref.ndim)) {
-        printf("WARNING: act & ref are not matched!\n");
+        printf("\tWARNING: act & ref are not matched!\n");
         return false;
     }
 
@@ -237,7 +268,7 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         act.ndim <= 0 ||
         act.buf == nullptr ||
         ref.buf == nullptr) {
-        printf("WARNING: act & ref are not initialized!\n");
+        printf("\tWARNING: act & ref are not initialized!\n");
         return false;
     }
 
@@ -245,23 +276,24 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
     int ndim = act.ndim;
     for (int i = 0; i < ndim; i++) {
         if ((act.shape[i] != ref.shape[i]) || (act.shape[i] <= 0)) {
-            printf("WARNING: act & ref have different/wrong shape!\n");
+            printf("\tWARNING: act & ref have different/wrong shape!\n");
             return false;
         }
         total *= act.shape[i];
     }
 
     if (total != act.len / act.itemsize) {
-        printf("WARNING: something wrong in the shape of act & ref!\n");
+        printf("\tWARNING: something wrong in the shape of act & ref!\n");
         return false;
     }
 
     if (act.buf == ref.buf) {
-        printf("NOTE: act & ref have same data buffer\n");
+        printf("\tNOTE: act & ref have same data buffer\n");
         return true;
     }
 
-    int mismatched = 0;
+    int print_cnt = MAX_PRINTOUTS;
+    int mismatch_cnt = 0, a_nan_cnt = 0, a_inf_cnt = 0, r_nan_cnt = 0, r_inf_cnt = 0;
     if (act.dtype == memory::s32) {
         int *abuf = static_cast<int*>(act.buf);
         int *rbuf = static_cast<int*>(ref.buf);
@@ -270,12 +302,16 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
             int aval = abuf[j];
             int rval = rbuf[j];
             if (aval != rval) {
-                if (mismatched == 0) {
-                    printf("[ __act__ , __ref__ , __diff__ , #index]\n");
+                if (print_cnt > 0) {
+                    printf("\t[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
+                    print_cnt --;
                 }
-                printf("[%d, %d, %d, #%d]\n", aval, rval, abs(aval - rval), j);
-                mismatched ++;
+                mismatch_cnt ++;
             }
+        }
+
+        if (mismatch_cnt != 0) {
+            printf("\t[ __act__ , __ref__ , __diff__ , #index]\n");
         }
 
     } else if (act.dtype == memory::f32) {
@@ -283,30 +319,85 @@ bool cosim_check::expect_allclose(double atol, double rtol) {
         float *rbuf = static_cast<float*>(ref.buf);
 #   pragma omp parallel for schedule(static)
         for (int j = 0; j < total; j++) {
+            bool mismatched = false;
+            float cval = 0.0, diff = 0.0;
             float aval = abuf[j];
             float rval = rbuf[j];
-            float diff = fabs(aval - rval);
-            if (diff > (atol + rtol * fabs(rval))) {
-                if (mismatched == 0) {
-                    printf("[ __act__ , __ref__ , __diff__ , #index ]\n");
+
+            if (std::isnan(aval)) {
+                a_nan_cnt ++;
+                cval = aval;
+                mismatched = true;
+            } else if (!std::isfinite(aval)) {
+                a_inf_cnt ++;
+                cval = aval;
+                mismatched = true;
+            }
+
+            if (std::isnan(rval)) {
+                r_nan_cnt ++;
+                cval = rval;
+                mismatched = true;
+            } else if (!std::isfinite(rval)) {
+                r_inf_cnt ++;
+                cval = rval;
+                mismatched = true;
+            }
+
+            if (!mismatched) {
+                diff = fabs(aval - rval);
+                cval = atol + rtol * fabs(rval);
+                if (diff > cval) {
+                    mismatched = true;
                 }
-                printf("[ %.10lf, %.10lf, %.10lf, #%d ]\n", aval, rval, diff, j);
-                mismatched ++;
+            }
+
+            if (mismatched) {
+                mismatch_cnt ++;
+                if (print_cnt > 0) {
+                    printf("\t[ %.10lf, %.10lf, %.10lf, %.10lf, #%d ]\n",
+                            aval, rval, diff, cval, j);
+                    print_cnt --;
+                }
             }
         }
 
+        if (mismatch_cnt != 0) {
+            printf("\t[ __act__ , __ref__ , __diff__ , __cmp__ , #index ]\n\tatol: %lf, rtol: %lf ",
+                    atol, rtol);
+        }
+
     } else {
-        printf("WARNING: wrong dtype!\n");
+        printf("\tWARNING: wrong dtype!\n");
         return false;
     }
 
-    if (mismatched != 0) {
-        printf("size: %d ndim: %d shape: [ ", total, ndim);
+    if (mismatch_cnt != 0) {
+        printf("\tsize: %d ndim: %d shape: [ ", total, ndim);
         for (int k = 0; k < act.ndim; k++) {
             printf("%d ", static_cast<int>(act.shape[k]));
         }
-        printf("]\nmismatch rate: %.10lf%%\n",
-                ((double)mismatched / (double)total) * (double)100.00f);
+
+        printf("]\n\tmismatch rate: %.10lf%% ",
+                ((double)mismatch_cnt / (double)total) * (double)100.00f);
+
+        if (a_nan_cnt != 0) {
+            printf("act NaN count: %d ", a_nan_cnt);
+        }
+
+        if (r_nan_cnt != 0) {
+            printf("ref NaN count: %d ", r_nan_cnt);
+        }
+
+        if (a_inf_cnt != 0) {
+            printf("act INF count: %d ", a_inf_cnt);
+        }
+
+        if (r_inf_cnt != 0) {
+            printf("ref INF count: %d ", r_inf_cnt);
+        }
+
+        printf("\n\tNOTE: ONLY about %d lines in failures are printed out here\n", MAX_PRINTOUTS);
 
         return false;
     }

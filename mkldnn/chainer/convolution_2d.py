@@ -1,12 +1,15 @@
 from chainer import function
+from chainer import configuration
 from chainer.utils import conv
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import reorder_if_must, ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import reorder_if_must, ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward, convolution_direct, zero
+from mkldnn.api.support import forward_training, forward_inference, convolution_direct, zero
 
 import mkldnn.api.memory as m
 
@@ -72,13 +75,17 @@ def create_forward_desc(d_creator, o_expect, inputs, geometry):
     padding_dr = geometry[2]
     x_desc = inputs_d[0]
     w_desc = inputs_d[1]
+    if configuration.config.train:
+        aprop_kind = forward_training
+    else:
+        aprop_kind = forward_inference
     if len(inputs_d) == 3:
         b_desc = inputs_d[2]
-        return d_creator(forward, convolution_direct,
+        return d_creator(aprop_kind, convolution_direct,
                          x_desc, w_desc, b_desc, o_expect,
                          strides, padding_ul, padding_dr, zero)
     else:
-        return d_creator(forward, convolution_direct,
+        return d_creator(aprop_kind, convolution_direct,
                          x_desc, w_desc, o_expect,
                          strides, padding_ul, padding_dr, zero)
 
@@ -149,6 +156,7 @@ class ConvolutionForward(ComputeComplex):
 
         self.geometry = g.geometry
         # Create primitive_desc from any
+        self.train = configuration.config.train
         cc_d = create_forward_desc(conv_forward.desc, y_d, (x, W, b), g.geometry)
         cc_pd = conv_forward.primitive_desc(cc_d, e)
         w_mpd = cc_pd.weights_primitive_desc()
@@ -160,13 +168,10 @@ class ConvolutionForward(ComputeComplex):
             self.W = outputs[0]
 
         # Record weight reorder primitive hint
-        if self.usr_w is not self.W:
-            wro = WeightReorderOptimization()
-            wro.reorder = self.dag_.size() - 1
-            wro.optimized = False
-            self.weight_reorder_opt = wro
-        else:
-            self.weight_reorder_opt = None
+        wro = WeightReorderOptimization()
+        wro.reorder = (self.dag_.size() - 1) if self.usr_w is not self.W else -1
+        wro.optimized = False
+        self.weight_reorder_opt = wro
 
         # Transform inputs, nothing will be done if mdarray
         self.x = array(x, m.memory.nchw, e)
@@ -188,9 +193,9 @@ class ConvolutionForward(ComputeComplex):
         if self.W is not W:
             reuse_buffer(self.usr_w, W)
         else:
-            if self.weight_reorder_opt is not None and \
-               self.weight_reorder_opt.optimized is False:
-                self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
+            if self.weight_reorder_opt.optimized is False:
+                if self.weight_reorder_opt.reorder != -1:
+                    self.dag_.erase(self.dag_.begin() + self.weight_reorder_opt.reorder)
                 self.weight_reorder_opt.optimized = True
 
         if b is not None:
@@ -199,6 +204,8 @@ class ConvolutionForward(ComputeComplex):
     def match(self, inputs, stride=1, pad=0, cover_all=False, **kwargs):
         x = inputs[0]
         W = inputs[1]
+        if self.train != configuration.config.train:
+            return False
         if (self.x.shape != x.shape) or (self.W.shape != W.shape):
             return False
         if (isinstance(x, mdarray) and (x is not self.x)):
@@ -243,7 +250,10 @@ class ConvolutionBackwardData(ComputeComplex):
         reuse_buffer(self.W, W)
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
+    def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return hint is self._hint
 
 
@@ -296,7 +306,10 @@ class ConvolutionBackwardWeighs(ComputeComplex):
         reuse_buffer(self.x, x)
         reuse_buffer(self.gy, gy)
 
-    def match(self, inputs, grad_ouputs, hint, *args, **kwargs):
+    def match(self, inputs, grad_outputs, hint, *args, **kwargs):
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
 
@@ -307,6 +320,10 @@ class Convolution2DFunctionMKLDNN(function.Function):
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.deterministic = deterministic
+
+        if is_cosim():
+            from chainer.functions.connection.convolution_2d import Convolution2DFunction
+            self.cosim_func = Convolution2DFunction(stride, pad, cover_all, deterministic)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -343,6 +360,7 @@ class Convolution2DFunctionMKLDNN(function.Function):
         y, = cc.execute_on()
         y.reset_buf_order()
 
+        cosim.cosim_verify(self, (y, ), inputs)
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
@@ -364,19 +382,20 @@ class Convolution2DFunctionMKLDNN(function.Function):
         else:
             gx = None,
 
+        cosim.cosim_verify(self, gx + gW_b, inputs, grad_outputs)
         return gx + gW_b
 
-    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+    def dump_to_file(self, inputs, grads=None):
         cd = None
-        if out_grad is None:
+        if grads is None:
             cd = cdump.cosim_dump(cdump_op_conv_forward)
         else:
             cd = cdump.cosim_dump(cdump_op_conv_backward)
 
         e = Engine()
-        x = in_data[0]
-        W = in_data[1]
-        b = in_data[2] if len(in_data) == 3 else None
+        x = inputs[0]
+        W = inputs[1]
+        b = inputs[2] if len(inputs) == 3 else None
 
         md_x = array(x, m.memory.nchw, e)
         cd.dump_memory(cdump_src_memory, md_x.memory)
@@ -388,8 +407,8 @@ class Convolution2DFunctionMKLDNN(function.Function):
             md_b = array(b, m.memory.x, e)
             cd.dump_memory(cdump_bias_memory, md_b.memory)
 
-        if out_grad is not None:
-            md_gy = array(out_grad[0], m.memory.nchw, e)
+        if grads is not None:
+            md_gy = array(grads[0], m.memory.nchw, e)
             cd.dump_memory(cdump_diff_dst_memory, md_gy.memory)
 
         cd.dump_int_parms(cdump_conv_int_parms, 5,

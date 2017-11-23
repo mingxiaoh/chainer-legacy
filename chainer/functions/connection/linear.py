@@ -7,11 +7,6 @@ from chainer import mkld
 
 import numpy
 
-if mkld.available:
-    LinearForward = mkld.linear.LinearForward
-    LinearBackwardData = mkld.linear.LinearBackwardData
-    LinearBackwardWeighs = mkld.linear.LinearBackwardWeighs
-
 
 def _as_mat(x):
     if x.ndim == 2:
@@ -64,53 +59,6 @@ class LinearFunction(function.Function):
             return gx, gW
 
 
-class LinearFunctionMKLDNN(LinearFunction):
-
-    def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(2 <= n_in, n_in <= 3)
-        x_type, w_type = in_types[:2]
-
-        type_check.expect(
-            x_type.dtype.kind == 'f',
-            w_type.dtype.kind == 'f',
-            x_type.ndim >= 2,
-            w_type.ndim >= 2,
-            type_check.prod(x_type.shape[1:]) == type_check.prod(w_type.shape[1:]),
-        )
-        if type_check.eval(n_in) == 3:
-            b_type = in_types[2]
-            type_check.expect(
-                b_type.dtype == x_type.dtype,
-                b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[0],
-            )
-
-    def forward(self, inputs):
-        cc = LinearForward(inputs,
-                           pos=(self.rank, self.fanout))
-        self.hint = cc.hint
-        self.W = cc.W
-
-        y, = cc.execute_on()
-        y.reset_buf_order()
-
-        return y,
-
-    def backward(self, inputs, grad_outputs):
-        cc_data = LinearBackwardData(inputs, grad_outputs, self.hint, self.W,
-                                     pos=(self.rank, self.fanout))
-        cc_weight = LinearBackwardWeighs(inputs, grad_outputs, self.hint,
-                                         pos=(self.rank, self.fanout))
-
-        gx = cc_data.execute_on()
-        gx[0].reset_buf_order()
-        gW_b = cc_weight.execute_on()
-        gW_b[0].reset_buf_order()
-
-        return gx + gW_b
-
-
 def linear(x, W, b=None):
     """Linear function, or affine transformation.
 
@@ -152,9 +100,9 @@ def linear(x, W, b=None):
 
     if mkld.all_ready((x, W), (2, 4)):
         if b is None:
-            return LinearFunctionMKLDNN()(x, W)
+            return mkld.LinearFunctionMKLDNN()(x, W)
         else:
-            return LinearFunctionMKLDNN()(x, W, b)
+            return mkld.LinearFunctionMKLDNN()(x, W, b)
     else:
         if b is None:
             return LinearFunction()(x, W)

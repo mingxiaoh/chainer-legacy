@@ -1,13 +1,17 @@
 from chainer import function
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer, reorder_if_must
+from mkldnn.compute_complex import ComputeComplex, reuse_buffer, reorder_if_must
+from mkldnn.array import array
 
 from mkldnn.api.support import forward, eltwise_relu, at
 import mkldnn.api.memory as m
 import mkldnn.api.eltwise_forward as eltwise_forward
 import mkldnn.api.eltwise_backward as eltwise_backward
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 
 from mkldnn.mdarray import mdarray
 
@@ -30,8 +34,8 @@ class ReLUForward(ComputeComplex):
                                     mem_pd.desc(), 0.0, 0.0)
         cc_pd = eltwise_forward.primitive_desc(cc_d, e)
 
-        # y = mdarray(cc_pd.dst_primitive_desc())
-        y = x
+        y = mdarray(cc_pd.dst_primitive_desc())
+        # y = x
 
         self.x = x
         self.dag_.push_back(eltwise_forward.eltwise_forward(cc_pd,
@@ -74,8 +78,11 @@ class ReLUBackward(ComputeComplex):
         else:
             self._reuse_cc(x, gy)
 
-    def match(self, inputs, grad_outpus, hint, *args):
+    def match(self, inputs, grad_outputs, hint, *args):
         # TODO: refine it
+        gy = grad_outputs[0]
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
     def _create_cc(self, x, gy, hint, e=Engine()):
@@ -83,6 +90,7 @@ class ReLUBackward(ComputeComplex):
         if x.ndim == 2:
             fmt = m.memory.nc
         x = array(x, fmt, e)
+        self.x_in = x
         gy = array(gy, fmt, e)
 
         diff_pd = gy.memory.get_primitive_desc()
@@ -98,9 +106,9 @@ class ReLUBackward(ComputeComplex):
                                      mem_pd.desc(), 0.0, 0.0)
         cc_pd = eltwise_backward.primitive_desc(cc_d, e, hint)
 
-        # gx = mdarray(cc_pd.diff_src_primitive_desc())
+        gx = mdarray(cc_pd.diff_src_primitive_desc())
         # print("gx.format=", m.get_fmt(cc_pd.diff_src_primitive_desc()))
-        gx = gy
+        # gx = gy
 
         self.dag_.push_back(eltwise_backward.eltwise_backward(cc_pd,
                             at(x.memory), at(gy.memory), gx.memory))
@@ -111,11 +119,16 @@ class ReLUBackward(ComputeComplex):
         self.outputs = gx,
 
     def _reuse_cc(self, x, gy):
-        reuse_buffer(self.x, x)
+        reuse_buffer(self.x_in, x)
         reuse_buffer(self.gy, gy)
 
 
 class ReLUMKLDNN(function.Function):
+
+    def __init__(self):
+        if is_cosim():
+            from chainer.functions.activation.relu import ReLU
+            self.cosim_func = ReLU()
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -124,6 +137,12 @@ class ReLUMKLDNN(function.Function):
         )
 
     def forward(self, x):
+        x_orig = None
+        if is_cosim():
+            import copy
+            x_orig = copy.deepcopy(x)
+        self.x_orig = x_orig
+
         cc = ReLUForward(x, pos=(self.rank, self.fanout))
 
         self.hint = cc.hint
@@ -131,13 +150,42 @@ class ReLUMKLDNN(function.Function):
         y, = cc.execute_on()
         y.reset_buf_order()
 
+        cosim.cosim_verify(self, (y, ), x_orig)
         return y,
 
     def backward(self, x, gy):
+        gy_orig = None
+        if is_cosim():
+            import copy
+            gy_orig = copy.deepcopy(gy)
+
         cc = ReLUBackward(x, gy, self.hint,
                           pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
         gx.reset_buf_order()
 
+        cosim.cosim_verify(self, (gx, ), self.x_orig, gy_orig)
         return gx,
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_relu_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_relu_backward)
+
+        e = Engine()
+        x = inputs[0]
+
+        if grads is None:
+            fmt = m.memory.nchw if x.ndim == 4 else m.memory.nc
+            x = array(x, fmt, e)
+            cd.dump_memory(cdump_src_memory, x.memory)
+        else:
+            fmt = m.memory.nc if x.ndim == 2 else m.memory.nchw
+            x = array(x, fmt, e)
+            cd.dump_memory(cdump_src_memory, x.memory)
+            gy = array(grads[0], fmt, e)
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+

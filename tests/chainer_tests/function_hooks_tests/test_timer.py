@@ -10,11 +10,16 @@ from chainer.functions.connection import linear
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
+from chainer.mkld import LinearFunctionMKLDNN
 
 
-def check_history(self, t, function_type, return_type):
-    self.assertIsInstance(t[0], function_type)
+def check_history(self, t, function_types, return_type):
     self.assertIsInstance(t[1], return_type)
+    for function_type in function_types:
+        if isinstance(t[0], function_type):
+            return
+
+    raise TypeError('function type error!')
 
 
 class TestTimerHookToLink(unittest.TestCase):
@@ -33,7 +38,7 @@ class TestTimerHookToLink(unittest.TestCase):
             self.l(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, float)
+                      (linear.LinearFunction, LinearFunctionMKLDNN), float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -51,7 +56,7 @@ class TestTimerHookToLink(unittest.TestCase):
             y.backward()
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, float)
+                      (linear.LinearFunction, LinearFunctionMKLDNN), float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -74,7 +79,7 @@ class TestTimerHookToFunction(unittest.TestCase):
     def check_forward(self, x):
         self.f(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0], functions.Exp, float)
+        check_history(self, self.h.call_history[0], (functions.Exp, ), float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -89,7 +94,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
-        check_history(self, self.h.call_history[1], functions.Exp, float)
+        check_history(self, self.h.call_history[1], (functions.Exp, ), float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)

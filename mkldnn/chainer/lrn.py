@@ -1,11 +1,14 @@
 from chainer import function
+from chainer import configuration
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import ComputeComplex, array, reuse_buffer
+from mkldnn.compute_complex import ComputeComplex, reuse_buffer
+from mkldnn.array import array
 
 # Most important thing
-from mkldnn.api.support import forward_training, lrn_across_channels, at
+from mkldnn.api.support import forward_training, forward_inference, lrn_across_channels, at
 import mkldnn.api.memory as m
 import mkldnn.api.lrn_forward as lrn_forward
 import mkldnn.api.lrn_backward as lrn_backward
@@ -35,13 +38,22 @@ class LrnForward(ComputeComplex):
         # TODO: check avx512?
         self.x = array(x, m.memory.nchw, e)
         x_md = self.x.memory.get_primitive_desc().desc()
-        cc_d = lrn_forward.desc(forward_training, lrn_across_channels, x_md,
+        if configuration.config.train:
+            aprop_kind = forward_training
+        else:
+            aprop_kind = forward_inference
+        self.train = configuration.config.train
+        cc_d = lrn_forward.desc(aprop_kind, lrn_across_channels, x_md,
                                 n, alpha, beta, k)
         cc_pd = lrn_forward.primitive_desc(cc_d, e)
         y = mdarray(cc_pd.dst_primitive_desc())
-        ws = mdarray(cc_pd.workspace_primitive_desc())
+        if aprop_kind == forward_training:
+            ws = mdarray(cc_pd.workspace_primitive_desc())
+            self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), ws.memory, y.memory))
+        else:
+            ws = None
+            self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), y.memory))
 
-        self.dag_.push_back(lrn_forward.lrn_forward(cc_pd, at(self.x.memory), ws.memory, y.memory))
         self._hint = cc_pd
         self.outputs = y,
         self.ws = ws
@@ -51,6 +63,10 @@ class LrnForward(ComputeComplex):
 
     def match(self, inputs, n, k, alpha, beta):
         x = inputs[0]
+        if self.train != configuration.config.train:
+            return False
+        if (isinstance(x, mdarray) and (x is not self.x)):
+            return False
         return ((self.x.shape == x.shape) and
                 (self.n == n) and
                 (self.k == k) and
@@ -96,6 +112,8 @@ class LrnBackward(ComputeComplex):
         reuse_buffer(self.gy, gy)
 
     def match(self, inputs, gy, hint, ws, n, k, alpha, beta):
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return (hint is self._hint)
 
 
@@ -108,6 +126,10 @@ class LrnMKLDNN(function.Function):
         self.k = k
         self.alpha = alpha
         self.beta = beta
+
+        if is_cosim():
+            from chainer.functions.normalization.local_response_normalization import LocalResponseNormalization
+            self.cosim_func = LocalResponseNormalization(n, k, alpha, beta)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -125,6 +147,8 @@ class LrnMKLDNN(function.Function):
         self.hint = cc.hint
         self.ws = cc.ws
         y, = cc.execute_on()
+
+        cosim.cosim_verify(self, (y, ), x)
         return y,
 
     def backward_cpu(self, x, gy):
@@ -133,20 +157,22 @@ class LrnMKLDNN(function.Function):
                          pos=(self.rank, self.fanout))
 
         gx, = cc.execute_on()
+
+        cosim.cosim_verify(self, (gx, ), x, gy)
         return gx,
 
-    def cpu_cosim_dump_inner(self, in_data, out_grad=None):
+    def dump_to_file(self, inputs, grads=None):
         cd = None
-        if out_grad is None:
+        if grads is None:
             cd = cdump.cosim_dump(cdump_op_lrn_forward)
         else:
             cd = cdump.cosim_dump(cdump_op_lrn_backward)
 
-        x = array(in_data[0], m.memory.nchw, Engine())
+        x = array(inputs[0], m.memory.nchw, Engine())
         cd.dump_memory(cdump_src_memory, x.memory)
 
-        if out_grad is not None:
-            gy = array(out_grad[0], m.memory.nchw, Engine())
+        if grads is not None:
+            gy = array(grads[0], m.memory.nchw, Engine())
             cd.dump_memory(cdump_diff_dst_memory, gy.memory)
 
         cd.dump_int_parms(cdump_lrn_local_size, 1, self.n)

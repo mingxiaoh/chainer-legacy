@@ -86,7 +86,7 @@ packages += mkldnn_setup.packages
 
 setup(
     name='chainer',
-    version='2.0.0b1',
+    version='v2.0.0a_i2.0.5a',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',

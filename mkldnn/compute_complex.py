@@ -2,7 +2,7 @@ from mkldnn.api.support import at, primitive_list
 from mkldnn.api import reorder as r
 # from mkldnn.api import memory as m
 from mkldnn.chainer.runtime import Stream
-
+from chainer import configuration
 import mkldnn
 import numpy
 from mkldnn.mdarray import mdarray
@@ -49,19 +49,6 @@ def reuse_buffer(d, s):
         d.setbuffer(s)
 
 
-# XXX: move this file to another location
-def array(obj, *args):
-    if isinstance(obj, mkldnn.mdarray):
-        return obj
-    elif isinstance(obj, numpy.ndarray):
-        # TODO: Do we automatically transfer?
-
-        obj = numpy.ascontiguousarray(obj)
-        return mkldnn.mdarray(obj, *args)
-    else:
-        raise NotImplementedError
-
-
 class ComputeComplex(object):
     """MKLDNN Compute Complex.
 
@@ -78,16 +65,19 @@ class ComputeComplex(object):
 
         cache = cls.cache[cls.cc_type]
         ret = cache.get(pos)
-
-        if ret and isinstance(ret, cls) and ret.match(*args, **kwargs):
-            ret.new = False
+        if configuration.config.train:
+            if ret and isinstance(ret, cls) and ret.match(*args, **kwargs):
+                ret.new = False
+            else:
+                ret = super(ComputeComplex, cls).__new__(cls)
+                # print("Create new CC: ", ret)
+                ret.new = True
+                cache[pos] = ret
+                ret.pos = pos
         else:
             ret = super(ComputeComplex, cls).__new__(cls)
             # print("Create new CC: ", ret)
             ret.new = True
-            cache[pos] = ret
-            ret.pos = pos
-
         return ret
 
     def __init__(self):

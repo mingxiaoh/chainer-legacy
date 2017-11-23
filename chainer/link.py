@@ -5,6 +5,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import initializers
 from chainer import variable
@@ -466,6 +467,8 @@ class Link(object):
         d = self.__dict__
         for name in self._params:
             param = d[name]
+            if param.data is not None:
+                param.data = chainer.mkld.plain_array(param.data)[0]
             data = serializer(name, param.data)
             if param.data is None and data is not None:
                 # Initialize the variable here

@@ -6,6 +6,7 @@ import six
 import chainer
 from chainer import configuration
 from chainer import cuda
+from chainer import mkld
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
@@ -13,7 +14,15 @@ from chainer import variable
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
-    return [xp.copy(x) for x in xs]
+    return [xp.copy(x) if x is not None else None for x in xs]
+
+
+def _copy_array_to(dst, src):
+    # TODO copy mdarray
+    if isinstance(dst, mkld.mdarray):
+        return
+    xp = cuda.get_array_module(src)
+    xp.copyto(dst, src)
 
 
 def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
@@ -54,12 +63,14 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
     with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
             for i in numpy.ndindex(x.shape):
+                x_orig = x.copy()
                 orig = x[i].copy()  # hold original value
                 x[i] = orig + eps
                 ys1 = _copy_arrays(f())
                 x[i] = orig - eps
                 ys2 = _copy_arrays(f())
                 x[i] = orig
+                _copy_array_to(x, x_orig)
                 for y1, y2, gy in six.moves.zip(ys1, ys2, grad_outputs):
                     if gy is not None:
                         dot = ((y1 - y2) * gy).sum()
@@ -199,8 +210,12 @@ def check_backward(func, x_data, y_grad, params=(),
        :func:`numerical_grad`
     """
     x_data = _as_tuple(x_data)
+    x_data_in = _copy_arrays(x_data)
+    x_data_in = _as_tuple(x_data_in)
     if y_grad is not None:
         y_grad = _as_tuple(y_grad)
+        y_grad_in = _copy_arrays(y_grad)
+        y_grad_in = _as_tuple(y_grad_in)
     params = _as_tuple(params)
 
     xs = [variable.Variable(x) for x in x_data]
@@ -227,13 +242,14 @@ def check_backward(func, x_data, y_grad, params=(),
                 'When `y_grad` is `None`, the function must return a'
                 'zero-dimentional array')
         y_grad = (1,)
+        y_grad_in = (1,)
 
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
 
     if dtype is None:
-        casted_xs = [variable.Variable(x) for x in x_data]
+        casted_xs = [variable.Variable(x) for x in x_data_in]
     else:
         if numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
@@ -241,11 +257,11 @@ def check_backward(func, x_data, y_grad, params=(),
             raise ValueError('`dtype` is available only if `params` is empty')
         casted_xs = [variable.Variable(x.astype(dtype, copy=False)
                                        if x.dtype.kind == 'f' else x)
-                     for x in x_data]
+                     for x in x_data_in]
 
     def f():
         if chainer.mkld.available:
-            chainer.mkld.fanout.FanoutRecorder.clear()
+            chainer.mkld.FanoutRecorder.clear()
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         return tuple(y.data for y in ys)
@@ -260,7 +276,7 @@ def check_backward(func, x_data, y_grad, params=(),
         if skip:
             assert x.grad is None
             continue
-        gx, = numerical_grad(f, (cx.data,), y_grad, eps=eps)
+        gx, = numerical_grad(f, (cx.data,), y_grad_in, eps=eps)
         testing.assert_allclose(gx, x.grad, atol=atol, rtol=rtol)
         if dtype is None:
             assert gx.dtype == x.grad.dtype
@@ -268,6 +284,6 @@ def check_backward(func, x_data, y_grad, params=(),
             assert gx.dtype.kind == 'f' and gx.dtype == dtype
 
     for p in params:
-        gp, = numerical_grad(f, (p.data,), y_grad, eps=eps)
+        gp, = numerical_grad(f, (p.data,), y_grad_in, eps=eps)
         testing.assert_allclose(gp, p.grad, atol=atol, rtol=rtol)
         assert gp.dtype is p.grad.dtype

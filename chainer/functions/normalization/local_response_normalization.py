@@ -7,9 +7,6 @@ from chainer import mkld
 from chainer import function
 from chainer.utils import type_check
 
-if mkld.available:
-    LrnMKLDNN = mkld.lrn.LrnMKLDNN
-
 
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
@@ -134,13 +131,6 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
 
     """
     if mkld.all_ready((x, ), ()):
-        func = LrnMKLDNN(n, k, alpha, beta)
-        ret = func(x)
-        if chainer.is_cosim():
-            func.cosim_func = LocalResponseNormalization(n, k, alpha, beta)
-            x, = mkld.to_plain_array((x, ))
-            numpy_result = func.cosim_func(x)
-            func.cpu_cosim_verify_result(ret, numpy_result, (x, ))
-        return ret
+        return mkld.LrnMKLDNN(n, k, alpha, beta)(x)
     else:
         return LocalResponseNormalization(n, k, alpha, beta)(x)

@@ -1,13 +1,13 @@
 import numpy
 import chainer
-from mkldnn.chainer.runtime import Engine
-from mkldnn.compute_complex import array, reorder_if_must
+from mkldnn.chainer.runtime import Engine, Stream
+from mkldnn.compute_complex import reorder_if_must
+from mkldnn.array import array
 # Most important thing
 from mkldnn.api.support import primitive_list, at
 import mkldnn.api.memory as m
 import mkldnn.api.sum as sum
 from mkldnn.mdarray import mdarray
-from mkldnn.chainer.runtime import Stream
 from mkldnn.compute_complex import ComputeComplex
 
 

@@ -41,8 +41,7 @@ install:
 
 script:
   - python setup.py install
-  - cd tests
-  - nosetests --cover-branches --with-coverage --cover-package=chainer -v -a '!gpu,!slow' chainer_tests
+  - nosetests --cover-branches --with-coverage --cover-package=chainer -v -a '!gpu,!slow' tests
 
 
 addons:

@@ -3,10 +3,11 @@ import numpy
 from chainer import function
 from chainer.utils import type_check
 
+from mkldnn.chainer import cosim, is_cosim
 from mkldnn.chainer.runtime import Engine
 from mkldnn.compute_complex import reuse_buffer
-from mkldnn.compute_complex import array
 from mkldnn.compute_complex import ComputeComplex
+from mkldnn.array import array
 
 # Most important thing
 
@@ -16,6 +17,8 @@ import mkldnn.api.view as view
 import mkldnn.api.concat as concat
 import mkldnn.api.reorder as r
 from mkldnn.mdarray import mdarray
+import mkldnn.api.cosim_dump as cdump
+from mkldnn.api.cosim_dump import *
 
 
 class ConcatForward(ComputeComplex):
@@ -113,6 +116,8 @@ class ConcatBackward(ComputeComplex):
         for xarray, x in zip(self.xs, inputs):
             if xarray.shape != x.shape:
                 return False
+        if(isinstance(gy, mdarray) and (gy is not self.gy)):
+            return False
         return True
 
 
@@ -126,6 +131,10 @@ class ConcatMKLDNN(function.Function):
             raise TypeError('axis must be int')
 
         self.axis = axis
+
+        if is_cosim():
+            from chainer.functions.array.concat import Concat
+            self.cosim_func = Concat(axis=axis)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
@@ -154,6 +163,8 @@ class ConcatMKLDNN(function.Function):
 
         self.hint = cc.hint
         y, = cc.execute_on()
+
+        cosim.cosim_verify(self, (y, ), xs)
         return y,
 
     def backward_cpu(self, xs, gy):
@@ -161,4 +172,27 @@ class ConcatMKLDNN(function.Function):
                             pos=(self.rank, self.fanout))
 
         gx = cc.execute_on()
+
+        cosim.cosim_verify(self, gx, xs, gy)
         return gx
+
+    def dump_to_file(self, inputs, grads=None):
+        cd = None
+        if grads is None:
+            cd = cdump.cosim_dump(cdump_op_concat_forward)
+        else:
+            cd = cdump.cosim_dump(cdump_op_concat_backward)
+
+        e = Engine()
+
+        x_cnt = 0
+        for x in inputs:
+            x_cnt += 1
+            xarray = array(x, m.memory.nchw, e)
+            cd.dump_memory(cdump_src_memory, xarray.memory)
+
+        if grads is not None:
+            gy = array(grads[0], m.memory.nchw, e)
+            cd.dump_memory(cdump_diff_dst_memory, gy.memory)
+
+        cd.dump_int_parms(cdump_concat_int_parms, 2, x_cnt, self.axis)
