@@ -61,102 +61,74 @@
  */
 
 
-#include <glog/logging.h>
-#include <iostream>
-#include "common.h"
-#include "mkldnn.hpp"
-#include "lrn_fwd.h"
-#include "utils.h"
+#ifndef _LRN_PY_H_
+#define _LRN_PY_H_
 
-using namespace mkldnn;
+#include <vector>
+#include <memory>
+#include "op_param.h"
+#include "mdarray.h"
+#include "lrn.h"
 
-extern engine cpu_engine;
-
-template<typename T>
-LocalResponseNormalizationFwd<T>::LocalResponseNormalizationFwd(
-    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm)
-    :alg_kind_(algorithm::lrn_across_channels)
+template <typename T>
+class LocalResponseNormalization_Py
 {
+public:
+    /*
+     * Python Lrn Forward
+     * params:
+     * src: input, x
+     * pp: lrn parameters
+     */
+    static std::vector<mdarray> Forward(mdarray *src, 
+                                        lrn_param_t *pp) {
+        std::vector<mdarray> outputs;
 
-    fwd_stream_.reset(new stream(stream::kind::eager));
-    // setup
-    if (fwd_ == NULL){
-        setup(src_d, src_fmt, n, k, alpha, beta, alg_kind_);
-    }
-}
-
-template<typename T>
-LocalResponseNormalizationFwd<T>::~LocalResponseNormalizationFwd(){}
-
-template<typename T>
-void LocalResponseNormalizationFwd<T>::setup(
-    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm alg_kind)
-{
-    LOG(INFO) << "lrn forward_setup";
-
-    alg_kind_ = alg_kind;
-    // local_size_ = n;
-
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
-        get_desired_format(src_d[1]))); // use src's input channel to decide expected fmt
-    // dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
-    //     memory::format::any));
-
-    //LOG(INFO) << "lrn_fwd_desc_";
-    fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind_, 
-        *src_md_, n, alpha, beta, k));
-    fwd_pd_.reset(new lrn_forward::primitive_desc(*fwd_desc_, cpu_engine));
-
-    // store expected primitive format
-    // src_fmt_ = get_desired_format(src_d[1]);
-    src_fmt_ = src_fmt;
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
-
-    // create MKL-DNN internal memory object with dummy data
-    src_mem_.reset(new memory({{{src_d}, memory_data_type<T>(), src_fmt_}, cpu_engine}, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
-
-    //need to return workspace for backward
-    auto ws_pd = fwd_pd_.get()->workspace_primitive_desc().desc().data;
-    // store workspace's dims and fmt to create ws tensor
-    ws_fmt_ = static_cast<mkldnn::memory::format>(ws_pd.format);
-    ws_dims_.assign(ws_pd.dims, ws_pd.dims + ws_pd.ndims);
-    ws_dt_ = static_cast<mkldnn::memory::data_type>(ws_pd.data_type);
-    ws_mem_.reset(new memory(fwd_pd_.get()->workspace_primitive_desc(), dummy));
-
-    fwd_.reset(new lrn_forward(
-            *fwd_pd_, *src_mem_, *dst_mem_, *ws_mem_));
-    
-    fwd_primitives_.push_back(*fwd_);
-    return;
-}
-
-template<typename T>
-void LocalResponseNormalizationFwd<T>::execute(void *src, void *dst, void *ws)
-{
-    LOG(INFO) << "lrn forward";
-    
-    src_mem_->set_data_handle(src); // input
-    dst_mem_->set_data_handle(dst); // output dst
-
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(ws); // output workspace
+        // Shoule be removed in future????
+        implementation::mdarray *src_internal = src->get();
         
-    fwd_stream_->submit(fwd_primitives_);
+        std::vector<Tensor *> outputs_tensor = LocalResponseNormalization<T>::Forward(
+                                                    (src_internal->tensor()),
+                                                    pp);
+        //FIXME
+        for (int i = 0; i < outputs_tensor.size(); i++) {
+            outputs.push_back( mdarray(outputs_tensor[i]) );
+        }
 
-    // set back data handle
-    src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
-    
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(dummy);
-    
-    LOG(INFO) << "lrn forward finish";
-    return;
-}
+        return outputs;
+    }
 
-template class LocalResponseNormalizationFwd<float>;
+    /*
+     * Python Lrn backward
+     * param:
+     * src: x
+     * diff_dst: diff dst, gy
+     * ws: workspace
+     * pp: lrn parameters
+     */
+    static mdarray Backward(mdarray *src, mdarray *diff_dst, mdarray *ws, lrn_param_t *pp) {
+        //FIXME
+        //Should be removed in future
+        implementation::mdarray *diff_dst_internal = diff_dst->get();
+        implementation::mdarray *src_internal = src->get();
+        implementation::mdarray *ws_internal = ws->get();
+        
+        Tensor *diff_src_tensor = LocalResponseNormalization<T>::Backward(
+            (src_internal->tensor()),
+            (diff_dst_internal->tensor()),
+            (ws_internal->tensor()),
+            pp);
+      
+
+        // FIXME
+        // In future, mdarray will have a Tensor member, no need to create a new one
+        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
+        return diff_src_mdarray;
+    }
+
+};
+
+#endif // _LRN_PY_H_
+
+
+// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

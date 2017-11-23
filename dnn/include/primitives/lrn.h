@@ -61,82 +61,48 @@
  */
 
 
-#pragma once
-#ifndef _LRN_BWD_H_
-#define _LRN_BWD_H_
+#ifndef _LRN_H_
+#define _LRN_H_
 
-#include <glog/logging.h>
-#include <iostream>
 #include <mkldnn.hpp>
 #include <vector>
-#include "op.h"
+#include <memory>
+#include "layer.h"
+#include "op_param.h"
+#include "tensor.h"
 
 template <typename T>
-class LocalResponseNormalizationFwdBwd: public Op<T>{
+class LocalResponseNormalization : public Layer<T>
+{
 public:
-    LocalResponseNormalizationFwdBwd(mkldnn::memory::dims diff_src_d, 
-            mkldnn::memory::dims diff_dst_d,
-            mkldnn::memory::dims ws_d,
-            mkldnn::memory::data_type ws_dt,
-            int n, double k, double alpha, double beta,
-            mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
-
-    ~LocalResponseNormalizationFwdBwd();
+    LocalResponseNormalization();
+    ~LocalResponseNormalization();
     
     /*
-     * lrn backward primitive setup
-     * Params:
-     * diff_src_d: diff src
-     * diff_dst_d: diff dst
-     */
-    void setup(mkldnn::memory::dims diff_src_d, 
-               mkldnn::memory::dims diff_dst_d,
-               mkldnn::memory::dims ws_d,
-               mkldnn::memory::data_type ws_dt,
-               int n, double k, double alpha, double beta,
-               mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
-
-    /*
-     * lrn backward execute 
+     * Lrn Forward
      * params:
-     * diff_src: diff_src
-     * diff_dst: diff_dst
-     * ws: workspace
+     * src: input, x
+     * pp: lrn parameters
+     *
+     * ret
+     * vector<Tensor*>:
+     * return dst and workspace
      */
-    void execute(void *diff_src, void *diff_dst, void *ws=NULL);
+    static std::vector<Tensor *> Forward(Tensor *src, lrn_param_t *pp);
 
-public:
-    // expected memory format
-    mkldnn::memory::format diff_src_fmt_;
-    mkldnn::memory::format diff_dst_fmt_;
-    mkldnn::memory::format ws_fmt_;
+    /*
+     * Lrn backward
+     * param:
+     * src: x
+     * diff_dst: diff dst, gy
+     * pp: lrn parameters
+     * return diff_src gx
+     */
+    static Tensor *Backward(Tensor* src, Tensor *diff_dst, Tensor *ws, lrn_param_t* pp);
 
-    // algo
-    mkldnn::algorithm alg_kind_;
-    int local_size_;
-private:
-    // lrn primitive
-    std::shared_ptr<mkldnn::lrn_backward> bwd_;
-    std::shared_ptr<mkldnn::stream> bwd_stream_;
-    
-    // MKL-DNN memory, just dummy data
-    std::shared_ptr<mkldnn::memory> ws_mem_;
-    std::shared_ptr<mkldnn::memory> diff_src_mem_;
-    std::shared_ptr<mkldnn::memory> diff_dst_mem_;
-    std::shared_ptr<mkldnn::memory::desc> diff_src_md_;
-    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_;
-
-    // fwd hint
-    std::shared_ptr<mkldnn::lrn_forward::desc> fwd_desc_;
-    std::shared_ptr<mkldnn::lrn_forward::primitive_desc> fwd_pd_;
-    
-    std::shared_ptr<mkldnn::lrn_backward::desc> bwd_desc_;
-    std::shared_ptr<mkldnn::lrn_backward::primitive_desc> bwd_pd_;
-    
-    std::vector<mkldnn::primitive> bwd_primitives_;
 };
 
-#endif // _LRN_BWD_H_
+#endif // _LRN_H_
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
