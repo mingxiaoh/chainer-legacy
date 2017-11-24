@@ -173,6 +173,8 @@ public:
     //std::unique_ptr<Tensor> tensor(new Tensor(view->ndim, dims, view->buf, dt)); 
     tensor_.reset(new Tensor(view->ndim, dims, view->buf, dt)); 
 
+    PyBuffer_Release(view);
+
 #if 0
     ndims_ = view->ndim;
     dims_.assign(view->shape, view->shape + view->ndim);
