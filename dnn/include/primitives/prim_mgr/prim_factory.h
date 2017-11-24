@@ -37,5 +37,7 @@
 #include "bn_bwd_factory.h"
 #include "concat_fwd_factory.h"
 #include "concat_bwd_factory.h"
+#include "lrn_fwd_factory.h"
+#include "lrn_bwd_factory.h"
 
 #endif // _PRIM_FACTORY_

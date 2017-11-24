@@ -61,102 +61,85 @@
  */
 
 
+#pragma once
+#ifndef _LRN_BWD_H_
+#define _LRN_BWD_H_
+
 #include <glog/logging.h>
 #include <iostream>
-#include "common.h"
-#include "mkldnn.hpp"
-#include "lrn_fwd.h"
-#include "utils.h"
+#include <mkldnn.hpp>
+#include <vector>
+#include "op.h"
 
-using namespace mkldnn;
+template <typename T>
+class LocalResponseNormalizationBwd: public Op<T>{
+public:
+    LocalResponseNormalizationBwd(mkldnn::memory::dims src_d, 
+            mkldnn::memory::dims diff_dst_d,
+            mkldnn::memory::dims ws_d,
+            mkldnn::memory::data_type ws_dt,
+            int n, double k, double alpha, double beta,
+            mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
 
-extern engine cpu_engine;
-
-template<typename T>
-LocalResponseNormalizationFwd<T>::LocalResponseNormalizationFwd(
-    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm)
-    :alg_kind_(algorithm::lrn_across_channels)
-{
-
-    fwd_stream_.reset(new stream(stream::kind::eager));
-    // setup
-    if (fwd_ == NULL){
-        setup(src_d, src_fmt, n, k, alpha, beta, alg_kind_);
-    }
-}
-
-template<typename T>
-LocalResponseNormalizationFwd<T>::~LocalResponseNormalizationFwd(){}
-
-template<typename T>
-void LocalResponseNormalizationFwd<T>::setup(
-    mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt,
-    int n, double k, double alpha, double beta,
-    mkldnn::algorithm alg_kind)
-{
-    LOG(INFO) << "lrn forward_setup";
-
-    alg_kind_ = alg_kind;
-    // local_size_ = n;
-
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
-        get_desired_format(src_d[1]))); // use src's input channel to decide expected fmt
-    // dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
-    //     memory::format::any));
-
-    //LOG(INFO) << "lrn_fwd_desc_";
-    fwd_desc_.reset(new lrn_forward::desc(prop_kind::forward_training, alg_kind_, 
-        *src_md_, n, alpha, beta, k));
-    fwd_pd_.reset(new lrn_forward::primitive_desc(*fwd_desc_, cpu_engine));
-
-    // store expected primitive format
-    // src_fmt_ = get_desired_format(src_d[1]);
-    src_fmt_ = src_fmt;
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
-
-    // create MKL-DNN internal memory object with dummy data
-    src_mem_.reset(new memory({{{src_d}, memory_data_type<T>(), src_fmt_}, cpu_engine}, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
-
-    //need to return workspace for backward
-    auto ws_pd = fwd_pd_.get()->workspace_primitive_desc().desc().data;
-    // store workspace's dims and fmt to create ws tensor
-    ws_fmt_ = static_cast<mkldnn::memory::format>(ws_pd.format);
-    ws_dims_.assign(ws_pd.dims, ws_pd.dims + ws_pd.ndims);
-    ws_dt_ = static_cast<mkldnn::memory::data_type>(ws_pd.data_type);
-    ws_mem_.reset(new memory(fwd_pd_.get()->workspace_primitive_desc(), dummy));
-
-    fwd_.reset(new lrn_forward(
-            *fwd_pd_, *src_mem_, *dst_mem_, *ws_mem_));
+    ~LocalResponseNormalizationBwd();
     
-    fwd_primitives_.push_back(*fwd_);
-    return;
-}
+    /*
+     * lrn backward primitive setup
+     * Params:
+     * src_d: src
+     * diff_dst_d: diff dst
+     */
+    void setup(mkldnn::memory::dims src_d, 
+               mkldnn::memory::dims diff_dst_d,
+               mkldnn::memory::dims ws_d,
+               mkldnn::memory::data_type ws_dt,
+               int n, double k, double alpha, double beta,
+               mkldnn::algorithm alg_kind); // alg_kind = mkldnn::algorithm::lrn_across_channels
 
-template<typename T>
-void LocalResponseNormalizationFwd<T>::execute(void *src, void *dst, void *ws)
-{
-    LOG(INFO) << "lrn forward";
+    /*
+     * lrn backward execute 
+     * params:
+     * src:
+     * diff_src: diff_src
+     * diff_dst: diff_dst
+     * ws: workspace
+     */
+    void execute(void *src, void *diff_src, void *diff_dst, void *ws=NULL);
+
+public:
+    // expected memory format
+    mkldnn::memory::format src_fmt_;
+    mkldnn::memory::format diff_src_fmt_;
+    mkldnn::memory::format diff_dst_fmt_;
+    mkldnn::memory::format ws_fmt_;
+
+    // algo
+    mkldnn::algorithm alg_kind_;
+private:
+    // lrn primitive
+    std::shared_ptr<mkldnn::lrn_backward> bwd_;
+    std::shared_ptr<mkldnn::stream> bwd_stream_;
     
-    src_mem_->set_data_handle(src); // input
-    dst_mem_->set_data_handle(dst); // output dst
+    // MKL-DNN memory, just dummy data
+    std::shared_ptr<mkldnn::memory> src_mem_;
+    std::shared_ptr<mkldnn::memory> ws_mem_;
+    std::shared_ptr<mkldnn::memory> diff_src_mem_;
+    std::shared_ptr<mkldnn::memory> diff_dst_mem_;
+    std::shared_ptr<mkldnn::memory::desc> src_md_;
+    std::shared_ptr<mkldnn::memory::desc> diff_src_md_;
+    std::shared_ptr<mkldnn::memory::desc> diff_dst_md_;
 
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(ws); // output workspace
-        
-    fwd_stream_->submit(fwd_primitives_);
-
-    // set back data handle
-    src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
+    // fwd hint
+    std::shared_ptr<mkldnn::lrn_forward::desc> fwd_desc_;
+    std::shared_ptr<mkldnn::lrn_forward::primitive_desc> fwd_pd_;
     
-    assert(ws!=NULL);
-    ws_mem_->set_data_handle(dummy);
+    std::shared_ptr<mkldnn::lrn_backward::desc> bwd_desc_;
+    std::shared_ptr<mkldnn::lrn_backward::primitive_desc> bwd_pd_;
     
-    LOG(INFO) << "lrn forward finish";
-    return;
-}
+    std::vector<mkldnn::primitive> bwd_primitives_;
+};
 
-template class LocalResponseNormalizationFwd<float>;
+#endif // _LRN_BWD_H_
+
+
+// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

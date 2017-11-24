@@ -33,3 +33,17 @@ struct linear_param_t {
     bool with_weights_opt = false; // whether pass back optimized weight
 };
 
+struct lrn_param_t {
+    int src_d1, src_d2, src_d3, src_d4; // input shape
+    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
+    int n; // local size
+    double k;
+    double alpha;
+    double beta;
+
+    enum algorithm {
+        lrn_across_channels,
+        lrn_within_channel,
+    } algo_kind;
+};
+

@@ -44,8 +44,8 @@ class TestReLU(unittest.TestCase):
 
         testing.assert_allclose(expected, y.data)
 
-    #def test_forward_cpu(self):
-    #    self.check_forward(mdarray(self.x))
+    def test_forward_cpu(self):
+        self.check_forward(mdarray(self.x))
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -67,8 +67,8 @@ class TestReLU(unittest.TestCase):
                 f, x_data, y_grad, x_grad_grad, dtype=numpy.float32,
                 **self.check_double_backward_options)
 
-    #def test_double_backward_cpu(self):
-    #    self.check_double_backward(mdarray(self.x), mdarray(self.gy), mdarray(self.ggx))
+    def test_double_backward_cpu(self):
+        self.check_double_backward(mdarray(self.x), mdarray(self.gy), mdarray(self.ggx))
 
 
 

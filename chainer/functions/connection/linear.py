@@ -119,10 +119,19 @@ class LinearGradData(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         gy, W = inputs
+
         if (ideepy.all_ready(inputs, (2, 4))):
             return self.forward_ia(inputs)
-        gx = linear(gy, W.T)
-        return gx.data,
+
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together\n'
+                             'type(gy): {0}, type(W): {1}'
+                             .format(type(gy), type(W)))
+
+        gx = gy.dot(W).astype(gy.dtype, copy=False)
+        self.retain_inputs((0, 1)) 
+        return gx, 
+
 
     def backward(self, indexes, grad_outputs):
         gy, W = self.get_retained_inputs()
@@ -164,8 +173,14 @@ class LinearGradWeight(function_node.FunctionNode):
         if (ideepy.all_ready(inputs, (2, 4)) and self.W_dtype == numpy.dtype('float32')):
             return self.forward_ia(inputs)
         x, gy = inputs
-        gW = linear(gy.T, x.T)
-        return gW.data,
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together\n'
+                             'type(x): {0}, type(gy): {1}'
+                             .format(type(x), type(gy)))
+
+        gW = gy.T.dot(x).astype(gy.dtype, copy=False)
+        self.retain_inputs((0, 1)) 
+        return gW, 
     
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
