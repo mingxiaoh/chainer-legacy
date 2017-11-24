@@ -111,3 +111,10 @@ class ComputeComplex(object):
     @property
     def hint(self):
         return self._hint
+
+    @classmethod
+    def clear_cache(cls):
+        cache_f = {}
+        cache_bd = {}
+        cache_bw = {}
+        return
