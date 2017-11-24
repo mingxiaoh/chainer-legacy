@@ -28,6 +28,7 @@ try:
     from mkldnn.chainer.relu import ReLUMKLDNN
     from mkldnn.chainer.optimization import training_forward_optimization
     from mkldnn.chainer.reorder import ReorderMKLDNN
+    from mkldnn.compute_complex import ComputeComplex
 
     available = True
 except Exception as ex:
@@ -76,3 +77,9 @@ def all_ready(inputs, check_with_ndim):
         return False
 
     return True
+
+
+def refresh_status():
+    ComputeComplex.clear_cache()
+    FanoutRecorder.clear()
+    return

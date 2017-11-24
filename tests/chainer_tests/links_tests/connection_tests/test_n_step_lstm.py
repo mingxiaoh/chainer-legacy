@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import mkld
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -27,6 +28,7 @@ class TestNStepLSTM(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
+        mkld.refresh_status()
         shape = (self.n_layer, len(self.lengths), self.out_size)
         if self.hidden_none:
             self.h = self.c = numpy.zeros(shape, 'f')
