@@ -161,6 +161,18 @@ public:
                         , cpu_engine }, data_.get()));
         }
 
+    Tensor(int ndims, vector<int> dims, std::shared_ptr<avx::byte> data, data_type_t type=FLOAT32)
+        : ndims_(ndims), dims_(dims), type_(type) {
+            size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
+                    , std::multiplies<int>());
+            data_ = data;
+            mm_fmt_ = ndims2format(ndims);
+            memory::data_type dt = to_mkldnn_type();
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
+        }
+
     Tensor(int ndims, vector<int> dims,
             mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
         : Tensor(ndims, dims, type) {
@@ -323,6 +335,29 @@ public:
 
     inline mkldnn::memory::data_type cxx_data_type() const {
         return static_cast<mkldnn::memory::data_type>(to_mkldnn_type());
+    }
+
+    inline Tensor *reshape(vector<int> dims) {
+        int ndims = dims.size();
+        // Reorder to public format
+        mkldnn_memory_format_t public_fmt = public_format(mm_fmt_);
+        if (public_fmt != mm_fmt_) {
+            //printf("reorder----\n");
+            memory::data_type dt = to_mkldnn_type();
+            auto data = new avx::byte [len()];
+            auto mem = new mkldnn::memory(
+                    { { { dims_ }, dt, static_cast<memory::format>(public_fmt) }
+                    , cpu_engine }, data);
+            
+            auto reorder_prim = reorder(*mem_, *mem);
+            std::vector<mkldnn::primitive> prims = { reorder_prim };
+            mkldnn::stream s(mkldnn::stream::kind::eager);
+            s.submit(prims).wait();
+
+            reset_memory(public_fmt, data);
+        }
+
+        return new Tensor(ndims, dims, data_, type_); 
     }
 
 protected:

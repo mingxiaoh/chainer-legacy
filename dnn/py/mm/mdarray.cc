@@ -764,4 +764,49 @@ PyObject *mdarray::flat() {
   return plain_arr;
 }
 
+PyObject *mdarray::reshape(py_handle *self, vector<int> dims)
+{
+    int ndims = 2;
+    if (dims.size() != ndims) {
+        PyErr_SetString(PyExc_ValueError,"Only support reshape to 2 dimension");
+        return nullptr;
+    }
+    int idx_unknown = -1;
+    size_t size = 1;
+    for (int i = 0; i < dims.size(); i++) {
+        if (dims[i] < 0) {
+            if (idx_unknown == -1) {
+                idx_unknown = i;
+            } else {
+                PyErr_SetString(PyExc_ValueError,"Only support 1 unkown dimension");
+                return nullptr;
+            }
+        } else {
+            size *= dims[i];
+        }
+    }
+    if (idx_unknown == -1) {
+        if (size != this->size()) {
+            PyErr_SetString(PyExc_ValueError,"Wrong dimension to reshape");
+            return nullptr;
+        }
+    } else if (this->size() % size) {
+        PyErr_SetString(PyExc_ValueError,"Wrong dimension to reshape");
+        return nullptr;
+    } else {
+        dims[idx_unknown] = this->size() / size;
+    }
+    Tensor *tensor = tensor_->reshape(dims);
+    if (tensor == nullptr) {
+        PyErr_SetString(PyExc_ValueError,"The dimension is not valid in reshape");
+        return nullptr;
+    } else {
+        //mdarray *new_array = new ::mdarray(tensor);
+        py_handle *output = new py_handle(new mdarray(tensor));
+        PyObject *resultobj = SWIG_Python_NewPointerObj(nullptr
+                , SWIG_as_voidptr(output), SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
+        return resultobj;
+    }
+}
+
 }

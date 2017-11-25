@@ -6,6 +6,7 @@
   #include <numeric>
   #include <memory>
   #include <stdexcept>
+  #include <stdarg.h>
 #define SWIG_INLINE
   #include "mdarray.h"
 %}
@@ -75,6 +76,52 @@
   PyObject *flat() {
     return (*self)->flat();
   }
+
+  %typemap(in) (...)(vector<int> args) {
+     int i;
+     int argc;
+     argc = PyTuple_Size(varargs);
+     if (argc > 4) {
+       PyErr_SetString(PyExc_ValueError,"Too many arguments");
+       return NULL;
+     }
+     if (argc == 1) {
+       // args should be tuple
+       PyObject *o = PyTuple_GetItem(varargs,0);
+       if (!PyTuple_Check(o)) {
+         PyErr_SetString(PyExc_ValueError,"Expected a tuple");
+         return NULL;
+       }
+       for (i = 0; i < PyTuple_GET_SIZE(o); i++) {
+         PyObject *obj = PyTuple_GET_ITEM(o, i);
+         if (!PyInt_Check(obj)) {
+           PyErr_SetString(PyExc_ValueError,"Expected a int in tuple");
+           return NULL;
+         }
+         args.push_back(PyInt_AsLong(obj));
+       }
+     } else {
+       for (i = 0; i < argc; i++) {
+         PyObject *o = PyTuple_GetItem(varargs,i);
+         if (!PyInt_Check(o)) {
+           PyErr_SetString(PyExc_ValueError,"Expected a int");
+           return NULL;
+         }
+         //args[i] = PyInt_AsLong(o);
+         args.push_back(PyInt_AsLong(o));
+       }
+     }
+     $1 = &args;
+  }
+
+  PyObject *reshape(...) {
+    va_list vl;
+    va_start(vl, self);
+    vector<int> *dims = va_arg(vl, vector<int>*);
+    va_end(vl);
+    return (*self)->reshape(self, *dims);
+  }
+
 }
 
 %extend mdarray {
