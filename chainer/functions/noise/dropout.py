@@ -4,6 +4,7 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function_node
+from chainer import ideepy
 from chainer.utils import argument
 from chainer.utils import type_check
 
@@ -21,7 +22,17 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
+    def forward_ia(self, inputs):
+        x, = ideepy.to_mdarray((inputs[0],))
+        mask, y = ideepy.Dropout_F32.Forward(x, self.dropout_ratio)
+        self.mask = mask
+        return y,
+
     def forward(self, x):
+        # TODO: cosim
+        if chainer.ideepy.all_ready(x, (2, 4)):
+            return self.forward_ia(x)
+
         if hasattr(self, 'mask'):
             y = x[0] * self.mask
         else:
@@ -53,7 +64,14 @@ class DropoutGrad(function_node.FunctionNode):
     def __init__(self, mask):
         self.mask = mask
 
+    def forward_ia(self, inputs):
+        gy, mask = ideepy.to_mdarray((inputs[0], self.mask))
+        return ideepy.Dropout_F32.Backward(mask, gy),
+
     def forward(self, inputs):
+        # TODO: cosim
+        if chainer.ideepy.all_ready(inputs, (2, 4)):
+            return self.forward_ia(inputs)
         y = inputs[0] * self.mask
         return y,
 
