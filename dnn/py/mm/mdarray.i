@@ -94,8 +94,8 @@
        }
        for (i = 0; i < PyTuple_GET_SIZE(o); i++) {
          PyObject *obj = PyTuple_GET_ITEM(o, i);
-         if (!PyInt_Check(obj)) {
-           PyErr_SetString(PyExc_ValueError,"Expected a int in tuple");
+         if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
+           PyErr_SetString(PyExc_ValueError,"Expected a int or long in tuple");
            return NULL;
          }
          args.push_back(PyInt_AsLong(obj));
@@ -103,7 +103,7 @@
      } else {
        for (i = 0; i < argc; i++) {
          PyObject *o = PyTuple_GetItem(varargs,i);
-         if (!PyInt_Check(o)) {
+         if (!PyInt_Check(o) && !PyLong_Check(obj)) {
            PyErr_SetString(PyExc_ValueError,"Expected a int");
            return NULL;
          }

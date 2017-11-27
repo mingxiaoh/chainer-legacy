@@ -766,8 +766,7 @@ PyObject *mdarray::flat() {
 
 PyObject *mdarray::reshape(py_handle *self, vector<int> dims)
 {
-    int ndims = 2;
-    if (dims.size() != ndims) {
+    if (dims.size() != 4 && dims.size() != 2) {
         PyErr_SetString(PyExc_ValueError,"Only support reshape to 2 dimension");
         return nullptr;
     }
