@@ -104,18 +104,36 @@ template<typename T>
 Tensor* Dropout<T>::Backward(Tensor* mask, Tensor* gy) {
     assert(mask->size() == gy->size());
 
-    // TODO: Reorder mask if needed
+    // Reorder mask if needed
+    auto gy_fmt = gy->cxx_format();
+    auto mask_fmt = mask->cxx_format();
+    void* mask_reorder = nullptr;
+
+    if (gy_fmt == mask_fmt) {
+        LOG(INFO) << "mask fmt matched";
+    } else {
+        LOG(INFO) << "mask fmt not match, need to reorder";
+        LOG(INFO) << "mask_fmt=" << mask_fmt <<", gy_fmt=" << gy_fmt;
+        auto reorder_op = ReorderFactory<T>::get(mask->dims(), mask_fmt, gy_fmt);
+        mask_reorder = new avx::byte[mask->len()];
+        reorder_op->execute(mask->data(), mask_reorder);
+    }
 
     const auto size = mask->size();
     const auto gx = new Tensor(gy->ndims(), gy->dims(), gy->type());
 
-    const auto mask_buf = static_cast<T*>(mask->data());
+    const auto mask_buf = static_cast<T*>(mask_reorder ? mask_reorder : mask->data());
     const auto gy_buf = static_cast<T*>(gy->data());
     const auto gx_buf = static_cast<T*>(gx->data());
 
 #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < size; ++i) {
         gx_buf[i] = mask_buf[i] * gy_buf[i];
+    }
+
+    // Release the reordered memory
+    if (mask_reorder) {
+        delete static_cast<avx::byte*>(mask_reorder);
     }
 
     return gx;
