@@ -103,7 +103,7 @@
      } else {
        for (i = 0; i < argc; i++) {
          PyObject *o = PyTuple_GetItem(varargs,i);
-         if (!PyInt_Check(o) && !PyLong_Check(obj)) {
+         if (!PyInt_Check(o) && !PyLong_Check(o)) {
            PyErr_SetString(PyExc_ValueError,"Expected a int");
            return NULL;
          }
