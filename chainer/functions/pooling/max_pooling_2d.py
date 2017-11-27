@@ -137,6 +137,12 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.mpool2d = mpool2d
 
     def forward_ia(self, gy):
+        # FIXME
+        # Here we expect indexes is returned from MKL-DNN
+        # otherwise, there are dtype mismatch for reorder (int64-->uint8)
+        if not isinstance(self.indexes, ideepy.mdarray):
+            return self.forward_cpu(gy)
+
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
 
