@@ -92,6 +92,20 @@
          PyErr_SetString(PyExc_ValueError,"Expected a tuple");
          return NULL;
        }
+       Py_ssize_t size = PyTuple_GET_SIZE(o);
+       if (size != 4 && size != 2) {
+         PyObject *surrogate = PyArray_FromAny($self, nullptr, 0, 0
+                 , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+         if (surrogate == nullptr) {
+           PyErr_SetString(PyExc_ValueError,"Unexpected array");
+           return nullptr;
+         }
+         PyObject *res = PyArray_Reshape((PyArrayObject *)surrogate, o);
+
+         Py_DECREF(surrogate);
+         return res;
+       }
        for (i = 0; i < PyTuple_GET_SIZE(o); i++) {
          PyObject *obj = PyTuple_GET_ITEM(o, i);
          if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
@@ -101,6 +115,20 @@
          args.push_back(PyInt_AsLong(obj));
        }
      } else {
+       Py_ssize_t size = argc;
+       if (size != 4 && size != 2) {
+         PyObject *surrogate = PyArray_FromAny($self, nullptr, 0, 0
+                 , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
+
+         if (surrogate == nullptr) {
+           PyErr_SetString(PyExc_ValueError,"Unexpected array");
+           return nullptr;
+         }
+         PyObject *res = PyArray_Reshape((PyArrayObject *)surrogate, varargs);
+
+         Py_DECREF(surrogate);
+         return res;
+       }
        for (i = 0; i < argc; i++) {
          PyObject *o = PyTuple_GetItem(varargs,i);
          if (!PyInt_Check(o) && !PyLong_Check(o)) {
