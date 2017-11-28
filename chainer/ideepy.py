@@ -18,6 +18,7 @@ try:
     from dnn._dnn import pooling_param_t, Pooling2D_Py_F32
     from dnn._dnn import Concat_Py_F32
     from dnn._dnn import linear_param_t, Linear_Py_F32
+    from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)

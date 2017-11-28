@@ -93,14 +93,15 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
     
     // do forward
     // to return workspace
-    LOG(INFO) << "ws_dt_=" << lrn_forward->ws_dt_;
+    // LOG(INFO) << "ws_dt_=" << lrn_forward->ws_dt_;
     // workspace must be int tensor
     Tensor *ws_tensor = new Tensor((lrn_forward->ws_dims_), lrn_forward->ws_dt_, lrn_forward->ws_fmt_, cpu_engine);
 
     lrn_forward->execute(src_tmp, dst_tensor->data(), ws_tensor->data());
     std::vector<Tensor *> outputs;
-    outputs.push_back(dst_tensor);
     outputs.push_back(ws_tensor);
+    outputs.push_back(dst_tensor);
+    // outputs.push_back(ws_tensor);
 
 
     //FIXME here may cause performance issue

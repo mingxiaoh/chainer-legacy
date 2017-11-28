@@ -4,6 +4,9 @@ import six
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import ideepy
+# from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
+import pdb
 
 
 def _cu_conv_sum(y, x, n):
@@ -50,29 +53,57 @@ class LocalResponseNormalization(function.Function):
             x_type.dtype.kind == 'f',
             x_type.ndim >= 2,
         )
-
+    def forward_ia(self, x):
+        pp = ideepy.lrn_param_t()
+        pp.n = self.n
+        pp.k = self.k
+        pp.alpha = self.n*self.alpha
+        pp.beta = self.beta
+        pp.algo_kind = ideepy.lrn_param_t.lrn_across_channels
+        self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
+        (x_mdarray,) = ideepy.to_mdarray((x[0],))
+        (y, self.indexes) = ideepy.LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
+        return self.indexes,
     def forward_cpu(self, x):
-        half_n = self.n // 2
-        x2 = numpy.square(x[0])
-        sum_part = x2.copy()
-        for i in six.moves.range(1, half_n + 1):
-            sum_part[:, i:] += x2[:, :-i]
-            sum_part[:, :-i] += x2[:, i:]
-        self.unit_scale = self.k + self.alpha * sum_part
-        self.scale = self.unit_scale ** -self.beta
-        self.y = x[0] * self.scale
-        return self.y,
-
-    def backward_cpu(self, x, gy):
-        half_n = self.n // 2
-        summand = self.y * gy[0] / self.unit_scale
-        sum_part = summand.copy()
-        for i in six.moves.range(1, half_n + 1):
-            sum_part[:, i:] += summand[:, :-i]
-            sum_part[:, :-i] += summand[:, i:]
-
-        gx = gy[0] * self.scale - 2 * self.alpha * self.beta * x[0] * sum_part
+        # pdb.set_trace()
+        if ideepy.all_ready(x, (4,)):
+            return self.forward_ia(x)
+        else:
+            half_n = self.n // 2
+            x2 = numpy.square(x[0])
+            sum_part = x2.copy()
+            for i in six.moves.range(1, half_n + 1):
+                sum_part[:, i:] += x2[:, :-i]
+                sum_part[:, :-i] += x2[:, i:]
+            self.unit_scale = self.k + self.alpha * sum_part
+            self.scale = self.unit_scale ** -self.beta
+            self.y = x[0] * self.scale
+            return self.y,
+    def backward_ia(self, x, gy):
+        pp = ideepy.lrn_param_t()
+        pp.n = self.n
+        pp.k = self.k
+        pp.alpha = self.n * self.alpha
+        pp.beta = self.beta
+        pp.algo_kind = ideepy.lrn_param_t.lrn_across_channels
+        (x_mdarray,) = ideepy.to_mdarray((x[0],))
+        (gy_mdarray,) = ideepy.to_mdarray((gy[0],))
+        gx = ideepy.LocalResponseNormalization_Py_F32.Backward(
+            x_mdarray, gy_mdarray, self.indexes, pp)
         return gx,
+    def backward_cpu(self, x, gy):
+        if ideepy.all_ready(x, (4,)):
+            return self.backward_ia(x, gy)
+        else:
+            half_n = self.n // 2
+            summand = self.y * gy[0] / self.unit_scale
+            sum_part = summand.copy()
+            for i in six.moves.range(1, half_n + 1):
+                sum_part[:, i:] += summand[:, :-i]
+                sum_part[:, :-i] += summand[:, i:]
+
+            gx = gy[0] * self.scale - 2 * self.alpha * self.beta * x[0] * sum_part
+            return gx,
 
     def forward_gpu(self, x):
         self.y = cuda.cupy.square(x[0])  # temporary
