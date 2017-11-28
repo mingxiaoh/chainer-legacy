@@ -81,8 +81,8 @@ std::vector<Tensor*> Dropout<T>::Forward(Tensor* x, float ratio) {
     const auto scale = 1.0 / (1.0 - ratio);
     const auto x_buf = static_cast<T*>(x->data());
     const auto size = x->size();
-    const auto mask = new Tensor(x->ndims(), x->dims(), x->type());
-    const auto y = new Tensor(x->ndims(), x->dims(), x->type());
+    const auto mask = new Tensor(x->ndims(), x->dims(), x->format(), x->type());
+    const auto y = new Tensor(x->ndims(), x->dims(), x->format(), x->type());
 
     // Init the mask
     std::unique_ptr<int[]> bernouli_nums(new int[size]);
@@ -120,7 +120,7 @@ Tensor* Dropout<T>::Backward(Tensor* mask, Tensor* gy) {
     }
 
     const auto size = mask->size();
-    const auto gx = new Tensor(gy->ndims(), gy->dims(), gy->type());
+    const auto gx = new Tensor(gy->ndims(), gy->dims(), gy->format(), gy->type());
 
     const auto mask_buf = static_cast<T*>(mask_reorder ? mask_reorder : mask->data());
     const auto gy_buf = static_cast<T*>(gy->data());
