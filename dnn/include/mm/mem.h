@@ -27,7 +27,10 @@ typedef enum {
 template <std::size_t ALIGNMENT>
 class Memory {
 public:
-    Memory() :alloc_size_(0), free_size_(0) {}
+    Memory() :alloc_size_(0), free_size_(0), seq_(0) {}
+    virtual ~Memory() {
+        //printf("+++++++++++++++++++++alloc size %#x,  free size %#x\n", alloc_size_, free_size_);
+    }
 
     void* malloc(size_t size) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -46,10 +49,11 @@ public:
             }
             if (block) {
                 list.erase(it);
+                void *ptr = static_cast<void *>(block);
+                free_size_ -= size;
+                //printf("dnn alloc seq %d, size %#x\n", block->header_.seq_, block->header_.size_);
+                return (ptr + ALIGNMENT);
             }
-            void *ptr = static_cast<void *>(block);
-            free_size_ -= size;
-            return (ptr + ALIGNMENT);
         }
         // No cached memory
         size_t len = size + ALIGNMENT;
@@ -60,6 +64,8 @@ public:
         block_t *block = static_cast<block_t *>(ptr); 
         block->header_.size_ = size;
         alloc_size_ += size;
+        //printf("system alloc seq %d, size %#x\n", seq_, size);
+        block->header_.seq_ = seq_++;
         return (ptr + ALIGNMENT);
     }
 
@@ -69,6 +75,7 @@ public:
         int idx = to_index(block->header_.size_);
         free_hashline_[idx].push_back(block);
         free_size_ += block->header_.size_;
+        //printf("free seq %d, size %#x\n", block->header_.seq_, block->header_.size_);
     }
 
     void epoch() {
@@ -84,6 +91,7 @@ private:
     typedef union _header_str {
         struct {
             std::size_t size_;
+            int seq_;
         };
         char pad_[ALIGNMENT];
     } header_t;
@@ -99,6 +107,7 @@ private:
     std::size_t free_size_;
     std::list<block_t *> free_hashline_[MAX_ENTRY];
     std::mutex mutex_;
+    int seq_;
 };
 
 void* dnn_malloc(size_t size, mem_pool_t pool=MPOOL_ANON);
@@ -106,7 +115,7 @@ void dnn_free(void *p, mem_pool_t pool=MPOOL_ANON);
 
 // Just grab it from MKL-DNN
 namespace avx {
-#if 0
+#if 1
     inline void* malloc(size_t size, int alignment) {
         return ::dnn_malloc(size);
     }

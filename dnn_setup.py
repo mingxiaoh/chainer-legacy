@@ -70,6 +70,7 @@ if system() == 'Linux':
            'dnn/primitives/ops/lrn_fwd.cc',
            'dnn/primitives/ops/lrn_bwd.cc',
            'dnn/primitives/lrn.cc',
+           'dnn/primitives/dropout.cc'
           ]
 else:
     # TODO
