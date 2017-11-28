@@ -36,13 +36,11 @@ before_install:
 install:
   - pip install --upgrade pip
   - pip install h5py pillow protobuf
-  - pip install nose hacking mock coveralls filelock
+  - pip install hacking filelock
 
 
 script:
   - python setup.py install
-  - cd tests
-  - nosetests --cover-branches --with-coverage --cover-package=chainer -a '!gpu,!slow' chainer_tests
 
 
 addons:
@@ -54,8 +52,4 @@ addons:
       - libssl-dev
       - libboost-dev
       - libboost-system1.54
-
-# coveralls
-after_success:
-     coveralls
 
