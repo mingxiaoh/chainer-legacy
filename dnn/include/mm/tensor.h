@@ -3,7 +3,7 @@
 #include <vector>
 #include "mkldnn.hpp"
 #include "mem.h"
-
+#include "utils.h"
 using namespace std;
 using namespace mkldnn;
 extern engine cpu_engine;
@@ -73,6 +73,31 @@ inline mkldnn_memory_format_t ndims2format(int ndims)
     return fmt;
 }
 
+
+inline mkldnn_memory_format_t ndims2format_preferred(int ndims, vector<int> dims)
+{
+    mkldnn_memory_format_t fmt = mkldnn_any; 
+    switch (ndims) {
+        case 1:
+            fmt = mkldnn_x;
+            break;
+        case 2:
+            fmt = mkldnn_nc;
+            break;
+        case 4:
+            fmt = (mkldnn_memory_format_t)get_desired_format(dims[1]);
+            break;
+        default:
+            throw mkldnn::error(mkldnn_invalid_arguments
+                    , "MKLDNN does not support dimensions"
+                    + ndims);
+    }
+
+    return fmt;
+}
+
+
+
 inline mkldnn_memory_format_t public_format(mkldnn_memory_format_t origin)
 {
     mkldnn_memory_format_t ret;
@@ -127,7 +152,6 @@ inline mkldnn_memory_format_t format_2_as_4(mkldnn_memory_format_t origin)
     return ret;
 }
 
-
 class Tensor {
 public:
     // Allocate memory in constructor
@@ -153,12 +177,29 @@ public:
                     , std::multiplies<int>());
             data_ = std::shared_ptr<avx::byte>(new avx::byte [len()]
                     , [] (avx::byte *p) {delete [] p;});
-            memcpy(data_.get(), data, len());
-            mm_fmt_ = ndims2format(ndims);
+            //memcpy(data_.get(), data, len());
             memory::data_type dt = to_mkldnn_type();
-            mem_.reset(new mkldnn::memory(
-                        { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
-                        , cpu_engine }, data_.get()));
+            if (dt == memory::data_type::f32) { //currently, mkldnn only support most f32 currently, may add int8 in future?
+                auto mm_fmt_i = ndims2format(ndims);
+                mm_fmt_ = ndims2format_preferred(ndims, dims);
+                auto mem_i = new mkldnn::memory(
+                            { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_i) }
+                            , cpu_engine }, data);
+
+                mem_.reset(new mkldnn::memory(
+                            { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                            , cpu_engine }, data_.get()));
+                auto reorder_prim = reorder(*mem_, *mem_i);
+                std::vector<mkldnn::primitive> prims = {reorder_prim};
+                mkldnn::stream s(mkldnn::stream::kind::eager);
+                s.submit(prims).wait();
+            } else {
+                mm_fmt_ =  ndims2format(ndims);
+                fast_memcpy((char*)data_.get(), (char*)data, len());
+                mem_.reset(new mkldnn::memory(
+                            { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                            , cpu_engine }, data_.get()));                
+            }
         }
 
     Tensor(int ndims, vector<int> dims, std::shared_ptr<avx::byte> data, data_type_t type=FLOAT32)
