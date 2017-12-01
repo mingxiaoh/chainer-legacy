@@ -182,14 +182,14 @@ public:
             if (dt == memory::data_type::f32 && len() > 0) { //currently, mkldnn only support most f32 currently, may add int8 in future?
                 auto mm_fmt_i = ndims2format(ndims);
                 mm_fmt_ = ndims2format_preferred(ndims, dims);
-                auto mem_i = new mkldnn::memory(
+                auto mem_i = mkldnn::memory(
                             { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_i) }
                             , cpu_engine }, data);
 
                 mem_.reset(new mkldnn::memory(
                             { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
                             , cpu_engine }, data_.get()));
-                auto reorder_prim = reorder(*mem_i, *mem_);
+                auto reorder_prim = reorder(mem_i, *mem_);
                 std::vector<mkldnn::primitive> prims = {reorder_prim};
                 mkldnn::stream s(mkldnn::stream::kind::eager);
                 s.submit(prims).wait();
@@ -408,11 +408,11 @@ public:
             //printf("reorder----\n");
             memory::data_type dt = to_mkldnn_type();
             auto data = new avx::byte [len()];
-            auto mem = new mkldnn::memory(
+            auto mem = mkldnn::memory(
                     { { { dims_ }, dt, static_cast<memory::format>(public_fmt) }
                     , cpu_engine }, data);
             
-            auto reorder_prim = reorder(*mem_, *mem);
+            auto reorder_prim = reorder(*mem_, mem);
             std::vector<mkldnn::primitive> prims = { reorder_prim };
             mkldnn::stream s(mkldnn::stream::kind::eager);
             s.submit(prims).wait();
