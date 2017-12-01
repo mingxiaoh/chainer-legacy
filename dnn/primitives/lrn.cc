@@ -71,7 +71,7 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
     // mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
 
     void *src_tmp = src->data();
-    void *src_reorder = NULL;
+    shared_ptr<avx::byte> src_reorder;
     
     // check wehther fmt is same
     if (src_fmt == lrn_forward->src_fmt_) {
@@ -81,9 +81,10 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
         LOG(INFO) << "src_fmt=" << src_fmt <<", lrn_forward->src_fmt_=" << lrn_forward->src_fmt_;
         // FIXME: when to free the reordered memory
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src_fmt, lrn_forward->src_fmt_);
-        src_reorder = new avx::byte[src->len()];
-        reorder_src_op->execute(src_tmp, src_reorder);
-        src_tmp = src_reorder;
+        src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+        //src_reorder = new avx::byte[src->len()];
+        reorder_src_op->execute(src_tmp, src_reorder.get());
+        src_tmp = src_reorder.get();
     }
 
     // create tensor based on primitive's dst 
@@ -103,11 +104,6 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
     outputs.push_back(dst_tensor);
     // outputs.push_back(ws_tensor);
 
-
-    //FIXME here may cause performance issue
-    if (src_reorder != NULL)
-        delete src_reorder;
-        // delete static_cast<avx::byte *>(src_reorder);
     LOG(INFO) << "Succ exec lrn forward";
     return outputs;
 }
@@ -132,40 +128,43 @@ Tensor *LocalResponseNormalization<T>::Backward(
             pp->n, pp->k, pp->alpha, pp->beta, lrn_algo_convert(pp->algo_kind));
 
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
-    void* ws_reorder = NULL;
+    shared_ptr<avx::byte> ws_reorder;
     mkldnn::memory::format ws_fmt = ws->cxx_format();
     void* ws_tmp = ws->data();
     assert(ws_tmp == NULL);
 
     mkldnn::memory::format diff_dst_fmt = diff_dst->cxx_format();
     void* diff_dst_tmp = diff_dst->data();
-    void* diff_dst_reorder = NULL;
+    shared_ptr<avx::byte> diff_dst_reorder;
 
     if (ws_fmt != lrn_bwd->ws_fmt_) {
         LOG(INFO) << "lrn bwd data ws fmt not match, need to reorder";
         LOG(INFO) << "ws_fmt=" << ws_fmt << ", lrn_bwd->ws_fmt_="<< lrn_bwd->ws_fmt_;
         ReorderOp<T>* reorder_ws_op = ReorderFactory<T>::get(ws_dims, ws_fmt, lrn_bwd->ws_fmt_);
-        ws_reorder = new avx::byte[ws->len()];
-        reorder_ws_op->execute(ws_tmp, ws_reorder);
-        ws_tmp = ws_reorder;
+        ws_reorder = Allocator::malloc(ws->len(), MPOOL_REORDER);
+        //ws_reorder = new avx::byte[ws->len()];
+        reorder_ws_op->execute(ws_tmp, ws_reorder.get());
+        ws_tmp = ws_reorder.get();
     } 
     if (diff_dst_fmt != lrn_bwd->diff_dst_fmt_) {
         LOG(INFO) << "lrn bwd data diff dst fmt not match, need to reorder";
         LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", lrn_bwd->diff_dst_fmt_=" << lrn_bwd->diff_dst_fmt_;
         ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst->dims(), diff_dst_fmt, lrn_bwd->diff_dst_fmt_);
-        diff_dst_reorder = new avx::byte[diff_dst->len()];
-        reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
-        diff_dst_tmp = diff_dst_reorder;
+        diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+        //diff_dst_reorder = new avx::byte[diff_dst->len()];
+        reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder.get());
+        diff_dst_tmp = diff_dst_reorder.get();
     }
     void *src_buf = src->data();
-    avx::byte *src_reorder = nullptr;
+    shared_ptr<avx::byte> src_reorder;
     if (src->cxx_format() != diff_dst->cxx_format()) {
         LOG(INFO) << "lrn bwd data src fmt not match, need to reorder";
         LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
-        src_reorder = new avx::byte[diff_dst->len()];
-        reorder_src_op->execute(src_buf, src_reorder);
-        src_buf = src_reorder;
+        //src_reorder = new avx::byte[diff_dst->len()];
+        src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+        reorder_src_op->execute(src_buf, src_reorder.get());
+        src_buf = src_reorder.get();
     }
 
     // create tensor based on selected primitive
@@ -173,14 +172,6 @@ Tensor *LocalResponseNormalization<T>::Backward(
     Tensor *diff_src_tensor = new Tensor(src->dims(), diff_dst->cxx_data_type(), lrn_bwd->diff_src_fmt_, cpu_engine);
     
     lrn_bwd->execute(src_buf, diff_src_tensor->data(), diff_dst_tmp, ws_tmp);
-
-    // free
-    if(src_reorder != NULL)
-        delete src_reorder;
-    if (ws_reorder != NULL)
-        delete static_cast<avx::byte *>(ws_reorder);
-    if (diff_dst_reorder != NULL)
-        delete static_cast<avx::byte *>(diff_dst_reorder);
 
     return diff_src_tensor;
 }

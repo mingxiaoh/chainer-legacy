@@ -25,8 +25,6 @@
  */
 
 
-#pragma once
-
 #include <mkldnn.hpp>
 #include <vector>
 #include <memory>
@@ -67,10 +65,10 @@ Tensor *Relu<T>::Forward(Tensor *src)
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    // Tensor *dst_tensor = new Tensor(src->dims(), src->cxx_data_type(), relu_fwd->dst_fmt_, cpu_engine);
-    Tensor *dst_tensor = new Tensor(src->ndims(), src->dims(),
-                                    (mkldnn_memory_format_t)relu_fwd->dst_fmt_,
-                                    src->type());
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_RELU_FWD);
+    Tensor *dst_tensor = new Tensor(src->ndims(), src->dims(), data,
+            (mkldnn_memory_format_t)relu_fwd->dst_fmt_,
+            src->type());
 
     // do forward
     relu_fwd->execute(src->data(), dst_tensor->data());
@@ -91,28 +89,25 @@ Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
     relu_bwd = ReluBwdFactory<T>::get(diff_dst->dims(), diff_dst->cxx_format());
 
     void *src_buf = src->data();
-    avx::byte *src_reorder = nullptr;
 
     if (src->cxx_format() != diff_dst->cxx_format()) {
         LOG(INFO) << "relu bwd data fmt not match, need to reorder";
         LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
-        src_reorder = new avx::byte[diff_dst->len()];
-        reorder_src_op->execute(src_buf, src_reorder);
-        src_buf = src_reorder;
+        //src_reorder = new avx::byte[diff_dst->len()];
+        auto src_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+        reorder_src_op->execute(src_buf, src_reorder.get());
+        src_buf = static_cast<void *>(src_reorder.get());
     }
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor *diff_src = new Tensor(src->ndims(), src->dims(),
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_RELU_BWD);
+    Tensor *diff_src = new Tensor(src->ndims(), src->dims(), data,
                                     (mkldnn_memory_format_t)relu_bwd->src_diff_fmt_,
                                     src->type());
     
     relu_bwd->execute(src_buf, diff_dst->data(), diff_src->data());
-
-    // free
-    if (src_reorder != nullptr)
-        delete src_reorder;
 
     return diff_src;
 }

@@ -81,7 +81,7 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
 
     void *src_tmp = src->data();
-    void *src_reorder = NULL;
+    shared_ptr<avx::byte> src_reorder;
     
     // check wehther fmt is same
     if (src_fmt == pooling2d_forward->src_fmt_) {
@@ -93,9 +93,10 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
             LOG(INFO) << "src_fmt=" << src_fmt <<", pooling2d_forward->src_fmt_=" << pooling2d_forward->src_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, pooling2d_forward->src_fmt_);
-            src_reorder = new avx::byte[src->len()];
-            reorder_src_op->execute(src_tmp, src_reorder);
-            src_tmp = src_reorder;
+            src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+            //src_reorder = new avx::byte[src->len()];
+            reorder_src_op->execute(src_tmp, src_reorder.get());
+            src_tmp = src_reorder.get();
         }
     }
 
@@ -119,9 +120,6 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
         outputs.push_back(dst_tensor);
     }
 
-    //FIXME here may cause performance issue
-    if (src_reorder != NULL)
-        delete static_cast<avx::byte *>(src_reorder);
     LOG(INFO) << "Succ exec pooling forward";
     return outputs;
 }
@@ -167,7 +165,7 @@ Tensor *Pooling2D<T>::Backward(
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
     mkldnn::memory::format ws_fmt;
     void* ws_tmp;
-    void* ws_reorder = NULL;
+    shared_ptr<avx::byte> ws_reorder;
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
         ws_fmt = ws->cxx_format();
         ws_tmp = ws->data();
@@ -175,22 +173,24 @@ Tensor *Pooling2D<T>::Backward(
     
     mkldnn::memory::format diff_dst_fmt = diff_dst->cxx_format();
     void* diff_dst_tmp = diff_dst->data();
-    void* diff_dst_reorder = NULL;
+    shared_ptr<avx::byte> diff_dst_reorder;
 
     if ( pp->algo_kind == pooling_param_t::algorithm::pooling_max &&
             ws_fmt != pooling2d_bwd->ws_fmt_) {
         LOG(INFO) << "ws_fmt=" << ws_fmt << ", pooling2d_bwd->ws_fmt_="<< pooling2d_bwd->ws_fmt_;
         ReorderOp<T>* reorder_ws_op = ReorderFactory<T>::get(ws_dims, ws_fmt, pooling2d_bwd->ws_fmt_);
-        ws_reorder = new avx::byte[ws->len()];
-        reorder_ws_op->execute(ws_tmp, ws_reorder);
-        ws_tmp = ws_reorder;
+        ws_reorder = Allocator::malloc(ws->len(), MPOOL_REORDER);
+        //ws_reorder = new avx::byte[ws->len()];
+        reorder_ws_op->execute(ws_tmp, ws_reorder.get());
+        ws_tmp = ws_reorder.get();
     } 
     if (diff_dst_fmt != pooling2d_bwd->diff_dst_fmt_) {
         LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", pooling2d_bwd->diff_dst_fmt_=" << pooling2d_bwd->diff_dst_fmt_;
         ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, pooling2d_bwd->diff_dst_fmt_);
-        diff_dst_reorder = new avx::byte[diff_dst->len()];
-        reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
-        diff_dst_tmp = diff_dst_reorder;
+        diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+        //diff_dst_reorder = new avx::byte[diff_dst->len()];
+        reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder.get());
+        diff_dst_tmp = diff_dst_reorder.get();
     }
 
     // create tensor based on selected primitive
@@ -198,12 +198,6 @@ Tensor *Pooling2D<T>::Backward(
     Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), pooling2d_bwd->diff_src_fmt_, cpu_engine);
     
     pooling2d_bwd->execute(diff_src_tensor->data(), diff_dst_tmp, ws_tmp);
-
-    // free
-    if (ws_reorder != NULL)
-        delete static_cast<avx::byte *>(ws_reorder);
-    if (diff_dst_reorder != NULL)
-        delete static_cast<avx::byte *>(diff_dst_reorder);
 
     return diff_src_tensor;
 }

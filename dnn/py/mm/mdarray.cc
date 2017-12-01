@@ -206,7 +206,9 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
       static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type)) {
+      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
+       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
+       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
     return m_Add_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -231,7 +233,9 @@ PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
   if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
       static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type)) {
+      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
+       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
+       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
     return m_Subtract_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -255,7 +259,9 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
   if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
       static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type)) {
+      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
+       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
+       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
     return m_InPlaceAdd_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -279,7 +285,9 @@ PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
   if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
       PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
       static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type)) {
+      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
+       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
+       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
     return m_InPlaceSubtract_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {

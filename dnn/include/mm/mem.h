@@ -7,21 +7,25 @@
 #include <sstream>
 #include <string>
 #include <memory>
+#include <vector>
 #include "utils.h"
 
+using namespace std;
 static constexpr int DEFAULT_ALIGNMENT = 64;
 
 typedef enum {
+    MPOOL_ANON,
+    MPOOL_REORDER,
+    MPOOL_RELU_FWD,
+    MPOOL_RELU_BWD,
     MPOOL_WEIGHT,
     MPOOL_IP,
     MPOOL_CONV,
     MPOOL_DECONV,
-    MPOOL_RELU,
     MPOOL_POOLING,
     MPOOL_BATCHNORM,
     MPOOL_LRN,
     MPOOL_CONCAT,
-    MPOOL_ANON,
 } mem_pool_t;
 
 template <std::size_t ALIGNMENT>
@@ -29,7 +33,7 @@ class Memory {
 public:
     Memory() :alloc_size_(0), free_size_(0), seq_(0) {}
     virtual ~Memory() {
-        //printf("+++++++++++++++++++++alloc size %#x,  free size %#x\n", alloc_size_, free_size_);
+        //printf("alloc size %#x,  free size %#x\n", alloc_size_, free_size_);
     }
 
     void* malloc(size_t size) {
@@ -148,3 +152,17 @@ namespace avx {
         char q;
     };
 }
+
+#define MALLOC_FREE_DECL(prefix) \
+    avx::byte* prefix##_malloc(size_t size); \
+    void prefix##_free(avx::byte *p);
+
+MALLOC_FREE_DECL(relu_fwd);
+MALLOC_FREE_DECL(relu_bwd);
+MALLOC_FREE_DECL(reorder);
+
+class Allocator {
+    public:
+        static std::shared_ptr<avx::byte> malloc(size_t len, mem_pool_t mpool);
+        static std::shared_ptr<avx::byte> malloc(vector<int> dims, int element_sz, mem_pool_t mpool);
+};
