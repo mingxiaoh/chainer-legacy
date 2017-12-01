@@ -51,15 +51,16 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
             eps, scale_shift, global_stats, training);
 
     void *src_data = src->data();
-    void *src_itnl = nullptr;
+    shared_ptr<avx::byte> src_itnl;
     if (src->cxx_format() != bn_fwd->get_src_fmt()) {
         auto reorder = ReorderFactory<T>::get(
             (mkldnn::memory::dims)src->dims(),
             (mkldnn::memory::format)src->cxx_format(),
             (mkldnn::memory::format)bn_fwd->get_src_fmt());
-        src_itnl = new avx::byte[src->len()];
-        reorder->execute(src_data, src_itnl);
-        src_data = src_itnl;
+        src_itnl= Allocator::malloc(src->len(), MPOOL_REORDER);
+        //src_itnl = new avx::byte[src->len()];
+        reorder->execute(src_data, src_itnl.get());
+        src_data = src_itnl.get();
     }
 
     auto dst = new Tensor(src->ndims(), src->dims(),
@@ -85,9 +86,6 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
         outs.push_back(var);
     }
 
-    if (src_itnl)
-        delete static_cast<avx::byte *>(src_itnl);
-
     return outs;
 }
 
@@ -106,27 +104,29 @@ std::vector<Tensor *> batch_normalization<T>::Backward(
             eps, scale_shift);
 
     void *src_data = src->data();
-    void *src_itnl = nullptr;
+    shared_ptr<avx::byte> src_itnl;
     if (src->cxx_format() != bn_bwd->get_src_fmt()) {
         auto reorder = ReorderFactory<T>::get(
             (mkldnn::memory::dims)src->dims(),
             (mkldnn::memory::format)src->cxx_format(),
             (mkldnn::memory::format)bn_bwd->get_src_fmt());
-        src_itnl = new avx::byte[src->len()];
-        reorder->execute(src_data, src_itnl);
-        src_data = src_itnl;
+        //src_itnl = new avx::byte[src->len()];
+        src_itnl= Allocator::malloc(src->len(), MPOOL_REORDER);
+        reorder->execute(src_data, src_itnl.get());
+        src_data = src_itnl.get();
     }
 
     void *diff_dst_data = diff_dst->data();
-    void *diff_dst_itnl = nullptr;
+    shared_ptr<avx::byte> diff_dst_itnl;
     if (diff_dst->cxx_format() != bn_bwd->get_diff_dst_fmt()) {
         auto reorder = ReorderFactory<T>::get(
             (mkldnn::memory::dims)diff_dst->dims(),
             (mkldnn::memory::format)diff_dst->cxx_format(),
             (mkldnn::memory::format)bn_bwd->get_diff_dst_fmt());
-        diff_dst_itnl = new avx::byte[diff_dst->len()];
-        reorder->execute(diff_dst_data, diff_dst_itnl);
-        diff_dst_data = diff_dst_itnl;
+        diff_dst_itnl = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+        //diff_dst_itnl = new avx::byte[diff_dst->len()];
+        reorder->execute(diff_dst_data, diff_dst_itnl.get());
+        diff_dst_data = diff_dst_itnl.get();
     }
 
     auto diff_src = new Tensor(src->ndims(), src->dims(),
@@ -145,12 +145,6 @@ std::vector<Tensor *> batch_normalization<T>::Backward(
     outs.push_back(diff_src);
     if (scale_shift)
         outs.push_back(diff_w);
-
-    if (src_itnl)
-        delete static_cast<avx::byte *>(src_itnl);
-
-    if (diff_dst_itnl)
-        delete static_cast<avx::byte *>(diff_dst_itnl);
 
     return outs;
 }

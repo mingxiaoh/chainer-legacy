@@ -94,8 +94,8 @@ Tensor *Convolution2D<T>::Forward(
 
     void *src_tmp = src->data();
     void *w_tmp = weights->data();
-    void *src_reorder = NULL;
-    void *w_reorder = NULL;
+    shared_ptr<avx::byte> src_reorder;
+    shared_ptr<avx::byte> w_reorder;
     
     // check wehther fmt is same
     if (src_fmt == conv2d_forward->src_fmt_ && w_fmt == conv2d_forward->weights_fmt_) {
@@ -107,25 +107,27 @@ Tensor *Convolution2D<T>::Forward(
             LOG(INFO) << "src_fmt=" << src_fmt <<", conv2d_forward->src_fmt_=" << conv2d_forward->src_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, conv2d_forward->src_fmt_);
-            src_reorder = new avx::byte[src->len()];
-            reorder_src_op->execute(src_tmp, src_reorder);
-            src_tmp = src_reorder;
+            src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+            //src_reorder = new avx::byte[src->len()];
+            reorder_src_op->execute(src_tmp, src_reorder.get());
+            src_tmp = src_reorder.get();
         }
 
         if (w_fmt != conv2d_forward->weights_fmt_) {
             LOG(INFO) << "weight_fmt=" << w_fmt <<", conv2d_forward->weight_fmt_=" << conv2d_forward->weights_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, conv2d_forward->weights_fmt_);
-            w_reorder = new avx::byte[weights->len()];
-            reorder_w_op->execute(w_tmp, w_reorder);
-            w_tmp = w_reorder;
+            w_reorder = Allocator::malloc(weights->len(), MPOOL_REORDER);
+            //w_reorder = new avx::byte[weights->len()];
+            reorder_w_op->execute(w_tmp, w_reorder.get());
+            w_tmp = w_reorder.get();
             
             
             // set internal fmt back to weight tensor
             if ( cp->with_weights_opt ) {
                 weights->reset_memory(
                         static_cast<mkldnn_memory_format_t>(conv2d_forward->weights_fmt_),
-                        static_cast<avx::byte *>(w_reorder));
+                        w_reorder);
             }
         }
     }
@@ -140,12 +142,6 @@ Tensor *Convolution2D<T>::Forward(
     } else {
         conv2d_forward->execute(src_tmp, w_tmp, dst_tensor->data());
     }
-
-    //FIXME here may cause performance issue
-    if (src_reorder != NULL)
-        delete static_cast<avx::byte *>(src_reorder);
-    if ( !cp->with_weights_opt && w_reorder != NULL)
-        delete static_cast<avx::byte *>(w_reorder);
 
     return dst_tensor;
 }
@@ -192,8 +188,8 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
     //assum dst and src have same data type
     void* src_tmp = src->data();
     void* diff_dst_tmp = diff_dst->data();
-    void* src_reorder = NULL;
-    void* diff_dst_reorder = NULL;
+    shared_ptr<avx::byte> src_reorder;
+    shared_ptr<avx::byte> diff_dst_reorder;
 
     //check whether fmt is same
     if (src_fmt == conv2d_bwd_weights->src_fmt_ && diff_dst_fmt == conv2d_bwd_weights->diff_dst_fmt_) {
@@ -205,17 +201,19 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
             LOG(INFO) << "src_fmt=" << src_fmt << ", conv2d_bwd_weights->src_fmt_=" << conv2d_bwd_weights->src_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, conv2d_bwd_weights->src_fmt_);
-            src_reorder = new avx::byte[src->len()];
-            reorder_src_op->execute(src_tmp, src_reorder);
-            src_tmp = src_reorder;
+            src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+            //src_reorder = new avx::byte[src->len()];
+            reorder_src_op->execute(src_tmp, src_reorder.get());
+            src_tmp = src_reorder.get();
         }
         if (diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
             LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_weights->diff_dst_fmt_=" << conv2d_bwd_weights->diff_dst_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_weights->diff_dst_fmt_);
-            diff_dst_reorder = new avx::byte[diff_dst->len()];
-            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
-            diff_dst_tmp = diff_dst_reorder;
+            diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+            //diff_dst_reorder = new avx::byte[diff_dst->len()];
+            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder.get());
+            diff_dst_tmp = diff_dst_reorder.get();
         }
     }
 
@@ -233,11 +231,6 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
         bwd_weight_vec.push_back(diff_w_tensor);
     }
 
-    //free
-    if (src_reorder != NULL)
-        delete static_cast<avx::byte *>(src_reorder);
-    if (diff_dst_reorder != NULL)
-        delete static_cast<avx::byte *>(diff_dst_reorder);
     return bwd_weight_vec;
 }
 
@@ -270,8 +263,8 @@ Tensor *Convolution2D<T>::BackwardData(
     
     void* w_tmp = weights->data();
     void* diff_dst_tmp = diff_dst->data();
-    void* w_reorder = NULL;
-    void* diff_dst_reorder = NULL;
+    shared_ptr<avx::byte> w_reorder;
+    shared_ptr<avx::byte> diff_dst_reorder;
 
     if (w_fmt == conv2d_bwd_data->weights_fmt_ && diff_dst_fmt == conv2d_bwd_data->diff_dst_fmt_) {
         LOG(INFO) << "conv2d bwd data primitive fmt matched";
@@ -281,16 +274,18 @@ Tensor *Convolution2D<T>::BackwardData(
         if (w_fmt != conv2d_bwd_data->weights_fmt_) {
             LOG(INFO) << "weight_fmt=" << w_fmt << ", conv2d_bwd_data->weights_fmt_="<< conv2d_bwd_data->weights_fmt_;
             ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, conv2d_bwd_data->weights_fmt_);
-            w_reorder = new avx::byte[weights->len()];
-            reorder_w_op->execute(w_tmp, w_reorder);
-            w_tmp = w_reorder;
+            w_reorder = Allocator::malloc(weights->len(), MPOOL_REORDER);
+            //w_reorder = new avx::byte[weights->len()];
+            reorder_w_op->execute(w_tmp, w_reorder.get());
+            w_tmp = w_reorder.get();
         } 
         if (diff_dst_fmt != conv2d_bwd_data->diff_dst_fmt_) {
             LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_data->diff_dst_fmt_=" << conv2d_bwd_data->diff_dst_fmt_;
             ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_data->diff_dst_fmt_);
-            diff_dst_reorder = new avx::byte[diff_dst->len()];
-            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder);
-            diff_dst_tmp = diff_dst_reorder;
+            diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+            //diff_dst_reorder = new avx::byte[diff_dst->len()];
+            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder.get());
+            diff_dst_tmp = diff_dst_reorder.get();
         }
     }
 
@@ -299,12 +294,6 @@ Tensor *Convolution2D<T>::BackwardData(
     Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
     
     conv2d_bwd_data->execute(diff_src_tensor->data(), w_tmp, diff_dst_tmp);
-
-    // free
-    if (w_reorder != NULL)
-        delete static_cast<avx::byte *>(w_reorder);
-    if (diff_dst_reorder != NULL)
-        delete static_cast<avx::byte *>(diff_dst_reorder);
 
     return diff_src_tensor;
 }
