@@ -178,14 +178,13 @@ class LinearGradWeight(function_node.FunctionNode):
                              'type(x): {0}, type(gy): {1}'
                              .format(type(x), type(gy)))
 
-        gW = gy.T.dot(x).astype(gy.dtype, copy=False)
+        gW = gy.T.dot(x).astype(self.W_dtype, copy=False)
         self.retain_inputs((0, 1)) 
         return gW, 
     
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
         ggW, = grad_outputs
-
         ret = []
         if 0 in indexes:
             gx, = LinearGradData(self).apply((gy, ggW))

@@ -179,7 +179,7 @@ public:
                     , [] (avx::byte *p) {delete [] p;});
             //memcpy(data_.get(), data, len());
             memory::data_type dt = to_mkldnn_type();
-            if (dt == memory::data_type::f32) { //currently, mkldnn only support most f32 currently, may add int8 in future?
+            if (dt == memory::data_type::f32 && len() > 0) { //currently, mkldnn only support most f32 currently, may add int8 in future?
                 auto mm_fmt_i = ndims2format(ndims);
                 mm_fmt_ = ndims2format_preferred(ndims, dims);
                 auto mem_i = new mkldnn::memory(
