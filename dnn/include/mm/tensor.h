@@ -189,7 +189,7 @@ public:
                 mem_.reset(new mkldnn::memory(
                             { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
                             , cpu_engine }, data_.get()));
-                auto reorder_prim = reorder(*mem_, *mem_i);
+                auto reorder_prim = reorder(*mem_i, *mem_);
                 std::vector<mkldnn::primitive> prims = {reorder_prim};
                 mkldnn::stream s(mkldnn::stream::kind::eager);
                 s.submit(prims).wait();
