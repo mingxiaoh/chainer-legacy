@@ -107,9 +107,8 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
 
     lrn_forward->execute(src_tmp, dst_tensor->data(), ws_tensor->data());
     std::vector<Tensor *> outputs;
-    outputs.push_back(ws_tensor);
     outputs.push_back(dst_tensor);
-    // outputs.push_back(ws_tensor);
+    outputs.push_back(ws_tensor);
 
     LOG(INFO) << "Succ exec lrn forward";
     return outputs;

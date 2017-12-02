@@ -63,7 +63,7 @@ class LocalResponseNormalization(function.Function):
         self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
         (x_mdarray,) = ideepy.to_mdarray((x[0],))
         (y, self.indexes) = ideepy.LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
-        return self.indexes,
+        return y,
     def forward_cpu(self, x):
         # pdb.set_trace()
         if ideepy.all_ready(x, (4,)):

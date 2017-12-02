@@ -98,6 +98,7 @@ void LocalResponseNormalizationFwd<T>::setup(
 {
     LOG(INFO) << "lrn forward_setup";
 
+    LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
     alg_kind_ = alg_kind;
     // local_size_ = n;
 

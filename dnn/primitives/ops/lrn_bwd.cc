@@ -101,6 +101,10 @@ void LocalResponseNormalizationBwd<T>::setup(
     mkldnn::algorithm alg_kind)
 {
     LOG(INFO) << "lrn backward_setup";
+
+    LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
+    LOG(INFO) << "diff_dst_d[0]=" << diff_dst_d[0] << "; diff_dst_d[1]" << diff_dst_d[1] << "; diff_dst_d[2]=" << diff_dst_d[2] << "; diff_dst_d[3]=" << diff_dst_d[3];
+    LOG(INFO) << "ws_d[0]=" << ws_d[0] << "; ws_d[1]" << ws_d[1] << "; ws_d[2]=" << ws_d[2] << "; ws_d[3]=" << ws_d[3];
     
     alg_kind_ = alg_kind;
 
