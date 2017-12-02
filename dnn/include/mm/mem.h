@@ -22,13 +22,13 @@ typedef enum {
     MPOOL_BN_BWD,
     MPOOL_LRN_FWD,
     MPOOL_LRN_BWD,
+    MPOOL_CONV_FWD,
+    MPOOL_CONV_BWD,
 
     MPOOL_WEIGHT,
     MPOOL_IP,
-    MPOOL_CONV,
     MPOOL_POOLING,
-    MPOOL_BATCHNORM,
-    MPOOL_LRN,
+    MPOOL_BN,
     MPOOL_CONCAT,
 } mem_pool_t;
 

@@ -20,6 +20,8 @@ MALLOC_FREE_IMPL(bn_fwd)
 MALLOC_FREE_IMPL(bn_bwd)
 MALLOC_FREE_IMPL(lrn_fwd)
 MALLOC_FREE_IMPL(lrn_bwd)
+MALLOC_FREE_IMPL(conv_fwd)
+MALLOC_FREE_IMPL(conv_bwd)
 
 std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
 {
@@ -45,6 +47,12 @@ std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
             break;
         case MPOOL_LRN_BWD:
             data = std::shared_ptr<avx::byte>(lrn_bwd_malloc(len), lrn_bwd_free);
+            break;
+        case MPOOL_CONV_FWD:
+            data = std::shared_ptr<avx::byte>(conv_fwd_malloc(len), conv_fwd_free);
+            break;
+        case MPOOL_CONV_BWD:
+            data = std::shared_ptr<avx::byte>(conv_bwd_malloc(len), conv_bwd_free);
             break;
         default:
             data = std::shared_ptr<avx::byte>(anon_malloc(len), anon_free);

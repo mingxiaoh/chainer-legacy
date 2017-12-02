@@ -134,7 +134,11 @@ Tensor *Convolution2D<T>::Forward(
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
+    //Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), conv2d_forward->dst_fmt_, cpu_engine);
+    auto data = Allocator::malloc(dst_dims, type2size(src->type()), MPOOL_CONV_FWD);
+    Tensor *dst_tensor = new Tensor(dst_dims.size(), dst_dims, data,
+            (mkldnn_memory_format_t)conv2d_forward->dst_fmt_,
+            src->type());
     
     // do forward
     if (cp->with_bias) {
@@ -218,11 +222,18 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
     }
 
     //assum dst and src have same data type
-    Tensor *diff_w_tensor = new Tensor(diff_w_dims, src->cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
+    //Tensor *diff_w_tensor = new Tensor(diff_w_dims, src->cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
+    auto w_data = Allocator::malloc(diff_w_dims, type2size(src->type()), MPOOL_CONV_BWD);
+    Tensor *diff_w_tensor = new Tensor(diff_w_dims.size(), diff_w_dims, w_data,
+            (mkldnn_memory_format_t)conv2d_bwd_weights->diff_weights_fmt_,
+            src->type());
         // do execute
     if (cp->with_bias) {
         // asume bias's format is always mkldnn::memory::format::x
-        Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
+        //Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
+        auto b_data = Allocator::malloc(diff_b_dims, type2size(src->type()), MPOOL_CONV_BWD);
+        Tensor *diff_b_tensor = new Tensor(diff_b_dims.size(), diff_b_dims, b_data,
+                (mkldnn_memory_format_t)mkldnn::memory::format::x, src->type());
         conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_b_tensor->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_tensor);
         bwd_weight_vec.push_back(diff_b_tensor);
@@ -291,7 +302,11 @@ Tensor *Convolution2D<T>::BackwardData(
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
+    //Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), conv2d_bwd_data->diff_src_fmt_, cpu_engine);
+    auto data = Allocator::malloc(diff_src_dims, type2size(diff_dst->type()), MPOOL_CONV_BWD);
+    Tensor *diff_src_tensor = new Tensor(diff_src_dims.size(), diff_src_dims, data,
+            (mkldnn_memory_format_t)conv2d_bwd_data->diff_src_fmt_,
+            diff_dst->type());
     
     conv2d_bwd_data->execute(diff_src_tensor->data(), w_tmp, diff_dst_tmp);
 
