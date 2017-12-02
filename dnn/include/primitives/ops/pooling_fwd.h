@@ -112,6 +112,7 @@ public:
     //workspace size
     mkldnn::memory::dims ws_dims_;
     mkldnn::memory::data_type ws_dt_;
+    size_t ws_size_;
 
     // algo
     mkldnn::algorithm alg_kind_;

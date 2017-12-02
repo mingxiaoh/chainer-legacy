@@ -256,6 +256,12 @@ public:
             size_ = std::accumulate(dims.begin(), dims.end(), 1
                     , std::multiplies<int>());
             data_ = data;
+            mm_fmt_ = mkldnn_memory_format_t(format);
+            mem_.reset(new mkldnn::memory(
+                        { { { dims_ }, static_cast<memory::data_type>(dt)
+                        , static_cast<memory::format>(mm_fmt_) }
+                        , cpu_engine }, data_.get()));
+
         }
 
     Tensor(mkldnn::memory::dims dims

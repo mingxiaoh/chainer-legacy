@@ -24,10 +24,9 @@ typedef enum {
     MPOOL_LRN_BWD,
     MPOOL_CONV_FWD,
     MPOOL_CONV_BWD,
+    MPOOL_POOLING_FWD,
+    MPOOL_POOLING_BWD,
 
-    MPOOL_WEIGHT,
-    MPOOL_IP,
-    MPOOL_POOLING,
     MPOOL_BN,
     MPOOL_CONCAT,
 } mem_pool_t;
@@ -161,14 +160,6 @@ namespace avx {
         char q;
     };
 }
-
-#define MALLOC_FREE_DECL(prefix) \
-    avx::byte* prefix##_malloc(size_t size); \
-    void prefix##_free(avx::byte *p);
-
-MALLOC_FREE_DECL(relu_fwd);
-MALLOC_FREE_DECL(relu_bwd);
-MALLOC_FREE_DECL(reorder);
 
 class Allocator {
     public:

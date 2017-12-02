@@ -102,15 +102,22 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    //Tensor *ws_tensor = new Tensor(dst_dims, src->cxx_data_type(), pooling2d_forward->ws_fmt_, cpu_engine);
-    Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), pooling2d_forward->dst_fmt_, cpu_engine);
+    // Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), pooling2d_forward->dst_fmt_, cpu_engine);
+    auto data = Allocator::malloc(dst_dims, type2size(src->type()), MPOOL_POOLING_FWD);
+    Tensor *dst_tensor = new Tensor(dst_dims.size(), dst_dims, data,
+            (mkldnn_memory_format_t)pooling2d_forward->dst_fmt_,
+            src->type());
     
     // do forward
     // for max pooling, need to return workspace
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
         LOG(INFO) << "ws_dt_=" << pooling2d_forward->ws_dt_;
         // workspace must be int tensor
-        Tensor *ws_tensor = new Tensor((pooling2d_forward->ws_dims_), pooling2d_forward->ws_dt_, pooling2d_forward->ws_fmt_, cpu_engine);
+        //Tensor *ws_tensor = new Tensor((pooling2d_forward->ws_dims_), pooling2d_forward->ws_dt_, pooling2d_forward->ws_fmt_, cpu_engine);
+        auto ws_data = Allocator::malloc(pooling2d_forward->ws_size_, MPOOL_POOLING_FWD);
+        Tensor *ws_tensor = new Tensor(pooling2d_forward->ws_dims_,
+                static_cast<mkldnn_data_type_t>(pooling2d_forward->ws_dt_),
+                pooling2d_forward->ws_fmt_, ws_data);
 
         pooling2d_forward->execute(src_tmp, dst_tensor->data(), ws_tensor->data());
         outputs.push_back(dst_tensor);
@@ -195,7 +202,11 @@ Tensor *Pooling2D<T>::Backward(
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), pooling2d_bwd->diff_src_fmt_, cpu_engine);
+    // Tensor *diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), pooling2d_bwd->diff_src_fmt_, cpu_engine);
+    auto data = Allocator::malloc(diff_src_dims, type2size(diff_dst->type()), MPOOL_POOLING_BWD);
+    Tensor *diff_src_tensor = new Tensor(diff_src_dims.size(), diff_src_dims, data,
+            (mkldnn_memory_format_t)pooling2d_bwd->diff_src_fmt_,
+            diff_dst->type());
     
     pooling2d_bwd->execute(diff_src_tensor->data(), diff_dst_tmp, ws_tmp);
 

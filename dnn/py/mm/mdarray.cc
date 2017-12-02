@@ -302,7 +302,7 @@ PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return inplace_axpby(1.0, self, -1.0, o);
+    return inplace_axpby(1.0f, self, -1.0f, o);
   }
 }
 
