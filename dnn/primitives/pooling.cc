@@ -164,7 +164,7 @@ Tensor *Pooling2D<T>::Backward(
 
     // FIXME: in this model, every call to conv_forward will create a new tensor, when to free???
     mkldnn::memory::format ws_fmt;
-    void* ws_tmp;
+    void* ws_tmp = nullptr;
     shared_ptr<avx::byte> ws_reorder;
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
         ws_fmt = ws->cxx_format();

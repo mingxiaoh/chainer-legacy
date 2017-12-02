@@ -11,7 +11,7 @@ namespace implementation {
 static PyObject *PyType_reorder_buffer = nullptr;
 
 static swig_type_info *SwigTy_mdarray = nullptr;
-static swig_type_info *SwigTy_engine = nullptr;
+//static swig_type_info *SwigTy_engine = nullptr;
 static PyObject *PyType_mdarray = nullptr;
 
 PyObject *queryPyTypeObject(const char *name) {
@@ -224,7 +224,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return axpby(1.0, 1.0, o);
+    return axpby(1.0f, 1.0f, o);
   }
 }
 
@@ -250,7 +250,7 @@ PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
 #endif
     return ret;
   } else {
-    return axpby(1.0, -1.0, o);
+    return axpby(1.0f, -1.0f, o);
   }
 }
 
@@ -681,7 +681,7 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
     // Switch to our exception message if things gone wrong
     PyTypeObject *tp = Py_TYPE(self);
     PyErr_Format(PyExc_AttributeError
-        , "'%.50s' object has no attribute '%U'", tp->tp_name, name);
+        , "'%.50s' object has no attribute '%p'", tp->tp_name, name);
   }
 
   return attr;
@@ -742,7 +742,7 @@ int mdarray::mp_ass_subscript(PyObject *self, PyObject *ind, PyObject *op) {
 PyObject *mdarray::flat() {
   long int dims[1] = {static_cast<long int>(this->size())};
 
-  int typenum;
+  int typenum = NPY_NOTYPE;
   switch(static_cast<mkldnn::memory::data_type>(this->mkldnn_memory().get_primitive_desc().desc().data.data_type)) {
     case mkldnn::memory::f32:
       typenum = NPY_FLOAT32;
@@ -780,7 +780,7 @@ PyObject *mdarray::reshape(py_handle *self, vector<int> dims)
     }
     int idx_unknown = -1;
     size_t size = 1;
-    for (int i = 0; i < dims.size(); i++) {
+    for (unsigned int i = 0; i < dims.size(); i++) {
         if (dims[i] < 0) {
             if (idx_unknown == -1) {
                 idx_unknown = i;

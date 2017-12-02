@@ -89,14 +89,21 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    // Tensor *ws_tensor = new Tensor(dst_dims, src->cxx_data_type(), lrn_forward->ws_fmt_, cpu_engine);
-    Tensor *dst_tensor = new Tensor(src->dims(), src->cxx_data_type(), lrn_forward->dst_fmt_, cpu_engine);
+    //Tensor *dst_tensor = new Tensor(src->dims(), src->cxx_data_type(), lrn_forward->dst_fmt_, cpu_engine);
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_LRN_FWD);
+    Tensor *dst_tensor = new Tensor(src->ndims(), src->dims(), data,
+            (mkldnn_memory_format_t)lrn_forward->dst_fmt_,
+            src->type());
     
     // do forward
     // to return workspace
     // LOG(INFO) << "ws_dt_=" << lrn_forward->ws_dt_;
     // workspace must be int tensor
-    Tensor *ws_tensor = new Tensor((lrn_forward->ws_dims_), lrn_forward->ws_dt_, lrn_forward->ws_fmt_, cpu_engine);
+    //Tensor *ws_tensor = new Tensor((lrn_forward->ws_dims_), lrn_forward->ws_dt_, lrn_forward->ws_fmt_, cpu_engine);
+    auto ws_data = Allocator::malloc(lrn_forward->ws_size_, MPOOL_LRN_FWD);
+    Tensor *ws_tensor = new Tensor(lrn_forward->ws_dims_,
+            static_cast<mkldnn_data_type_t>(lrn_forward->ws_dt_),
+            lrn_forward->ws_fmt_, ws_data);
 
     lrn_forward->execute(src_tmp, dst_tensor->data(), ws_tensor->data());
     std::vector<Tensor *> outputs;
@@ -169,7 +176,11 @@ Tensor *LocalResponseNormalization<T>::Backward(
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    Tensor *diff_src_tensor = new Tensor(src->dims(), diff_dst->cxx_data_type(), lrn_bwd->diff_src_fmt_, cpu_engine);
+    //Tensor *diff_src_tensor = new Tensor(src->dims(), diff_dst->cxx_data_type(), lrn_bwd->diff_src_fmt_, cpu_engine);
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_LRN_BWD);
+    Tensor *diff_src_tensor = new Tensor(src->ndims(), src->dims(), data,
+            (mkldnn_memory_format_t)lrn_bwd->diff_src_fmt_,
+            src->type());
     
     lrn_bwd->execute(src_buf, diff_src_tensor->data(), diff_dst_tmp, ws_tmp);
 

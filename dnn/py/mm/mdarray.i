@@ -152,6 +152,7 @@
 
 }
 
+/*
 %extend mdarray {
   PyObject *__getstate__() {
     return (*$self)->__getstate__();
@@ -190,6 +191,7 @@
     (*$self)->__setstate__(state);
   }
 }
+*/
 
 class mdarray: public py_handle {
 public:

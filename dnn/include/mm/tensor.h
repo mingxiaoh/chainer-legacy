@@ -248,6 +248,17 @@ public:
         }
         
     Tensor(mkldnn::memory::dims dims
+        , mkldnn_data_type_t dt
+        , mkldnn::memory::format format
+        , shared_ptr<avx::byte> data)
+        : ndims_(dims.size()), dims_(dims) {
+            type_ = to_tensor_type(dt);
+            size_ = std::accumulate(dims.begin(), dims.end(), 1
+                    , std::multiplies<int>());
+            data_ = data;
+        }
+
+    Tensor(mkldnn::memory::dims dims
         , mkldnn::memory::data_type dt
         , mkldnn::memory::format format
         , const mkldnn::engine &engine)
@@ -428,7 +439,6 @@ protected:
     vector<int> dims_;
     data_type_t type_;
     size_t size_;
-    size_t len_;
     std::shared_ptr<avx::byte> data_;
 
     mkldnn_memory_format_t mm_fmt_;

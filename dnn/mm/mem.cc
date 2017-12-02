@@ -4,7 +4,7 @@
 using namespace std;
 
 #define MALLOC_FREE_IMPL(prefix) \
-    static Memory<DEFAULT_ALIGNMENT> prefix##_pool; \
+    static Memory<DEFAULT_ALIGNMENT> prefix##_pool(#prefix); \
     avx::byte* prefix##_malloc(size_t size) { \
         return (avx::byte *)prefix##_pool.malloc(size); \
     } \
@@ -16,6 +16,10 @@ MALLOC_FREE_IMPL(anon)
 MALLOC_FREE_IMPL(reorder)
 MALLOC_FREE_IMPL(relu_fwd)
 MALLOC_FREE_IMPL(relu_bwd)
+MALLOC_FREE_IMPL(bn_fwd)
+MALLOC_FREE_IMPL(bn_bwd)
+MALLOC_FREE_IMPL(lrn_fwd)
+MALLOC_FREE_IMPL(lrn_bwd)
 
 std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
 {
@@ -29,6 +33,18 @@ std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
             break;
         case MPOOL_RELU_BWD:
             data = std::shared_ptr<avx::byte>(relu_bwd_malloc(len), relu_bwd_free);
+            break;
+        case MPOOL_BN_FWD:
+            data = std::shared_ptr<avx::byte>(bn_fwd_malloc(len), bn_fwd_free);
+            break;
+        case MPOOL_BN_BWD:
+            data = std::shared_ptr<avx::byte>(bn_bwd_malloc(len), bn_bwd_free);
+            break;
+        case MPOOL_LRN_FWD:
+            data = std::shared_ptr<avx::byte>(lrn_fwd_malloc(len), lrn_fwd_free);
+            break;
+        case MPOOL_LRN_BWD:
+            data = std::shared_ptr<avx::byte>(lrn_bwd_malloc(len), lrn_bwd_free);
             break;
         default:
             data = std::shared_ptr<avx::byte>(anon_malloc(len), anon_free);

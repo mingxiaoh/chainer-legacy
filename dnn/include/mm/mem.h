@@ -18,10 +18,14 @@ typedef enum {
     MPOOL_REORDER,
     MPOOL_RELU_FWD,
     MPOOL_RELU_BWD,
+    MPOOL_BN_FWD,
+    MPOOL_BN_BWD,
+    MPOOL_LRN_FWD,
+    MPOOL_LRN_BWD,
+
     MPOOL_WEIGHT,
     MPOOL_IP,
     MPOOL_CONV,
-    MPOOL_DECONV,
     MPOOL_POOLING,
     MPOOL_BATCHNORM,
     MPOOL_LRN,
@@ -31,9 +35,12 @@ typedef enum {
 template <std::size_t ALIGNMENT>
 class Memory {
 public:
-    Memory() :alloc_size_(0), free_size_(0), seq_(0) {}
+    Memory() : alloc_size_(0), free_size_(0), seq_(0) {}
+    Memory(const char *name) : alloc_size_(0), free_size_(0)
+             , seq_(0), name_(name) {}
     virtual ~Memory() {
-        //printf("alloc size %#x,  free size %#x\n", alloc_size_, free_size_);
+        //std::cout << name_ << " alloc size " << alloc_size_ << " free size "
+        //    << free_size_ << std::endl;
     }
 
     void* malloc(size_t size) {
@@ -55,8 +62,8 @@ public:
                 list.erase(it);
                 void *ptr = static_cast<void *>(block);
                 free_size_ -= size;
-                //printf("dnn alloc seq %d, size %#x\n", block->header_.seq_, block->header_.size_);
-                return (ptr + ALIGNMENT);
+                //std::cout << name_ << " cache alloc seq " << block->header_.seq_ << " size " << block->header_.size_ << std::endl;
+                return GET_PTR(void, ptr, ALIGNMENT);
             }
         }
         // No cached memory
@@ -68,18 +75,19 @@ public:
         block_t *block = static_cast<block_t *>(ptr); 
         block->header_.size_ = size;
         alloc_size_ += size;
-        //printf("system alloc seq %d, size %#x\n", seq_, size);
+        //std::cout << name_ << " system alloc seq " << seq_ << " size " << size << std::endl;
         block->header_.seq_ = seq_++;
-        return (ptr + ALIGNMENT);
+        return GET_PTR(void, ptr, ALIGNMENT);
     }
 
     void free(void* ptr) {
         std::lock_guard<std::mutex> lock(mutex_);
-        block_t *block = static_cast<block_t *>(ptr - ALIGNMENT);
+        //block_t *block = static_cast<block_t *>(ptr - ALIGNMENT);
+        block_t *block = GET_PTR(block_t, ptr, -ALIGNMENT);
         int idx = to_index(block->header_.size_);
         free_hashline_[idx].push_back(block);
         free_size_ += block->header_.size_;
-        //printf("free seq %d, size %#x\n", block->header_.seq_, block->header_.size_);
+        //std::cout << name_ << " free seq " << block->header_.seq_ << " size " << block->header_.size_ << std::endl;
     }
 
     void epoch() {
@@ -112,6 +120,7 @@ private:
     std::list<block_t *> free_hashline_[MAX_ENTRY];
     std::mutex mutex_;
     int seq_;
+    std::string name_;
 };
 
 void* dnn_malloc(size_t size, mem_pool_t pool=MPOOL_ANON);

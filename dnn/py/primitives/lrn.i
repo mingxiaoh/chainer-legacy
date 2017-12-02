@@ -9,7 +9,7 @@
 %include "lrn_py.h"
 
 %template(LocalResponseNormalization_Py_F32) LocalResponseNormalization_Py<float>;
-%template(MdarrayVector) std::vector<mdarray>;
+//%template(MdarrayVector) std::vector<mdarray>;
 
 //
 // Python API for LocalResponseNormalization

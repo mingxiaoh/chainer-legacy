@@ -8,6 +8,8 @@
 #include "omp.h"
 using namespace mkldnn;
 
+#define GET_PTR(t, p, offset) reinterpret_cast<t*>( reinterpret_cast<size_t>(p) +static_cast<size_t>(offset) )
+
 memory::format get_desired_format(int channel);
 
 template<typename T>
@@ -71,7 +73,7 @@ static inline std::string bool_to_string(bool value) {
 static inline std::string dims_to_string(mkldnn::memory::dims dims) {
    std::ostringstream os;
    os << "DIMS:";
-   for (int i = 0; i < dims.size(); i++)
+   for (unsigned int i = 0; i < dims.size(); i++)
        os << dims[i] << ",";
    os << ";";
    return os.str();
@@ -136,7 +138,7 @@ inline void balance211(T n, U team, U tid, T &n_start, T &n_end) {
     n_end += n_start;
 }
 
-inline void fast_memcpy(char* data_o, char *data_i, int len)
+inline void fast_memcpy(char* data_o, char *data_i, size_t len)
 {
     size_t nelems_float = len / 4;
     size_t nelems_char = len % 4;
@@ -160,12 +162,12 @@ inline void fast_memcpy(char* data_o, char *data_i, int len)
             output_f[e] = input_f[e];
         }   
         if (rem_elems_float != 0 && ithr ==  nthr -1 )  {
-            for (int e = nelems_float - rem_elems_float; e < nelems_float; ++e) {
+            for (auto e = nelems_float - rem_elems_float; e < nelems_float; ++e) {
                 output_f[e] = input_f[e];
             }   
         }   
         if (nelems_char != 0 && ithr ==  nthr -1){
-            for (int e = nelems_float*4; e < len; ++e) {
+            for (auto e = nelems_float*4; e < len; ++e) {
                 output_c[e] = input_c[e];
             }   
         }   
