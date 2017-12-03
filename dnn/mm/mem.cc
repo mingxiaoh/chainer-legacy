@@ -24,6 +24,8 @@ MALLOC_FREE_IMPL(conv_fwd)
 MALLOC_FREE_IMPL(conv_bwd)
 MALLOC_FREE_IMPL(pooling_fwd)
 MALLOC_FREE_IMPL(pooling_bwd)
+MALLOC_FREE_IMPL(ip_fwd)
+MALLOC_FREE_IMPL(ip_bwd)
 
 std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
 {
@@ -61,6 +63,12 @@ std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
             break;
         case MPOOL_POOLING_BWD:
             data = std::shared_ptr<avx::byte>(pooling_bwd_malloc(len), pooling_bwd_free);
+            break;
+        case MPOOL_IP_FWD:
+            data = std::shared_ptr<avx::byte>(ip_fwd_malloc(len), ip_fwd_free);
+            break;
+        case MPOOL_IP_BWD:
+            data = std::shared_ptr<avx::byte>(ip_bwd_malloc(len), ip_bwd_free);
             break;
         default:
             data = std::shared_ptr<avx::byte>(anon_malloc(len), anon_free);

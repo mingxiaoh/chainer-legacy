@@ -681,7 +681,7 @@ PyObject *mdarray::getattro(PyObject *self, PyObject *name) {
     // Switch to our exception message if things gone wrong
     PyTypeObject *tp = Py_TYPE(self);
     PyErr_Format(PyExc_AttributeError
-        , "'%.50s' object has no attribute '%p'", tp->tp_name, name);
+        , "mdarray '%.50s' object has no attribute '%p'", tp->tp_name, name);
   }
 
   return attr;

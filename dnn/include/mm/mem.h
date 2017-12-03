@@ -26,8 +26,9 @@ typedef enum {
     MPOOL_CONV_BWD,
     MPOOL_POOLING_FWD,
     MPOOL_POOLING_BWD,
+    MPOOL_IP_FWD,
+    MPOOL_IP_BWD,
 
-    MPOOL_BN,
     MPOOL_CONCAT,
 } mem_pool_t;
 

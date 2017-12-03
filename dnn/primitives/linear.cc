@@ -166,7 +166,11 @@ Tensor *Linear<T>::Forward(
         }
     }
     //create mdarray based on primitive's dst
-    Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), linear_forward->dst_fmt_, cpu_engine);
+    //Tensor *dst_tensor = new Tensor(dst_dims, src->cxx_data_type(), linear_forward->dst_fmt_, cpu_engine);
+    auto data = Allocator::malloc(dst_dims, type2size(src->type()), MPOOL_IP_FWD);
+    Tensor *dst_tensor = new Tensor(dst_dims.size(), dst_dims, data,
+            (mkldnn_memory_format_t)linear_forward->dst_fmt_,
+            src->type());
     // do forward
     if (lp->with_bias) {
         linear_forward->execute(src_tmp, w_tmp, bias->data(), dst_tensor->data());
@@ -244,11 +248,18 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
         }
     }
     //assume dst and src have the same data type
-    Tensor *diff_w_tensor = new Tensor(diff_w_dims, src->cxx_data_type(), linear_bwd_weights->diff_weights_fmt_, cpu_engine);
+    //Tensor *diff_w_tensor = new Tensor(diff_w_dims, src->cxx_data_type(), linear_bwd_weights->diff_weights_fmt_, cpu_engine);
+    auto w_data = Allocator::malloc(diff_w_dims, type2size(src->type()), MPOOL_IP_BWD);
+    Tensor *diff_w_tensor = new Tensor(diff_w_dims.size(), diff_w_dims, w_data,
+            (mkldnn_memory_format_t)linear_bwd_weights->diff_weights_fmt_,
+            src->type());
     //do execute
     if(lp->with_bias) {
         //assume bias's format is always mkldnn::memory::format::x
-        Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
+        //Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
+        auto b_data = Allocator::malloc(diff_b_dims, type2size(src->type()), MPOOL_IP_BWD);
+        Tensor *diff_b_tensor = new Tensor(diff_b_dims.size(), diff_b_dims, b_data,
+                (mkldnn_memory_format_t)mkldnn::memory::format::x, src->type());
         linear_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_b_tensor->data(), diff_dst_tmp);
         bwd_weight_vec.push_back(diff_w_tensor);
         bwd_weight_vec.push_back(diff_b_tensor);
@@ -324,7 +335,11 @@ Tensor *Linear<T>::BackwardData(
     }
     //create tensor based on selected primitive
     //assume dst and src have the same data type
-    Tensor* diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), linear_bwd_data->diff_src_fmt_, cpu_engine);
+    //Tensor* diff_src_tensor = new Tensor(diff_src_dims, diff_dst->cxx_data_type(), linear_bwd_data->diff_src_fmt_, cpu_engine);
+    auto data = Allocator::malloc(diff_src_dims, type2size(diff_dst->type()), MPOOL_IP_BWD);
+    Tensor *diff_src_tensor = new Tensor(diff_src_dims.size(), diff_src_dims, data,
+            (mkldnn_memory_format_t)linear_bwd_data->diff_src_fmt_,
+            diff_dst->type());
     linear_bwd_data->execute(diff_src_tensor->data(), w_tmp, diff_dst_tmp);
 
     return diff_src_tensor;
