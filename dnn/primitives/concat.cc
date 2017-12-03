@@ -104,7 +104,11 @@ Tensor *Concat<T>::Forward(
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    Tensor *dst_tensor = new Tensor(dst_d, src[0]->cxx_data_type(), concat_forward->dst_fmt_, cpu_engine);
+    // Tensor *dst_tensor = new Tensor(dst_d, src[0]->cxx_data_type(), concat_forward->dst_fmt_, cpu_engine);
+    auto data = Allocator::malloc(dst_d, type2size(src[0]->type()), MPOOL_CONCAT_FWD);
+    Tensor *dst_tensor = new Tensor(dst_d.size(), dst_d, data,
+            (mkldnn_memory_format_t)concat_forward->dst_fmt_,
+            src[0]->type());
     
     // do forward
     concat_forward->execute(src_reorder, dst_tensor->data());
@@ -174,7 +178,11 @@ std::vector<Tensor*> Concat<T>::Backward(
     // create diff src tensors to execute concat backward
     assert(diff_src_d.szie() == concat_backward->diff_src_fmts_.size());
     for (int i = 0; i < diff_src_d.size(); i++) {
-        Tensor *diff_src_tensor = new Tensor(diff_src_d[i], diff_dst->cxx_data_type(), concat_backward->diff_src_fmts_[i], cpu_engine);
+        // Tensor *diff_src_tensor = new Tensor(diff_src_d[i], diff_dst->cxx_data_type(), concat_backward->diff_src_fmts_[i], cpu_engine);
+        auto data = Allocator::malloc(diff_src_d[i], type2size(diff_dst->type()), MPOOL_CONCAT_BWD);
+        Tensor *diff_src_tensor = new Tensor(diff_src_d[i].size(), diff_src_d[i], data,
+                                        (mkldnn_memory_format_t)concat_backward->diff_src_fmts_[i],
+                                        diff_dst->type());
         gxs.push_back(diff_src_tensor);
         gxs_data.push_back(diff_src_tensor->data());
     }

@@ -28,8 +28,8 @@ typedef enum {
     MPOOL_POOLING_BWD,
     MPOOL_IP_FWD,
     MPOOL_IP_BWD,
-
-    MPOOL_CONCAT,
+    MPOOL_CONCAT_FWD,
+    MPOOL_CONCAT_BWD,
 } mem_pool_t;
 
 template <std::size_t ALIGNMENT>
