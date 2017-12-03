@@ -63,6 +63,7 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
         src_data = src_itnl.get();
     }
 
+#if 0
     auto dst = new Tensor(src->ndims(), src->dims(),
                           (mkldnn_memory_format_t)bn_fwd->get_dst_fmt(),
                           src->type());
@@ -74,6 +75,22 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
           new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(),
                      (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
                      src->type()) : var;
+#else
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_BN_FWD);
+    auto dst = new Tensor(src->ndims(), src->dims(), data,
+            (mkldnn_memory_format_t)bn_fwd->get_dst_fmt(),
+            src->type());
+    if (training) {
+        auto data_mean = Allocator::malloc(bn_fwd->get_mean_dims(), type2size(src->type()), MPOOL_BN_FWD);
+        mean = new Tensor(bn_fwd->get_mean_ndims(), bn_fwd->get_mean_dims(), data_mean,
+                      (mkldnn_memory_format_t)bn_fwd->get_mean_fmt(),
+                      src->type());
+        auto data_var = Allocator::malloc(bn_fwd->get_var_dims(), type2size(src->type()), MPOOL_BN_FWD);
+        var = new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(), data_var,
+                     (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
+                     src->type());
+    }
+#endif
 
     bn_fwd->execute(src_data, (w ? w->data() : nullptr),
                     dst->data(), (mean ? mean->data() : nullptr),
@@ -129,6 +146,7 @@ std::vector<Tensor *> batch_normalization<T>::Backward(
         diff_dst_data = diff_dst_itnl.get();
     }
 
+#if 0
     auto diff_src = new Tensor(src->ndims(), src->dims(),
                     (mkldnn_memory_format_t)bn_bwd->get_diff_src_fmt(),
                     src->type());
@@ -136,6 +154,19 @@ std::vector<Tensor *> batch_normalization<T>::Backward(
                   new Tensor(w->ndims(), w->dims(),
                   (mkldnn_memory_format_t)bn_bwd->get_diff_w_fmt(),
                   w->type()) : (Tensor *)(nullptr);
+#else
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_BN_BWD);
+    auto diff_src = new Tensor(src->ndims(), src->dims(), data,
+                    (mkldnn_memory_format_t)bn_bwd->get_diff_src_fmt(),
+                    src->type());
+    Tensor *diff_w = nullptr;
+    if (scale_shift) {
+        auto data_w = Allocator::malloc(w->dims(), type2size(src->type()), MPOOL_BN_BWD);
+        diff_w = new Tensor(w->ndims(), w->dims(), data_w,
+                (mkldnn_memory_format_t)bn_bwd->get_diff_w_fmt(),
+                w->type());
+    }
+#endif
 
     bn_bwd->execute(src_data, diff_dst_data, mean->data(), var->data(),
                     (w ? w->data() : nullptr), diff_src->data(),
