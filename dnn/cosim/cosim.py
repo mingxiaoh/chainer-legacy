@@ -4,7 +4,7 @@ import os
 
 from dnn._dnn import mdarray
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s]: %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s')
 global_config_cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
 
 
