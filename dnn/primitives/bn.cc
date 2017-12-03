@@ -161,8 +161,8 @@ std::vector<Tensor *> batch_normalization<T>::Backward(
                     src->type());
     Tensor *diff_w = nullptr;
     if (scale_shift) {
-        auto data_w = Allocator::malloc(w->dims(), type2size(src->type()), MPOOL_BN_BWD);
-        diff_w = new Tensor(w->ndims(), w->dims(), data_w,
+        auto data_diff_w = Allocator::malloc(w->dims(), type2size(src->type()), MPOOL_BN_BWD);
+        diff_w = new Tensor(w->ndims(), w->dims(), data_diff_w,
                 (mkldnn_memory_format_t)bn_bwd->get_diff_w_fmt(),
                 w->type());
     }
