@@ -237,6 +237,7 @@ public:
                         , cpu_engine }, data_.get()));
         }
         
+#if 0
     Tensor(int ndims, vector<int> dims, void *data,
             mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
         : Tensor(ndims, dims, data, type) {
@@ -246,6 +247,7 @@ public:
                         { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
                         , cpu_engine }, data_.get()));
         }
+#endif
         
     Tensor(mkldnn::memory::dims dims
         , mkldnn_data_type_t dt

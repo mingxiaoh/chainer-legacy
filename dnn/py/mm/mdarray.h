@@ -147,9 +147,11 @@ public:
   mdarray(mkldnn::memory::primitive_desc pd)
     : tensor_(new Tensor(pd)) {}
 
+#if 0
   mdarray(int ndims, vector<int> dims, void *data,
           mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
     : tensor_(new Tensor(ndims, dims, data, mm_fmt, type)) {}
+#endif
 
   mdarray(Py_buffer *view) {
     data_type_t dt;
@@ -431,9 +433,11 @@ public:
   mdarray(Py_buffer *view)
     : py_handle(std::make_shared<implementation::mdarray>(view)) {}
 
+#if 0
   mdarray(int ndims, vector<int> dims, void *data,
           mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
     : py_handle(std::make_shared<implementation::mdarray>(ndims, dims, data, mm_fmt, type)) {}
+#endif
 
   static PyObject *mdarray_shape_get(mdarray *arg) {
     implementation::mdarray *self = arg->get();
