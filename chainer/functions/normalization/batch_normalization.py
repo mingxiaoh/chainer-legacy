@@ -88,7 +88,7 @@ class BatchNormalization(function_node.FunctionNode):
             if isinstance(self.running_mean, ideepy.mdarray) and \
                isinstance(self.running_var, ideepy.mdarray):
                 self.running_mean.inplace_axpby(self.decay, (1 - self.decay), self.mean)
-                self.running_mean.inplace_axpby(self.decay, (1 - self.decay), self.var * adjust)
+                self.running_var.inplace_axpby(self.decay, (1 - self.decay), self.var * adjust)
             else:
                 self.running_mean *= self.decay
                 self.running_mean += self.mean * (1 - self.decay)
