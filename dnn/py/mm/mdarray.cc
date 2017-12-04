@@ -14,6 +14,52 @@ static swig_type_info *SwigTy_mdarray = nullptr;
 //static swig_type_info *SwigTy_engine = nullptr;
 static PyObject *PyType_mdarray = nullptr;
 
+// get mdarray from PyObject
+static inline mdarray *get_mdarray_from_PyObject(PyObject *self) {
+    void *oprd_self;
+    int res = SWIG_ConvertPtr(self, &oprd_self, nullptr, 0);
+    if (!SWIG_IsOK(res)) {
+        PyErr_SetString(PyExc_ValueError, "Error self PyObject");
+        return NULL;
+    }
+    return (reinterpret_cast<py_handle *>(oprd_self))->get();
+}
+
+//check whether mdarray support this operation
+static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
+    // get self mdarray
+    mdarray *self_mdarray = get_mdarray_from_PyObject(self);
+    if (!self_mdarray)
+        return false;
+
+    // o is ndarray
+    // if size not equal, mean array broadcast
+    if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
+        if (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) 
+                != self_mdarray->size()) {
+            return false;
+        }
+        return true;
+    }
+
+    // o is mdarray
+    if (reinterpret_cast<PyTypeObject *>(o->ob_type) 
+            == reinterpret_cast<PyTypeObject *>(PyType_mdarray)) {
+        // if o is mdarray, try to get mdarray
+        mdarray *o_mdarray = get_mdarray_from_PyObject(o);
+        if (!o_mdarray)
+            return false;
+
+        // not support different size's mdarray's operations
+        if (o_mdarray->size() != self_mdarray->size())
+            return false;
+        
+        return true;
+    }
+
+    return false;
+}
+
 PyObject *queryPyTypeObject(const char *name) {
   swig_type_info *info = SWIG_TypeQuery(name);
   if (info != nullptr) {
@@ -203,12 +249,7 @@ PyObject *mdarray::inplace_axpby(T a, PyObject *self, T b, PyObject *o) {
 
 PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
-       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
-       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
+  if (!is_mdarray_supported(self, o)) {
     return m_Add_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -230,12 +271,7 @@ PyObject *mdarray::m_Add(PyObject *self, PyObject *o) {
 
 PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
-       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
-       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
+  if (!is_mdarray_supported(self, o)) {
     return m_Subtract_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -256,12 +292,7 @@ PyObject *mdarray::m_Subtract(PyObject *self, PyObject *o) {
 
 PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
-       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
-       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
+  if (!is_mdarray_supported(self, o)) {
     return m_InPlaceAdd_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -282,12 +313,7 @@ PyObject *mdarray::m_InPlaceAdd(PyObject *self, PyObject *o) {
 
 PyObject *mdarray::m_InPlaceSubtract(PyObject *self, PyObject *o) {
   // Array Broadcast
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size())) ||
-      (reinterpret_cast<PyTypeObject *>(o->ob_type) != &PyArray_Type &&
-       reinterpret_cast<PyTypeObject *>(PyType_mdarray) !=
-       reinterpret_cast<PyTypeObject *>(o->ob_type))) {
+  if (!is_mdarray_supported(self, o)) {
     return m_InPlaceSubtract_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
