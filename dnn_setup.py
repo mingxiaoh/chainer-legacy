@@ -27,16 +27,17 @@ ccxx_opts = ['-std=c++11']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack',
              '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 
-includes = [get_include(), 
-            'dnn/include', 
-            'dnn/include/mkl', 
-            'dnn/common', 
+includes = [get_include(),
+            'dnn/include',
+            'dnn/include/mkl',
+            'dnn/common',
             'dnn/include/mm',
-            'dnn/py/mm', 
-            'dnn/py/primitives', 
-            'dnn/include/primitives', 
-            'dnn/include/primitives/ops', 
-            'dnn/include/primitives/prim_mgr', 
+            'dnn/py/mm',
+            'dnn/py/primitives',
+            'dnn/include/primitives',
+            'dnn/include/blas',
+            'dnn/include/primitives/ops',
+            'dnn/include/primitives/prim_mgr',
             mkldnn_root + '/include']
 
 libraries = ['mkldnn', 'mklml_intel']
@@ -44,8 +45,9 @@ libraries = ['mkldnn', 'mklml_intel']
 if system() == 'Linux':
     ccxx_opts += ['-fopenmp', '-DOPENMP_AFFINITY']
     libraries += ['boost_system', 'glog', 'm']
-    src = ['dnn/py/dnn.i', 'dnn/mm/mem.cc', 'dnn/py/mm/mdarray.cc',
+    src = ['dnn/py/dnn.i', 'dnn/mm/mem.cc', 'dnn/mm/tensor.cc', 'dnn/py/mm/mdarray.cc',
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
+           'dnn/blas/sum.cc',
            'dnn/primitives/ops/relu_fwd.cc',
            'dnn/primitives/ops/relu_bwd.cc',
            'dnn/primitives/relu.cc',
