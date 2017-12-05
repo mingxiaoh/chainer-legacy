@@ -34,15 +34,6 @@ def is_enabled():
     return available
 
 
-def array(x):
-    if isinstance(x, numpy.ndarray):
-        if x.flags.contiguous is False:
-            x = numpy.ascontiguousarray(x)
-        return mdarray(x)
-    else:
-        return x
-
-
 def all_ready(inputs, check_with_ndim):
     if not is_enabled():
         return False
@@ -77,32 +68,27 @@ def all_ready(inputs, check_with_ndim):
 
     return True
 
+
 # ----------------------------------------------------------------------
 # ideepy mdarray allocation
 # ---------------------------------------------------------------------
-def to_ia(array):
-    """
-    Copy the given ndarray to mdarray
-    """
-    if not is_enabled():
-        raise Exception ( "ideepy is not installed coorectly" )
-
-    if not isinstance(array, numpy.ndarray):
-        raise TypeError( "The array send to ia must be numpy.ndarray")
-
-    if array.flags.contiguous is False:
-        array = numpy.ascontiguousarray(array)
-
-    return mdarray(array)
+def array(x):
+    if isinstance(x, numpy.ndarray):
+        if x.flags.contiguous is False:
+            x = numpy.ascontiguousarray(x)
+        return mdarray(x)
+    else:
+        return x
 
 
 def to_mdarray(xs):
     ys = ()
     for x in xs:
-        if isinstance(x, numpy.ndarray):
-            if x.flags.contiguous is False:
-                x = numpy.ascontiguousarray(x)
-            ys += mdarray(x),
-        else:
-            ys += x,
+        ys += array(x),
     return ys
+
+
+def to_ia(arr):
+    if not is_enabled():
+        raise Exception ( "ideepy is not installed coorectly" )
+    return array(arr)
