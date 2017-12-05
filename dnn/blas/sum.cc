@@ -126,7 +126,7 @@ Tensor * sum_along_axis(Tensor *src, vector<int> axis) {
     int axises = axis.size();
     vector<int> valid_axis_4dim = {0, 2, 3};
 
-    if (axises != 4) {
+    if (src->ndims() != 4 || axises != 3) {
         return nullptr;
     }
 
