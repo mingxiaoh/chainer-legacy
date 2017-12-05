@@ -51,18 +51,19 @@ inline size_t prod(vector<int>dims, int ndims)
     return prod;
 }
 
-inline mkldnn_memory_format_t ndims2format(int ndims)
+//input_type:'d'-->data, 'w'-->weight
+inline mkldnn_memory_format_t ndims2format(int ndims, char input_type = 'd')
 {
-    mkldnn_memory_format_t fmt = mkldnn_any; 
+    mkldnn_memory_format_t fmt = mkldnn_any;
     switch (ndims) {
         case 1:
             fmt = mkldnn_x;
             break;
         case 2:
-            fmt = mkldnn_nc;
+            fmt = (input_type == 'd') ? mkldnn_nc : mkldnn_oi;
             break;
         case 4:
-            fmt = mkldnn_nchw;
+            fmt = (input_type == 'd') ? mkldnn_nchw : mkldnn_oihw;
             break;
         default:
             throw mkldnn::error(mkldnn_invalid_arguments
@@ -74,7 +75,7 @@ inline mkldnn_memory_format_t ndims2format(int ndims)
 }
 
 
-inline mkldnn_memory_format_t ndims2format_preferred(int ndims, vector<int> dims)
+inline mkldnn_memory_format_t ndims2format_preferred(int ndims, vector<int> dims, char input_type = 'd')
 {
     mkldnn_memory_format_t fmt = mkldnn_any; 
     switch (ndims) {
@@ -82,10 +83,14 @@ inline mkldnn_memory_format_t ndims2format_preferred(int ndims, vector<int> dims
             fmt = mkldnn_x;
             break;
         case 2:
-            fmt = mkldnn_nc;
+            fmt = (input_type == 'd') ? mkldnn_nc : mkldnn_oi;
             break;
         case 4:
-            fmt = (mkldnn_memory_format_t)get_desired_format(dims[1]);
+            if (input_type == 'd') {
+                fmt = (mkldnn_memory_format_t)get_desired_format(dims[1]);
+            } else if (input_type == 'w') {
+                fmt = (mkldnn_memory_format_t)get_desired_format_weight(dims[0], dims[1]);
+            }
             break;
         default:
             throw mkldnn::error(mkldnn_invalid_arguments
@@ -158,7 +163,7 @@ public:
     Tensor() : ndims_(0), type_(UNKNOWN_TYPE), size_(0), data_(nullptr) {}
     virtual ~Tensor() = default; 
 
-    Tensor(int ndims, vector<int> dims, data_type_t type=FLOAT32)
+    Tensor(int ndims, vector<int> dims, data_type_t type)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -170,8 +175,8 @@ public:
                         { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
                         , cpu_engine }, data_.get()));
         }
-
-    Tensor(int ndims, vector<int> dims, void *data, data_type_t type=FLOAT32)
+    // input_type: 'd': data, 'w': weight
+    Tensor(int ndims, vector<int> dims, void *data, data_type_t type, char input_type='d')
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -180,8 +185,8 @@ public:
             //memcpy(data_.get(), data, len());
             memory::data_type dt = to_mkldnn_type();
             if (dt == memory::data_type::f32 && len() > 0) { //currently, mkldnn only support most f32 currently, may add int8 in future?
-                auto mm_fmt_i = ndims2format(ndims);
-                mm_fmt_ = ndims2format_preferred(ndims, dims);
+                auto mm_fmt_i = ndims2format(ndims, input_type);
+                mm_fmt_ = ndims2format_preferred(ndims, dims, input_type);
                 auto mem_i = mkldnn::memory(
                             { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_i) }
                             , cpu_engine }, data);
@@ -194,7 +199,7 @@ public:
                 mkldnn::stream s(mkldnn::stream::kind::eager);
                 s.submit(prims).wait();
             } else {
-                mm_fmt_ =  ndims2format(ndims);
+                mm_fmt_ =  ndims2format(ndims, input_type);
                 fast_memcpy((char*)data_.get(), (char*)data, len());
                 mem_.reset(new mkldnn::memory(
                             { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
@@ -202,7 +207,7 @@ public:
             }
         }
 
-    Tensor(int ndims, vector<int> dims, std::shared_ptr<avx::byte> data, data_type_t type=FLOAT32)
+    Tensor(int ndims, vector<int> dims, std::shared_ptr<avx::byte> data, data_type_t type)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -215,7 +220,7 @@ public:
         }
 
     Tensor(int ndims, vector<int> dims, std::shared_ptr<avx::byte> data
-            , mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
+            , mkldnn_memory_format_t mm_fmt, data_type_t type)
         : ndims_(ndims), dims_(dims), type_(type) {
             size_ = std::accumulate(dims.begin(), dims.begin() + ndims, 1
                     , std::multiplies<int>());
@@ -228,7 +233,7 @@ public:
         }
 
     Tensor(int ndims, vector<int> dims,
-            mkldnn_memory_format_t mm_fmt, data_type_t type=FLOAT32)
+            mkldnn_memory_format_t mm_fmt, data_type_t type)
         : Tensor(ndims, dims, type) {
             mm_fmt_ = mm_fmt;
             memory::data_type dt = to_mkldnn_type();

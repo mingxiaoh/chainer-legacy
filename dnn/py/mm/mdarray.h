@@ -153,7 +153,7 @@ public:
     : tensor_(new Tensor(ndims, dims, data, mm_fmt, type)) {}
 #endif
 
-  mdarray(Py_buffer *view) {
+  mdarray(Py_buffer *view, char input_type='d') {// input_type : 'd'-->data, 'w'-->weight
     data_type_t dt;
     std::string format(view->format);
     if (std::string::npos != format.find_last_of('f')) {
@@ -173,7 +173,7 @@ public:
     }
     vector<int> dims(view->shape, view->shape + view->ndim);
     //std::unique_ptr<Tensor> tensor(new Tensor(view->ndim, dims, view->buf, dt)); 
-    tensor_.reset(new Tensor(view->ndim, dims, view->buf, dt)); 
+    tensor_.reset(new Tensor(view->ndim, dims, view->buf, dt, input_type)); 
 
     PyBuffer_Release(view);
 
@@ -430,8 +430,8 @@ public:
   mdarray(mkldnn::memory::primitive_desc pd)
     : py_handle(std::make_shared<implementation::mdarray>(pd)) {}
 
-  mdarray(Py_buffer *view)
-    : py_handle(std::make_shared<implementation::mdarray>(view)) {}
+  mdarray(Py_buffer *view, char input_type='d')
+    : py_handle(std::make_shared<implementation::mdarray>(view, input_type)) {}
 
 #if 0
   mdarray(int ndims, vector<int> dims, void *data,

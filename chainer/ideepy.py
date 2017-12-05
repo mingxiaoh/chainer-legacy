@@ -72,11 +72,13 @@ def all_ready(inputs, check_with_ndim):
 # ----------------------------------------------------------------------
 # ideepy mdarray allocation
 # ---------------------------------------------------------------------
-def array(x):
+data = 'd' #data array
+weight = 'w' #weight array
+def array(x, itype=data):
     if isinstance(x, numpy.ndarray):
         if x.flags.contiguous is False:
             x = numpy.ascontiguousarray(x)
-        return mdarray(x)
+        return mdarray(x, itype)
     else:
         return x
 
@@ -91,4 +93,4 @@ def to_mdarray(xs):
 def to_ia(arr):
     if not is_enabled():
         raise Exception ( "ideepy is not installed coorectly" )
-    return array(arr)
+    return array(arr, itype=weight)

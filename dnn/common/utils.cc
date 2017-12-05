@@ -375,3 +375,23 @@ memory::format get_desired_format(int channel)
     return fmt_desired;
 }
 
+memory::format get_desired_format_weight(int channel0, int channel1)
+{
+    CpuFeatures cpu_f;
+    memory::format fmt_desired = memory::format::any;
+
+    if (cpu_f.is_supported(CpuFeatures::avx512_comm) && (channel0 % 16) == 0) {
+        if (channel1 % 16 == 0)
+            fmt_desired = memory::format::OIhw16i16o;
+        else
+            fmt_desired = memory::format::Oihw16o;
+    } else if (cpu_f.is_supported(CpuFeatures::avx2) && (channel0 % 8) == 0) {
+        if (channel1 % 8 == 0)
+            fmt_desired = memory::format::OIhw8i8o;
+        else
+            fmt_desired = memory::format::Ohwi8o;
+    } else {
+        fmt_desired = memory::format::nchw;
+    }
+    return fmt_desired;
+}

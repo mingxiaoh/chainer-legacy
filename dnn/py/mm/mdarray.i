@@ -199,7 +199,7 @@ public:
   // FIXME
   // add default constructor so that native can pass vector<mdarray> to python
   mdarray();
-  mdarray(Py_buffer *view);
+  mdarray(Py_buffer *view, char input_type = 'd');
   virtual ~mdarray();
 };
 
