@@ -52,7 +52,7 @@ class LinearFunction(function_node.FunctionNode):
             y = Linear_Py_F32.Forward(x, W, b, lp)
         else:
             y = Linear_Py_F32.Forward(x, W, None, lp)
-        self.retain_inputs((0, 1)) # b is not retained 
+        self.retain_inputs((0, 1)) # b is not retained
         return y,
 
 
@@ -61,7 +61,7 @@ class LinearFunction(function_node.FunctionNode):
         W = inputs[1]
         if (ideepy.all_ready(inputs, (2, 4))):
             return self.forward_ia(inputs)
- 
+
         if not type_check.same_types(*inputs):
             raise ValueError('numpy and cupy must not be used together\n'
                              'type(W): {0}, type(x): {1}'
@@ -102,7 +102,7 @@ class LinearFunction(function_node.FunctionNode):
 
 class LinearGradData(function_node.FunctionNode):
     def __init__(self, linear):
-        return 
+        return
     def forward_ia(self, inputs):
         self.retain_inputs((0, 1))
         gy, W = inputs
@@ -111,7 +111,7 @@ class LinearGradData(function_node.FunctionNode):
         lp = linear_param_t()
         lp.with_bias = False
         lp.src_ndims = 2
-        
+
         (gy, W) = ideepy.to_mdarray((gy, W))
         gx = Linear_Py_F32.BackwardData(W, gy, lp)
         return gx,
@@ -129,14 +129,14 @@ class LinearGradData(function_node.FunctionNode):
                              .format(type(gy), type(W)))
 
         gx = gy.dot(W).astype(gy.dtype, copy=False)
-        self.retain_inputs((0, 1)) 
-        return gx, 
+        self.retain_inputs((0, 1))
+        return gx,
 
 
     def backward(self, indexes, grad_outputs):
         gy, W = self.get_retained_inputs()
         ggx, = grad_outputs
-        
+
         ret = []
         if 0 in indexes:
             ggy = linear(ggx, W)
@@ -150,7 +150,7 @@ class LinearGradData(function_node.FunctionNode):
         return ret
 
 class LinearGradWeight(function_node.FunctionNode):
-    
+
     def __init__(self, linear):
         W_node = linear.inputs[1]
         self.W_dtype = W_node.dtype
@@ -179,9 +179,9 @@ class LinearGradWeight(function_node.FunctionNode):
                              .format(type(x), type(gy)))
 
         gW = gy.T.dot(x).astype(self.W_dtype, copy=False)
-        self.retain_inputs((0, 1)) 
-        return gW, 
-    
+        self.retain_inputs((0, 1))
+        return gW,
+
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
         ggW, = grad_outputs
@@ -194,7 +194,7 @@ class LinearGradWeight(function_node.FunctionNode):
             ggy = linear(x, ggW)
             ret.append(chainer.functions.cast(ggy, gy.dtype))
         return ret
-            
+
 
 def linear(x, W, b=None):
     """Linear function, or affine transformation.
@@ -235,8 +235,8 @@ def linear(x, W, b=None):
 
     """
     if x.ndim > 2:
-        x = x.reshape(len(x), -1)
-    
+        x = x.reshape(x.shape[0], -1)
+
     if b is None:
         args = x, W
     else:
