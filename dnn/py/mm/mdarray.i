@@ -76,7 +76,10 @@
   PyObject *flat() {
     return (*self)->flat();
   }
+}
 
+/* mdarray::reshape */
+%extend mdarray {
   %typemap(in) (...)(vector<int> args) {
      int i;
      int argc;
@@ -149,7 +152,83 @@
     va_end(vl);
     return (*self)->reshape(self, *dims);
   }
+}
 
+/* mdarray::sum */
+%extend mdarray {
+  %feature ("kwargs") sum;
+  %typemap(in) vector<int> axis {
+    $1.clear();
+    if (PyTuple_Check(obj1)) {
+      for (int i = 0; i < PyTuple_Size(obj1); i++) {
+        PyObject *item = PyTuple_GetItem(obj1, i);
+#if PY_VERSION_HEX > 0x03000000
+        if (!PyLong_Check(item)) {
+#else
+        if (!PyInt_Check(item)) {
+#endif
+          SWIG_exception_fail(SWIG_ValueError,
+              "in method '" "mdarray_sum" "', argument " "2"" of type '" "tuple (int, int, ...)""'");
+          SWIG_fail;
+        }
+
+        $1.push_back(PyLong_AsLong(item));
+      }
+    } else if (PyLong_Check(obj1)) {
+      $1.push_back(PyLong_AsLong(obj1));
+    } else {
+      void *_obj1;
+      if (!SWIG_IsOK(SWIG_ConvertPtr(obj1, &_obj1, nullptr, 0))) {
+        PyErr_SetString(PyExc_ValueError, "Wrong object in sum wrapper");
+        SWIG_fail;
+      }
+
+      if (!_obj1) {
+        $1.clear();
+      } else {
+        SWIG_exception_fail(SWIG_ValueError,
+            "in method '" "mdarray_sum" "', argument " "2"" of type '" "tuple or int""'");
+        SWIG_fail;
+      }
+    }
+  }
+
+  %typemap(argout) (vector<int> axis) {
+    if (!$result) {
+      auto *surrogate = reinterpret_cast<PyArrayObject *>(PyArray_FromAny(
+                            $self, nullptr, 0, 0, NPY_ARRAY_ELEMENTSTRIDES, nullptr));
+      if (surrogate == nullptr)
+        return nullptr;
+
+      if (!$1.size()) {
+        for (int i = 0; i < PyArray_NDIM(surrogate); i++)
+          $1.push_back(i);
+      }
+
+      auto *res = surrogate;
+      for (int i = 0; i < static_cast<int>($1.size()); i++) {
+        auto *tmp = reinterpret_cast<PyArrayObject *>(PyArray_Sum(
+                      res, $1[i], PyArray_TYPE(res), nullptr));
+        for (int j = i + 1; j < $1.size(); j++) {
+          if ($1[i] < $1[j])
+            $1[j] -= 1;
+        }
+
+        // if (i < axis.size() - 1)
+        //   Py_DECREF(res);
+
+        Py_DECREF(res);
+        res = tmp;
+      }
+
+      return reinterpret_cast<PyObject *>(res);
+    }
+  }
+
+  PyObject *sum(vector<int> axis={0}, int dtype=0,
+                PyObject *out=nullptr, bool keepdims=false) {
+    return (*self)->sum(axis);
+  }
 }
 
 /*

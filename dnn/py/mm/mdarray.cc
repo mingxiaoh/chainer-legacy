@@ -35,7 +35,7 @@ static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
     // o is ndarray
     // if size not equal, mean array broadcast
     if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
-        if (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) 
+        if (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o))
                 != self_mdarray->size()) {
             return false;
         }
@@ -43,7 +43,7 @@ static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
     }
 
     // o is mdarray
-    if (reinterpret_cast<PyTypeObject *>(o->ob_type) 
+    if (reinterpret_cast<PyTypeObject *>(o->ob_type)
             == reinterpret_cast<PyTypeObject *>(PyType_mdarray)) {
         // if o is mdarray, try to get mdarray
         mdarray *o_mdarray = get_mdarray_from_PyObject(o);
@@ -53,7 +53,7 @@ static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
         // not support different size's mdarray's operations
         if (o_mdarray->size() != self_mdarray->size())
             return false;
-        
+
         return true;
     }
 
@@ -839,6 +839,20 @@ PyObject *mdarray::reshape(py_handle *self, vector<int> dims)
         PyObject *resultobj = SWIG_Python_NewPointerObj(nullptr
                 , SWIG_as_voidptr(output), SwigTy_mdarray, SWIG_POINTER_OWN |  0 );
         return resultobj;
+    }
+}
+
+PyObject *mdarray::sum(vector<int> axis)
+{
+    auto tensor = tensor_->sum(axis);
+    if (tensor) {
+        auto output = new py_handle(new mdarray(tensor));
+        auto resultobj = SWIG_Python_NewPointerObj(nullptr,
+                             SWIG_as_voidptr(output), SwigTy_mdarray,
+                             SWIG_POINTER_OWN | 0);
+        return resultobj;
+    } else {
+        return nullptr;
     }
 }
 

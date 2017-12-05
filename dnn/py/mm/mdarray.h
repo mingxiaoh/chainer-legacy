@@ -277,6 +277,8 @@ public:
 
   PyObject *m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool inplace);
 
+  PyObject *sum(std::vector<int> axis);
+
   // PEP: 3118 Buffer Protocol Producer
   virtual int getbuffer(PyObject *obj, Py_buffer *view, int flags);
 

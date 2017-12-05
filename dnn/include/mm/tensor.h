@@ -444,8 +444,10 @@ public:
             reset_memory(public_fmt, data);
         }
 
-        return new Tensor(ndims, dims, data_, type_); 
+        return new Tensor(ndims, dims, data_, type_);
     }
+
+    Tensor * sum(vector<int> axis);
 
 protected:
     int ndims_;
