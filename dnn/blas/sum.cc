@@ -35,6 +35,24 @@
 
 using namespace mkldnn;
 
+static inline bool optimized_format(Tensor *t) {
+    switch(t->format()) {
+    case mkldnn_nChw16c:
+    case mkldnn_nChw8c:
+    case mkldnn_OIhw8i8o:
+    case mkldnn_OIhw16i16o:
+    case mkldnn_OIhw8i16o2i:
+    case mkldnn_OIhw8o16i2o:
+    case mkldnn_OIhw8o8i:
+    case mkldnn_OIhw16o16i:
+    case mkldnn_Oihw8o:
+    case mkldnn_Oihw16o:
+        return true;
+    default:
+        return false;
+    }
+}
+
 template<typename T>
 static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
                                     mkldnn_dims_t dims, vector<int> axis, T *dst) {
@@ -121,8 +139,8 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
     return dst;
 }
 
-// For now, just support along channel in NCHWx shape.
-Tensor * sum_along_axis(Tensor *src, vector<int> axis) {
+// 4 dimensions(NCHW/OIHW) opitimzation for mkldnn backend only.
+Tensor * sum_opt_along_axis(Tensor *src, vector<int> axis) {
     int axises = axis.size();
     vector<int> valid_axis_4dim = {0, 2, 3};
 
@@ -200,4 +218,15 @@ Tensor * sum_along_axis(Tensor *src, vector<int> axis) {
     }
 
     return dst;
+}
+
+Tensor * sum_common_along_axis(Tensor *src, vector<int> axis) {
+    return nullptr;
+}
+
+Tensor * sum_along_axis(Tensor *src, vector<int> axis) {
+    if (optimized_format(src))
+        return sum_opt_along_axis(src, axis);
+    else
+        return sum_common_along_axis(src, axis);
 }
