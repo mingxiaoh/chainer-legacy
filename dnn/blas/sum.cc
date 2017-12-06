@@ -67,25 +67,22 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
     int blk_nthr = omp_get_max_threads(),
         blk_num = blk_nthr,
         blk_len = mb / blk_num,
-        last_blk_len = mb % blk_num ?
-                       mb - (blk_num - 1) * blk_len :
-                       blk_len;
+        blk_len_ex = mb % blk_num;
 
-    if (!blk_len) {
+    if (!blk_len)
         blk_nthr = mb;
-        blk_len = last_blk_len = 1;
-    }
 
     T *buf = reinterpret_cast<T *>(new avx::byte[ic * blk_nthr * sizeof(T)]);
 
     # pragma omp parallel num_threads(blk_nthr)
     {
         int ithr = omp_get_thread_num();
-        int blen = ithr == blk_nthr - 1 ? last_blk_len : blk_len;
-        int bstart = blk_len * ithr;
+        int blen = ithr < blk_len_ex ? blk_len + 1 : blk_len;
+        int bstart = ithr <= blk_len_ex ? (blk_len + 1) * ithr :
+                     blk_len_ex * (blk_len + 1) + (ithr - blk_len_ex) * blk_len;
         int bend = bstart + blen;
 
-        T *loc_src = src + ithr * blk_len * ic * ih * iw;
+        T *loc_src = src + bstart * ic * ih * iw;
         for (int b = bstart; b < bend; b++) {
             T *loc_buf = buf + ithr * ic;
             for (int c = 0; c < cn; c++) {
@@ -108,20 +105,17 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
     int c_nthr = omp_get_max_threads(),
         c_num = c_nthr,
         c_len = ic / c_num,
-        last_c_len = ic % c_num ?
-                     ic - (c_num - 1) * c_len :
-                     c_len;
+        c_len_ex = ic % c_num;
 
-    if (!c_len) {
+    if (!c_len)
         c_nthr = ic;
-        c_len = last_c_len = 1;
-    }
 
     # pragma omp parallel num_threads(c_nthr)
     {
         int ithr = omp_get_thread_num();
-        int clen = ithr == c_nthr - 1 ? last_c_len : c_len;
-        int cstart = c_len * ithr;
+        int clen = ithr < c_len_ex ? c_len + 1 : c_len;
+        int cstart = ithr <= c_len_ex ? (c_len + 1) * ithr :
+                     c_len_ex * (c_len + 1) + (ithr - c_len_ex) * c_len;
         int cend = cstart + clen;
 
         for (int c = cstart; c < cend; c++)
