@@ -843,10 +843,23 @@ PyObject *mdarray::reshape(py_handle *self, vector<int> dims)
     }
 }
 
-PyObject *mdarray::sum(vector<int> axis)
+PyObject *mdarray::sum(vector<int> axis, bool keepdims)
 {
     auto tensor = tensor_->sum(axis);
     if (tensor) {
+        if (keepdims) {
+            vector<int> expected_shape;
+            for (int v = 0; v < this->ndims(); v++)
+                expected_shape.push_back(this->desc().data.dims[v]);
+
+            for (int a = 0; a < axis.size(); a++)
+                expected_shape[axis[a]] = 1;
+
+            auto _tensor = tensor->reshape(expected_shape);
+            delete tensor;
+            tensor = _tensor;
+        }
+
         auto output = new py_handle(new mdarray(tensor));
         auto resultobj = SWIG_Python_NewPointerObj(nullptr,
                              SWIG_as_voidptr(output), SwigTy_mdarray,

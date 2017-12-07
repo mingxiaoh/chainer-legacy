@@ -205,6 +205,16 @@
           $1.push_back(i);
       }
 
+      vector<long> expected_shape;
+      long *shape = PyArray_DIMS(surrogate);
+      if (arg5) {
+        for (int v = 0; v < PyArray_NDIM(surrogate); v++)
+          expected_shape.push_back(shape[v]);
+
+        for (int a = 0; a < $1.size(); a++)
+          expected_shape[$1[a]] = 1;
+      }
+
       auto *res = surrogate;
       for (int i = 0; i < static_cast<int>($1.size()); i++) {
         auto *tmp = reinterpret_cast<PyArrayObject *>(PyArray_Sum(
@@ -221,13 +231,23 @@
         res = tmp;
       }
 
+      if (arg5) {
+        PyObject *new_shape = PyTuple_New(expected_shape.size());
+        for (int v = 0; v < expected_shape.size(); v++)
+#if PY_VERSION_HEX > 0x03000000
+          PyTuple_SetItem(new_shape, v, PyLong_FromLong(expected_shape[v]));
+#else
+          PyTuple_SetItem(new_shape, v, PyInt_FromLong(expected_shape[v]));
+#endif
+        res = reinterpret_cast<PyArrayObject *>(PyArray_Reshape(res, new_shape));
+      }
       return reinterpret_cast<PyObject *>(res);
     }
   }
 
   PyObject *sum(vector<int> axis={0}, int dtype=0,
                 PyObject *out=nullptr, bool keepdims=false) {
-    return (*self)->sum(axis);
+    return (*self)->sum(axis, keepdims);
   }
 }
 
