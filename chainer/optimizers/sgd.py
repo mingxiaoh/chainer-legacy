@@ -1,6 +1,6 @@
 from chainer import cuda
 from chainer import optimizer
-
+from chainer import ideepy
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
@@ -30,7 +30,10 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        param.data -= self.hyperparam.lr * grad
+        if isinstance(param.data, ideepy.mdarray):
+            param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
+        else :
+            param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad
