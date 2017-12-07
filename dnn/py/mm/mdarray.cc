@@ -36,7 +36,8 @@ static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
     // if size not equal, mean array broadcast
     if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
         if (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o))
-                != self_mdarray->size()) {
+                != self_mdarray->size() ||
+                !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o))) {
             return false;
         }
         return true;
@@ -545,9 +546,9 @@ PyObject *mdarray::m_mult_div(PyObject *self, PyObject *o, int mult_or_div, bool
 }
 
 PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size()))) {
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()) || !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)))) {
     return m_Multiply_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -567,9 +568,9 @@ PyObject *mdarray::m_Multiply(PyObject *self, PyObject *o) {
 }
 
 PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size()))) {
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()) || !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)))) {
     return m_InPlaceMultiply_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -589,9 +590,9 @@ PyObject *mdarray::m_InPlaceMultiply(PyObject *self, PyObject *o) {
 }
 
 PyObject *mdarray::m_Divide(PyObject *self, PyObject *o) {
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size()))) {
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()) || !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)))) {
     return m_Divide_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
@@ -611,9 +612,9 @@ PyObject *mdarray::m_Divide(PyObject *self, PyObject *o) {
 }
 
 PyObject *mdarray::m_InPlaceDivide(PyObject *self, PyObject *o) {
-  if ((reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
-      PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
-      static_cast<int>(this->size()))) {
+  if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type &&
+      (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o)) !=
+      static_cast<int>(this->size()) || !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o)))) {
     return m_InPlaceDivide_map_impl(self, o);
   } else if (PyArray_Check(o) &&
       !PyArray_IS_C_CONTIGUOUS(reinterpret_cast<PyArrayObject *>(o))) {
