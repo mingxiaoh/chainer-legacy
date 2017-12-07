@@ -47,7 +47,7 @@ if system() == 'Linux':
     libraries += ['boost_system', 'glog', 'm']
     src = ['dnn/py/dnn.i', 'dnn/mm/mem.cc', 'dnn/mm/tensor.cc', 'dnn/py/mm/mdarray.cc',
            'dnn/common/cpu_info.cc', 'dnn/common/utils.cc', 'dnn/common/common.cc',
-           'dnn/blas/sum.cc',
+           'dnn/blas/sum.cc', 'dnn/py/mm/basic.cc',
            'dnn/primitives/ops/relu_fwd.cc',
            'dnn/primitives/ops/relu_bwd.cc',
            'dnn/primitives/relu.cc',

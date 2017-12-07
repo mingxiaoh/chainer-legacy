@@ -296,3 +296,5 @@ class reorder_buffer {
 public:
   reorder_buffer(mdarray in);
 };
+
+%include "basic.i"

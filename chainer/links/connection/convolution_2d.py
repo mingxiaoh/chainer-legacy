@@ -3,6 +3,7 @@ from chainer import initializers
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
+from chainer import ideepy
 
 
 class Convolution2D(link.Link):
@@ -150,6 +151,8 @@ class Convolution2D(link.Link):
         """
         if self.W.data is None:
             self._initialize_params(x.shape[1])
+            if ideepy.all_ready((self.W,), (2, 4)):
+                self.to_ia()
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate)
 

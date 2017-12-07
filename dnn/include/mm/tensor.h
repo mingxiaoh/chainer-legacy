@@ -447,6 +447,29 @@ public:
         return new Tensor(ndims, dims, data_, type_);
     }
 
+    inline bool copyto(Tensor *src) {
+        if ((src->type() != type()) || (src->dims() != dims())) {
+            return false;
+        }
+        mm_fmt_ = src->format(); 
+        fast_memcpy((char*)data_.get(), (char*)src->data(), len());
+        memory::data_type dt = to_mkldnn_type();
+        mem_.reset(new mkldnn::memory(
+                    { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                    , cpu_engine }, data_.get()));
+        return true;
+    }
+
+    inline void copyto(char *src) {
+        mm_fmt_ = public_format(mm_fmt_);
+        fast_memcpy((char*)data_.get(), src, len());
+        memory::data_type dt = to_mkldnn_type();
+        mem_.reset(new mkldnn::memory(
+                    { { { dims_ }, dt, static_cast<memory::format>(mm_fmt_) }
+                    , cpu_engine }, data_.get()));
+        return;
+    }
+
     Tensor * sum(vector<int> axis);
 
 protected:
