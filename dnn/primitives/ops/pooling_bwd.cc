@@ -109,7 +109,11 @@ void Pooling2DBwd<T>::setup(mkldnn::memory::dims diff_src_d,
     if (alg_kind != pooling_max && alg_kind != pooling_avg
             && alg_kind != pooling_avg_include_padding && alg_kind != pooling_avg_exclude_padding) {
         //LOG(ERROR) << "alg_kind must be either pooling_max or "
+<<<<<<< HEAD
          //          << "pooling_avg";
+=======
+                   << "pooling_avg";
+>>>>>>> 0f26861a0461cc1d42c4dd0339f371759aded27e
     }
     
     alg_kind_ = alg_kind;

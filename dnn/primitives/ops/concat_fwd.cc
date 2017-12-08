@@ -99,7 +99,11 @@ void ConcatFwd<T>::setup( std::vector<mkldnn::memory::dims> src_ds,
     axis_ = axis;
 
     //LOG(INFO) << "dst dims: [" << dst_d[0] << "," << dst_d[1] 
+<<<<<<< HEAD
         //<< "," << dst_d[2] << "," << dst_d[3] << "]";
+=======
+        << "," << dst_d[2] << "," << dst_d[3] << "]";
+>>>>>>> 0f26861a0461cc1d42c4dd0339f371759aded27e
 
     //FIXME
     // Currently, concat's src fms is hard set
