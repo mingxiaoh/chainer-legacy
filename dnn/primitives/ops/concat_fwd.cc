@@ -93,12 +93,12 @@ void ConcatFwd<T>::setup( std::vector<mkldnn::memory::dims> src_ds,
                           mkldnn::memory::dims dst_d,
                           int axis)
 {
-    LOG(INFO) << "Concat forward_setup";
+    //LOG(INFO) << "Concat forward_setup";
     
     assert(src_ds.size() > 0);
     axis_ = axis;
 
-    LOG(INFO) << "dst dims: [" << dst_d[0] << "," << dst_d[1] 
+    //LOG(INFO) << "dst dims: [" << dst_d[0] << "," << dst_d[1] 
         << "," << dst_d[2] << "," << dst_d[3] << "]";
 
     //FIXME
@@ -145,7 +145,7 @@ void ConcatFwd<T>::setup( std::vector<mkldnn::memory::dims> src_ds,
 template<typename T>
 void ConcatFwd<T>::execute(std::vector<void*> src, void *dst)
 {
-    LOG(INFO) << "Concat forward";
+    //LOG(INFO) << "Concat forward";
     assert(src.size() == src_mems_.size());
 
     for (int i = 0; i < src_mems_.size(); i++) {

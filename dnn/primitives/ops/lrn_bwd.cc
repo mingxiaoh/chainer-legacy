@@ -100,11 +100,11 @@ void LocalResponseNormalizationBwd<T>::setup(
     int n, double k, double alpha, double beta,
     mkldnn::algorithm alg_kind)
 {
-    LOG(INFO) << "lrn backward_setup";
+    //LOG(INFO) << "lrn backward_setup";
 
-    LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
-    LOG(INFO) << "diff_dst_d[0]=" << diff_dst_d[0] << "; diff_dst_d[1]" << diff_dst_d[1] << "; diff_dst_d[2]=" << diff_dst_d[2] << "; diff_dst_d[3]=" << diff_dst_d[3];
-    LOG(INFO) << "ws_d[0]=" << ws_d[0] << "; ws_d[1]" << ws_d[1] << "; ws_d[2]=" << ws_d[2] << "; ws_d[3]=" << ws_d[3];
+    //LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
+   // LOG(INFO) << "diff_dst_d[0]=" << diff_dst_d[0] << "; diff_dst_d[1]" << diff_dst_d[1] << "; diff_dst_d[2]=" << diff_dst_d[2] << "; diff_dst_d[3]=" << diff_dst_d[3];
+   // LOG(INFO) << "ws_d[0]=" << ws_d[0] << "; ws_d[1]" << ws_d[1] << "; ws_d[2]=" << ws_d[2] << "; ws_d[3]=" << ws_d[3];
     
     alg_kind_ = alg_kind;
 
@@ -150,7 +150,7 @@ void LocalResponseNormalizationBwd<T>::setup(
 template<typename T>
 void LocalResponseNormalizationBwd<T>::execute(void*src, void *diff_src, void *diff_dst, void *ws)
 {
-    LOG(INFO) << "lrn backward";
+    //LOG(INFO) << "lrn backward";
     
     diff_src_mem_->set_data_handle(diff_src); //
     diff_dst_mem_->set_data_handle(diff_dst); //
@@ -169,7 +169,7 @@ void LocalResponseNormalizationBwd<T>::execute(void*src, void *diff_src, void *d
     assert(ws!=NULL);
     ws_mem_->set_data_handle(dummy);
     
-    LOG(INFO) << "lrn backward finish";
+    //LOG(INFO) << "lrn backward finish";
     return;
 }
 
