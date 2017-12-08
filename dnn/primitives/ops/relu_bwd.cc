@@ -90,7 +90,7 @@ ReluBwd<T>::~ReluBwd()
 template<typename T>
 void ReluBwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt)
 {
-    LOG(INFO) << "Relu backward_setup";
+    //LOG(INFO) << "Relu backward_setup";
     assert(src_d != nullptr);
 
     /* create memory descriptors for relu data w/ no specified format */
@@ -128,7 +128,7 @@ void ReluBwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_di
 template<typename T>
 void ReluBwd<T>::execute(void* src, void* dst_diff, void* src_diff)
 {
-    LOG(INFO) << "Relu backward";
+    //LOG(INFO) << "Relu backward";
 
     src_mem_->set_data_handle(src);
     dst_diff_mem_->set_data_handle(dst_diff);

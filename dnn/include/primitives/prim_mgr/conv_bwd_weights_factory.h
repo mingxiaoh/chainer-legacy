@@ -55,11 +55,11 @@ public:
                             Convolution2DBwdWeightsFactory<T>::get_instance().get_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
 
         if (conv2d_backward_weights == NULL) {
-            LOG(INFO) << "create a new one for conv2d bwd weights";
+            //LOG(INFO) << "create a new one for conv2d bwd weights";
             conv2d_backward_weights = new Convolution2DBwdWeights<T>( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
             Convolution2DBwdWeightsFactory<T>::get_instance().set_conv2d_bwd_weights( x, diff_w, diff_b, diff_y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_backward_weights);
         } else {
-            LOG(INFO) << "reuse existed one for conv2d bwd weights";
+            //LOG(INFO) << "reuse existed one for conv2d bwd weights";
         }
         return conv2d_backward_weights;
     }

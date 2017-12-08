@@ -93,11 +93,11 @@ public:
             LocalResponseNormalizationBwdFactory<T>::get_instance().get_lrn_bwd( src_d, dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind));
 
         if (lrn_backward == NULL) {
-            LOG(INFO) << "create a new one for lrn bwd: " << alg_kind;
+            //LOG(INFO) << "create a new one for lrn bwd: " << alg_kind;
             lrn_backward = new LocalResponseNormalizationBwd<T>( src_d, dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind);
             LocalResponseNormalizationBwdFactory<T>::get_instance().set_lrn_bwd( src_d, dst_d, ws_d, ws_dt, n, k, alpha, beta, alg_kind, lrn_backward);
         } else {
-            LOG(INFO) << "reuse exist one for lrn bwd: " << alg_kind;
+            //LOG(INFO) << "reuse exist one for lrn bwd: " << alg_kind;
         }
         return lrn_backward;
     }

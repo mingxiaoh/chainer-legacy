@@ -55,11 +55,11 @@ public:
                             Convolution2DFwdFactory<T>::get_instance().get_conv2d_fwd( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
 
         if (conv2d_forward == NULL) {
-            LOG(INFO) << "create a new one for conv2d fwd";
+            //LOG(INFO) << "create a new one for conv2d fwd";
             conv2d_forward = new Convolution2DFwd<T>( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
             Convolution2DFwdFactory<T>::get_instance().set_conv2d_fwd( x, w, b, y, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_forward);
         } else {
-            LOG(INFO) << "reuse exist one for conv2d fwd";
+            //LOG(INFO) << "reuse exist one for conv2d fwd";
         }
         return conv2d_forward;
     }

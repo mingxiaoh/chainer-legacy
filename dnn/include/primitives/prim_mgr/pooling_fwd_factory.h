@@ -56,11 +56,11 @@ public:
                             Pooling2DFwdFactory<T>::get_instance().get_pooling2d_fwd( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind));
 
         if (pooling2d_forward == NULL) {
-            LOG(INFO) << "create a new one for pooling fwd: " << alg_kind;
+            //LOG(INFO) << "create a new one for pooling fwd: " << alg_kind;
             pooling2d_forward = new Pooling2DFwd<T>( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
             Pooling2DFwdFactory<T>::get_instance().set_pooling2d_fwd( src_d, dst_d, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind, pooling2d_forward);
         } else {
-            LOG(INFO) << "reuse exist one for pooling fwd: " << alg_kind;
+            //LOG(INFO) << "reuse exist one for pooling fwd: " << alg_kind;
         }
         return pooling2d_forward;
     }
