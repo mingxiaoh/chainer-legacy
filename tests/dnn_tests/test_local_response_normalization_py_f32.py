@@ -36,6 +36,7 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
     def check_forward(self, x, pp):
         x_mdarray = dnn._dnn.mdarray(x)
         (y_act, ws) = LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
+        y_act = numpy.array(y_act, dtype=self.dtype)
 
         y_expect = numpy.zeros_like(self.x)
         for n, c, h, w in numpy.ndindex(self.x.shape):
@@ -46,7 +47,7 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
             y_expect[n, c, h, w] = self.x[n, c, h, w] / denom
 
         numpy.testing.assert_allclose(
-            y_expect[0], y_act[0], **self.check_forward_options)
+            y_expect, y_act, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.pp)
@@ -57,9 +58,10 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
         (y_act, ws) = LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
         gx_act = LocalResponseNormalization_Py_F32.Backward(
             x_mdarray, gy_mdarray, ws, pp)
+        gx_act = numpy.array(gx_act, dtype=self.dtype)
 
         half_n = self.pp.n // 2
-        x2 = numpy.square(x_mdarray)
+        x2 = numpy.square(x)
         sum_part = x2.copy()
         for i in six.moves.range(1, half_n + 1):
             sum_part[:, i:] += x2[:, :-i]
@@ -74,9 +76,9 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
             sum_p[:, i:] += summand[:, :-i]
             sum_p[:, :-i] += summand[:, i:]
 
-        gx_expect = gy[0] * self.scale - 2 * pp.alpha * pp.beta * x[0] * sum_p
+        gx_expect = gy * self.scale - 2 * pp.alpha * pp.beta * x * sum_p
         numpy.testing.assert_allclose(
-            gx_expect[0], gx_act[0], **self.check_backward_options)
+            gx_expect, gx_act, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.pp)
