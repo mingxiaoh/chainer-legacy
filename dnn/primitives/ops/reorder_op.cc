@@ -90,7 +90,7 @@ void ReorderOp<T>::setup(mkldnn::memory::dims dims,
                          mkldnn::memory::format src_fmt,
                          mkldnn::memory::format dst_fmt)
 {
-    LOG(INFO) << "Reorder setup";
+    //LOG(INFO) << "Reorder setup";
     
     assert(src_fmt != dst_mfmt);
 
@@ -108,7 +108,7 @@ void ReorderOp<T>::setup(mkldnn::memory::dims dims,
 template<typename T>
 void ReorderOp<T>::execute(void* src, void* dst)
 {
-    LOG(INFO) << "Reorder execute";
+    //LOG(INFO) << "Reorder execute";
     src_mem_->set_data_handle(src);
     dst_mem_->set_data_handle(dst);
     reorder_stream_->submit({*reorder_prim_});

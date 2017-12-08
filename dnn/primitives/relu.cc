@@ -91,8 +91,8 @@ Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
     void *src_buf = src->data();
 
     if (src->cxx_format() != diff_dst->cxx_format()) {
-        LOG(INFO) << "relu bwd data fmt not match, need to reorder";
-        LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
+        //LOG(INFO) << "relu bwd data fmt not match, need to reorder";
+        //LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
         //src_reorder = new avx::byte[diff_dst->len()];
         auto src_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);

@@ -85,12 +85,12 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     
     // check wehther fmt is same
     if (src_fmt == pooling2d_forward->src_fmt_) {
-        LOG(INFO) << "pooling forward fmt matched";
+        //LOG(INFO) << "pooling forward fmt matched";
     } else {
-        LOG(INFO) << "pooling fwd fmt not match, need to reorder";
+        //LOG(INFO) << "pooling fwd fmt not match, need to reorder";
 
         if (src_fmt != pooling2d_forward->src_fmt_) {
-            LOG(INFO) << "src_fmt=" << src_fmt <<", pooling2d_forward->src_fmt_=" << pooling2d_forward->src_fmt_;
+            //LOG(INFO) << "src_fmt=" << src_fmt <<", pooling2d_forward->src_fmt_=" << pooling2d_forward->src_fmt_;
             // FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, pooling2d_forward->src_fmt_);
             src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
@@ -111,7 +111,7 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     // do forward
     // for max pooling, need to return workspace
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
-        LOG(INFO) << "ws_dt_=" << pooling2d_forward->ws_dt_;
+        //LOG(INFO) << "ws_dt_=" << pooling2d_forward->ws_dt_;
         // workspace must be int tensor
         //Tensor *ws_tensor = new Tensor((pooling2d_forward->ws_dims_), pooling2d_forward->ws_dt_, pooling2d_forward->ws_fmt_, cpu_engine);
         auto ws_data = Allocator::malloc(pooling2d_forward->ws_size_, MPOOL_POOLING_FWD);
@@ -127,7 +127,7 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
         outputs.push_back(dst_tensor);
     }
 
-    LOG(INFO) << "Succ exec pooling forward";
+    //LOG(INFO) << "Succ exec pooling forward";
     return outputs;
 }
 

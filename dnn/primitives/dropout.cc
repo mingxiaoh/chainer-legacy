@@ -111,10 +111,10 @@ Tensor* Dropout<T>::Backward(Tensor* mask, Tensor* gy) {
     shared_ptr<avx::byte> mask_reorder;
 
     if (gy_fmt == mask_fmt) {
-        LOG(INFO) << "mask fmt matched";
+        //LOG(INFO) << "mask fmt matched";
     } else {
-        LOG(INFO) << "mask fmt not match, need to reorder";
-        LOG(INFO) << "mask_fmt=" << mask_fmt <<", gy_fmt=" << gy_fmt;
+       // LOG(INFO) << "mask fmt not match, need to reorder";
+       // LOG(INFO) << "mask_fmt=" << mask_fmt <<", gy_fmt=" << gy_fmt;
         auto reorder_op = ReorderFactory<T>::get(mask->dims(), mask_fmt, gy_fmt);
         mask_reorder = Allocator::malloc(mask->len(), MPOOL_REORDER);
         //mask_reorder = new avx::byte[mask->len()];

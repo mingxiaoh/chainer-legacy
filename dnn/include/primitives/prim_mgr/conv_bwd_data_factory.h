@@ -56,11 +56,11 @@ public:
                             Convolution2DBwdDataFactory<T>::get_instance().get_conv2d_bwd_data( diff_src, w, diff_dst, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw));
 
         if (conv2d_backward_data == NULL) {
-            LOG(INFO) << "create a new one for conv2d bwd data";
+            //LOG(INFO) << "create a new one for conv2d bwd data";
             conv2d_backward_data = new Convolution2DBwdData<T>( diff_src, w, diff_dst, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw);
             Convolution2DBwdDataFactory<T>::get_instance().set_conv2d_bwd_data( diff_src, w, diff_dst, dilate_y, dilate_x, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, conv2d_backward_data);
         } else {
-            LOG(INFO) << "reuse a existed one for conv2d bwd data";
+            //LOG(INFO) << "reuse a existed one for conv2d bwd data";
         }
         return conv2d_backward_data;
     }

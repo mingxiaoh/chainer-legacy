@@ -51,11 +51,11 @@ public:
                             ReorderFactory<T>::get_instance().get_reorder(dims, src_fmt, dst_fmt));
 
         if (reorder_op == NULL) {
-            LOG(INFO) << "create a new one for reorder";
+            //LOG(INFO) << "create a new one for reorder";
             reorder_op = new ReorderOp<T>( dims, src_fmt, dst_fmt);
             ReorderFactory<T>::get_instance().set_reorder( dims, src_fmt, dst_fmt, reorder_op);
         } else {
-            LOG(INFO) << "reuse exist one for reorder";
+            //LOG(INFO) << "reuse exist one for reorder";
         }
         return reorder_op;
     }

@@ -51,11 +51,11 @@ public:
                             ConcatBwdFactory<T>::get_instance().get_concat_bwd(diff_src, diff_dst, axis));
 
         if (concat_backward == NULL) {
-            LOG(INFO) << "create a new one for concat bwd";
+            //LOG(INFO) << "create a new one for concat bwd";
             concat_backward = new ConcatBwd<T>( diff_src, diff_dst, axis);
             ConcatBwdFactory<T>::get_instance().set_concat_bwd( diff_src, diff_dst, axis, concat_backward);
         } else {
-            LOG(INFO) << "reuse exist one for concat bwd";
+            //LOG(INFO) << "reuse exist one for concat bwd";
         }
         return concat_backward;
     }

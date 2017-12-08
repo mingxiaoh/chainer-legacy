@@ -104,9 +104,9 @@ void LinearFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims w_d,
                 memory::format::any));
     dst_md_.reset(new memory::desc({dst_d}, memory_data_type<T>(),
                 memory::format::any));
-    LOG(INFO) << "src_d" << src_d[0]<<","<< src_d[1];
-    LOG(INFO) << "weight" << w_d[0] << "," << w_d[1];
-    LOG(INFO) << "dst_d" << dst_d[0] << "," << dst_d[1];
+    //LOG(INFO) << "src_d" << src_d[0]<<","<< src_d[1];
+    //LOG(INFO) << "weight" << w_d[0] << "," << w_d[1];
+    //LOG(INFO) << "dst_d" << dst_d[0] << "," << dst_d[1];
     //create linear layer descriptor
     if(!b_d.empty()) {
         bias_md_.reset(new memory::desc({b_d}, memory_data_type<T>(),

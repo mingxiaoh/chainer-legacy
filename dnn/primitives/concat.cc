@@ -80,7 +80,7 @@ Tensor *Concat<T>::Forward(
         out_channel += (src[i]->cxx_dims())[1];
     }
     dst_d = {src_ds[0][0], out_channel, src_ds[0][2], src_ds[0][3]};
-    LOG(INFO) << "dst_d={" << dst_d[0] << "," << dst_d[1] << "," << dst_d[2] << "," << dst_d[3] << "}";
+    //LOG(INFO) << "dst_d={" << dst_d[0] << "," << dst_d[1] << "," << dst_d[2] << "," << dst_d[3] << "}";
     
     // get a concat fwd from primitive pool
     ConcatFwd<T> *concat_forward = NULL;
@@ -92,9 +92,9 @@ Tensor *Concat<T>::Forward(
 
     for (int i = 0; i < expected_fmts.size(); i++) {
         if ( src_fmts[i] != expected_fmts[i]) {
-            LOG(INFO) << "Concat src fmt not match ("<< i << "):"
-                "src_fmt=" << src_fmts[i] <<
-                "; expected_fmt="<< expected_fmts[i];
+            //LOG(INFO) << "Concat src fmt not match ("<< i << "):"
+                //"src_fmt=" << src_fmts[i] <<
+                //"; expected_fmt="<< expected_fmts[i];
             // From reorder factory to find one reorder
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_ds[i], src_fmts[i], expected_fmts[i]);
             src_reorder[i] = new avx::byte[src[i]->len()];
@@ -165,8 +165,8 @@ std::vector<Tensor*> Concat<T>::Backward(
     expected_dst_fmt = concat_backward->diff_dst_fmt_;
     diff_dst_data = diff_dst->data();
     if (expected_dst_fmt != diff_dst->cxx_format()) {
-        LOG(INFO) << "Concat diff dst fmt not match: diff_dst_fmt="
-            << diff_dst->cxx_format() << "; expected fmt = " << expected_dst_fmt;
+        //LOG(INFO) << "Concat diff dst fmt not match: diff_dst_fmt="
+           // << diff_dst->cxx_format() << "; expected fmt = " << expected_dst_fmt;
 
         // From reorder factory to find one reorder
         ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst->cxx_dims(), diff_dst->cxx_format(), expected_dst_fmt);

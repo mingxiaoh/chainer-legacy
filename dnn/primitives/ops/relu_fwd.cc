@@ -90,7 +90,7 @@ ReluFwd<T>::~ReluFwd()
 template<typename T>
 void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
 {
-    LOG(INFO) << "Relu forward_setup";
+    //LOG(INFO) << "Relu forward_setup";
     assert(src_d != nullptr);
 
     /* create memory descriptors for relu data w/ no specified format */
@@ -121,7 +121,7 @@ void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fm
 template<typename T>
 void ReluFwd<T>::execute(void* src, void* dst)
 {
-    LOG(INFO) << "Relu forward";
+    //LOG(INFO) << "Relu forward";
 
     src_mem_->set_data_handle(src);
     dst_mem_->set_data_handle(dst);

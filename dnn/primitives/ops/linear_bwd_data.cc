@@ -104,9 +104,9 @@ void LinearBwdData<T>::setup(
     diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(), memory::format::any));
     weights_md_.reset(new memory::desc({w_d}, memory_data_type<T>(), memory::format::any));
     diff_dst_md_.reset(new memory::desc({diff_dst_d}, memory_data_type<T>(), memory::format::any));
-    LOG(INFO) << "diff_src_d" << diff_src_d[0]<<", "<<diff_src_d[1];
-    LOG(INFO) << "w_d" << w_d[0] << "," << w_d[1];
-    LOG(INFO) << "diff_dst_d" << diff_dst_d[0] << "," << diff_dst_d[1];
+    //LOG(INFO) << "diff_src_d" << diff_src_d[0]<<", "<<diff_src_d[1];
+    //LOG(INFO) << "w_d" << w_d[0] << "," << w_d[1];
+    //LOG(INFO) << "diff_dst_d" << diff_dst_d[0] << "," << diff_dst_d[1];
     /*create a linear descriptor*/
     bwd_data_desc_.reset(new inner_product_backward_data::desc(*diff_src_md_, *weights_md_, *diff_dst_md_));
 

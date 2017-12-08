@@ -142,7 +142,7 @@ Tensor *Linear<T>::Forward(
     } else {
         //LOG(INFO) << "format not matched, need to do reorder";
         if (src_fmt != linear_forward->src_fmt_) {
-            LOG(INFO) << "src_fmt" << src_fmt << ", linear_forward->src_fmt_" << linear_forward->src_fmt_;
+            //LOG(INFO) << "src_fmt" << src_fmt << ", linear_forward->src_fmt_" << linear_forward->src_fmt_;
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, linear_forward->src_fmt_);
             src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
             //src_reorder =  new avx::byte[src->len()];
@@ -150,7 +150,7 @@ Tensor *Linear<T>::Forward(
             src_tmp = src_reorder.get();
         }
         if (w_fmt != linear_forward->weights_fmt_) {
-            LOG(INFO) << "weight_fmt  = "<< w_fmt << ", linear_forward->weights_fmt_=" << linear_forward->weights_fmt_;
+            //LOG(INFO) << "weight_fmt  = "<< w_fmt << ", linear_forward->weights_fmt_=" << linear_forward->weights_fmt_;
             //FIXME: when to free the reordered memory
             ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, linear_forward->weights_fmt_);
             w_reorder = Allocator::malloc(weights->len(), MPOOL_REORDER);
@@ -226,11 +226,11 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     shared_ptr<avx::byte> diff_dst_reorder;
     //check whether fmt is same
     if (src_fmt == linear_bwd_weights->src_fmt_ && diff_dst_fmt == linear_bwd_weights->diff_dst_fmt_) {
-        LOG(INFO) << "primitive fmt matched";
+        //LOG(INFO) << "primitive fmt matched";
     } else {
-        LOG(INFO) << "fmt not match, need to reorder";
+        //LOG(INFO) << "fmt not match, need to reorder";
         if (src_fmt != linear_bwd_weights->src_fmt_) {
-            LOG(INFO) <<  "src_fmt = " << src_fmt << ", linear_bwd_weights->src_fmt_=" << linear_bwd_weights->src_fmt_;
+           // LOG(INFO) <<  "src_fmt = " << src_fmt << ", linear_bwd_weights->src_fmt_=" << linear_bwd_weights->src_fmt_;
             ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, linear_bwd_weights->src_fmt_);
             src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
             //src_reorder = new avx::byte[src->len()];
@@ -238,7 +238,7 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
             src_tmp = src_reorder.get();
         }
         if (diff_dst_fmt != linear_bwd_weights->diff_dst_fmt_) {
-            LOG(INFO) << "diff_dst_fmt = " << diff_dst_fmt << ", linear_bwd_weights->diff_dst_fmt = " << linear_bwd_weights->diff_dst_fmt_;
+            //LOG(INFO) << "diff_dst_fmt = " << diff_dst_fmt << ", linear_bwd_weights->diff_dst_fmt = " << linear_bwd_weights->diff_dst_fmt_;
             //FIXME when to free the reordered memory
             ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, linear_bwd_weights->diff_dst_fmt_);
             diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
@@ -313,11 +313,11 @@ Tensor *Linear<T>::BackwardData(
     shared_ptr<avx::byte> diff_dst_reorder;
 
     if (w_fmt == linear_bwd_data->weights_fmt_ && diff_dst_fmt == linear_bwd_data->diff_dst_fmt_) {
-        LOG(INFO) << "linear bwd data primitive fmt matched";
+        //LOG(INFO) << "linear bwd data primitive fmt matched";
     } else {
-        LOG(INFO) << "linear bwd data fmt not match, need to reorder";
+        //LOG(INFO) << "linear bwd data fmt not match, need to reorder";
         if (w_fmt != linear_bwd_data->weights_fmt_) {
-            LOG(INFO) << "weights_fmt_ = " << w_fmt << ", linear_bwd_data->weights_fmt_ = " << linear_bwd_data->weights_fmt_;
+           // LOG(INFO) << "weights_fmt_ = " << w_fmt << ", linear_bwd_data->weights_fmt_ = " << linear_bwd_data->weights_fmt_;
             ReorderOp<T>* reorder_w_op = ReorderFactory<T>::get(w_dims, w_fmt, linear_bwd_data->weights_fmt_);
             w_reorder = Allocator::malloc(weights->len(), MPOOL_REORDER);
             //w_reorder = new avx::byte[weights->len()];
@@ -325,7 +325,7 @@ Tensor *Linear<T>::BackwardData(
             w_tmp = w_reorder.get();
         }
         if (diff_dst_fmt != linear_bwd_data->diff_dst_fmt_) {
-            LOG(INFO) << "diff_dst_fmt = " << diff_dst_fmt << ", linear_bwd_data->diff_dst_fmt = " << linear_bwd_data->diff_dst_fmt_;
+            //LOG(INFO) << "diff_dst_fmt = " << diff_dst_fmt << ", linear_bwd_data->diff_dst_fmt = " << linear_bwd_data->diff_dst_fmt_;
             ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, linear_bwd_data->diff_dst_fmt_);
             diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
             //diff_dst_reorder  = new avx::byte[diff_dst->len()];

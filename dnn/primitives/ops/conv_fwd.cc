@@ -103,7 +103,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
         int pl1, int pl2,
         int pr1, int pr2)
 {
-    LOG(INFO) << "Convolution forward_setup";
+    //LOG(INFO) << "Convolution forward_setup";
     assert(src_d != NULL);
     assert(w_d != NULL);
     assert(bias_d != NULL); // no bias case, expect as NONE_DIMS, not NULL
@@ -114,12 +114,12 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
     padding_l_ = {pl1, pl2};
     padding_r_ = {pr1, pr2};
 
-    LOG(INFO) << "src_d1=" << src_d[0] << ", src_d2=" << src_d[1] << "; src_d3=" << src_d[2] << ", src_d4=" << src_d[3];
-    LOG(INFO) << "w_d1=" << w_d[0] << ", w_d2=" << w_d[1] << "; w_d3=" << w_d[2] << ", w_d4=" << w_d[3];
-    LOG(INFO) << "dst_d1=" << dst_d[0] << ", dst_d2=" << dst_d[1] << "; dst_d3=" << dst_d[2] << ", dst_d4=" << dst_d[3];
-    LOG(INFO) << "dialte_y=" << dilate_y << ", dilate_x=" << dilate_x;
-    LOG(INFO) << "sy=" << s1 << ", sx=" << s2;
-    LOG(INFO) << "pl1=" << pl1 << ", pl2=" << pl2 << ", pr1=" << pr1 << ", pr2=" << pr2;
+    //LOG(INFO) << "src_d1=" << src_d[0] << ", src_d2=" << src_d[1] << "; src_d3=" << src_d[2] << ", src_d4=" << src_d[3];
+    //LOG(INFO) << "w_d1=" << w_d[0] << ", w_d2=" << w_d[1] << "; w_d3=" << w_d[2] << ", w_d4=" << w_d[3];
+    //LOG(INFO) << "dst_d1=" << dst_d[0] << ", dst_d2=" << dst_d[1] << "; dst_d3=" << dst_d[2] << ", dst_d4=" << dst_d[3];
+    //LOG(INFO) << "dialte_y=" << dilate_y << ", dilate_x=" << dilate_x;
+    //LOG(INFO) << "sy=" << s1 << ", sx=" << s2;
+    //LOG(INFO) << "pl1=" << pl1 << ", pl2=" << pl2 << ", pr1=" << pr1 << ", pr2=" << pr2;
 
     /* create memory descriptors for convolution data w/ no specified format */
     src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
@@ -173,7 +173,7 @@ void Convolution2DFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::dims
 template<typename T>
 void Convolution2DFwd<T>::execute(void* src, void* w, void* b, void* dst)
 {
-    LOG(INFO) << "Convolution forward";
+    //LOG(INFO) << "Convolution forward";
     //LOG(INFO) << "conv_fwd_:" << conv_fwd_;
     //LOG(INFO) << "x=" << x << "; x_size=" << x_d1*x_d2*x_d3*x_d4*4;
     src_mem_->set_data_handle(src);
@@ -195,7 +195,7 @@ void Convolution2DFwd<T>::execute(void* src, void* w, void* b, void* dst)
 template<typename T>
 void Convolution2DFwd<T>::execute(void* src, void* w, void* dst)
 {
-    LOG(INFO) << "Convolution forward without bias";
+    //LOG(INFO) << "Convolution forward without bias";
 //    LOG(INFO) << conv_fwd_;
 
     src_mem_->set_data_handle(src);

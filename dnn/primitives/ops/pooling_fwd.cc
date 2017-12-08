@@ -100,12 +100,12 @@ void Pooling2DFwd<T>::setup(mkldnn::memory::dims src_d,
                            int pad_lh, int pad_lw, int pad_rh, int pad_rw,
                            mkldnn::algorithm alg_kind )
 {
-    LOG(INFO) << "Pooling forward_setup";
+    //LOG(INFO) << "Pooling forward_setup";
 
     if (alg_kind != pooling_max && alg_kind != pooling_avg
             && alg_kind != pooling_avg_include_padding && alg_kind != pooling_avg_exclude_padding) {
-        LOG(ERROR) << "alg_kind must be either pooling_max or "
-                   << "pooling_avg";
+        //LOG(ERROR) << "alg_kind must be either pooling_max or "
+                   //<< "pooling_avg";
     }
     
     alg_kind_ = alg_kind;
@@ -166,7 +166,7 @@ void Pooling2DFwd<T>::setup(mkldnn::memory::dims src_d,
 template<typename T>
 void Pooling2DFwd<T>::execute(void *src, void *dst, void *ws)
 {
-    LOG(INFO) << "Pooling forward";
+    //LOG(INFO) << "Pooling forward";
 
     src_mem_->set_data_handle(src); // input
     dst_mem_->set_data_handle(dst); // output dst
@@ -185,7 +185,7 @@ void Pooling2DFwd<T>::execute(void *src, void *dst, void *ws)
         ws_mem_->set_data_handle(dummy);
     }
     
-    LOG(INFO) << "Pooling forward finish";
+    //LOG(INFO) << "Pooling forward finish";
     return;
 }
 

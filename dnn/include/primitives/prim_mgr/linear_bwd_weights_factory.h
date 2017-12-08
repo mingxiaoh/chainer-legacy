@@ -50,11 +50,11 @@ public:
         linear_backward_weights = dynamic_cast<LinearBwdWeights<T>*>(
                 LinearBwdWeightsFactory<T>::get_instance().get_linear_bwd_weights(x, diff_w, diff_b, diff_y));
         if (linear_backward_weights == NULL) {
-            LOG(INFO) << "create a new one for linear bwd weights";
+            //LOG(INFO) << "create a new one for linear bwd weights";
             linear_backward_weights = new LinearBwdWeights<T>(x, diff_w, diff_b, diff_y);
             LinearBwdWeightsFactory<T>::get_instance().set_linear_bwd_weights(x, diff_w, diff_b, diff_y, linear_backward_weights);
         } else {
-            LOG(INFO) << "reuse existed one for linear bwd weights";
+            //LOG(INFO) << "reuse existed one for linear bwd weights";
         }
         return linear_backward_weights;
     }

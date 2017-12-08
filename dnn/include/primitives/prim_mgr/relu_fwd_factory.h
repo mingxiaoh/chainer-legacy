@@ -50,11 +50,11 @@ public:
                             ReluFwdFactory<T>::get_instance().get_relu_fwd(x, src_fmt));
 
         if (relu_forward == nullptr) {
-            LOG(INFO) << "create a new one for relu fwd";
+            //LOG(INFO) << "create a new one for relu fwd";
             relu_forward = new ReluFwd<T>(x, src_fmt);
             ReluFwdFactory<T>::get_instance().set_relu_fwd(x, src_fmt, relu_forward);
         } else {
-            LOG(INFO) << "reuse exist one for relu fwd";
+            //LOG(INFO) << "reuse exist one for relu fwd";
         }
         return relu_forward;
     }

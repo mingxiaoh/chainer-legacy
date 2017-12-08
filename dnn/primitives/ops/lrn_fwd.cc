@@ -96,9 +96,9 @@ void LocalResponseNormalizationFwd<T>::setup(
     int n, double k, double alpha, double beta,
     mkldnn::algorithm alg_kind)
 {
-    LOG(INFO) << "lrn forward_setup";
+    //LOG(INFO) << "lrn forward_setup";
 
-    LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
+    //LOG(INFO) << "src_d[0]=" << src_d[0] << "; src_d[1]" << src_d[1] << "; src_d[2]=" << src_d[2] << "; src_d[3]=" << src_d[3];
     alg_kind_ = alg_kind;
     // local_size_ = n;
 
@@ -115,7 +115,7 @@ void LocalResponseNormalizationFwd<T>::setup(
     // store expected primitive format
     src_fmt_ = get_desired_format(src_d[1]);
     // src_fmt_ = src_fmt;
-    LOG(INFO) << "src_fmt is " << src_fmt <<" desired src_fmt_ is "<<src_fmt_;
+    //LOG(INFO) << "src_fmt is " << src_fmt <<" desired src_fmt_ is "<<src_fmt_;
     dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
 
     // create MKL-DNN internal memory object with dummy data
@@ -141,7 +141,7 @@ void LocalResponseNormalizationFwd<T>::setup(
 template<typename T>
 void LocalResponseNormalizationFwd<T>::execute(void *src, void *dst, void *ws)
 {
-    LOG(INFO) << "lrn forward";
+    //LOG(INFO) << "lrn forward";
     
     src_mem_->set_data_handle(src); // input
     dst_mem_->set_data_handle(dst); // output dst
@@ -158,7 +158,7 @@ void LocalResponseNormalizationFwd<T>::execute(void *src, void *dst, void *ws)
     assert(ws!=NULL);
     ws_mem_->set_data_handle(dummy);
     
-    LOG(INFO) << "lrn forward finish";
+    //LOG(INFO) << "lrn forward finish";
     return;
 }
 

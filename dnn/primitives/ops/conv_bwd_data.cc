@@ -117,12 +117,12 @@ void Convolution2DBwdData<T>::setup(
     padding_l_ = {pad_lh, pad_lw};
     padding_r_ = {pad_rh, pad_rw};
 
-    LOG(INFO) << "diff_src[0]=" << diff_src_d[0] << ", diff_src[1]=" << diff_src_d[1] << ", diff_src[2]=" << diff_src_d[2] << ", diff_src[3]=" << diff_src_d[3];
-    LOG(INFO) << "w[0]=" << w_d[0] << ", w[1]=" << w_d[1] << ", w=" << w_d[2] << ", w[3]=" << w_d[3];
-    LOG(INFO) << "diff_dst[0]=" << diff_dst_d[0] << ", diff_dst[1]=" << diff_dst_d[1] << ", diff_dst[2]=" << diff_dst_d[2] << ", diff_dst[3]=" << diff_dst_d[3];
+    //LOG(INFO) << "diff_src[0]=" << diff_src_d[0] << ", diff_src[1]=" << diff_src_d[1] << ", diff_src[2]=" << diff_src_d[2] << ", diff_src[3]=" << diff_src_d[3];
+    //LOG(INFO) << "w[0]=" << w_d[0] << ", w[1]=" << w_d[1] << ", w=" << w_d[2] << ", w[3]=" << w_d[3];
+    //LOG(INFO) << "diff_dst[0]=" << diff_dst_d[0] << ", diff_dst[1]=" << diff_dst_d[1] << ", diff_dst[2]=" << diff_dst_d[2] << ", diff_dst[3]=" << diff_dst_d[3];
 
-    LOG(INFO) << "sy=" << sy << ", sx=" << sx;
-    LOG(INFO) << "pl1=" << pad_lh << ", pl2=" << pad_lw << ", pr1=" << pad_rh << ", pr2=" << pad_rw;
+    //LOG(INFO) << "sy=" << sy << ", sx=" << sx;
+   // LOG(INFO) << "pl1=" << pad_lh << ", pl2=" << pad_lw << ", pr1=" << pad_rh << ", pr2=" << pad_rw;
 
     /* create memory descriptors for convolution data w/ no specified format */
     diff_src_md_.reset(new memory::desc({diff_src_d}, memory_data_type<T>(),

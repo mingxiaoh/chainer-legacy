@@ -91,11 +91,11 @@ public:
             LocalResponseNormalizationFwdFactory<T>::get_instance().get_lrn_fwd(src_d, src_fmt, n, k, alpha, beta, alg_kind));
 
         if (lrn_forward == NULL) {
-            LOG(INFO) << "create a new one for lrn fwd: " << alg_kind;
+            //LOG(INFO) << "create a new one for lrn fwd: " << alg_kind;
             lrn_forward = new LocalResponseNormalizationFwd<T>(src_d, src_fmt, n, k, alpha, beta, alg_kind);
             LocalResponseNormalizationFwdFactory<T>::get_instance().set_lrn_fwd( src_d, src_fmt, n, k, alpha, beta, alg_kind, lrn_forward);
         } else {
-            LOG(INFO) << "reuse exist one for lrn fwd: " << alg_kind;
+            //LOG(INFO) << "reuse exist one for lrn fwd: " << alg_kind;
         }
         return lrn_forward;
     }

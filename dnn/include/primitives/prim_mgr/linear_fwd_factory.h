@@ -50,11 +50,11 @@ public:
         linear_forward = dynamic_cast<LinearFwd<T>*> (
                 LinearFwdFactory<T>::get_instance().get_linear_fwd(x, w, b, y));
         if (linear_forward == NULL) {
-            LOG(INFO) << "create a new one for linear fwd";
+            //LOG(INFO) << "create a new one for linear fwd";
             linear_forward = new LinearFwd<T>(x, w, b, y);
             LinearFwdFactory<T>::get_instance().set_linear_fwd(x, w, b, y, linear_forward);
         } else {
-            LOG(INFO) << "reuse exist one linear fwd";
+            //LOG(INFO) << "reuse exist one linear fwd";
         }
         return linear_forward;
     }

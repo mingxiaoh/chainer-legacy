@@ -92,7 +92,7 @@ void ConcatBwd<T>::setup( std::vector<mkldnn::memory::dims> diff_src_ds,
                           mkldnn::memory::dims diff_dst_d,
                           int axis)
 {
-    LOG(INFO) << "Concat backward_setup";
+    //LOG(INFO) << "Concat backward_setup";
     
     assert(diff_src_ds.size() > 0);
     axis_ = axis;
@@ -100,8 +100,8 @@ void ConcatBwd<T>::setup( std::vector<mkldnn::memory::dims> diff_src_ds,
     /* init the offset */
     memory::dims offsets = {0, 0, 0, 0};
 
-    LOG(INFO) << "diff dst dims: [" << diff_dst_d[0] << "," << diff_dst_d[1] 
-        << "," << diff_dst_d[2] << "," << diff_dst_d[3] << "]";
+    //LOG(INFO) << "diff dst dims: [" << diff_dst_d[0] << "," << diff_dst_d[1] 
+      //  << "," << diff_dst_d[2] << "," << diff_dst_d[3] << "]";
 
     //FIXME
     // Currently, concat backward's diff_dst fmt is hard set, and store it
@@ -118,8 +118,8 @@ void ConcatBwd<T>::setup( std::vector<mkldnn::memory::dims> diff_src_ds,
         //FIXME
         //Currently, concat's diff src fmt hard set as diff_dst fmt, need to pay attention in future for performance issue
         memory::dims diff_src_tz = diff_src_ds[i];
-        LOG(INFO) << "diff src dims: [" << diff_src_tz[0] << "," << diff_src_tz[1] 
-            << "," << diff_src_tz[2] << "," << diff_src_tz[3] << "]";
+        //LOG(INFO) << "diff src dims: [" << diff_src_tz[0] << "," << diff_src_tz[1] 
+        //    << "," << diff_src_tz[2] << "," << diff_src_tz[3] << "]";
         
         auto diff_src_mpd = memory::primitive_desc(
                 {{diff_src_tz}, memory_data_type<T>(), diff_dst_fmt}, cpu_engine);
@@ -151,7 +151,7 @@ void ConcatBwd<T>::setup( std::vector<mkldnn::memory::dims> diff_src_ds,
 template<typename T>
 void ConcatBwd<T>::execute(std::vector<void*> diff_src, void *diff_dst)
 {
-    LOG(INFO) << "Concat backward";
+    //LOG(INFO) << "Concat backward";
     assert(diff_src.size() == diff_src_mems_.size());
 
     for (int i = 0; i < diff_src_mems_.size(); i++) {

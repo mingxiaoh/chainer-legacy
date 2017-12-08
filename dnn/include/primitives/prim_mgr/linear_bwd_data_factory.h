@@ -54,7 +54,7 @@ public:
             linear_backward_data = new LinearBwdData<T>(diff_src, w, diff_dst);
             LinearBwdDataFactory<T>::get_instance().set_linear_bwd_data(diff_src, w, diff_dst, linear_backward_data);
         } else {
-            LOG(INFO) << "reuse a exited one for linear bwd data";
+            //LOG(INFO) << "reuse a exited one for linear bwd data";
         }
         return linear_backward_data;
     }

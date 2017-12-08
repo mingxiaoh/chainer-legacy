@@ -58,11 +58,11 @@ public:
                              Pooling2DBwdFactory<T>::get_instance().get_pooling2d_bwd( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind));
 
         if (pooling2d_backward == NULL) {
-            LOG(INFO) << "create a new one for pooling bwd: " << alg_kind;
+            //LOG(INFO) << "create a new one for pooling bwd: " << alg_kind;
             pooling2d_backward = new Pooling2DBwd<T>( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind);
             Pooling2DBwdFactory<T>::get_instance().set_pooling2d_bwd( src_d, dst_d, ws_d, ws_dt, ker_h, ker_w, sy, sx, pad_lh, pad_lw, pad_rh, pad_rw, alg_kind, pooling2d_backward);
         } else {
-            LOG(INFO) << "reuse exist one for pooling bwd: " << alg_kind;
+            //LOG(INFO) << "reuse exist one for pooling bwd: " << alg_kind;
         }
         return pooling2d_backward;
     }

@@ -53,11 +53,11 @@ public:
                             ConcatFwdFactory<T>::get_instance().get_concat_fwd(src, dst, axis));
 
         if (concat_forward == NULL) {
-            LOG(INFO) << "create a new one for concat fwd";
+            //LOG(INFO) << "create a new one for concat fwd";
             concat_forward = new ConcatFwd<T>( src, dst, axis);
             ConcatFwdFactory<T>::get_instance().set_concat_fwd( src, dst, axis, concat_forward);
         } else {
-            LOG(INFO) << "reuse exist one for concat fwd";
+            //LOG(INFO) << "reuse exist one for concat fwd";
         }
         return concat_forward;
     }

@@ -75,10 +75,10 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
     
     // check wehther fmt is same
     if (src_fmt == lrn_forward->src_fmt_) {
-        LOG(INFO) << "lrn forward fmt matched";
+        //LOG(INFO) << "lrn forward fmt matched";
     } else {
-        LOG(INFO) << "lrn fwd fmt not match, need to reorder";
-        LOG(INFO) << "src_fmt=" << src_fmt <<", lrn_forward->src_fmt_=" << lrn_forward->src_fmt_;
+        //LOG(INFO) << "lrn fwd fmt not match, need to reorder";
+       // LOG(INFO) << "src_fmt=" << src_fmt <<", lrn_forward->src_fmt_=" << lrn_forward->src_fmt_;
         // FIXME: when to free the reordered memory
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src_fmt, lrn_forward->src_fmt_);
         src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
@@ -110,7 +110,7 @@ std::vector<Tensor *> LocalResponseNormalization<T>::Forward(
     outputs.push_back(dst_tensor);
     outputs.push_back(ws_tensor);
 
-    LOG(INFO) << "Succ exec lrn forward";
+    //LOG(INFO) << "Succ exec lrn forward";
     return outputs;
 }
 
@@ -144,8 +144,8 @@ Tensor *LocalResponseNormalization<T>::Backward(
     shared_ptr<avx::byte> diff_dst_reorder;
 
     if (ws_fmt != lrn_bwd->ws_fmt_) {
-        LOG(INFO) << "lrn bwd data ws fmt not match, need to reorder";
-        LOG(INFO) << "ws_fmt=" << ws_fmt << ", lrn_bwd->ws_fmt_="<< lrn_bwd->ws_fmt_;
+        //LOG(INFO) << "lrn bwd data ws fmt not match, need to reorder";
+        //LOG(INFO) << "ws_fmt=" << ws_fmt << ", lrn_bwd->ws_fmt_="<< lrn_bwd->ws_fmt_;
         ReorderOp<T>* reorder_ws_op = ReorderFactory<T>::get(ws_dims, ws_fmt, lrn_bwd->ws_fmt_);
         ws_reorder = Allocator::malloc(ws->len(), MPOOL_REORDER);
         //ws_reorder = new avx::byte[ws->len()];
@@ -153,8 +153,8 @@ Tensor *LocalResponseNormalization<T>::Backward(
         ws_tmp = ws_reorder.get();
     } 
     if (diff_dst_fmt != lrn_bwd->diff_dst_fmt_) {
-        LOG(INFO) << "lrn bwd data diff dst fmt not match, need to reorder";
-        LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", lrn_bwd->diff_dst_fmt_=" << lrn_bwd->diff_dst_fmt_;
+        //LOG(INFO) << "lrn bwd data diff dst fmt not match, need to reorder";
+        //LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", lrn_bwd->diff_dst_fmt_=" << lrn_bwd->diff_dst_fmt_;
         ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst->dims(), diff_dst_fmt, lrn_bwd->diff_dst_fmt_);
         diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
         //diff_dst_reorder = new avx::byte[diff_dst->len()];
@@ -164,8 +164,8 @@ Tensor *LocalResponseNormalization<T>::Backward(
     void *src_buf = src->data();
     shared_ptr<avx::byte> src_reorder;
     if (src->cxx_format() != diff_dst->cxx_format()) {
-        LOG(INFO) << "lrn bwd data src fmt not match, need to reorder";
-        LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
+        //LOG(INFO) << "lrn bwd data src fmt not match, need to reorder";
+       // LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
         ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
         //src_reorder = new avx::byte[diff_dst->len()];
         src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);

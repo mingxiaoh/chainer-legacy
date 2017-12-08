@@ -50,11 +50,11 @@ public:
                             ReluBwdFactory<T>::get_instance().get_relu_bwd(x, dst_diff_fmt));
 
         if (relu_backward == nullptr) {
-            LOG(INFO) << "create a new one for relu bwd";
+            //LOG(INFO) << "create a new one for relu bwd";
             relu_backward = new ReluBwd<T>(x, dst_diff_fmt);
             ReluBwdFactory<T>::get_instance().set_relu_bwd(x, dst_diff_fmt, relu_backward);
         } else {
-            LOG(INFO) << "reuse exist one for relu bwd";
+            //LOG(INFO) << "reuse exist one for relu bwd";
         }
         return relu_backward;
     }
