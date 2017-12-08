@@ -46,8 +46,9 @@ class TestPooling2DPyF32(unittest.TestCase):
 
     def check_forward(self, x, pp):
         x_mdarray = dnn._dnn.mdarray(x)
-        (y_data,) = Pooling2D_Py_F32.Forward(x_mdarray, pp)
-        self.assertEqual(y_data.dtype, self.dtype)
+        (y_act,) = Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        y_act = numpy.array(y_act, dtype=self.dtype)
+
         for k in six.moves.range(self.bs):
             for c in six.moves.range(self.channel):
                 x = self.x[k, c]
@@ -55,7 +56,7 @@ class TestPooling2DPyF32(unittest.TestCase):
                     [x[0:2, 0:2].sum(), x[0:2, 1:3].sum()],
                     [x[1:4, 0:2].sum(), x[1:4, 1:3].sum()]]) / 9
                 numpy.testing.assert_allclose(
-                    expect, y_data[k, c], **self.check_forward_options)
+                    expect, y_act[k, c], **self.check_forward_options)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -70,6 +71,7 @@ class TestPooling2DPyF32(unittest.TestCase):
         gx_expect /= 3 * 3
         gy_mdarray = dnn._dnn.mdarray(gy)
         gx_act = Pooling2D_Py_F32.Backward(gy_mdarray, None, pp)
+        gx_act = numpy.array(gx_act, dtype=self.dtype)
 
         numpy.testing.assert_allclose(
             gx_expect, gx_act, **self.check_backward_options)

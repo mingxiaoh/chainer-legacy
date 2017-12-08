@@ -79,7 +79,11 @@ class Convolution2DPyF32(unittest.TestCase):
             y_act = Convolution2D_Py_F32.Forward(x, w, b, cp)
         else:
             y_act = Convolution2D_Py_F32.Forward(x, w, None, cp)
+        y_act = numpy.array(y_act, dtype=self.dtype)
 
+        x = numpy.array(x, dtype=self.dtype)
+        w = numpy.array(w, dtype=self.dtype)
+        b = numpy.array(b, dtype=self.dtype)
         kh, kw = w.shape[2:]
         col = im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
@@ -88,29 +92,30 @@ class Convolution2DPyF32(unittest.TestCase):
             col, w, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
         if b is not None:
             y += b
-        y_expect = numpy.rollaxis(y, 3, 1),
+        y_expect = numpy.rollaxis(y, 3, 1)
         numpy.testing.assert_allclose(
-            y_act, y_expect[0], **self.check_forward_options)
+            y_act, y_expect, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.w, self.b, self.cp)
 
     def check_backward_weights(self, x, w, b, cp, gy):
-        gW_act = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        gW_act, gB_act = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        gW_act = numpy.array(gW_act, dtype=self.dtype)
 
+        x = numpy.array(x, dtype=self.dtype)
+        w = numpy.array(w, dtype=self.dtype)
+        b = numpy.array(b, dtype=self.dtype)
+        gy = numpy.array(gy, dtype=self.dtype)
         kh, kw = w.shape[2:]
         col = im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all, dy=self.dy, dx=self.dx)
 
-        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
-                1 in gy.shape):
-            gy = numpy.ascontiguousarray(gy)
-
         gW_expect = numpy.tensordot(
             gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.dtype, copy=False)
         numpy.testing.assert_allclose(
-            gW_act[0][0], gW_expect[0], **self.check_backward_options)
+            gW_act, gW_expect, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu_weights(self):
