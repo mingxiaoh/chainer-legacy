@@ -31,6 +31,6 @@
 #include <vector>
 #include "tensor.h"
 
-Tensor * sum_along_axis(Tensor *src, vector<int> axis);
+Tensor * blas_sum(Tensor *src, vector<int> axis);
 
 #endif
