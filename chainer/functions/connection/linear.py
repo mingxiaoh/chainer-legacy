@@ -127,6 +127,10 @@ class LinearGradData(function_node.FunctionNode):
             raise ValueError('numpy and cupy must not be used together\n'
                              'type(gy): {0}, type(W): {1}'
                              .format(type(gy), type(W)))
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
 
         gx = gy.dot(W).astype(gy.dtype, copy=False)
         self.retain_inputs((0, 1))
@@ -177,6 +181,10 @@ class LinearGradWeight(function_node.FunctionNode):
             raise ValueError('numpy and cupy must not be used together\n'
                              'type(x): {0}, type(gy): {1}'
                              .format(type(x), type(gy)))
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
 
         gW = gy.T.dot(x).astype(self.W_dtype, copy=False)
         self.retain_inputs((0, 1))
