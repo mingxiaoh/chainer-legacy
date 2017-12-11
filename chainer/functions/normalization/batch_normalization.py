@@ -75,7 +75,7 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            y, self.mean, self.var = ideepy.batchNormalizationF32.Forward(
+            y, self.mean, self.var, self.inv_std = ideepy.batchNormalizationF32.Forward(
                 ideepy.array(x),
                 ideepy.array(W),
                 None,
@@ -98,8 +98,6 @@ class BatchNormalization(function_node.FunctionNode):
             # ndarray ?
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
-
-            self.inv_std = (self.var + self.eps) ** (-0.5)
 
         elif self.use_cudnn:
             x = cuda.cupy.ascontiguousarray(x)

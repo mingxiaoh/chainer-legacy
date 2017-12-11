@@ -28,6 +28,8 @@
 #include <mkldnn.hpp>
 #include <vector>
 #include <memory>
+#include <omp.h>
+#include "mkl_vml_functions.h"
 #include "layer.h"
 #include "tensor.h"
 #include "bn.h"
@@ -35,6 +37,35 @@
 #include "bn_bwd.h"
 #include "prim_factory.h"
 #include "reorder_op.h"
+
+template<typename T>
+void batch_normalization_inv(T *var, float eps, int size, T *inv) {
+    int blk_nthr = omp_get_max_threads(),
+        blk_num = blk_nthr,
+        blk_len = size / blk_num,
+        blk_len_ex = size % blk_num;
+
+    if (!blk_len)
+        blk_nthr = size;
+
+    T *var_eps = reinterpret_cast<T *>(new avx::byte[size * sizeof(T)]);
+
+    # pragma omp parallel num_threads(blk_nthr)
+    {
+        int ithr = omp_get_thread_num();
+        int blen = ithr < blk_len_ex ? blk_len + 1 : blk_len;
+        int bstart = ithr <= blk_len_ex ? (blk_len + 1) * ithr :
+                     blk_len_ex * (blk_len + 1) + (ithr - blk_len_ex) * blk_len;
+        int bend = bstart + blen;
+
+        for (int b = bstart; b < bend; b++)
+            var_eps[b] = var[b] + eps;
+    }
+
+    vsPowx(size, var_eps, -0.5, inv);
+    delete(reinterpret_cast<avx::byte *>(var_eps));
+    return;
+}
 
 template<typename T>
 std::vector<Tensor *> batch_normalization<T>::Forward(
@@ -80,6 +111,8 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
     auto dst = new Tensor(src->ndims(), src->dims(), data,
             (mkldnn_memory_format_t)bn_fwd->get_dst_fmt(),
             src->type());
+
+    Tensor *inv;
     if (training) {
         auto data_mean = Allocator::malloc(bn_fwd->get_mean_dims(), type2size(src->type()), MPOOL_BN_FWD);
         mean = new Tensor(bn_fwd->get_mean_ndims(), bn_fwd->get_mean_dims(), data_mean,
@@ -87,6 +120,10 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
                       src->type());
         auto data_var = Allocator::malloc(bn_fwd->get_var_dims(), type2size(src->type()), MPOOL_BN_FWD);
         var = new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(), data_var,
+                     (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
+                     src->type());
+        auto data_inv = Allocator::malloc(bn_fwd->get_var_dims(), type2size(src->type()), MPOOL_BN_FWD);
+        inv = new Tensor(bn_fwd->get_var_ndims(), bn_fwd->get_var_dims(), data_inv,
                      (mkldnn_memory_format_t)bn_fwd->get_var_fmt(),
                      src->type());
     }
@@ -101,6 +138,11 @@ std::vector<Tensor *> batch_normalization<T>::Forward(
     if (training) {
         outs.push_back(mean);
         outs.push_back(var);
+
+        batch_normalization_inv(reinterpret_cast<T *>(var->data()), eps,
+                                var->desc().data.dims[0],
+                                reinterpret_cast<T *>(inv->data()));
+        outs.push_back(inv);
     }
 
     return outs;
