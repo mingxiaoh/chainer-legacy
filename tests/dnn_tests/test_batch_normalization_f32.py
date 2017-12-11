@@ -32,7 +32,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
     'ndim': [2, ],
     'dtype': [numpy.float32],
 })))
-class TestBatchNormalization(unittest.TestCase):
+class TestBatchNormalizationF32(unittest.TestCase):
 
     def setUp(self):
         self.eps = 2e-5
