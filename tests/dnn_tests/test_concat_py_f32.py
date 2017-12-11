@@ -26,7 +26,7 @@ except Exception as ex:
         {'dtype': numpy.float32},
     ],
 ))
-class TestConcat(unittest.TestCase):
+class TestConcatPyF32(unittest.TestCase):
 
     def setUp(self):
         self.y = numpy.arange(
@@ -50,7 +50,7 @@ class TestConcat(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.xs, self.y, axis=self.axis)
 
-    def check_backward(self, xs_data, axis):
+    def check_backward(self, xs_data, y_data, axis):
         xs = tuple(x_data for x_data in xs_data)
         xs_mdarray = MdarrayVector()
         for yi in xs:
@@ -59,22 +59,21 @@ class TestConcat(unittest.TestCase):
                     yi = numpy.ascontiguousarray(yi)
             yi = dnn._dnn.mdarray(numpy.ascontiguousarray(yi))
             xs_mdarray.push_back(yi)
-        y_act = Concat_Py_F32.Forward(xs_mdarray, self.axis)
-
+        y_data = dnn._dnn.mdarray(y_data)
         offsets = IntVector()
         # FIXME
         for i in self.section:
             offsets.push_back(i)
-        x_act = Concat_Py_F32.Backward(y_act, offsets, self.axis)
-
+        x_act_mdarray = Concat_Py_F32.Backward(y_data, offsets, self.axis)
         i = 0
         for x in xs:
+            x_act = numpy.array(x_act_mdarray[i], dtype=self.dtype)
             numpy.testing.assert_allclose(
-                 x, dnn._dnn.mdarray(x_act[i]), atol=0, rtol=0)
+                 x, x_act, atol=0, rtol=0)
             i = i+1
 
     def test_backward_cpu(self):
-        self.check_backward(self.xs, axis=self.axis)
+        self.check_backward(self.xs, self.y, axis=self.axis)
 
 
 testing.run_module(__name__, __file__)

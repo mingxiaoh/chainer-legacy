@@ -7,10 +7,20 @@ from dnn._dnn import conv_param_t, Convolution2D_Py_F32
 try:
     import testing
     from testing import condition
-    from testing.conv import im2col_cpu
+    from testing.conv import im2col_cpu, col2im_cpu, get_conv_outsize
 except Exception as ex:
     print('*** testing directory is missing: %s' % ex)
     sys.exit(-1)
+
+
+def _set_cover_all(self, x, W):
+    in_h, in_w = x.shape[2:]
+    kh, kw = W.shape[2:]
+    self.cover_all = (
+        in_h != get_conv_outsize(self.outh, kh, self.sy,
+                                 self.ph, d=self.dy) or
+        in_w != get_conv_outsize(self.outw, kw, self.sx,
+                                 self.pw, d=self.dx))
 
 
 @testing.parameterize(*testing.product({
@@ -21,7 +31,7 @@ except Exception as ex:
     'with_bias': [True, ],
 }))
 @testing.fix_random()
-class Convolution2DPyF32(unittest.TestCase):
+class TestConvolution2DPyF32(unittest.TestCase):
 
     def setUp(self):
         self.x_shape = (self.bs, self.channel, 224, 224)
@@ -74,7 +84,6 @@ class Convolution2DPyF32(unittest.TestCase):
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x, w, b, cp):
-
         if cp.with_bias:
             y_act = Convolution2D_Py_F32.Forward(x, w, b, cp)
         else:
@@ -119,8 +128,61 @@ class Convolution2DPyF32(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu_weights(self):
-        print("test_backward_cpu")
+        print("test_backward_cpu_weights")
         self.check_backward_weights(self.x, self.w, self.b, self.cp, self.gy)
+
+    def check_backward_data(self, x, w, b, cp):
+        out_c, in_c, kh, kw = w.shape
+        n, out_c, in_h, in_w = x.shape
+        self.pd = self.sy*(in_h-1) + (
+                  kh+(kh-1)*(self.dy-1)) - self.outh - self.ph
+        self.pr = self.sx*(in_w-1) + (
+                  kw+(kw-1)*(self.dx-1)) - self.outw - self.pw
+
+        _set_cover_all(self, x, w)
+        # create conv parameter
+        # for IA specific
+        cp = conv_param_t()
+        cp.src_d1, cp.src_d2 = n, in_c
+        cp.src_d3, cp.src_d4 = self.outh, self.outw
+        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape
+        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
+        cp.dilate_y, cp.dilate_x = (self.dy-1), (self.dx-1)
+        cp.sy, cp.sx = self.sy, self.sx
+        cp.pad_lh, cp.pad_lw = self.ph, self.pw
+        cp.pad_rh, cp.pad_rw = self.pd, self.pr
+        # use conv bwd data to implement deconv fwd, not bias support
+        cp.bias_d1 = -1
+        cp.with_bias = False
+
+        y_act = Convolution2D_Py_F32.BackwardData(w, x, cp)
+        if b is not None:
+            y_act += b.reshape(1, b.size, 1, 1)
+        y_act = numpy.array(y_act, dtype=self.dtype)
+
+        x = numpy.array(x, dtype=self.dtype)
+        w = numpy.array(w, dtype=self.dtype)
+
+        gcol = numpy.tensordot(w, x, (0, 1)).astype(x.dtype, copy=False)
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        gcol = numpy.rollaxis(gcol, 3)
+        y_expect = col2im_cpu(
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+            dy=self.dy, dx=self.dx)
+        # b, k, h, w
+        if b is not None:
+            y_expect += b.reshape(1, b.size, 1, 1)
+
+        numpy.testing.assert_allclose(
+            y_act, y_expect, **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_backward_cpu_data(self):
+        print("test_backward_cpu_data")
+        self.check_backward_data(self.x, self.w, self.b, self.cp)
 
 
 testing.run_module(__name__, __file__)
