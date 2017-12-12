@@ -68,7 +68,7 @@ class TestBatchNormalizationF32(unittest.TestCase):
         beta = beta[expander]
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-        y_act, self.mean, self.var = batchNormalizationF32.Forward(
+        y_act, self.mean, self.var, inv_std = batchNormalizationF32.Forward(
             dnn._dnn.mdarray(x),
             dnn._dnn.mdarray(W),
             None,
