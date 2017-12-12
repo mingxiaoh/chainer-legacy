@@ -59,10 +59,9 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
     int mb = dims[0],
         ic = dims[1],
         ih = dims[2],
-        iw = dims[3],
-        cg = format == mkldnn_nChw16c ?
-             16 : 8,
-        cn = ic / cg;
+        iw = dims[3];
+    const int cg = format == mkldnn_nChw16c ? 16 : 8;
+    int cn = ic / cg;
 
     int blk_nthr = omp_get_max_threads(),
         blk_num = blk_nthr,
@@ -83,22 +82,73 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
         int bend = bstart + blen;
 
         T *loc_src = src + bstart * ic * ih * iw;
-        for (int b = bstart; b < bend; b++) {
-            T *loc_buf = buf + ithr * ic;
-            for (int c = 0; c < cn; c++) {
-                if (b == bstart)
-                    for (int o = 0; o < cg; o++)
-                        loc_buf[o] = 0;
+        if ((cg == 16) && (((unsigned long)buf & 0xf) == 0) && (((unsigned long)loc_src & 0xf) == 0)) {
+            for (int b = bstart; b < bend; b++) {
+                T *loc_buf = buf + ithr * ic;
+                for (int c = 0; c < cn; c++) {
+                    if (b == bstart)
+                        for (int o = 0; o < cg; o++)
+                            loc_buf[o] = 0;
+                    for (int hw = 0; hw < ih * iw; hw++) {
+                        __asm__(
+                                "mov %0, %%rax\n"
+                                "mov %1, %%rbx\n"
+                                ".byte 0x62, 0xf1, 0x7c, 0x48, 0x10, 0x00\n" //vmovups (%%rax), %%zmm0
+                                ".byte 0x62, 0xf1, 0x7c, 0x48, 0x58, 0x03\n" //vaddps (%%rbx), %%zmm0, %%zmm0
+                                ".byte 0x62, 0xf1, 0x7c, 0x48, 0x11, 0x00\n" //vmovups %%zmm0, (%%rax)
+                                :"+r"(loc_buf)
+                                :"r"(loc_src)
+                                :"rax", "rbx"
+                                );
+                        loc_src += cg;
+                    }
 
-                for (int hw = 0; hw < ih * iw; hw++) {
-                    for (int o = 0; o < cg; o++)
-                        loc_buf[o] += loc_src[o];
-                    loc_src += cg;
+                    loc_buf += cg;
                 }
+            }
+        } else if ((cg == 8) && (((unsigned long)buf & 0x7) == 0) && (((unsigned long)loc_src & 0x7) == 0)) {
+             for (int b = bstart; b < bend; b++) {
+                T *loc_buf = buf + ithr * ic;
+                for (int c = 0; c < cn; c++) {
+                    if (b == bstart)
+                        for (int o = 0; o < cg; o++)
+                            loc_buf[o] = 0;
+                    for (int hw = 0; hw < ih * iw; hw++) {
+                        __asm__(
+                                "mov %0, %%rax\n"
+                                "mov %1, %%rbx\n"
+                                ".byte 0xc5, 0xfc, 0x10, 0x00\n" //vmovups (%%rax), %%ymm0
+                                ".byte 0xc5, 0xfc, 0x58, 0x03\n" //vaddps (%%rbx), %%ymm0, %%ymm0
+                                ".byte 0xc5, 0xfc, 0x11, 0x00\n" //vmovups %%ymm0, (%rax)
+                                :"+r"(loc_buf)
+                                :"r"(loc_src)
+                                :"rax", "rbx"
+                                );
+                        loc_src += cg;
+                    }
 
-                loc_buf += cg;
+                    loc_buf += cg;
+                }
+            }       
+        } else {
+            for (int b = bstart; b < bend; b++) {
+                T *loc_buf = buf + ithr * ic;
+                for (int c = 0; c < cn; c++) {
+                    if (b == bstart)
+                        for (int o = 0; o < cg; o++)
+                            loc_buf[o] = 0;
+
+                    for (int hw = 0; hw < ih * iw; hw++) {
+                        for (int o = 0; o < cg; o++)
+                            loc_buf[o] += loc_src[o];
+                        loc_src += cg;
+                    }
+
+                    loc_buf += cg;
+                }
             }
         }
+
     }
 
     // Allreduce
