@@ -1,4 +1,5 @@
 #include <vector>
+#include <numeric>
 #include "mem.h"
 
 using namespace std;

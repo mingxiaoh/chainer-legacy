@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <numeric>
 #include "mkldnn.hpp"
 #include "mem.h"
 #include "utils.h"
