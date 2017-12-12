@@ -934,15 +934,6 @@ Actual: {0}'''.format(type(data))
                 return grads[node]
             return node.grad_var
 
-        def set_grad(node, value):
-            if node is None:
-                return None
-            if node in grads:
-                grads[node] = value
-            var = node.get_variable()
-            if var is not None:
-                var._grad_var = value
-
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
@@ -954,20 +945,6 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            # accumulate grad
-            for y in outputs:
-                grad = get_grad(y)
-                if isinstance(grad, tuple):
-                    if not chainer.mkld.available:
-                        g_datas = tuple([g.data for g in grad])
-                        grad_sum = chainer.mkld.sum.mkl_sum(g_datas, func)
-                        grad_sum = Variable(grad_sum)
-                    else:
-                        grad_sum = grad[0]
-                        for g in grad[1:]:
-                            grad_sum += g
-                    set_grad(y, grad_sum)
-
             out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -1048,20 +1025,13 @@ Actual: {0}'''.format(type(data))
                 if not x.requires_grad:
                     continue
 
-                if isinstance(gx, tuple):
-                    for g in gx:
-                        _check_grad_type(func, x, g.data)
-                else:
-                    _check_grad_type(func, x, gx.data)
+                _check_grad_type(func, x, gx.data)
 
                 if x in target_inputs[:i]:
                     # Accumulate the duplicated gradients here. See the comment
                     # above the code that builds ``in_grad``.
                     cur_gx = grads[x]
-                    if x.creator is None:
-                        grads[x] = gx if cur_gx is None else gx + cur_gx
-                    else:
-                        grads[x] = gx if cur_gx is None else (gx,) + (cur_gx,)
+                    grads[x] = gx if cur_gx is None else gx + cur_gx
                 else:
                     grads[x] = gx
 
