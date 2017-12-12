@@ -542,8 +542,6 @@ class FunctionNode(object):
                 j = target_input_indexes[i]
                 if self.inputs[j].creator is None:
                     gxs_ret += (gx + g_input),
-                elif isinstance(g_input, tuple):
-                    gxs_ret += ((gx,) + g_input),
                 else:
                     gxs_ret += ((gx,) + (g_input,)),
 
