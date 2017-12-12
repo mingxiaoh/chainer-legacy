@@ -48,7 +48,7 @@ class TestBatchNormalizationF32(unittest.TestCase):
 
         self.args = [self.x, self.gamma, self.beta]
         self.aggr_axes = (0,) + tuple(
-             six.moves.range(self.head_ndim, self.x.ndim))
+            six.moves.range(self.head_ndim, self.x.ndim))
         self.mean = self.x.mean(axis=self.aggr_axes)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -69,11 +69,11 @@ class TestBatchNormalizationF32(unittest.TestCase):
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
         y_act, self.mean, self.var = batchNormalizationF32.Forward(
-             dnn._dnn.mdarray(x),
-             dnn._dnn.mdarray(W),
-             None,
-             None,
-             self.eps
+            dnn._dnn.mdarray(x),
+            dnn._dnn.mdarray(W),
+            None,
+            None,
+            self.eps
         )
 
         if expand_dim:
@@ -81,7 +81,7 @@ class TestBatchNormalizationF32(unittest.TestCase):
         y_act = numpy.array(y_act, dtype=self.dtype)
 
         y_expect = _batch_normalization(
-             self.expander, self.gamma, self.beta, self.x, self.mean, self.var)
+            self.expander, self.gamma, self.beta, self.x, self.mean, self.var)
 
         numpy.testing.assert_allclose(
             y_expect, y_act, **self.check_forward_options)
@@ -107,12 +107,12 @@ class TestBatchNormalizationF32(unittest.TestCase):
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
         gx_act, gW = batchNormalizationF32.Backward(
-             dnn._dnn.mdarray(x),
-             dnn._dnn.mdarray(gy),
-             dnn._dnn.mdarray(self.mean),
-             dnn._dnn.mdarray(self.var),
-             dnn._dnn.mdarray(W),
-             self.eps
+            dnn._dnn.mdarray(x),
+            dnn._dnn.mdarray(gy),
+            dnn._dnn.mdarray(self.mean),
+            dnn._dnn.mdarray(self.var),
+            dnn._dnn.mdarray(W),
+            self.eps
         )
         if expand_dim:
             gx_act = numpy.squeeze(gx_act, axis=(2, 3))

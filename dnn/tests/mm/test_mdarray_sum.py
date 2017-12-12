@@ -11,7 +11,7 @@ y = numpy.maximum(x, 0, dtype=x.dtype)
 mx = mdarray(x)
 my = Relu_Py_F32.Forward(mx)
 
-testing.assert_allclose(my.sum((0,2,3)), y.sum((0,2,3)))
+testing.assert_allclose(my.sum((0, 2, 3)), y.sum((0, 2, 3)))
 print('pass ...\n')
 
 
@@ -23,7 +23,7 @@ y = numpy.maximum(x, 0, dtype=x.dtype)
 mx = mdarray(x)
 my = Relu_Py_F32.Forward(mx)
 
-testing.assert_allclose(my.sum((0,2,3)), y.sum((0,2,3)))
+testing.assert_allclose(my.sum((0, 2, 3)), y.sum((0, 2, 3)))
 print('pass ...\n')
 
 
@@ -35,7 +35,8 @@ y = numpy.maximum(x, 0, dtype=x.dtype)
 mx = mdarray(x)
 my = Relu_Py_F32.Forward(mx)
 
-testing.assert_allclose(my.sum((0,2,3), keepdims=True), y.sum((0,2,3), keepdims=True))
+testing.assert_allclose(my.sum((0, 2, 3), keepdims=True),
+                        y.sum((0, 2, 3), keepdims=True))
 print('pass ...\n')
 
 
@@ -47,7 +48,7 @@ x.fill(2.3232)
 x[0].fill(3.1212)
 mx = mdarray(x)
 
-testing.assert_allclose(mx.sum((0,2,3)), x.sum((0,2,3)))
+testing.assert_allclose(mx.sum((0, 2, 3)), x.sum((0, 2, 3)))
 print('pass ...\n')
 
 
@@ -59,8 +60,8 @@ x.fill(2.3232)
 x[0].fill(3.1212)
 mx = mdarray(x)
 
-ms = mx.sum((0,2,3), keepdims=True)
-ns = x.sum((0,2,3), keepdims=True)
+ms = mx.sum((0, 2, 3), keepdims=True)
+ns = x.sum((0, 2, 3), keepdims=True)
 testing.assert_allclose(ms, ns)
 print('pass ...\n')
 
@@ -73,8 +74,8 @@ x.fill(1)
 x[0].fill(3.1212)
 mx = mdarray(x)
 
-ms = mx.sum((0,2,3))
-ns = x.sum((0,2,3))
+ms = mx.sum((0, 2, 3))
+ns = x.sum((0, 2, 3))
 testing.assert_allclose(ms, ns)
 print('pass ...\n')
 
@@ -87,8 +88,8 @@ x.fill(1)
 x[0].fill(3.1212)
 mx = mdarray(x)
 
-ms = mx.sum((0,2,3))
-ns = x.sum((0,2,3))
+ms = mx.sum((0, 2, 3))
+ns = x.sum((0, 2, 3))
 testing.assert_allclose(ms, ns)
 print('pass ...\n')
 

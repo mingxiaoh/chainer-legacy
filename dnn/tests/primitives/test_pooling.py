@@ -3,7 +3,7 @@ import dnn._dnn
 
 from dnn._dnn import pooling_param_t, Pooling2D_Py_F32
 
-x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 
 pp = pooling_param_t()
@@ -47,7 +47,7 @@ x = Pooling2D_Py_F32.Backward(y, ws, pp)
 print("==============")
 x = Pooling2D_Py_F32.Backward(y, ws, pp)
 print("==============")
-x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 x = Pooling2D_Py_F32.Backward(x, ws, pp)
 print("===== Finsh avg pooing backward =========")

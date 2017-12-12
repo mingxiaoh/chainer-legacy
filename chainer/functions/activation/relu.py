@@ -32,7 +32,6 @@ class ReLU(function_node.FunctionNode):
         y = ideepy.Relu_Py_F32.Forward(mx)
         return y,
 
-
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),

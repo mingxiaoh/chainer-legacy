@@ -160,6 +160,7 @@ def should_use_cudnn_tensor_core(dtype):
 
     return use_tensor_core
 
+
 def should_use_ideep(level):
     """Determines if we should use cuDNN.
 
@@ -188,6 +189,7 @@ def should_use_ideep(level):
                          '(must be either of "always", "auto", or "never")' %
                          repr(config.use_ideep))
     return flags[config.use_ideep]
+
 
 def is_debug():
     """Get the debug mode.

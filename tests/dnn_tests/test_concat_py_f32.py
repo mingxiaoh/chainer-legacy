@@ -69,8 +69,8 @@ class TestConcatPyF32(unittest.TestCase):
         for x in xs:
             x_act = numpy.array(x_act_mdarray[i], dtype=self.dtype)
             numpy.testing.assert_allclose(
-                 x, x_act, atol=0, rtol=0)
-            i = i+1
+                x, x_act, atol=0, rtol=0)
+            i = i + 1
 
     def test_backward_cpu(self):
         self.check_backward(self.xs, self.y, axis=self.axis)

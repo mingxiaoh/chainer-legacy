@@ -45,6 +45,7 @@ def disable():
     finally:
         available = old
 
+
 def all_ready(inputs, check_with_ndim):
     if not is_enabled():
         return False
@@ -67,10 +68,10 @@ def all_ready(inputs, check_with_ndim):
 
         for x in _inputs:
             _should_use_ideep = _should_use_ideep and \
-                                 x.dtype == numpy.dtype('float32')
+                x.dtype == numpy.dtype('float32')
         if _should_use_ideep:
             _should_use_ideep = _should_use_ideep and \
-                                 chainer.should_use_ideep('>=auto')
+                chainer.should_use_ideep('>=auto')
         if not _should_use_ideep:
             return False
     # cuda.ndarray
@@ -83,11 +84,13 @@ def all_ready(inputs, check_with_ndim):
 # ----------------------------------------------------------------------
 # ideepy mdarray allocation
 # ---------------------------------------------------------------------
-data = 'd' #data array
-weight = 'w' #weight array
+data = 'd'  # data array
+weight = 'w'  # weight array
+
+
 def array(x, itype=data):
     if isinstance(x, numpy.ndarray) and \
-        x.dtype == numpy.dtype('float32'):
+            x.dtype == numpy.dtype('float32'):
         if x.flags.contiguous is False:
             x = numpy.ascontiguousarray(x)
         return mdarray(x, itype)
@@ -104,12 +107,13 @@ def to_mdarray(xs):
 
 def to_ia(arr):
     if not is_enabled():
-        raise Exception ( "ideepy is not installed coorectly" )
+        raise Exception("ideepy is not installed coorectly")
     return array(arr, itype=weight)
+
 
 def copyto(dst, src, casting='same_kind', where=None):
     if dst.shape != src.shape or dst.dtype != src.dtype:
-        raise Exception ( "Can't copy, shape or type mismatch" )
+        raise Exception("Can't copy, shape or type mismatch")
     if isinstance(src, numpy.ndarray):
         if src.flags.contiguous is False:
             src = numpy.ascontiguousarray(src)

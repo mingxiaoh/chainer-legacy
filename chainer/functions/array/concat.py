@@ -8,6 +8,7 @@ from chainer.utils import type_check
 
 from chainer import ideepy
 
+
 class Concat(function_node.FunctionNode):
 
     """Concatenate multiple tensors towards specified axis."""
@@ -39,7 +40,7 @@ class Concat(function_node.FunctionNode):
                 if d == axis:
                     continue
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
-    
+
     def forward_ia(self, xs):
         xs_mdarray = ideepy.MdarrayVector()
         ys = ideepy.to_mdarray(xs)
@@ -48,7 +49,7 @@ class Concat(function_node.FunctionNode):
         return ideepy.Concat_Py_F32.Forward(xs_mdarray, self.axis),
 
     def forward(self, xs):
-        if ideepy.all_ready(xs, (4,)): # only support 4 dims now
+        if ideepy.all_ready(xs, (4,)):  # only support 4 dims now
             return self.forward_ia(xs)
         xp = cuda.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),

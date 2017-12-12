@@ -9,7 +9,6 @@ import dnn._dnn
 from dnn._dnn import mdarray, linear_param_t, Linear_Py_F32
 
 
-
 class LinearFunction(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
@@ -31,6 +30,7 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
+
     def forward_ia(self, inputs):
         x = inputs[0]
         W = inputs[1]
@@ -43,7 +43,7 @@ class LinearFunction(function_node.FunctionNode):
         if isinstance(W, numpy.ndarray):
             lp.with_weights_opt = False
         elif isinstance(W, ideepy.mdarray):
-            #if weight is empty, we can do weights opt(pass optimized weight back)
+            # if weight is empty, we can do weights opt(pass optimized weight back)
             lp.with_weights_opt = True
         (x, W) = ideepy.to_mdarray((x, W))
 
@@ -52,9 +52,8 @@ class LinearFunction(function_node.FunctionNode):
             y = Linear_Py_F32.Forward(x, W, b, lp)
         else:
             y = Linear_Py_F32.Forward(x, W, None, lp)
-        self.retain_inputs((0, 1)) # b is not retained
+        self.retain_inputs((0, 1))  # b is not retained
         return y,
-
 
     def forward(self, inputs):
         x = inputs[0]
@@ -103,11 +102,12 @@ class LinearFunction(function_node.FunctionNode):
 class LinearGradData(function_node.FunctionNode):
     def __init__(self, linear):
         return
+
     def forward_ia(self, inputs):
         self.retain_inputs((0, 1))
         gy, W = inputs
-        #create linear parameter
-        #for IA specific
+        # create linear parameter
+        # for IA specific
         lp = linear_param_t()
         lp.with_bias = False
         lp.src_ndims = 2
@@ -136,7 +136,6 @@ class LinearGradData(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         return gx,
 
-
     def backward(self, indexes, grad_outputs):
         gy, W = self.get_retained_inputs()
         ggx, = grad_outputs
@@ -146,12 +145,14 @@ class LinearGradData(function_node.FunctionNode):
             ggy = linear(ggx, W)
             ret.append(chainer.functions.cast(ggy, gy.dtype))
         if 1 in indexes:
-            gw, = LinearGradWeight(self).apply((ggx, gy))#linear(gy.T, ggx.T)
+            gw, = LinearGradWeight(self).apply(
+                (ggx, gy))  # linear(gy.T, ggx.T)
             ret.append(chainer.functions.cast(gw, W.dtype))
         if 2 in indexes:
             ggb = chainer.functions.sum(ggx, axis=0)
             ret.append(ggb)
         return ret
+
 
 class LinearGradWeight(function_node.FunctionNode):
 
@@ -162,13 +163,13 @@ class LinearGradWeight(function_node.FunctionNode):
     def forward_ia(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        #create linear parameter
-        #for IA specific
+        # create linear parameter
+        # for IA specific
         lp = linear_param_t()
         lp.with_bias = False
         lp.src_ndims = 2
         (x, gy) = ideepy.to_mdarray((x, gy))
-        #only calculate gW, no gb
+        # only calculate gW, no gb
         (gW,) = Linear_Py_F32.BackwardWeights(x, gy, lp)
         return gW,
 

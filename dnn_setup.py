@@ -73,7 +73,7 @@ if system() == 'Linux':
            'dnn/primitives/ops/lrn_bwd.cc',
            'dnn/primitives/lrn.cc',
            'dnn/primitives/dropout.cc'
-          ]
+           ]
 else:
     # TODO
     src = ['mkldnn/mdarray.i', 'mkldnn/mdarray.cc']
@@ -81,10 +81,10 @@ else:
 ext_modules = []
 
 ext = Extension(
-        'dnn._dnn', sources=src,
-        swig_opts=swig_opts,
-        extra_compile_args=ccxx_opts, extra_link_args=link_opts,
-        include_dirs=includes, libraries=libraries)
+    'dnn._dnn', sources=src,
+    swig_opts=swig_opts,
+    extra_compile_args=ccxx_opts, extra_link_args=link_opts,
+    include_dirs=includes, libraries=libraries)
 
 ext_modules.append(ext)
 

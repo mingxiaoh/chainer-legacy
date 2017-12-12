@@ -76,8 +76,8 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.dy, self.dx = dilate, dilate
 
         self.gy = numpy.random.uniform(
-             -1, 1,
-             (self.n, self.outc, self.outh, self.outw)).astype(self.dtype)
+            -1, 1,
+            (self.n, self.outc, self.outh, self.outw)).astype(self.dtype)
         self.gy = dnn._dnn.mdarray(self.gy)
 
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
@@ -134,10 +134,10 @@ class TestConvolution2DPyF32(unittest.TestCase):
     def check_backward_data(self, x, w, b, cp):
         out_c, in_c, kh, kw = w.shape
         n, out_c, in_h, in_w = x.shape
-        self.pd = self.sy*(in_h-1) + (
-                  kh+(kh-1)*(self.dy-1)) - self.outh - self.ph
-        self.pr = self.sx*(in_w-1) + (
-                  kw+(kw-1)*(self.dx-1)) - self.outw - self.pw
+        self.pd = self.sy * (in_h - 1) + (
+            kh + (kh - 1) * (self.dy - 1)) - self.outh - self.ph
+        self.pr = self.sx * (in_w - 1) + (
+            kw + (kw - 1) * (self.dx - 1)) - self.outw - self.pw
 
         _set_cover_all(self, x, w)
         # create conv parameter
@@ -147,7 +147,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         cp.src_d3, cp.src_d4 = self.outh, self.outw
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
-        cp.dilate_y, cp.dilate_x = (self.dy-1), (self.dx-1)
+        cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw = self.ph, self.pw
         cp.pad_rh, cp.pad_rw = self.pd, self.pr

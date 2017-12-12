@@ -4,7 +4,8 @@ import os
 
 from dnn._dnn import mdarray
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s]: %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s [%(levelname)s]: %(message)s')
 global_config_cosim = bool(int(os.environ.get('CHAINER_ENABLE_COSIM', '0')))
 
 
@@ -20,11 +21,11 @@ def is_cosim():
 # Convert chainer.variable to array out of plain_array
 def plain_array(params):
     assert isinstance(params, tuple) \
-           or isinstance(params, list) \
-           or isinstance(params, mdarray) \
-           or isinstance(params, np.ndarray)
-           # plain_array does not support chainer.variable
-           # or isinstance(params, chainer.variable.Variable)
+        or isinstance(params, list) \
+        or isinstance(params, mdarray) \
+        or isinstance(params, np.ndarray)
+    # plain_array does not support chainer.variable
+    # or isinstance(params, chainer.variable.Variable)
 
     _params = ()
 
@@ -135,12 +136,15 @@ def cosim_verify(func, acts, inputs):
     if not is_cosim():
         return
 
-    logging.info('cosim test for function {0} ...'.format(func.__class__.__name__))
+    logging.info('cosim test for function {0} ...'.format(
+        func.__class__.__name__))
 
     refs = plain_array(func.forward_cpu(plain_array(inputs)))
 
     if not verify_results(func, acts, refs, inputs):
-        logging.error('cosim test for function {0} ...FAILED'.format(func.__class__.__name__))
+        logging.error('cosim test for function {0} ...FAILED'.format(
+            func.__class__.__name__))
         raise RuntimeError
 
-    logging.info('cosim test for function {0} ...PASS'.format(func.__class__.__name__))
+    logging.info('cosim test for function {0} ...PASS'.format(
+        func.__class__.__name__))
