@@ -720,7 +720,7 @@ Actual: {0}'''.format(type(data))
             node = self._node
             if node._data is not None:
                 node.retain_data()
-    
+
     def to_ia(self):
         """ Copies the data and gradient arrays to ia specific mdarray
         """
@@ -732,7 +732,7 @@ Actual: {0}'''.format(type(data))
             node = self._node
             if node._data is not None:
                 node.retain_data()
-    
+
     def cleargrad(self):
         """Clears the gradient array."""
         self._grad_var = None
@@ -1240,7 +1240,7 @@ class Parameter(Variable):
         super(Parameter, self).to_ia()
         if self.data is None:
             self._initial_device = None
-            
+
     def cleargrad(self):
         super(Parameter, self).cleargrad()
         if self.data is None:

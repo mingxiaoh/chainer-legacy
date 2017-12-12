@@ -4,13 +4,13 @@ import dnn._dnn
 #from dnn._dnn import conv_param_t, conv_test
 from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
 
-x1 = numpy.ndarray(shape=(1,16,224,224), dtype=numpy.float32, order='C')
-x2 = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
-x3 = numpy.ndarray(shape=(1,64,224,224), dtype=numpy.float32, order='C')
+x1 = numpy.ndarray(shape=(1, 16, 224, 224), dtype=numpy.float32, order='C')
+x2 = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
+x3 = numpy.ndarray(shape=(1, 64, 224, 224), dtype=numpy.float32, order='C')
 inputs = (x1, x2, x3)
 sizes = numpy.array(
-            [v.shape[1] for v in inputs[:-1]]
-        ).cumsum()
+    [v.shape[1] for v in inputs[:-1]]
+).cumsum()
 print("sizes=", sizes)
 print("type=", type(sizes))
 
@@ -43,5 +43,3 @@ for gx in gxs:
     print("gx.type=", type(gx))
     print("gx.shape=", gx.shape)
 print ("after backward")
-
-

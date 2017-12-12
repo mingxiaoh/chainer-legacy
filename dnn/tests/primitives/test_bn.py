@@ -3,6 +3,7 @@ import dnn._dnn
 
 from dnn._dnn import batchNormalizationF32
 
+
 @profile
 def run():
     src = numpy.arange(3 * 2 * 2 * 2, dtype=numpy.float32)
@@ -35,7 +36,6 @@ def run():
     print(y)
     print(-y[0])
     print("==============")
-
 
     print("BWD *****************************")
     diff_dst = numpy.ones(src.shape, dtype=numpy.float32)

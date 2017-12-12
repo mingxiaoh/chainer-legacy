@@ -39,8 +39,8 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         y_w = conv.get_conv_outsize(
             w, self.kw, self.sx, self.pw, self.cover_all)
         assert y_w > 0, 'Width in the output should be positive.'
-        self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
-        self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
+        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
         pp = ideepy.pooling_param_t()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
@@ -49,11 +49,11 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
         pp.algo_kind = ideepy.pooling_param_t.pooling_max
-       
+
         (x_mdarray,) = ideepy.to_mdarray((x[0],))
         (y, self.indexes) = ideepy.Pooling2D_Py_F32.Forward(x_mdarray, pp)
-        return y, 
-    
+        return y,
+
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
             self.retain_inputs((0,))
@@ -146,9 +146,9 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
 
-        self.pd = self.sy*(y_h-1) + self.kh - h - self.ph
-        self.pr = self.sx*(y_w-1) + self.kw - w - self.pw
-        
+        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+
         pp = ideepy.pooling_param_t()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w

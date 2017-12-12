@@ -3,10 +3,10 @@ import dnn._dnn
 #from dnn._dnn import linear_param_t, linear_test
 from dnn._dnn import linear_param_t, Linear_Py_F32
 
-x = numpy.ndarray(shape=(1,32), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 
-w =  numpy.ndarray(shape=(32,32), dtype=numpy.float32, order='C')
+w = numpy.ndarray(shape=(32, 32), dtype=numpy.float32, order='C')
 print("ndarray w", w.shape)
 w = dnn._dnn.mdarray(w)
 print("w.dim", w.shape)
@@ -38,9 +38,9 @@ print("gw.shape", weights[0].shape)
 if lp.with_bias:
     print("gb.shape = ", weights[1].shape)
 print("================")
-x = numpy.ndarray(shape=(1,32), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
-weights = Linear_Py_F32.BackwardWeights(x,y,lp)
+weights = Linear_Py_F32.BackwardWeights(x, y, lp)
 print("==========4 dims=================")
 
 lp.src_d1 = 1
@@ -51,10 +51,10 @@ lp.src_d4 = 224
 lp.src_ndims = 4
 lp.bias_d1 = 32
 lp.with_bias = True
-x = numpy.ndarray(shape=(1,32, 224, 224), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 
-w =  numpy.ndarray(shape=(32,32,224,224), dtype=numpy.float32, order='C')
+w = numpy.ndarray(shape=(32, 32, 224, 224), dtype=numpy.float32, order='C')
 print("ndarray w", w.shape)
 w = dnn._dnn.mdarray(w)
 print("w.dim", w.shape)
@@ -79,6 +79,5 @@ print("gw.shape", weights[0].shape)
 if lp.with_bias:
     print("gb.shape = ", weights[1].shape)
 print("================")
-x = numpy.ndarray(shape=(1,32), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
-

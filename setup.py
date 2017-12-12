@@ -46,11 +46,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 __version__ = imp.load_source(
     '_version', os.path.join(here, 'chainer', '_version.py')).__version__
 
+
 class _build_py(build_py):
     def run(self):
         dnn_setup.prepare_mkldnn()
         self.run_command('build_ext')
         build_py.run(self)
+
 
 class _install(install):
     def run(self):
@@ -58,42 +60,43 @@ class _install(install):
         self.run_command('build_ext')
         install.run(self)
 
-packages=['chainer',
-          'chainer.dataset',
-          'chainer.datasets',
-          'chainer.functions',
-          'chainer.functions.activation',
-          'chainer.functions.array',
-          'chainer.functions.connection',
-          'chainer.functions.evaluation',
-          'chainer.functions.loss',
-          'chainer.functions.math',
-          'chainer.functions.noise',
-          'chainer.functions.normalization',
-          'chainer.functions.pooling',
-          'chainer.functions.theano',
-          'chainer.functions.util',
-          'chainer.function_hooks',
-          'chainer.iterators',
-          'chainer.initializers',
-          'chainer.links',
-          'chainer.links.activation',
-          'chainer.links.caffe',
-          'chainer.links.caffe.protobuf3',
-          'chainer.links.connection',
-          'chainer.links.loss',
-          'chainer.links.model',
-          'chainer.links.model.vision',
-          'chainer.links.normalization',
-          'chainer.links.theano',
-          'chainer.optimizers',
-          'chainer.serializers',
-          'chainer.testing',
-          'chainer.training',
-          'chainer.training.extensions',
-          'chainer.training.triggers',
-          'chainer.training.updaters',
-          'chainer.utils']
+
+packages = ['chainer',
+            'chainer.dataset',
+            'chainer.datasets',
+            'chainer.functions',
+            'chainer.functions.activation',
+            'chainer.functions.array',
+            'chainer.functions.connection',
+            'chainer.functions.evaluation',
+            'chainer.functions.loss',
+            'chainer.functions.math',
+            'chainer.functions.noise',
+            'chainer.functions.normalization',
+            'chainer.functions.pooling',
+            'chainer.functions.theano',
+            'chainer.functions.util',
+            'chainer.function_hooks',
+            'chainer.iterators',
+            'chainer.initializers',
+            'chainer.links',
+            'chainer.links.activation',
+            'chainer.links.caffe',
+            'chainer.links.caffe.protobuf3',
+            'chainer.links.connection',
+            'chainer.links.loss',
+            'chainer.links.model',
+            'chainer.links.model.vision',
+            'chainer.links.normalization',
+            'chainer.links.theano',
+            'chainer.optimizers',
+            'chainer.serializers',
+            'chainer.testing',
+            'chainer.training',
+            'chainer.training.extensions',
+            'chainer.training.triggers',
+            'chainer.training.updaters',
+            'chainer.utils']
 
 ext_modules = dnn_setup.ext_modules
 packages += dnn_setup.packages

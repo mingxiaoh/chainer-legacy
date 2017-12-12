@@ -53,17 +53,20 @@ class LocalResponseNormalization(function.Function):
             x_type.dtype.kind == 'f',
             x_type.ndim >= 2,
         )
+
     def forward_ia(self, x):
         pp = ideepy.lrn_param_t()
         pp.n = self.n
         pp.k = self.k
-        pp.alpha = self.n*self.alpha
+        pp.alpha = self.n * self.alpha
         pp.beta = self.beta
         pp.algo_kind = ideepy.lrn_param_t.lrn_across_channels
         self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
         (x_mdarray,) = ideepy.to_mdarray((x[0],))
-        (y, self.indexes) = ideepy.LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
+        (y, self.indexes) = ideepy.LocalResponseNormalization_Py_F32.Forward(
+            x_mdarray, pp)
         return y,
+
     def forward_cpu(self, x):
         # pdb.set_trace()
         if ideepy.all_ready(x, (4,)):
@@ -79,6 +82,7 @@ class LocalResponseNormalization(function.Function):
             self.scale = self.unit_scale ** -self.beta
             self.y = x[0] * self.scale
             return self.y,
+
     def backward_ia(self, x, gy):
         pp = ideepy.lrn_param_t()
         pp.n = self.n
@@ -91,6 +95,7 @@ class LocalResponseNormalization(function.Function):
         gx = ideepy.LocalResponseNormalization_Py_F32.Backward(
             x_mdarray, gy_mdarray, self.indexes, pp)
         return gx,
+
     def backward_cpu(self, x, gy):
         if ideepy.all_ready(x, (4,)):
             return self.backward_ia(x, gy)
@@ -102,7 +107,8 @@ class LocalResponseNormalization(function.Function):
                 sum_part[:, i:] += summand[:, :-i]
                 sum_part[:, :-i] += summand[:, i:]
 
-            gx = gy[0] * self.scale - 2 * self.alpha * self.beta * x[0] * sum_part
+            gx = gy[0] * self.scale - 2 * \
+                self.alpha * self.beta * x[0] * sum_part
             return gx,
 
     def forward_gpu(self, x):

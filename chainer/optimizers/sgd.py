@@ -32,7 +32,7 @@ class SGDRule(optimizer.UpdateRule):
             return
         if isinstance(param.data, ideepy.mdarray):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
-        else :
+        else:
             param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):

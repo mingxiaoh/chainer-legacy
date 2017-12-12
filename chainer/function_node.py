@@ -332,7 +332,7 @@ class FunctionNode(object):
 
     def forward_ia(self, inputs):
         """Computes the output arrays from the input NumPy arrays.
-	if function node not implement forward_ia, then bridge to forward_cpu
+        if function node not implement forward_ia, then bridge to forward_cpu
 
         Args:
             inputs: Tuple of input :class:`numpy.ndarray` or :class:`mdarray` objects.

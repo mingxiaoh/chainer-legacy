@@ -9,6 +9,7 @@ from chainer.utils import type_check
 
 from chainer import ideepy
 
+
 class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
@@ -40,20 +41,22 @@ class SplitAxis(function_node.FunctionNode):
             sections = type_check.make_variable(
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
-    
+
     def forward_ia(self, inputs):
         x, = ideepy.to_mdarray(inputs)
 
         offsets = ideepy.IntVector()
         # FIXME
-        for i in self.indices_or_sections.tolist(): # bypass python3 issue when transfer array to std::vector<>, https://github.com/SimpleITK/SimpleITK/issues/106
+        # bypass python3 issue when transfer array to std::vector<>, https://github.com/SimpleITK/SimpleITK/issues/106
+        for i in self.indices_or_sections.tolist():
             offsets.push_back(i)
         ret = ideepy.Concat_Py_F32.Backward(x, offsets, self.axis)
         self._shapes = [r.shape for r in ret]
         return ret
 
     def forward(self, inputs):
-        if self.axis == 1 and ideepy.all_ready((inputs),(4,)): # currently, only support axis == 1 and 4 dims
+        # currently, only support axis == 1 and 4 dims
+        if self.axis == 1 and ideepy.all_ready((inputs), (4,)):
             return self.forward_ia(inputs)
 
         x, = inputs

@@ -12,6 +12,7 @@ from chainer import variable
 
 from chainer import ideepy
 
+
 def _is_shape(value):
     if value is None:
         return True
@@ -382,7 +383,7 @@ Assign a Parameter object directly to an attribute within a \
         """
         if not ideepy.is_enabled():
             raise Exception("ideepy is not installed correctly!")
-        
+
         d = self.__dict__
         for name in self._params:
             d[name].to_ia()

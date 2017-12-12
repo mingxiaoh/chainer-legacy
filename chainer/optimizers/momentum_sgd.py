@@ -35,7 +35,8 @@ class MomentumSGDRule(optimizer.UpdateRule):
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
         if ideepy.all_ready((self.state['v'], ), (2, 4)):
-            self.state['v'] = ideepy.array(self.state['v'], itype=ideepy.weight)
+            self.state['v'] = ideepy.array(
+                self.state['v'], itype=ideepy.weight)
 
     def update_core_cpu(self, param):
         grad = param.grad
@@ -43,7 +44,8 @@ class MomentumSGDRule(optimizer.UpdateRule):
             return
         v = self.state['v']
         if isinstance(v, ideepy.mdarray):
-            v.inplace_axpby(self.hyperparam.momentum, -self.hyperparam.lr, grad)
+            v.inplace_axpby(self.hyperparam.momentum, -
+                            self.hyperparam.lr, grad)
             param.data += v
         else:
             v *= self.hyperparam.momentum

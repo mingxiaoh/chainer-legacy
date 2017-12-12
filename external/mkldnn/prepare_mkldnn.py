@@ -14,7 +14,8 @@ def download(mkldnn_version):
     print('Downloading ...')
 
     os.chdir(MKLDNN_WORK_PATH)
-    os.system('git clone -b master --single-branch https://github.com/01org/mkl-dnn.git source')
+    os.system(
+        'git clone -b master --single-branch https://github.com/01org/mkl-dnn.git source')
 
     os.chdir(MKLDNN_SOURCE_PATH)
     os.system('git reset --hard %s' % mkldnn_version)
@@ -26,7 +27,8 @@ def download(mkldnn_version):
 def build():
     print('Building ...')
 
-    os.system('mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j' % MKLDNN_ROOT)
+    os.system(
+        'mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=%s .. && make -j' % MKLDNN_ROOT)
 
 
 def install(refresh_build):
@@ -51,7 +53,8 @@ def install(refresh_build):
 
     if mklml_origin_path:
         os.system('cp %s/lib/* %s' % (mklml_origin_path, MKLDNN_LIB_PATH))
-        os.system('cp %s/include/* %s' % (mklml_origin_path, MKLDNN_INCLUDE_PATH))
+        os.system('cp %s/include/* %s' %
+                  (mklml_origin_path, MKLDNN_INCLUDE_PATH))
 
 
 def build_install():

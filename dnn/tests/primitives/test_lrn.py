@@ -3,7 +3,7 @@ import dnn._dnn
 
 from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
 
-x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
+x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 
 pp = lrn_param_t()
@@ -30,5 +30,3 @@ print("==============")
 gx = LocalResponseNormalization_Py_F32.Backward(x, y, ws, pp)
 print("gx.shape=", gx.shape)
 print("===== Finish backward=========")
-
-
