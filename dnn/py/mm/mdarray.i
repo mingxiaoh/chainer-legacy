@@ -174,7 +174,11 @@
 
         $1.push_back(PyLong_AsLong(item));
       }
+#if PY_VERSION_HEX > 0x03000000
     } else if (PyLong_Check(obj1)) {
+#else
+    } else if (PyInt_Check(obj1)) {
+#endif
       $1.push_back(PyLong_AsLong(obj1));
     } else {
       void *_obj1;
