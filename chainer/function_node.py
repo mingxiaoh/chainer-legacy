@@ -318,7 +318,10 @@ class FunctionNode(object):
         elif chainer.ideepy.all_ready(inputs, (2, 4)):
             if chainer.ideepy.cosim.is_cosim():
                 inputs_nd = ()
-                # Before the executing forward function to avoid conflicts of in-place operations
+                """
+                Before the executing forward function
+                to avoid conflicts of in-place operations
+                """
                 for data in inputs:
                     inputs_nd += (numpy.array(data), )
 
@@ -335,7 +338,8 @@ class FunctionNode(object):
         if function node not implement forward_ia, then bridge to forward_cpu
 
         Args:
-            inputs: Tuple of input :class:`numpy.ndarray` or :class:`mdarray` objects.
+            inputs: Tuple of input :class:`numpy.ndarray` or
+            :class:`mdarray` objects.
 
         Returns:
             Tuple of output arrays. Each element can be Mdarray or CuPy arrays.

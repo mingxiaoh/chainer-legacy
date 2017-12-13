@@ -96,15 +96,18 @@ class Convolution2DFunction(function_node.FunctionNode):
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
         cp.bias_d1 = inputs[2].shape[0] if len(inputs) == 3 else -1
         cp.with_bias = True if len(inputs) == 3 else False
-        # MKLDNN, common conv is treated as 0 dilate, but chainer treat is as 1 dilate, need to handle this
+        # MKLDNN, common conv is treated as 0 dilate,
+        # but chainer treat is as 1 dilate, need to handle this
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        cp.pad_lh, cp.pad_lw = self.ph, self.pw
+        cp.pad_rh, cp.pad_rw = self.pd, self.pr
 
         if isinstance(W, numpy.ndarray):
             cp.with_weights_opt = False
         elif isinstance(W, ideepy.mdarray):
-            # if weight is mdarray, we can do weights opt (pass optimized weight back)
+            # if weight is mdarray
+            # we can do weights opt (pass optimized weight back)
             cp.with_weights_opt = True
 
         (x, W) = ideepy.to_mdarray((x, W))
@@ -267,7 +270,6 @@ class Convolution2DGradW(function_node.FunctionNode):
     def forward_ia(self, inputs):
         # FIXME
         # Some UT will directly call Backward, but set W.dtype as float16
-        # That will skip our cheking for inputs (inputs only have x/gy), workaround here
         if self.W_dtype != numpy.dtype('float32'):
             return self.forward_cpu(inputs)
 
@@ -276,21 +278,30 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         n, input_c, h, w = x.shape
         n, out_c, out_h, out_w = gy.shape
-        self.pd = self.sy * (out_h - 1) + (self.kh +
-                                           (self.kh - 1) * (self.dy - 1)) - h - self.ph
-        self.pr = self.sx * (out_w - 1) + (self.kw +
-                                           (self.kw - 1) * (self.dx - 1)) - w - self.pw
+        self.pd = (
+                self.sy * (out_h - 1)
+                + (self.kh + (self.kh - 1) * (self.dy - 1))
+                - h - self.ph
+                )
+        self.pr = (
+                self.sx * (out_w - 1)
+                + (self.kw + (self.kw - 1) * (self.dx - 1))
+                - w - self.pw
+                )
 
         # create conv parameter
         # for IA specific
         cp = ideepy.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
-        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = out_c, input_c, self.kh, self.kw
+        (cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4) \
+            = (out_c, input_c, self.kh, self.kw)
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = gy.shape
-        # MKLDNN, common conv is treated as 0 dilate, but chainer treat is as 1 dilate, need to handle this
+        # MKLDNN, common conv is treated as 0 dilate,
+        # but chainer treat is as 1 dilate, need to handle this
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw, cp.pad_rh, cp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        cp.pad_lh, cp.pad_lw = self.ph, self.pw
+        cp.pad_rh, cp.pad_rw = self.pd, self.pr
         # Chainer's this function is only to calculate gW, MUST no gb
         cp.bias_d1 = -1
         cp.with_bias = False

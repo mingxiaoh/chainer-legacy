@@ -47,7 +47,8 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        pp.pad_lh, pp.pad_lw = self.ph, self.pw
+        pp.pad_rh, pp.pad_rw = self.pd, self.pr
         pp.algo_kind = ideepy.pooling_param_t.pooling_max
 
         (x_mdarray,) = ideepy.to_mdarray((x[0],))
@@ -154,7 +155,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw, pp.pad_rh, pp.pad_rw = self.ph, self.pw, self.pd, self.pr
+        pp.pad_lh, pp.pad_lw = self.ph, self.pw
+        pp.pad_rh, pp.pad_rw = self.pd, self.pr
         pp.algo_kind = ideepy.pooling_param_t.pooling_max
 
         (gy_mdarray, self.indexes) = ideepy.to_mdarray((gy[0], self.indexes))

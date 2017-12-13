@@ -75,13 +75,14 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            y, self.mean, self.var, self.inv_std = ideepy.batchNormalizationF32.Forward(
-                ideepy.array(x),
-                ideepy.array(W),
-                None,
-                None,
-                self.eps
-            )
+            y, self.mean, self.var, self.inv_std = (
+                ideepy.batchNormalizationF32.Forward(
+                    ideepy.array(x),
+                    ideepy.array(W),
+                    None,
+                    None,
+                    self.eps
+                ))
 
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)
@@ -197,7 +198,8 @@ class BatchNormalization(function_node.FunctionNode):
 
 class BatchNormalizationGrad(function.Function):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, var, inv_std):
+    def __init__(self, eps, use_cudnn, mode, expander, axis,
+                 mean, var, inv_std):
         self.eps = eps
         self.use_cudnn = use_cudnn
         self.use_ideep = mode.can_use_ideep()

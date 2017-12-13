@@ -47,7 +47,8 @@ class SplitAxis(function_node.FunctionNode):
 
         offsets = ideepy.IntVector()
         # FIXME
-        # bypass python3 issue when transfer array to std::vector<>, https://github.com/SimpleITK/SimpleITK/issues/106
+        # bypass python3 issue when transfer array to std::vector<>
+        # https://github.com/SimpleITK/SimpleITK/issues/106
         for i in self.indices_or_sections.tolist():
             offsets.push_back(i)
         ret = ideepy.Concat_Py_F32.Backward(x, offsets, self.axis)

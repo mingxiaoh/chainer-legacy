@@ -5,8 +5,6 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 from chainer import ideepy
-# from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
-import pdb
 
 
 def _cu_conv_sum(y, x, n):
