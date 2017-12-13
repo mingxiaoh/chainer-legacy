@@ -438,7 +438,7 @@ Tensor * sum_common_along_axis(Tensor *src, vector<int> axis) {
         return nullptr;
 
     for (int d = 0; d < src->ndims(); d++) {
-        int a = 0; for (; a < axis.size(); a++) {
+        unsigned a = 0; for (; a < axis.size(); a++) {
             if (d == axis[a])
                 break;
         }

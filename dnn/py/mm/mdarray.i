@@ -211,15 +211,15 @@
         for (int v = 0; v < PyArray_NDIM(surrogate); v++)
           expected_shape.push_back(shape[v]);
 
-        for (int a = 0; a < $1.size(); a++)
+        for (unsigned a = 0; a < $1.size(); a++)
           expected_shape[$1[a]] = 1;
       }
 
       auto *res = surrogate;
-      for (int i = 0; i < static_cast<int>($1.size()); i++) {
+      for (auto i = 0; i < static_cast<int>($1.size()); i++) {
         auto *tmp = reinterpret_cast<PyArrayObject *>(PyArray_Sum(
                       res, $1[i], PyArray_TYPE(res), nullptr));
-        for (int j = i + 1; j < $1.size(); j++) {
+        for (unsigned j = i + 1; j < $1.size(); j++) {
           if ($1[i] < $1[j])
             $1[j] -= 1;
         }
@@ -233,7 +233,7 @@
 
       if (arg5) {
         PyObject *new_shape = PyTuple_New(expected_shape.size());
-        for (int v = 0; v < expected_shape.size(); v++)
+        for (unsigned v = 0; v < expected_shape.size(); v++)
 #if PY_VERSION_HEX > 0x03000000
           PyTuple_SetItem(new_shape, v, PyLong_FromLong(expected_shape[v]));
 #else

@@ -23,7 +23,7 @@ swig_opts = ['-c++', '-builtin', '-modern', '-modernargs',
 if sys.version_info.major < 3:
     swig_opts += ['-DNEWBUFFER_ON']
 
-ccxx_opts = ['-std=c++11']
+ccxx_opts = ['-std=c++11', '-Wno-unknown-pragmas']
 link_opts = ['-Wl,-z,now', '-Wl,-z,noexecstack',
              '-Wl,-rpath,' + mkldnn_root + '/lib', '-L' + mkldnn_root + '/lib']
 

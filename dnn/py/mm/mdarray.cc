@@ -1,3 +1,5 @@
+#include <Python.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <glog/logging.h>
 #if defined(OPENMP_AFFINITY)
 #include "cpu_info.h"
@@ -35,7 +37,7 @@ static inline bool is_mdarray_supported(PyObject *self, PyObject *o) {
     // o is ndarray
     // if size not equal, mean array broadcast
     if (reinterpret_cast<PyTypeObject *>(o->ob_type) == &PyArray_Type) {
-        if (PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o))
+        if ((size_t)PyArray_SIZE(reinterpret_cast<PyArrayObject *>(o))
                 != self_mdarray->size() ||
                 !PyArray_ISFLOAT(reinterpret_cast<PyArrayObject *>(o))) {
             return false;
@@ -852,7 +854,7 @@ PyObject *mdarray::sum(vector<int> axis, bool keepdims)
             for (int v = 0; v < this->ndims(); v++)
                 expected_shape.push_back(this->desc().data.dims[v]);
 
-            for (int a = 0; a < axis.size(); a++)
+            for (unsigned a = 0; a < axis.size(); a++)
                 expected_shape[axis[a]] = 1;
 
             auto _tensor = tensor->reshape(expected_shape);

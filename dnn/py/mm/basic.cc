@@ -14,7 +14,7 @@ PyObject *basic::copyto(mdarray *dst, Py_buffer *src_view)
 {
     // Validate it in ideepy code
     Tensor *tdst = dst->get()->tensor();
-    if (tdst->len() != src_view->len) {
+    if (tdst->len() != (size_t)src_view->len) {
         return nullptr;
     }
     tdst->copyto((char *)src_view->buf);

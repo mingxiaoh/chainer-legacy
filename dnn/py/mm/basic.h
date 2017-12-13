@@ -1,4 +1,6 @@
 #pragma once
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL basic_ARRAY_API
 #include <Python.h>
 #include "mdarray.h"
 
