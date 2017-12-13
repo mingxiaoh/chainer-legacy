@@ -8,19 +8,19 @@ from chainer import variable
 available = False
 
 try:
-    from dnn import cosim
+    from dnn import cosim  # NOQA
     import dnn._dnn
     from dnn._dnn import mdarray
-    from dnn._dnn import IntVector
-    from dnn._dnn import MdarrayVector
-    from dnn._dnn import batchNormalizationF32
-    from dnn._dnn import Relu_Py_F32
-    from dnn._dnn import conv_param_t, Convolution2D_Py_F32
-    from dnn._dnn import pooling_param_t, Pooling2D_Py_F32
-    from dnn._dnn import Concat_Py_F32
-    from dnn._dnn import linear_param_t, Linear_Py_F32
-    from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
-    from dnn._dnn import Dropout_F32
+    from dnn._dnn import IntVector  # NOQA
+    from dnn._dnn import MdarrayVector  # NOQA
+    from dnn._dnn import batchNormalizationF32  # NOQA
+    from dnn._dnn import Relu_Py_F32  # NOQA
+    from dnn._dnn import conv_param_t, Convolution2D_Py_F32  # NOQA
+    from dnn._dnn import pooling_param_t, Pooling2D_Py_F32  # NOQA
+    from dnn._dnn import Concat_Py_F32  # NOQA
+    from dnn._dnn import linear_param_t, Linear_Py_F32  # NOQA
+    from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32  # NOQA
+    from dnn._dnn import Dropout_F32  # NOQA
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)

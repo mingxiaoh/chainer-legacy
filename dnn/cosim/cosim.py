@@ -83,8 +83,11 @@ def expect_allclose(act, ref, atol=1e-4, rtol=1e-4, verbose=True):
     act = force_array(act)
     ref = force_array(ref)
 
-    if act.size != ref.size or act.itemsize != ref.itemsize or act.shape != ref.shape:
-        logging.warning('size is not matched!\nsize: act={0} ref={1} itemsize: act={2} ref={3}\n'
+    if (act.size != ref.size or act.itemsize != ref.itemsize
+            or act.shape != ref.shape):
+        logging.warning('size is not matched!\n \
+                         size: act={0} ref={1} \
+                         itemsize: act={2} ref={3}\n'
                         'shape: act={4}, ref={5} dtype: act={6} ref={7}'
                         .format(act.size, ref.size, act.itemsize, ref.itemsize,
                                 act.shape, ref.shape, act.dtype, ref.dtype))
@@ -110,7 +113,8 @@ def verify_results(func, acts, refs, inputs):
         return False
 
     if len(acts) != len(refs):
-        logging.error('cosim: lengths of results are different <acts_size={0} refs_size={1}>!'
+        logging.error('cosim: lengths of results \
+                      are different <acts_size={0} refs_size={1}>!'
                       .format(len(acts), len(refs)))
         return False
 
@@ -124,9 +128,11 @@ def verify_results(func, acts, refs, inputs):
             return False
 
         if not expect_allclose(*plain_array((act, ref)), **check_options):
-            logging.error('cosim: mismatched in {0} #{1} result!\nsize: {2}, itemsize: {3}\n'
-                          'shape: {4}, dtype: {5}'.format(func.__class__.__name__, i, act.size, act.itemsize,
-                                                          act.shape, act.dtype))
+            logging.error('cosim: mismatched in {0} #{1} result!\n\
+                           size: {2}, itemsize: {3}\n'
+                          'shape: {4}, dtype: {5}'
+                          .format(func.__class__.__name__, i, act.size,
+                                  act.itemsize, act.shape, act.dtype))
             return False
 
     return True

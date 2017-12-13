@@ -1,4 +1,4 @@
-import dnn._dnn
+import dnn._dnn  # NOQA
 import numpy
 from chainer import testing
 from dnn._dnn import Relu_Py_F32, mdarray

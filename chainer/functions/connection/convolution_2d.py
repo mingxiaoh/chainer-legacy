@@ -279,15 +279,15 @@ class Convolution2DGradW(function_node.FunctionNode):
         n, input_c, h, w = x.shape
         n, out_c, out_h, out_w = gy.shape
         self.pd = (
-                self.sy * (out_h - 1)
-                + (self.kh + (self.kh - 1) * (self.dy - 1))
-                - h - self.ph
-                )
+            self.sy * (out_h - 1)
+            + (self.kh + (self.kh - 1) * (self.dy - 1))
+            - h - self.ph
+        )
         self.pr = (
-                self.sx * (out_w - 1)
-                + (self.kw + (self.kw - 1) * (self.dx - 1))
-                - w - self.pw
-                )
+            self.sx * (out_w - 1)
+            + (self.kw + (self.kw - 1) * (self.dx - 1))
+            - w - self.pw
+        )
 
         # create conv parameter
         # for IA specific
