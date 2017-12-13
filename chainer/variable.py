@@ -21,8 +21,9 @@ def _check_grad_type(func, x, gx):
     # FIXME
     # yli135: in some case, gx's type is mdarray, but x.data's type is ndarray
     # this should be legal in intel chainer
-    if ((not isinstance(gx, numpy.ndarray))
-            and (not isinstance(gx, chainer.ideepy.mdarray))):
+    if (not isinstance(gx, type(x.data)) and
+            (not isinstance(gx, (numpy.ndarray,
+                                 chainer.ideepy.mdarray)))):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
         typ = TypeError
