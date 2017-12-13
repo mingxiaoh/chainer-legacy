@@ -4,7 +4,6 @@ import dnn._dnn
 from dnn._dnn import batchNormalizationF32
 
 
-@profile
 def run():
     src = numpy.arange(3 * 2 * 2 * 2, dtype=numpy.float32)
     src = src.reshape((3, 2, 2, 2))

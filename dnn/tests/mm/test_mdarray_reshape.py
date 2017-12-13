@@ -17,7 +17,9 @@ x = dnn._dnn.mdarray(x1)
 y = x.reshape((2, 2, -1))
 y1 = x1.reshape((2, 2, -1))
 res = numpy.allclose(y, y1, 1e-5, 1e-4, True)
-assert(res == True)
+if res is not True:
+    print("error!!!!")
 y = x.reshape(2, 2, -1)
 numpy.allclose(y, y1, 1e-5, 1e-4, True)
-assert(res == True)
+if res is not True:
+    print("error!!!!")

@@ -1,6 +1,6 @@
 import numpy
 import dnn._dnn
-#from dnn._dnn import linear_param_t, linear_test
+# from dnn._dnn import linear_param_t, linear_test
 from dnn._dnn import linear_param_t, Linear_Py_F32
 
 x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')

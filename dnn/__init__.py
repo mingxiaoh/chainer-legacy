@@ -1,1 +1,1 @@
-from dnn import cosim
+from dnn import cosim  # NOQA

@@ -1,6 +1,6 @@
 import numpy
 from chainer import testing
-from chainer import utils
+from chainer import utils  # NOQA
 import dnn._dnn
 
 x1 = numpy.ndarray(shape=(2, 2, 2, 2), dtype=numpy.float32, order='C')

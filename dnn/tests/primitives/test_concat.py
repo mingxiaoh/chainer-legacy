@@ -1,7 +1,7 @@
 import numpy
 import dnn._dnn
 
-#from dnn._dnn import conv_param_t, conv_test
+# from dnn._dnn import conv_param_t, conv_test
 from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
 
 x1 = numpy.ndarray(shape=(1, 16, 224, 224), dtype=numpy.float32, order='C')

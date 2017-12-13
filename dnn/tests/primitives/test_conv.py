@@ -1,7 +1,7 @@
 import numpy
 import dnn._dnn
 
-#from dnn._dnn import conv_param_t, conv_test
+# from dnn._dnn import conv_param_t, conv_test
 from dnn._dnn import conv_param_t, Convolution2D_Py_F32
 
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
@@ -58,8 +58,8 @@ print("==============")
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
 x = dnn._dnn.mdarray(x)
 weights = Convolution2D_Py_F32.BackwardWeights(x, y, cp)
-#print("type=", type(x))
-#print("shape=", y.shape)
-#print("size=", y.size)
-#print("ndim=", y.ndim)
-#print("dtype=", y.dtype)
+# print("type=", type(x))
+# print("shape=", y.shape)
+# print("size=", y.size)
+# print("ndim=", y.ndim)
+# print("dtype=", y.dtype)
