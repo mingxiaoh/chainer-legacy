@@ -91,7 +91,7 @@ private:
         key += dims_to_string(b);
         key += dims_to_string(y);
 
-        return this->set_op(key, op);
+        return;
     }
 };
 
