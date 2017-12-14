@@ -118,3 +118,25 @@ def copyto(dst, src, casting='same_kind', where=None):
         if src.flags.contiguous is False:
             src = numpy.ascontiguousarray(src)
     dnn._dnn.basic_copyto(dst, src)
+
+
+def acc_add(xs):
+    if xs[0].ndim == 2 or xs[0].ndim == 4:
+        fast = True
+    else:
+        fast = False
+    for x in xs:
+        if not isinstance(x, mdarray):
+            fast = False
+            break
+    if fast is True:
+        return dnn._dnn.basic_acc_sum(xs)
+    else:
+        # y = sum(xs)
+        y = xs[0] + xs[1]
+        for x in xs[2:]:
+            y += x
+        if not isinstance(y, (numpy.ndarray, mdarray)):
+            y = numpy.asarray(y).astype(xs[0].dtype)
+        return y
+

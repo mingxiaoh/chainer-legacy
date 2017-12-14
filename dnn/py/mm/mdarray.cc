@@ -872,4 +872,10 @@ PyObject *mdarray::sum(vector<int> axis, bool keepdims)
     }
 }
 
+bool mdarray::is_mdarray(PyObject *o)
+{
+    return (reinterpret_cast<PyTypeObject *>(o->ob_type)
+            == reinterpret_cast<PyTypeObject *>(PyType_mdarray));
+}
+
 }

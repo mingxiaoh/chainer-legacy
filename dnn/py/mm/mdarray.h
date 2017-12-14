@@ -192,6 +192,8 @@ public:
                 , cpu_engine }, data_.get()));
 #endif
   }
+
+  static bool is_mdarray(PyObject *o);
   
   //FIXME
   inline void unpickled_data(void *pdata) {
