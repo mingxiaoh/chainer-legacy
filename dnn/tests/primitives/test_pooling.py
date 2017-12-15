@@ -31,9 +31,9 @@ pp.algo_kind = dnn._dnn.pooling_param_t.pooling_max
 print("==============")
 (y, ws) = Pooling2D_Py_F32.Forward(x, pp)
 
-print ("y.shape=", y.shape)
-print ("ws.shape=", ws.shape)
-print ("ws.dtype=", ws.dtype)
+print("y.shape=", y.shape)
+print("ws.shape=", ws.shape)
+print("ws.dtype=", ws.dtype)
 
 print("==============")
 print("bwd")

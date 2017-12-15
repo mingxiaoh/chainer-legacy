@@ -42,4 +42,4 @@ gxs = Concat_Py_F32.Backward(y, int_sizes, 1)
 for gx in gxs:
     print("gx.type=", type(gx))
     print("gx.shape=", gx.shape)
-print ("after backward")
+print("after backward")

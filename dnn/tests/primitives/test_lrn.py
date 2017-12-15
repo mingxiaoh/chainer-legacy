@@ -19,9 +19,9 @@ print("==============")
 (y, ws) = LocalResponseNormalization_Py_F32.Forward(x, pp)
 
 # print ("y =", y)
-print ("y.shape=", y.shape)
-print ("ws.shape=", ws.shape)
-print ("ws.dtype=", ws.dtype)
+print("y.shape=", y.shape)
+print("ws.shape=", ws.shape)
+print("ws.dtype=", ws.dtype)
 
 print("==============")
 print("bwd")
