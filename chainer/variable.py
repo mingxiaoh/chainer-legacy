@@ -1058,7 +1058,8 @@ class Variable(object):
                         gx = chainer.functions.accumulateAdd(gx)
                         grads[x] = gx
                     else:
-                        grads[x] = chainer.functions.accumulate_grad(gx, cur_gx)
+                        grads[x] = chainer.functions.accumulate_grad(
+                            gx, cur_gx)
                     # grads[x] = gx if cur_gx is None else gx + cur_gx
                 else:
                     grads[x] = gx

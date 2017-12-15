@@ -1,6 +1,8 @@
+import numpy
 import chainer
 from chainer.utils import type_check
 from chainer import function_node
+
 
 def accumulate_grad(gx, g_input):
     sum_gx = ()
@@ -28,8 +30,17 @@ class AccumulateAdd(function_node.FunctionNode):
 
     def forward(self, xs):
         self.len = len(xs)
-        res = chainer.ideepy.acc_add(xs)
-        return res,
+        if chainer.ideepy.is_enabled():
+            y = chainer.ideepy.acc_add(xs)
+        else:
+            pass
+            y = xs[0] + xs[1]
+            for x in xs[2:]:
+                y += x
+            if type(y) != type(xs[0]):
+                y = numpy.asarray(y).astype(xs[0].dtype)
+
+        return y,
 
     def backward(self, indexes, gy):
         gys = ()

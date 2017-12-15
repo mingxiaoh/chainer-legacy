@@ -136,7 +136,6 @@ def acc_add(xs):
         y = xs[0] + xs[1]
         for x in xs[2:]:
             y += x
-        if not isinstance(y, (numpy.ndarray, mdarray)):
+        if type(y) != type(xs[0]):
             y = numpy.asarray(y).astype(xs[0].dtype)
         return y
-
