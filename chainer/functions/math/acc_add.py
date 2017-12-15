@@ -33,7 +33,6 @@ class AccumulateAdd(function_node.FunctionNode):
         if chainer.ideepy.is_enabled():
             y = chainer.ideepy.acc_add(xs)
         else:
-            pass
             y = xs[0] + xs[1]
             for x in xs[2:]:
                 y += x
