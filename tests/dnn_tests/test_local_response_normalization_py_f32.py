@@ -3,8 +3,8 @@ import unittest
 
 import numpy
 import six
-import dnn._dnn
-from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
+import ideep4py._ideep4py
+from ideep4py._ideep4py import lrn_param_t, LocalResponseNormalization_Py_F32
 
 try:
     import testing
@@ -29,12 +29,12 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
         self.pp.k = 2
         self.pp.alpha = 1e-4
         self.pp.beta = .75
-        self.pp.algo_kind = dnn._dnn.lrn_param_t.lrn_across_channels
+        self.pp.algo_kind = ideep4py._ideep4py.lrn_param_t.lrn_across_channels
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
 
     def check_forward(self, x, pp):
-        x_mdarray = dnn._dnn.mdarray(x)
+        x_mdarray = ideep4py._ideep4py.mdarray(x)
         (y_act, ws) = LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
         y_act = numpy.array(y_act, dtype=self.dtype)
 
@@ -53,8 +53,8 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
         self.check_forward(self.x, self.pp)
 
     def check_backward(self, x, gy, pp):
-        x_mdarray = dnn._dnn.mdarray(x)
-        gy_mdarray = dnn._dnn.mdarray(gy)
+        x_mdarray = ideep4py._ideep4py.mdarray(x)
+        gy_mdarray = ideep4py._ideep4py.mdarray(gy)
         (y_act, ws) = LocalResponseNormalization_Py_F32.Forward(x_mdarray, pp)
         gx_act = LocalResponseNormalization_Py_F32.Backward(
             x_mdarray, gy_mdarray, ws, pp)

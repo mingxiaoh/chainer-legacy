@@ -1,10 +1,10 @@
 import numpy
-import dnn._dnn
+import ideep4py._ideep4py
 
-from dnn._dnn import pooling_param_t, Pooling2D_Py_F32
+from ideep4py._ideep4py import pooling_param_t, Pooling2D_Py_F32
 
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 
 pp = pooling_param_t()
 pp.src_d1 = 1
@@ -18,7 +18,7 @@ pp.dst_d4 = 224
 pp.kh = pp.kw = 3
 pp.sy = pp.sx = 1
 pp.pad_lh = pp.pad_lw = pp.pad_rh = pp.pad_rw = 1
-pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg
+pp.algo_kind = ideep4py._ideep4py.pooling_param_t.pooling_avg
 
 print("fwd")
 y = Pooling2D_Py_F32.Forward(x, pp)
@@ -26,7 +26,7 @@ print("==============")
 y = Pooling2D_Py_F32.Forward(x, pp)
 print("==============")
 
-pp.algo_kind = dnn._dnn.pooling_param_t.pooling_max
+pp.algo_kind = ideep4py._ideep4py.pooling_param_t.pooling_max
 (y, ws) = Pooling2D_Py_F32.Forward(x, pp)
 print("==============")
 (y, ws) = Pooling2D_Py_F32.Forward(x, pp)
@@ -42,13 +42,13 @@ print("==============")
 x = Pooling2D_Py_F32.Backward(y, ws, pp)
 print("===== Finish max pooling backward=========")
 
-pp.algo_kind = dnn._dnn.pooling_param_t.pooling_avg
+pp.algo_kind = ideep4py._ideep4py.pooling_param_t.pooling_avg
 x = Pooling2D_Py_F32.Backward(y, ws, pp)
 print("==============")
 x = Pooling2D_Py_F32.Backward(y, ws, pp)
 print("==============")
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 x = Pooling2D_Py_F32.Backward(x, ws, pp)
 print("===== Finsh avg pooing backward =========")
 print("x.shape=", x.shape)

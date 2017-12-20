@@ -2,8 +2,8 @@ import sys
 import unittest
 
 import numpy
-import dnn._dnn
-from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
+import ideep4py._ideep4py
+from ideep4py._ideep4py import IntVector, MdarrayVector, Concat_Py_F32
 
 try:
     import testing
@@ -40,7 +40,7 @@ class TestConcatPyF32(unittest.TestCase):
             if isinstance(yi, numpy.ndarray):
                 if yi.flags.contiguous is False:
                     yi = numpy.ascontiguousarray(yi)
-            yi = dnn._dnn.mdarray(numpy.ascontiguousarray(yi))
+            yi = ideep4py._ideep4py.mdarray(numpy.ascontiguousarray(yi))
             xs_mdarray.push_back(yi)
         y_act = Concat_Py_F32.Forward(xs_mdarray, self.axis)
         y_act = numpy.array(y_act, dtype=self.dtype)
@@ -57,9 +57,9 @@ class TestConcatPyF32(unittest.TestCase):
             if isinstance(yi, numpy.ndarray):
                 if yi.flags.contiguous is False:
                     yi = numpy.ascontiguousarray(yi)
-            yi = dnn._dnn.mdarray(numpy.ascontiguousarray(yi))
+            yi = ideep4py._ideep4py.mdarray(numpy.ascontiguousarray(yi))
             xs_mdarray.push_back(yi)
-        y_data = dnn._dnn.mdarray(y_data)
+        y_data = ideep4py._ideep4py.mdarray(y_data)
         offsets = IntVector()
         # FIXME
         for i in self.section:

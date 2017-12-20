@@ -1,17 +1,17 @@
 import numpy
-import dnn._dnn
+import ideep4py._ideep4py
 
-# from dnn._dnn import conv_param_t, conv_test
-from dnn._dnn import conv_param_t, Convolution2D_Py_F32
+# from ideep4py._ideep4py import conv_param_t, conv_test
+from ideep4py._ideep4py import conv_param_t, Convolution2D_Py_F32
 
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 
 w = numpy.ndarray(shape=(32, 32, 3, 3), dtype=numpy.float32, order='C')
-w = dnn._dnn.mdarray(w)
+w = ideep4py._ideep4py.mdarray(w)
 
 b = numpy.ndarray(shape=(32,), dtype=numpy.float32, order='C')
-b = dnn._dnn.mdarray(b)
+b = ideep4py._ideep4py.mdarray(b)
 
 cp = conv_param_t()
 cp.src_d1 = 1
@@ -56,7 +56,7 @@ if cp.with_bias:
     print("gb.shape=", weights[1].shape)
 print("==============")
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 weights = Convolution2D_Py_F32.BackwardWeights(x, y, cp)
 # print("type=", type(x))
 # print("shape=", y.shape)

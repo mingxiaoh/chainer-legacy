@@ -8,19 +8,19 @@ from chainer import variable
 available = False
 
 try:
-    from dnn import cosim  # NOQA
-    import dnn._dnn
-    from dnn._dnn import mdarray
-    from dnn._dnn import IntVector  # NOQA
-    from dnn._dnn import MdarrayVector  # NOQA
-    from dnn._dnn import batchNormalizationF32  # NOQA
-    from dnn._dnn import Relu_Py_F32  # NOQA
-    from dnn._dnn import conv_param_t, Convolution2D_Py_F32  # NOQA
-    from dnn._dnn import pooling_param_t, Pooling2D_Py_F32  # NOQA
-    from dnn._dnn import Concat_Py_F32  # NOQA
-    from dnn._dnn import linear_param_t, Linear_Py_F32  # NOQA
-    from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32  # NOQA
-    from dnn._dnn import Dropout_F32  # NOQA
+    from ideep4py import cosim  # NOQA
+    import ideep4py._ideep4py
+    from ideep4py._ideep4py import mdarray
+    from ideep4py._ideep4py import IntVector  # NOQA
+    from ideep4py._ideep4py import MdarrayVector  # NOQA
+    from ideep4py._ideep4py import batchNormalizationF32  # NOQA
+    from ideep4py._ideep4py import Relu_Py_F32  # NOQA
+    from ideep4py._ideep4py import conv_param_t, Convolution2D_Py_F32  # NOQA
+    from ideep4py._ideep4py import pooling_param_t, Pooling2D_Py_F32  # NOQA
+    from ideep4py._ideep4py import Concat_Py_F32  # NOQA
+    from ideep4py._ideep4py import linear_param_t, Linear_Py_F32  # NOQA
+    from ideep4py._ideep4py import lrn_param_t, LocalResponseNormalization_Py_F32  # NOQA
+    from ideep4py._ideep4py import Dropout_F32  # NOQA
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)
@@ -117,7 +117,7 @@ def copyto(dst, src, casting='same_kind', where=None):
     if isinstance(src, numpy.ndarray):
         if src.flags.contiguous is False:
             src = numpy.ascontiguousarray(src)
-    dnn._dnn.basic_copyto(dst, src)
+    ideep4py._ideep4py.basic_copyto(dst, src)
 
 
 def acc_add(xs):
@@ -130,7 +130,7 @@ def acc_add(xs):
             fast = False
             break
     if fast is True:
-        return dnn._dnn.basic_acc_sum(xs)
+        return ideep4py._ideep4py.basic_acc_sum(xs)
     else:
         # y = sum(xs)
         y = xs[0] + xs[1]

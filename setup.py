@@ -9,7 +9,7 @@ from setuptools.command.build_py import build_py
 from setuptools.command.install import install
 from setuptools import setup
 
-import dnn_setup
+import ideep4py_setup
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
@@ -49,14 +49,14 @@ __version__ = imp.load_source(
 
 class _build_py(build_py):
     def run(self):
-        dnn_setup.prepare_mkldnn()
+        ideep4py_setup.prepare_mkldnn()
         self.run_command('build_ext')
         build_py.run(self)
 
 
 class _install(install):
     def run(self):
-        dnn_setup.prepare_mkldnn()
+        ideep4py_setup.prepare_mkldnn()
         self.run_command('build_ext')
         install.run(self)
 
@@ -98,8 +98,8 @@ packages = ['chainer',
             'chainer.training.updaters',
             'chainer.utils']
 
-ext_modules = dnn_setup.ext_modules
-packages += dnn_setup.packages
+ext_modules = ideep4py_setup.ext_modules
+packages += ideep4py_setup.packages
 
 setup(
     name='chainer',

@@ -1,17 +1,17 @@
 import numpy
-import dnn._dnn
+import ideep4py._ideep4py
 
-from dnn._dnn import lrn_param_t, LocalResponseNormalization_Py_F32
+from ideep4py._ideep4py import lrn_param_t, LocalResponseNormalization_Py_F32
 
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 
 pp = lrn_param_t()
 pp.n = 5
 pp.k = 2
 pp.alpha = 1e-4
 pp.beta = .75
-pp.algo_kind = dnn._dnn.lrn_param_t.lrn_across_channels
+pp.algo_kind = ideep4py._ideep4py.lrn_param_t.lrn_across_channels
 
 print("fwd")
 (y, ws) = LocalResponseNormalization_Py_F32.Forward(x, pp)

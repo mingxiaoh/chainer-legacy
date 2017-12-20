@@ -1,17 +1,17 @@
 import numpy
-import dnn._dnn
-# from dnn._dnn import linear_param_t, linear_test
-from dnn._dnn import linear_param_t, Linear_Py_F32
+import ideep4py._ideep4py
+# from ideep4py._ideep4py import linear_param_t, linear_test
+from ideep4py._ideep4py import linear_param_t, Linear_Py_F32
 
 x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 
 w = numpy.ndarray(shape=(32, 32), dtype=numpy.float32, order='C')
 print("ndarray w", w.shape)
-w = dnn._dnn.mdarray(w)
+w = ideep4py._ideep4py.mdarray(w)
 print("w.dim", w.shape)
 b = numpy.ndarray(shape=(32,), dtype=numpy.float32, order='C')
-b = dnn._dnn.mdarray(b)
+b = ideep4py._ideep4py.mdarray(b)
 
 lp = linear_param_t()
 lp.src_d1 = 1
@@ -39,7 +39,7 @@ if lp.with_bias:
     print("gb.shape = ", weights[1].shape)
 print("================")
 x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 weights = Linear_Py_F32.BackwardWeights(x, y, lp)
 print("==========4 dims=================")
 
@@ -52,14 +52,14 @@ lp.src_ndims = 4
 lp.bias_d1 = 32
 lp.with_bias = True
 x = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)
 
 w = numpy.ndarray(shape=(32, 32, 224, 224), dtype=numpy.float32, order='C')
 print("ndarray w", w.shape)
-w = dnn._dnn.mdarray(w)
+w = ideep4py._ideep4py.mdarray(w)
 print("w.dim", w.shape)
 b = numpy.ndarray(shape=(32,), dtype=numpy.float32, order='C')
-b = dnn._dnn.mdarray(b)
+b = ideep4py._ideep4py.mdarray(b)
 
 print("fwd")
 y = Linear_Py_F32.Forward(x, w, b, lp)
@@ -80,4 +80,4 @@ if lp.with_bias:
     print("gb.shape = ", weights[1].shape)
 print("================")
 x = numpy.ndarray(shape=(1, 32), dtype=numpy.float32, order='C')
-x = dnn._dnn.mdarray(x)
+x = ideep4py._ideep4py.mdarray(x)

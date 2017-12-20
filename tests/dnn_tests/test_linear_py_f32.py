@@ -1,8 +1,8 @@
 import sys
 import unittest
 import numpy
-import dnn._dnn
-from dnn._dnn import linear_param_t, Linear_Py_F32
+import ideep4py._ideep4py
+from ideep4py._ideep4py import linear_param_t, Linear_Py_F32
 
 try:
     import testing
@@ -35,10 +35,10 @@ class TestLinearPyF32(unittest.TestCase):
         lp.with_bias = True if b is not None else False
         lp.with_weights_opt = True
 
-        x = dnn._dnn.mdarray(x)
-        W = dnn._dnn.mdarray(W)
+        x = ideep4py._ideep4py.mdarray(x)
+        W = ideep4py._ideep4py.mdarray(W)
         if lp.with_bias:
-            b = dnn._dnn.mdarray(b)
+            b = ideep4py._ideep4py.mdarray(b)
             y_act = Linear_Py_F32.Forward(x, W, b, lp)
         else:
             y_act = Linear_Py_F32.Forward(x, W, None, lp)
@@ -62,8 +62,8 @@ class TestLinearPyF32(unittest.TestCase):
         lp = linear_param_t()
         lp.with_bias = False
         lp.src_ndims = 2
-        W = dnn._dnn.mdarray(W)
-        gy = dnn._dnn.mdarray(gy)
+        W = ideep4py._ideep4py.mdarray(W)
+        gy = ideep4py._ideep4py.mdarray(gy)
         gx_act = Linear_Py_F32.BackwardData(W, gy, lp)
         gx_act = numpy.array(gx_act, dtype=self.W_dtype)
         gx_expect = gy.dot(W).astype(gy.dtype, copy=False)
@@ -77,8 +77,8 @@ class TestLinearPyF32(unittest.TestCase):
     def check_backward_weights(self, x, gy):
         gW_expect = gy.T.dot(x).astype(self.W_dtype, copy=False)
 
-        x = dnn._dnn.mdarray(x)
-        gy = dnn._dnn.mdarray(gy)
+        x = ideep4py._ideep4py.mdarray(x)
+        gy = ideep4py._ideep4py.mdarray(gy)
         # create linear parameter
         # for IA specific
         lp = linear_param_t()

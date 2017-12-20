@@ -1,8 +1,8 @@
 import numpy
-import dnn._dnn
+import ideep4py._ideep4py
 
 # from dnn._dnn import conv_param_t, conv_test
-from dnn._dnn import IntVector, MdarrayVector, Concat_Py_F32
+from ideep4py._ideep4py import IntVector, MdarrayVector, Concat_Py_F32
 
 x1 = numpy.ndarray(shape=(1, 16, 224, 224), dtype=numpy.float32, order='C')
 x2 = numpy.ndarray(shape=(1, 32, 224, 224), dtype=numpy.float32, order='C')
@@ -14,9 +14,9 @@ sizes = numpy.array(
 print("sizes=", sizes)
 print("type=", type(sizes))
 
-x1 = dnn._dnn.mdarray(x1)
-x2 = dnn._dnn.mdarray(x2)
-x3 = dnn._dnn.mdarray(x3)
+x1 = ideep4py._ideep4py.mdarray(x1)
+x2 = ideep4py._ideep4py.mdarray(x2)
+x3 = ideep4py._ideep4py.mdarray(x3)
 
 xs = MdarrayVector()
 xs.push_back(x1)

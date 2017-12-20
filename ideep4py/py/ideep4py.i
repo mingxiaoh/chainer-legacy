@@ -1,4 +1,4 @@
-%module dnn
+%module ideep4py
 
 %init %{
   import_array();

@@ -1,7 +1,7 @@
-import dnn._dnn  # NOQA
+import ideep4py._ideep4py  # NOQA
 import numpy
 from chainer import testing
-from dnn._dnn import Relu_Py_F32, mdarray
+from ideep4py._ideep4py import Relu_Py_F32, mdarray
 
 print('mdarray sum [larg shape routine]')
 print('shape (256, 384, 13, 13) along (0, 2, 3)')

@@ -1,13 +1,13 @@
 import numpy
 from chainer import testing
-import dnn._dnn
-from dnn._dnn import Relu_Py_F32
+import ideep4py._ideep4py
+from ideep4py._ideep4py import Relu_Py_F32
 
 # x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
 x = numpy.random.uniform(-1, 1, (1, 32, 224, 224)).astype(numpy.float32)
 y = numpy.maximum(x, 0, dtype=x.dtype)
 
-mx = dnn._dnn.mdarray(x)
+mx = ideep4py._ideep4py.mdarray(x)
 x2 = numpy.array(mx)
 testing.assert_allclose(x, x2)
 
@@ -27,8 +27,8 @@ gy = numpy.random.uniform(-1, 1, (1, 32, 224, 224)).astype(numpy.float32)
 gx = (x > 0) * gy
 
 
-mx = dnn._dnn.mdarray(x)
-mgy = dnn._dnn.mdarray(gy)
+mx = ideep4py._ideep4py.mdarray(x)
+mgy = ideep4py._ideep4py.mdarray(gy)
 mgx = Relu_Py_F32.Backward(mx, mgy)
 
 
