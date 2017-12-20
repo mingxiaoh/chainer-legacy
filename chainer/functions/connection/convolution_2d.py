@@ -8,7 +8,7 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
-from chainer import ideepy
+from chainer import ia
 
 
 if cuda.cudnn_enabled:
@@ -90,7 +90,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ideepy.conv_param_t()
+        cp = ia.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
@@ -105,17 +105,17 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         if isinstance(W, numpy.ndarray):
             cp.with_weights_opt = False
-        elif isinstance(W, ideepy.mdarray):
+        elif isinstance(W, ia.mdarray):
             # if weight is mdarray
             # we can do weights opt (pass optimized weight back)
             cp.with_weights_opt = True
 
-        (x, W) = ideepy.to_mdarray((x, W))
+        (x, W) = ia.to_mdarray((x, W))
         if cp.with_bias:
-            (b, ) = ideepy.to_mdarray((b,))
-            y = ideepy.Convolution2D_Py_F32.Forward(x, W, b, cp)
+            (b, ) = ia.to_mdarray((b,))
+            y = ia.Convolution2D_Py_F32.Forward(x, W, b, cp)
         else:
-            y = ideepy.Convolution2D_Py_F32.Forward(x, W, None, cp)
+            y = ia.Convolution2D_Py_F32.Forward(x, W, None, cp)
 
         return y,
 
@@ -291,7 +291,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ideepy.conv_param_t()
+        cp = ia.conv_param_t()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         (cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4) \
             = (out_c, input_c, self.kh, self.kw)
@@ -306,9 +306,9 @@ class Convolution2DGradW(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        (x, gy) = ideepy.to_mdarray((x, gy))
+        (x, gy) = ia.to_mdarray((x, gy))
         # only calculate gW, no gb
-        (gW,) = ideepy.Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        (gW,) = ia.Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
         return gW,
 
     def forward_cpu(self, inputs):

@@ -315,8 +315,8 @@ class FunctionNode(object):
         assert len(inputs) > 0
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
-        elif chainer.ideepy.all_ready(inputs, (2, 4)):
-            if chainer.ideepy.cosim.is_cosim():
+        elif chainer.ia.all_ready(inputs, (2, 4)):
+            if chainer.ia.cosim.is_cosim():
                 inputs_nd = ()
                 """
                 Before the executing forward function
@@ -327,7 +327,7 @@ class FunctionNode(object):
 
                 y = self.forward_ia(inputs)
 
-                chainer.ideepy.cosim.cosim_verify(self, y, inputs_nd)
+                chainer.ia.cosim.cosim_verify(self, y, inputs_nd)
 
                 return y
             return self.forward_ia(inputs)

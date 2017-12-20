@@ -7,7 +7,7 @@ from chainer import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
-from chainer import ideepy
+from chainer import ia
 
 
 class SplitAxis(function_node.FunctionNode):
@@ -43,21 +43,21 @@ class SplitAxis(function_node.FunctionNode):
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
     def forward_ia(self, inputs):
-        x, = ideepy.to_mdarray(inputs)
+        x, = ia.to_mdarray(inputs)
 
-        offsets = ideepy.IntVector()
+        offsets = ia.IntVector()
         # FIXME
         # bypass python3 issue when transfer array to std::vector<>
         # https://github.com/SimpleITK/SimpleITK/issues/106
         for i in self.indices_or_sections.tolist():
             offsets.push_back(i)
-        ret = ideepy.Concat_Py_F32.Backward(x, offsets, self.axis)
+        ret = ia.Concat_Py_F32.Backward(x, offsets, self.axis)
         self._shapes = [r.shape for r in ret]
         return ret
 
     def forward(self, inputs):
         # currently, only support axis == 1 and 4 dims
-        if self.axis == 1 and ideepy.all_ready((inputs), (4,)):
+        if self.axis == 1 and ia.all_ready((inputs), (4,)):
             return self.forward_ia(inputs)
 
         x, = inputs

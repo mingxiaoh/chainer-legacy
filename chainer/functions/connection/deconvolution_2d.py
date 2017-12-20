@@ -9,7 +9,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
-from chainer import ideepy
+from chainer import ia
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -124,7 +124,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        cp = ideepy.conv_param_t()
+        cp = ia.conv_param_t()
         (cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4) \
             = (n, in_c, self.outh, self.outw)
         # deconv's weight dims should be different with conv's w
@@ -140,8 +140,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        (x, W) = ideepy.to_mdarray((x, W))
-        y = ideepy.Convolution2D_Py_F32.BackwardData(
+        (x, W) = ia.to_mdarray((x, W))
+        y = ia.Convolution2D_Py_F32.BackwardData(
             W, x, cp)  # y should be gx in conv bwd data
 
         if b is not None:

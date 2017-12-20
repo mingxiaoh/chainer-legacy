@@ -30,7 +30,7 @@ except Exception as ex:
 
 
 def is_enabled():
-    # Check whether ideep installed
+    # Check whether ideep4py installed
 
     return available
 
@@ -52,7 +52,7 @@ def all_ready(inputs, check_with_ndim):
     _inputs = [x.data if isinstance(x, variable.Variable)
                else x for x in inputs]
 
-    # Check with ideep supported dimension of input data
+    # Check with ideep4py supported dimension of input data
     valid_ndim = False
     for ndim in check_with_ndim:
         valid_ndim = valid_ndim or _inputs[0].ndim == ndim
@@ -62,7 +62,7 @@ def all_ready(inputs, check_with_ndim):
 
     if isinstance(_inputs[0], mdarray):
         return True
-    # Check whether ideep configured and used correctly
+    # Check whether ideep4py configured and used correctly
     elif isinstance(_inputs[0], numpy.ndarray):
         _should_use_ideep = True
 
@@ -82,7 +82,7 @@ def all_ready(inputs, check_with_ndim):
 
 
 # ----------------------------------------------------------------------
-# ideepy mdarray allocation
+# ideep4py mdarray allocation
 # ---------------------------------------------------------------------
 data = 'd'  # data array
 weight = 'w'  # weight array
@@ -107,7 +107,7 @@ def to_mdarray(xs):
 
 def to_ia(arr):
     if not is_enabled():
-        raise Exception("ideepy is not installed coorectly")
+        raise Exception("ideep4py is not installed coorectly")
     return array(arr, itype=weight)
 
 

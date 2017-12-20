@@ -2,7 +2,7 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import ideepy
+from chainer import ia
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
@@ -76,9 +76,9 @@ class BatchNormalization(function_node.FunctionNode):
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
             y, self.mean, self.var, self.inv_std = (
-                ideepy.batchNormalizationF32.Forward(
-                    ideepy.array(x),
-                    ideepy.array(W),
+                ia.batchNormalizationF32.Forward(
+                    ia.array(x),
+                    ia.array(W),
                     None,
                     None,
                     self.eps
@@ -86,8 +86,8 @@ class BatchNormalization(function_node.FunctionNode):
 
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)
-            if isinstance(self.running_mean, ideepy.mdarray) and \
-               isinstance(self.running_var, ideepy.mdarray):
+            if isinstance(self.running_mean, ia.mdarray) and \
+               isinstance(self.running_var, ia.mdarray):
                 self.running_mean.inplace_axpby(
                     self.decay, (1 - self.decay), self.mean)
                 self.running_var.inplace_axpby(
@@ -228,12 +228,12 @@ class BatchNormalizationGrad(function.Function):
             beta = numpy.zeros_like(gamma)
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            gx, gW = ideepy.batchNormalizationF32.Backward(
-                ideepy.array(x),
-                ideepy.array(gy),
+            gx, gW = ia.batchNormalizationF32.Backward(
+                ia.array(x),
+                ia.array(gy),
                 self.mean,
                 self.var,
-                ideepy.array(W),
+                ia.array(W),
                 self.eps
             )
 
@@ -382,11 +382,11 @@ class FixedBatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            y, = ideepy.batchNormalizationF32.Forward(
-                ideepy.array(x),
-                ideepy.array(W),
-                ideepy.array(mean),
-                ideepy.array(var),
+            y, = ia.batchNormalizationF32.Forward(
+                ia.array(x),
+                ia.array(W),
+                ia.array(mean),
+                ia.array(var),
                 self.eps
             )
 
@@ -530,7 +530,7 @@ class _BNMode(object):
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
-        self.ideep_ok = ideepy.all_ready((x, ), (2, 4)) and is_gamma_1d
+        self.ideep_ok = ia.all_ready((x, ), (2, 4)) and is_gamma_1d
 
     def can_use_ideep(self):
         return self.ideep_ok

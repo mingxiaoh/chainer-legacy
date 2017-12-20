@@ -11,7 +11,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-from chainer import ideepy
+from chainer import ia
 
 
 @testing.parameterize(*testing.product({
@@ -128,11 +128,11 @@ class TestConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
         args, kwargs = self.conv_args
-        with ideepy.disable():
+        with ia.disable():
             self.link = links.Convolution2D(*args, **kwargs)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
-        with ideepy.disable():
+        with ia.disable():
             self.link(chainer.Variable(self.x))
         b = self.link.b.data
         b[...] = numpy.random.uniform(-1, 1, b.shape)
@@ -216,7 +216,7 @@ class TestConvolution2DParameterShapePlaceholder(unittest.TestCase):
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
     def test_pickling_cpu(self):
-        with ideepy.disable():
+        with ia.disable():
             self.check_pickling(self.x)
 
     @attr.gpu

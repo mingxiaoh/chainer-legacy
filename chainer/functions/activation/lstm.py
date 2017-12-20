@@ -83,7 +83,7 @@ class LSTM(function_node.FunctionNode):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, (numpy.ndarray, chainer.ideepy.mdarray)):
+        if isinstance(x, (numpy.ndarray, chainer.ia.mdarray)):
             a = numpy.tanh(a)
             i = _sigmoid(i)
             f = _sigmoid(f)

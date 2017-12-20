@@ -91,7 +91,7 @@ class TreeLSTM(function.Function):
         a, i, o = gates[:3]
         fs = gates[3:]
 
-        if isinstance(x, (numpy.ndarray, chainer.ideepy.mdarray)):
+        if isinstance(x, (numpy.ndarray, chainer.ia.mdarray)):
             self.a = numpy.tanh(a)
             self.i = _sigmoid(i)
             self.o = _sigmoid(o)
