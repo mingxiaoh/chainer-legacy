@@ -20,8 +20,8 @@
 %include tp.i
 %include std_vector.i
 
-%template(MdarrayVector) std::vector<mdarray>;
-%template(IntVector) std::vector<int>;
+%template(mdarrayVector) std::vector<mdarray>;
+%template(intVector) std::vector<int>;
 
 %tp_richcompare(mdarray)
 %buffer_protocol_producer(mdarray)

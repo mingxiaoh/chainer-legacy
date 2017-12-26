@@ -8,7 +8,7 @@
 %include "std_vector.i"
 %include "pooling_py.h"
 
-%template(Pooling2D_Py_F32) Pooling2D_Py<float>;
+%template(pooling2D) Pooling2D_Py<float>;
 
 //
 // Python API for Pooling2D

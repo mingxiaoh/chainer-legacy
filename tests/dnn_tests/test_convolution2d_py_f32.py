@@ -2,7 +2,7 @@ import sys
 import unittest
 import numpy
 import ideep4py._ideep4py
-from ideep4py._ideep4py import conv_param_t, Convolution2D_Py_F32
+from ideep4py._ideep4py import convParam, convolution2D
 
 try:
     import testing
@@ -45,7 +45,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.b = numpy.random.uniform(-1, 1, self.b_shape).astype(self.dtype)
         self.b = ideep4py._ideep4py.mdarray(self.b)
 
-        self.cp = conv_param_t()
+        self.cp = convParam()
         self.cp.src_d1 = self.x_shape[0]
         self.cp.src_d2 = self.x_shape[1]
         self.cp.src_d3 = self.x_shape[2]
@@ -85,9 +85,9 @@ class TestConvolution2DPyF32(unittest.TestCase):
 
     def check_forward(self, x, w, b, cp):
         if cp.with_bias:
-            y_act = Convolution2D_Py_F32.Forward(x, w, b, cp)
+            y_act = convolution2D.Forward(x, w, b, cp)
         else:
-            y_act = Convolution2D_Py_F32.Forward(x, w, None, cp)
+            y_act = convolution2D.Forward(x, w, None, cp)
         y_act = numpy.array(y_act, dtype=self.dtype)
 
         x = numpy.array(x, dtype=self.dtype)
@@ -109,7 +109,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.check_forward(self.x, self.w, self.b, self.cp)
 
     def check_backward_weights(self, x, w, b, cp, gy):
-        gW_act, gB_act = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        gW_act, gB_act = convolution2D.BackwardWeights(x, gy, cp)
         gW_act = numpy.array(gW_act, dtype=self.dtype)
 
         x = numpy.array(x, dtype=self.dtype)
@@ -142,7 +142,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         _set_cover_all(self, x, w)
         # create conv parameter
         # for IA specific
-        cp = conv_param_t()
+        cp = convParam()
         cp.src_d1, cp.src_d2 = n, in_c
         cp.src_d3, cp.src_d4 = self.outh, self.outw
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape
@@ -155,7 +155,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        y_act = Convolution2D_Py_F32.BackwardData(w, x, cp)
+        y_act = convolution2D.BackwardData(w, x, cp)
         if b is not None:
             y_act += b.reshape(1, b.size, 1, 1)
         y_act = numpy.array(y_act, dtype=self.dtype)

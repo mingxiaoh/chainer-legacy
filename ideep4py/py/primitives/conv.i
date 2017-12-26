@@ -7,7 +7,7 @@
 %include "param.i"
 %include "conv_py.h"
 
-%template(Convolution2D_Py_F32) Convolution2D_Py<float>;
+%template(convolution2D) Convolution2D_Py<float>;
 
 //
 // Python API for Convolution2D

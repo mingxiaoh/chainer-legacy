@@ -76,7 +76,7 @@ class BatchNormalization(function_node.FunctionNode):
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
             y, self.mean, self.var, self.inv_std = (
-                ia.batchNormalizationF32.Forward(
+                ia.batchNormalization.Forward(
                     ia.array(x),
                     ia.array(W),
                     None,
@@ -228,7 +228,7 @@ class BatchNormalizationGrad(function.Function):
             beta = numpy.zeros_like(gamma)
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            gx, gW = ia.batchNormalizationF32.Backward(
+            gx, gW = ia.batchNormalization.Backward(
                 ia.array(x),
                 ia.array(gy),
                 self.mean,
@@ -382,7 +382,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-            y, = ia.batchNormalizationF32.Forward(
+            y, = ia.batchNormalization.Forward(
                 ia.array(x),
                 ia.array(W),
                 ia.array(mean),

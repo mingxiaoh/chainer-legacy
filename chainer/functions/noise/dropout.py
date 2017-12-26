@@ -24,7 +24,7 @@ class Dropout(function_node.FunctionNode):
 
     def forward_ia(self, inputs):
         x, = ia.to_mdarray((inputs[0],))
-        mask, y = ia.Dropout_F32.Forward(x, self.dropout_ratio)
+        mask, y = ia.dropout.Forward(x, self.dropout_ratio)
         self.mask = mask
         return y,
 
@@ -66,7 +66,7 @@ class DropoutGrad(function_node.FunctionNode):
 
     def forward_ia(self, inputs):
         gy, mask = ia.to_mdarray((inputs[0], self.mask))
-        return ia.Dropout_F32.Backward(mask, gy),
+        return ia.dropout.Backward(mask, gy),
 
     def forward(self, inputs):
         # TODO: cosim

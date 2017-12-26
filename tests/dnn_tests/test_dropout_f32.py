@@ -3,7 +3,7 @@ import unittest
 
 import numpy
 import ideep4py._ideep4py
-from ideep4py._ideep4py import Dropout_F32
+from ideep4py._ideep4py import dropout
 
 try:
     import testing
@@ -29,15 +29,15 @@ class TestDropoutF32(unittest.TestCase):
         self.gy = numpy.random.rand(128, 3, 224, 224).astype(self.dtype)
 
     def check_forward(self, x, x_md):
-        mask, y = Dropout_F32.Forward(x_md, self.dropout_ratio)
+        mask, y = dropout.Forward(x_md, self.dropout_ratio)
         y = numpy.array(y, dtype=self.dtype)
         y_expect = x * mask
         numpy.testing.assert_allclose(y, y_expect)
 
     def check_backward(self, x_md, gy):
-        mask, y = Dropout_F32.Forward(x_md, self.dropout_ratio)
+        mask, y = dropout.Forward(x_md, self.dropout_ratio)
         gy_md = ideep4py._ideep4py.mdarray(gy)
-        gx = Dropout_F32.Backward(mask, gy_md)
+        gx = dropout.Backward(mask, gy_md)
         gx = numpy.array(gx, dtype=self.dtype)
         gx_expect = gy * mask
         numpy.testing.assert_allclose(gx, gx_expect)

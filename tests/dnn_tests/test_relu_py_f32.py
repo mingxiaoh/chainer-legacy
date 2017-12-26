@@ -4,7 +4,7 @@ import unittest
 import numpy
 
 import ideep4py._ideep4py
-from ideep4py._ideep4py import Relu_Py_F32
+from ideep4py._ideep4py import relu
 
 try:
     import testing
@@ -30,7 +30,7 @@ class TestReluPyF32(unittest.TestCase):
         mx = ideep4py._ideep4py.mdarray(x)
         x2 = numpy.array(mx)
         numpy.testing.assert_allclose(x, x2)
-        my = Relu_Py_F32.Forward(mx)
+        my = relu.Forward(mx)
         y2 = numpy.array(my)
         numpy.testing.assert_allclose(y, y2)
 
@@ -41,10 +41,10 @@ class TestReluPyF32(unittest.TestCase):
         mx = ideep4py._ideep4py.mdarray(x)
         x2 = numpy.array(mx)
         numpy.testing.assert_allclose(x, x2)
-        my = Relu_Py_F32.Forward(mx)
+        my = relu.Forward(mx)
         y2 = numpy.array(my)
         numpy.testing.assert_allclose(y, y2)
-        my = Relu_Py_F32.Forward(my)
+        my = relu.Forward(my)
         y2 = numpy.array(my)
         numpy.testing.assert_allclose(y, y2)
 
@@ -54,7 +54,7 @@ class TestReluPyF32(unittest.TestCase):
     def check_backward(self, x, gy, gx):
         mx = ideep4py._ideep4py.mdarray(x)
         mgy = ideep4py._ideep4py.mdarray(gy)
-        mgx = Relu_Py_F32.Backward(mx, mgy)
+        mgx = relu.Backward(mx, mgy)
         gx1 = numpy.array(mgx)
         numpy.testing.assert_allclose(gx1, gx)
 

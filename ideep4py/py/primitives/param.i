@@ -1,3 +1,4 @@
+%rename (convParam) conv_param_t;
 struct conv_param_t {
     int src_d1, src_d2, src_d3, src_d4; // input shape
     int weights_d1, weights_d2, weights_d3, weights_d4; //weight shape
@@ -11,6 +12,7 @@ struct conv_param_t {
     bool with_weights_opt = false; // whether pass back optimized weight
 };
 
+%rename (poolingParam) pooling_param_t;
 struct pooling_param_t {
     int src_d1, src_d2, src_d3, src_d4; // input shape
     int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
@@ -26,6 +28,7 @@ struct pooling_param_t {
     } algo_kind;
 };
 
+%rename (linearParam) linear_param_t;
 struct linear_param_t {
     int src_d1, src_d2, src_d3, src_d4;
     int src_ndims;
@@ -33,6 +36,7 @@ struct linear_param_t {
     bool with_weights_opt = false; // whether pass back optimized weight
 };
 
+%rename (lrnParam) lrn_param_t;
 struct lrn_param_t {
     int src_d1, src_d2, src_d3, src_d4; // input shape
     int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
@@ -46,4 +50,3 @@ struct lrn_param_t {
         lrn_within_channel,
     } algo_kind;
 };
-

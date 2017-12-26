@@ -8,4 +8,4 @@
 %include "std_vector.i"
 %include "bn_py.h"
 
-%template(batchNormalizationF32) batch_normalization_py<float>;
+%template(batchNormalization) batch_normalization_py<float>;

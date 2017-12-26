@@ -6,4 +6,4 @@
 %include "std_vector.i"
 %include "relu_py.h"
 
-%template(Relu_Py_F32) Relu_Py<float>;
+%template(relu) Relu_Py<float>;

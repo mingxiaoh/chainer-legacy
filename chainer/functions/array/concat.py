@@ -42,11 +42,11 @@ class Concat(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward_ia(self, xs):
-        xs_mdarray = ia.MdarrayVector()
+        xs_mdarray = ia.mdarrayVector()
         ys = ia.to_mdarray(xs)
         for yi in ys:
             xs_mdarray.push_back(yi)
-        return ia.Concat_Py_F32.Forward(xs_mdarray, self.axis),
+        return ia.concat.Forward(xs_mdarray, self.axis),
 
     def forward(self, xs):
         if ia.all_ready(xs, (4,)):  # only support 4 dims now

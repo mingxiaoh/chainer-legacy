@@ -8,4 +8,4 @@
 %include "std_vector.i"
 %include "dropout_py.h"
 
-%template(Dropout_F32) Dropout_py<float>;
+%template(dropout) Dropout_py<float>;

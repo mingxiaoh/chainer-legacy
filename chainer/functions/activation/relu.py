@@ -29,7 +29,7 @@ class ReLU(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         mx, = ia.to_mdarray((x[0],))
-        y = ia.Relu_Py_F32.Forward(mx)
+        y = ia.relu.Forward(mx)
         return y,
 
     def forward_cpu(self, x):
@@ -113,7 +113,7 @@ class ReLUGrad3(function_node.FunctionNode):
 
     def forward_ia(self, inputs):
         x, gy = ia.to_mdarray((self.a, inputs[0]))
-        gx = ia.Relu_Py_F32.Backward(x, gy)
+        gx = ia.relu.Backward(x, gy)
         return gx,
 
     def forward_cpu(self, inputs):

@@ -1,7 +1,7 @@
 import numpy
 import ideep4py._ideep4py
 
-from ideep4py._ideep4py import batchNormalizationF32
+from ideep4py._ideep4py import batchNormalization
 
 
 def run():
@@ -17,13 +17,13 @@ def run():
     eps = 2e-5
 
     print("FWD *****************************")
-    y = batchNormalizationF32.Forward(src, w, None, None, eps)
+    y = batchNormalization.Forward(src, w, None, None, eps)
     print(y)
     print(-y[0])
     print(-y[1])
     print(-y[2])
     print("==============")
-    y = batchNormalizationF32.Forward(src, w, None, None, eps)
+    y = batchNormalization.Forward(src, w, None, None, eps)
     print(y)
     print(-y[0])
     print(-y[1])
@@ -31,7 +31,7 @@ def run():
     print("==============")
     mean = y[1]
     var = y[2]
-    y = batchNormalizationF32.Forward(src, w, mean, var, eps)
+    y = batchNormalization.Forward(src, w, mean, var, eps)
     print(y)
     print(-y[0])
     print("==============")
@@ -39,12 +39,12 @@ def run():
     print("BWD *****************************")
     diff_dst = numpy.ones(src.shape, dtype=numpy.float32)
     diff_dst = ideep4py._ideep4py.mdarray(diff_dst)
-    y = batchNormalizationF32.Backward(src, diff_dst, mean, var, w, eps)
+    y = batchNormalization.Backward(src, diff_dst, mean, var, w, eps)
     print(y)
     print(-y[0])
     print(-y[1])
     print("==============")
-    y = batchNormalizationF32.Backward(src, diff_dst, mean, var, w, eps)
+    y = batchNormalization.Backward(src, diff_dst, mean, var, w, eps)
     print(y)
     print(-y[0])
     print(-y[1])
@@ -54,12 +54,12 @@ def run():
     src = ideep4py._ideep4py.mdarray(src)
     diff_dst = numpy.ones(src.shape, dtype=numpy.float32)
     diff_dst = ideep4py._ideep4py.mdarray(diff_dst)
-    y = batchNormalizationF32.Backward(src, diff_dst, mean, var, w, eps)
+    y = batchNormalization.Backward(src, diff_dst, mean, var, w, eps)
     print(y)
     print(-y[0])
     print(-y[1])
     print("==============")
-    y = batchNormalizationF32.Backward(src, diff_dst, mean, var, None, eps)
+    y = batchNormalization.Backward(src, diff_dst, mean, var, None, eps)
     print(y)
     print(-y[0])
     print("==============")

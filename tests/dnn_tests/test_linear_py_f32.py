@@ -2,7 +2,7 @@ import sys
 import unittest
 import numpy
 import ideep4py._ideep4py
-from ideep4py._ideep4py import linear_param_t, Linear_Py_F32
+from ideep4py._ideep4py import linearParam, linear
 
 try:
     import testing
@@ -31,7 +31,7 @@ class TestLinearPyF32(unittest.TestCase):
         self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x, W, b, y_expect):
-        lp = linear_param_t()
+        lp = linearParam()
         lp.with_bias = True if b is not None else False
         lp.with_weights_opt = True
 
@@ -39,9 +39,9 @@ class TestLinearPyF32(unittest.TestCase):
         W = ideep4py._ideep4py.mdarray(W)
         if lp.with_bias:
             b = ideep4py._ideep4py.mdarray(b)
-            y_act = Linear_Py_F32.Forward(x, W, b, lp)
+            y_act = linear.Forward(x, W, b, lp)
         else:
-            y_act = Linear_Py_F32.Forward(x, W, None, lp)
+            y_act = linear.Forward(x, W, None, lp)
 
         y_act = numpy.array(y_act, dtype=self.x_dtype)
         numpy.testing.assert_allclose(
@@ -59,12 +59,12 @@ class TestLinearPyF32(unittest.TestCase):
     def check_backward_data(self, x, W, gy):
         gx_expect = gy.dot(W).astype(gy.dtype, copy=False)
 
-        lp = linear_param_t()
+        lp = linearParam()
         lp.with_bias = False
         lp.src_ndims = 2
         W = ideep4py._ideep4py.mdarray(W)
         gy = ideep4py._ideep4py.mdarray(gy)
-        gx_act = Linear_Py_F32.BackwardData(W, gy, lp)
+        gx_act = linear.BackwardData(W, gy, lp)
         gx_act = numpy.array(gx_act, dtype=self.W_dtype)
         gx_expect = gy.dot(W).astype(gy.dtype, copy=False)
         numpy.testing.assert_allclose(
@@ -81,11 +81,11 @@ class TestLinearPyF32(unittest.TestCase):
         gy = ideep4py._ideep4py.mdarray(gy)
         # create linear parameter
         # for IA specific
-        lp = linear_param_t()
+        lp = linearParam()
         lp.with_bias = False
         lp.src_ndims = 2
         # only calculate gW, no gb
-        (gW_act,) = Linear_Py_F32.BackwardWeights(x, gy, lp)
+        (gW_act,) = linear.BackwardWeights(x, gy, lp)
         gW_act = numpy.array(gW_act, dtype=self.W_dtype)
 
         numpy.testing.assert_allclose(

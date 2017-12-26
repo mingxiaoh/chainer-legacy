@@ -11,16 +11,16 @@ try:
     from ideep4py import cosim  # NOQA
     import ideep4py._ideep4py
     from ideep4py._ideep4py import mdarray
-    from ideep4py._ideep4py import IntVector  # NOQA
-    from ideep4py._ideep4py import MdarrayVector  # NOQA
-    from ideep4py._ideep4py import batchNormalizationF32  # NOQA
-    from ideep4py._ideep4py import Relu_Py_F32  # NOQA
-    from ideep4py._ideep4py import conv_param_t, Convolution2D_Py_F32  # NOQA
-    from ideep4py._ideep4py import pooling_param_t, Pooling2D_Py_F32  # NOQA
-    from ideep4py._ideep4py import Concat_Py_F32  # NOQA
-    from ideep4py._ideep4py import linear_param_t, Linear_Py_F32  # NOQA
-    from ideep4py._ideep4py import lrn_param_t, LocalResponseNormalization_Py_F32  # NOQA
-    from ideep4py._ideep4py import Dropout_F32  # NOQA
+    from ideep4py._ideep4py import intVector  # NOQA
+    from ideep4py._ideep4py import mdarrayVector  # NOQA
+    from ideep4py._ideep4py import batchNormalization  # NOQA
+    from ideep4py._ideep4py import relu  # NOQA
+    from ideep4py._ideep4py import convParam, convolution2D  # NOQA
+    from ideep4py._ideep4py import poolingParam, pooling2D  # NOQA
+    from ideep4py._ideep4py import concat  # NOQA
+    from ideep4py._ideep4py import linearParam, linear  # NOQA
+    from ideep4py._ideep4py import lrnParam, localResponseNormalization  # NOQA
+    from ideep4py._ideep4py import dropout  # NOQA
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)

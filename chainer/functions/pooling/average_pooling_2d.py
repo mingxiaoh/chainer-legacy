@@ -36,7 +36,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling_param_t()
+        pp = ia.poolingParam()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
@@ -44,10 +44,10 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         pp.pad_lh, pp.pad_lw = self.ph, self.pw
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
         # by default = pooling_avg_include_padding
-        pp.algo_kind = ia.pooling_param_t.pooling_avg_include_padding
+        pp.algo_kind = ia.poolingParam.pooling_avg_include_padding
 
         (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y,) = ia.Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        (y,) = ia.pooling2D.Forward(x_mdarray, pp)
         return y,
 
     def forward_gpu(self, x):
@@ -128,7 +128,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling_param_t()
+        pp = ia.poolingParam()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
@@ -136,10 +136,10 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         pp.pad_lh, pp.pad_lw = self.ph, self.pw
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
         # by default = pooling_avg_include_padding
-        pp.algo_kind = ia.pooling_param_t.pooling_avg_include_padding
+        pp.algo_kind = ia.poolingParam.pooling_avg_include_padding
 
         (gy_mdarray,) = ia.to_mdarray((gy[0],))
-        gx = ia.Pooling2D_Py_F32.Backward(gy_mdarray, None, pp)
+        gx = ia.pooling2D.Backward(gy_mdarray, None, pp)
         return gx,
 
     def forward_gpu(self, gy):

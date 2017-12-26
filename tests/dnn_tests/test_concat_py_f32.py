@@ -3,7 +3,7 @@ import unittest
 
 import numpy
 import ideep4py._ideep4py
-from ideep4py._ideep4py import IntVector, MdarrayVector, Concat_Py_F32
+from ideep4py._ideep4py import intVector, mdarrayVector, concat
 
 try:
     import testing
@@ -35,14 +35,14 @@ class TestConcatPyF32(unittest.TestCase):
 
     def check_forward(self, xs_data, y_data, axis):
         xs = tuple(x_data for x_data in xs_data)
-        xs_mdarray = MdarrayVector()
+        xs_mdarray = mdarrayVector()
         for yi in xs:
             if isinstance(yi, numpy.ndarray):
                 if yi.flags.contiguous is False:
                     yi = numpy.ascontiguousarray(yi)
             yi = ideep4py._ideep4py.mdarray(numpy.ascontiguousarray(yi))
             xs_mdarray.push_back(yi)
-        y_act = Concat_Py_F32.Forward(xs_mdarray, self.axis)
+        y_act = concat.Forward(xs_mdarray, self.axis)
         y_act = numpy.array(y_act, dtype=self.dtype)
 
         numpy.testing.assert_allclose(y_data, y_act, atol=0, rtol=0)
@@ -52,7 +52,7 @@ class TestConcatPyF32(unittest.TestCase):
 
     def check_backward(self, xs_data, y_data, axis):
         xs = tuple(x_data for x_data in xs_data)
-        xs_mdarray = MdarrayVector()
+        xs_mdarray = mdarrayVector()
         for yi in xs:
             if isinstance(yi, numpy.ndarray):
                 if yi.flags.contiguous is False:
@@ -60,11 +60,11 @@ class TestConcatPyF32(unittest.TestCase):
             yi = ideep4py._ideep4py.mdarray(numpy.ascontiguousarray(yi))
             xs_mdarray.push_back(yi)
         y_data = ideep4py._ideep4py.mdarray(y_data)
-        offsets = IntVector()
+        offsets = intVector()
         # FIXME
         for i in self.section:
             offsets.push_back(i)
-        x_act_mdarray = Concat_Py_F32.Backward(y_data, offsets, self.axis)
+        x_act_mdarray = concat.Backward(y_data, offsets, self.axis)
         i = 0
         for x in xs:
             x_act = numpy.array(x_act_mdarray[i], dtype=self.dtype)

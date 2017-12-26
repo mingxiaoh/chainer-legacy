@@ -53,15 +53,15 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_ia(self, x):
-        pp = ia.lrn_param_t()
+        pp = ia.lrnParam()
         pp.n = self.n
         pp.k = self.k
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
-        pp.algo_kind = ia.lrn_param_t.lrn_across_channels
+        pp.algo_kind = ia.lrnParam.lrn_across_channels
         self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
         (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y, self.indexes) = ia.LocalResponseNormalization_Py_F32.Forward(
+        (y, self.indexes) = ia.localResponseNormalization.Forward(
             x_mdarray, pp)
         return y,
 
@@ -82,15 +82,15 @@ class LocalResponseNormalization(function.Function):
             return self.y,
 
     def backward_ia(self, x, gy):
-        pp = ia.lrn_param_t()
+        pp = ia.lrnParam()
         pp.n = self.n
         pp.k = self.k
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
-        pp.algo_kind = ia.lrn_param_t.lrn_across_channels
+        pp.algo_kind = ia.lrnParam.lrn_across_channels
         (x_mdarray,) = ia.to_mdarray((x[0],))
         (gy_mdarray,) = ia.to_mdarray((gy[0],))
-        gx = ia.LocalResponseNormalization_Py_F32.Backward(
+        gx = ia.localResponseNormalization.Backward(
             x_mdarray, gy_mdarray, self.indexes, pp)
         return gx,
 

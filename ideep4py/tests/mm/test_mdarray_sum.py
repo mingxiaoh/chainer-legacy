@@ -1,7 +1,7 @@
 import ideep4py._ideep4py  # NOQA
 import numpy
 from chainer import testing
-from ideep4py._ideep4py import Relu_Py_F32, mdarray
+from ideep4py._ideep4py import relu, mdarray
 
 print('mdarray sum [larg shape routine]')
 print('shape (256, 384, 13, 13) along (0, 2, 3)')
@@ -9,7 +9,7 @@ x = numpy.ndarray((256, 384, 13, 13), dtype=numpy.float32)
 y = numpy.maximum(x, 0, dtype=x.dtype)
 
 mx = mdarray(x)
-my = Relu_Py_F32.Forward(mx)
+my = relu.Forward(mx)
 
 testing.assert_allclose(my.sum((0, 2, 3)), y.sum((0, 2, 3)))
 print('pass ...\n')
@@ -21,7 +21,7 @@ x = numpy.ndarray((39, 32, 13, 13), dtype=numpy.float32)
 y = numpy.maximum(x, 0, dtype=x.dtype)
 
 mx = mdarray(x)
-my = Relu_Py_F32.Forward(mx)
+my = relu.Forward(mx)
 
 testing.assert_allclose(my.sum((0, 2, 3)), y.sum((0, 2, 3)))
 print('pass ...\n')
@@ -33,7 +33,7 @@ x = numpy.ndarray((39, 32, 13, 13), dtype=numpy.float32)
 y = numpy.maximum(x, 0, dtype=x.dtype)
 
 mx = mdarray(x)
-my = Relu_Py_F32.Forward(mx)
+my = relu.Forward(mx)
 
 testing.assert_allclose(my.sum((0, 2, 3), keepdims=True),
                         y.sum((0, 2, 3), keepdims=True))

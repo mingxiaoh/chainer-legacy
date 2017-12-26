@@ -42,17 +42,17 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling_param_t()
+        pp = ia.poolingParam()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw = self.ph, self.pw
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        pp.algo_kind = ia.pooling_param_t.pooling_max
+        pp.algo_kind = ia.poolingParam.pooling_max
 
         (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y, self.indexes) = ia.Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        (y, self.indexes) = ia.pooling2D.Forward(x_mdarray, pp)
         return y,
 
     def forward_gpu(self, x):
@@ -150,17 +150,17 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling_param_t()
+        pp = ia.poolingParam()
         pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
         pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
         pp.kh, pp.kw = self.kh, self.kw
         pp.sy, pp.sx = self.sy, self.sx
         pp.pad_lh, pp.pad_lw = self.ph, self.pw
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        pp.algo_kind = ia.pooling_param_t.pooling_max
+        pp.algo_kind = ia.poolingParam.pooling_max
 
         (gy_mdarray, self.indexes) = ia.to_mdarray((gy[0], self.indexes))
-        gx = ia.Pooling2D_Py_F32.Backward(gy_mdarray, self.indexes, pp)
+        gx = ia.pooling2D.Backward(gy_mdarray, self.indexes, pp)
         return gx,
 
     def forward_cpu(self, gy):

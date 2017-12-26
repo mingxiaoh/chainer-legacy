@@ -45,13 +45,13 @@ class SplitAxis(function_node.FunctionNode):
     def forward_ia(self, inputs):
         x, = ia.to_mdarray(inputs)
 
-        offsets = ia.IntVector()
+        offsets = ia.intVector()
         # FIXME
         # bypass python3 issue when transfer array to std::vector<>
         # https://github.com/SimpleITK/SimpleITK/issues/106
         for i in self.indices_or_sections.tolist():
             offsets.push_back(i)
-        ret = ia.Concat_Py_F32.Backward(x, offsets, self.axis)
+        ret = ia.concat.Backward(x, offsets, self.axis)
         self._shapes = [r.shape for r in ret]
         return ret
 

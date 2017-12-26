@@ -124,7 +124,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        cp = ia.conv_param_t()
+        cp = ia.convParam()
         (cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4) \
             = (n, in_c, self.outh, self.outw)
         # deconv's weight dims should be different with conv's w
@@ -141,7 +141,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cp.with_bias = False
 
         (x, W) = ia.to_mdarray((x, W))
-        y = ia.Convolution2D_Py_F32.BackwardData(
+        y = ia.convolution2D.BackwardData(
             W, x, cp)  # y should be gx in conv bwd data
 
         if b is not None:

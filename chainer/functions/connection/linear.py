@@ -35,7 +35,7 @@ class LinearFunction(function_node.FunctionNode):
         b = inputs[2] if len(inputs) == 3 else None
         # create linear parameter
         # for IA specific
-        lp = ia.linear_param_t()
+        lp = ia.linearParam()
         lp.with_bias = True if len(inputs) == 3 else False
 
         if isinstance(W, numpy.ndarray):
@@ -48,9 +48,9 @@ class LinearFunction(function_node.FunctionNode):
 
         if lp.with_bias:
             (b, ) = ia.to_mdarray((b, ))
-            y = ia.Linear_Py_F32.Forward(x, W, b, lp)
+            y = ia.linear.Forward(x, W, b, lp)
         else:
-            y = ia.Linear_Py_F32.Forward(x, W, None, lp)
+            y = ia.linear.Forward(x, W, None, lp)
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
@@ -107,12 +107,12 @@ class LinearGradData(function_node.FunctionNode):
         gy, W = inputs
         # create linear parameter
         # for IA specific
-        lp = ia.linear_param_t()
+        lp = ia.linearParam()
         lp.with_bias = False
         lp.src_ndims = 2
 
         (gy, W) = ia.to_mdarray((gy, W))
-        gx = ia.Linear_Py_F32.BackwardData(W, gy, lp)
+        gx = ia.linear.BackwardData(W, gy, lp)
         return gx,
 
     def forward(self, inputs):
@@ -164,12 +164,12 @@ class LinearGradWeight(function_node.FunctionNode):
         x, gy = inputs
         # create linear parameter
         # for IA specific
-        lp = ia.linear_param_t()
+        lp = ia.linearParam()
         lp.with_bias = False
         lp.src_ndims = 2
         (x, gy) = ia.to_mdarray((x, gy))
         # only calculate gW, no gb
-        (gW,) = ia.Linear_Py_F32.BackwardWeights(x, gy, lp)
+        (gW,) = ia.linear.BackwardWeights(x, gy, lp)
         return gW,
 
     def forward(self, inputs):

@@ -6,7 +6,7 @@
 %include "std_vector.i"
 %include "concat_py.h"
 
-%template(Concat_Py_F32) Concat_Py<float>;
+%template(concat) Concat_Py<float>;
 
 //
 // Python API for Concat
