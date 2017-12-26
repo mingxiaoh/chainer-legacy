@@ -43,9 +43,8 @@ class Concat(function_node.FunctionNode):
 
     def forward_ia(self, xs):
         xs_mdarray = ia.mdarrayVector()
-        ys = ia.to_mdarray(xs)
-        for yi in ys:
-            xs_mdarray.push_back(yi)
+        for x in xs:
+            xs_mdarray.push_back(ia.array(x))
         return ia.concat.Forward(xs_mdarray, self.axis),
 
     def forward(self, xs):

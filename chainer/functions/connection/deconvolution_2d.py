@@ -140,9 +140,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        (x, W) = ia.to_mdarray((x, W))
-        y = ia.convolution2D.BackwardData(
-            W, x, cp)  # y should be gx in conv bwd data
+        # y should be gx in conv bwd data
+        y = ia.convolution2D.BackwardData(ia.array(W), ia.array(x), cp)
 
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)

@@ -390,7 +390,7 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             value = d[name]
             if isinstance(value, numpy.ndarray):
-                d[name] = ia.to_ia(value)
+                d[name] = ia.array(value, itype=ia.weight)
         return self
 
     def params(self, include_uninit=True):

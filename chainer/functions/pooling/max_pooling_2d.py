@@ -51,8 +51,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
         pp.algo_kind = ia.poolingParam.pooling_max
 
-        (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y, self.indexes) = ia.pooling2D.Forward(x_mdarray, pp)
+        y, self.indexes = ia.pooling2D.Forward(ia.array(x[0]), pp)
         return y,
 
     def forward_gpu(self, x):
@@ -159,8 +158,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         pp.pad_rh, pp.pad_rw = self.pd, self.pr
         pp.algo_kind = ia.poolingParam.pooling_max
 
-        (gy_mdarray, self.indexes) = ia.to_mdarray((gy[0], self.indexes))
-        gx = ia.pooling2D.Backward(gy_mdarray, self.indexes, pp)
+        self.indexes = ia.array(self.indexes)
+        gx = ia.pooling2D.Backward(ia.array(gy[0]), self.indexes, pp)
         return gx,
 
     def forward_cpu(self, gy):

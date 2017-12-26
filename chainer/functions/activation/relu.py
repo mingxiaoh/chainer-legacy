@@ -28,8 +28,7 @@ class ReLU(function_node.FunctionNode):
     def forward_ia(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
-        mx, = ia.to_mdarray((x[0],))
-        y = ia.relu.Forward(mx)
+        y = ia.relu.Forward(ia.array(x[0]))
         return y,
 
     def forward_cpu(self, x):
@@ -112,8 +111,7 @@ class ReLUGrad3(function_node.FunctionNode):
         self.b = b.data
 
     def forward_ia(self, inputs):
-        x, gy = ia.to_mdarray((self.a, inputs[0]))
-        gx = ia.relu.Backward(x, gy)
+        gx = ia.relu.Backward(ia.array(self.a), ia.array(inputs[0]))
         return gx,
 
     def forward_cpu(self, inputs):

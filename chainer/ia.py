@@ -89,6 +89,8 @@ weight = 'w'  # weight array
 
 
 def array(x, itype=data):
+    if not is_enabled():
+        raise Exception("ideep4py is not installed coorectly")
     if isinstance(x, numpy.ndarray) and \
             x.dtype == numpy.dtype('float32'):
         if x.flags.contiguous is False:
@@ -96,19 +98,6 @@ def array(x, itype=data):
         return mdarray(x, itype)
     else:
         return x
-
-
-def to_mdarray(xs):
-    ys = ()
-    for x in xs:
-        ys += array(x),
-    return ys
-
-
-def to_ia(arr):
-    if not is_enabled():
-        raise Exception("ideep4py is not installed coorectly")
-    return array(arr, itype=weight)
 
 
 def copyto(dst, src, casting='same_kind', where=None):

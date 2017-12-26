@@ -110,12 +110,12 @@ class Convolution2DFunction(function_node.FunctionNode):
             # we can do weights opt (pass optimized weight back)
             cp.with_weights_opt = True
 
-        (x, W) = ia.to_mdarray((x, W))
         if cp.with_bias:
-            (b, ) = ia.to_mdarray((b,))
-            y = ia.convolution2D.Forward(x, W, b, cp)
+            y = ia.convolution2D.Forward(
+                ia.array(x), ia.array(W), ia.array(b), cp)
         else:
-            y = ia.convolution2D.Forward(x, W, None, cp)
+            y = ia.convolution2D.Forward(
+                ia.array(x), ia.array(W), None, cp)
 
         return y,
 
@@ -306,9 +306,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         cp.bias_d1 = -1
         cp.with_bias = False
 
-        (x, gy) = ia.to_mdarray((x, gy))
         # only calculate gW, no gb
-        (gW,) = ia.convolution2D.BackwardWeights(x, gy, cp)
+        gW, = ia.convolution2D.BackwardWeights(ia.array(x), ia.array(gy), cp)
         return gW,
 
     def forward_cpu(self, inputs):

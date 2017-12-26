@@ -44,13 +44,11 @@ class LinearFunction(function_node.FunctionNode):
             # if weight is empty,
             # we can do weights opt(pass optimized weight back)
             lp.with_weights_opt = True
-        (x, W) = ia.to_mdarray((x, W))
 
         if lp.with_bias:
-            (b, ) = ia.to_mdarray((b, ))
-            y = ia.linear.Forward(x, W, b, lp)
+            y = ia.linear.Forward(ia.array(x), ia.array(W), ia.array(b), lp)
         else:
-            y = ia.linear.Forward(x, W, None, lp)
+            y = ia.linear.Forward(ia.array(x), ia.array(W), None, lp)
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
@@ -111,8 +109,7 @@ class LinearGradData(function_node.FunctionNode):
         lp.with_bias = False
         lp.src_ndims = 2
 
-        (gy, W) = ia.to_mdarray((gy, W))
-        gx = ia.linear.BackwardData(W, gy, lp)
+        gx = ia.linear.BackwardData(ia.array(W), ia.array(gy), lp)
         return gx,
 
     def forward(self, inputs):
@@ -167,9 +164,9 @@ class LinearGradWeight(function_node.FunctionNode):
         lp = ia.linearParam()
         lp.with_bias = False
         lp.src_ndims = 2
-        (x, gy) = ia.to_mdarray((x, gy))
+
         # only calculate gW, no gb
-        (gW,) = ia.linear.BackwardWeights(x, gy, lp)
+        gW, = ia.linear.BackwardWeights(ia.array(x), ia.array(gy), lp)
         return gW,
 
     def forward(self, inputs):

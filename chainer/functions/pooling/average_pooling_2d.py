@@ -46,8 +46,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         # by default = pooling_avg_include_padding
         pp.algo_kind = ia.poolingParam.pooling_avg_include_padding
 
-        (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y,) = ia.pooling2D.Forward(x_mdarray, pp)
+        y, = ia.pooling2D.Forward(ia.array(x[0]), pp)
         return y,
 
     def forward_gpu(self, x):
@@ -138,8 +137,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         # by default = pooling_avg_include_padding
         pp.algo_kind = ia.poolingParam.pooling_avg_include_padding
 
-        (gy_mdarray,) = ia.to_mdarray((gy[0],))
-        gx = ia.pooling2D.Backward(gy_mdarray, None, pp)
+        gx = ia.pooling2D.Backward(ia.array(gy[0]), None, pp)
         return gx,
 
     def forward_gpu(self, gy):

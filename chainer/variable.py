@@ -729,7 +729,7 @@ class Variable(object):
         """ Copies the data and gradient arrays to ia specific mdarray
         """
         if self.data is not None:
-            self._data = [chainer.ia.to_ia(self.data)]
+            self._data = [chainer.ia.array(self.data, itype=chainer.ia.weight)]
         if self._grad_var is not None:
             self._grad_var.to_ia()
             # ensure that the node tracks the device migration

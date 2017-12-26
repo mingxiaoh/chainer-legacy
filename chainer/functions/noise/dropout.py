@@ -23,8 +23,7 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_ia(self, inputs):
-        x, = ia.to_mdarray((inputs[0],))
-        mask, y = ia.dropout.Forward(x, self.dropout_ratio)
+        mask, y = ia.dropout.Forward(ia.array(inputs[0]), self.dropout_ratio)
         self.mask = mask
         return y,
 
@@ -65,8 +64,7 @@ class DropoutGrad(function_node.FunctionNode):
         self.mask = mask
 
     def forward_ia(self, inputs):
-        gy, mask = ia.to_mdarray((inputs[0], self.mask))
-        return ia.dropout.Backward(mask, gy),
+        return ia.dropout.Backward(ia.array(self.mask), ia.array(inputs[0])),
 
     def forward(self, inputs):
         # TODO: cosim

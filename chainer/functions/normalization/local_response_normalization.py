@@ -60,9 +60,8 @@ class LocalResponseNormalization(function.Function):
         pp.beta = self.beta
         pp.algo_kind = ia.lrnParam.lrn_across_channels
         self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
-        (x_mdarray,) = ia.to_mdarray((x[0],))
-        (y, self.indexes) = ia.localResponseNormalization.Forward(
-            x_mdarray, pp)
+        y, self.indexes = ia.localResponseNormalization.Forward(
+            ia.array(x[0]), pp)
         return y,
 
     def forward_cpu(self, x):
@@ -88,10 +87,8 @@ class LocalResponseNormalization(function.Function):
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
         pp.algo_kind = ia.lrnParam.lrn_across_channels
-        (x_mdarray,) = ia.to_mdarray((x[0],))
-        (gy_mdarray,) = ia.to_mdarray((gy[0],))
         gx = ia.localResponseNormalization.Backward(
-            x_mdarray, gy_mdarray, self.indexes, pp)
+            ia.array(x[0]), ia.array(gy[0]), self.indexes, pp)
         return gx,
 
     def backward_cpu(self, x, gy):
