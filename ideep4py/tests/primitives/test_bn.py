@@ -1,18 +1,18 @@
 import numpy
-import ideep4py._ideep4py
+import ideep4py
 
-from ideep4py._ideep4py import batchNormalization
+from ideep4py import batchNormalization
 
 
 def run():
     src = numpy.arange(3 * 2 * 2 * 2, dtype=numpy.float32)
     src = src.reshape((3, 2, 2, 2))
-    src = ideep4py._ideep4py.mdarray(src)
+    src = ideep4py.mdarray(src)
 
     gamma = numpy.ones(2, dtype=numpy.float32)
     beta = numpy.zeros(2, dtype=numpy.float32)
     w = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
-    w = ideep4py._ideep4py.mdarray(w)
+    w = ideep4py.mdarray(w)
 
     eps = 2e-5
 
@@ -38,7 +38,7 @@ def run():
 
     print("BWD *****************************")
     diff_dst = numpy.ones(src.shape, dtype=numpy.float32)
-    diff_dst = ideep4py._ideep4py.mdarray(diff_dst)
+    diff_dst = ideep4py.mdarray(diff_dst)
     y = batchNormalization.Backward(src, diff_dst, mean, var, w, eps)
     print(y)
     print(-y[0])
@@ -51,9 +51,9 @@ def run():
     print("==============")
     src = numpy.arange(3 * 2 * 3 * 3, dtype=numpy.float32)
     src = src.reshape((3, 2, 3, 3))
-    src = ideep4py._ideep4py.mdarray(src)
+    src = ideep4py.mdarray(src)
     diff_dst = numpy.ones(src.shape, dtype=numpy.float32)
-    diff_dst = ideep4py._ideep4py.mdarray(diff_dst)
+    diff_dst = ideep4py.mdarray(diff_dst)
     y = batchNormalization.Backward(src, diff_dst, mean, var, w, eps)
     print(y)
     print(-y[0])

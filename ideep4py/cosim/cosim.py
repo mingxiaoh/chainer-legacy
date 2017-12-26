@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import os
 
-from ideep4py._ideep4py import mdarray
+from ideep4py import mdarray
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s [%(levelname)s]: %(message)s')

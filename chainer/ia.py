@@ -8,19 +8,19 @@ from chainer import variable
 available = False
 
 try:
+    import ideep4py
+    from ideep4py import mdarray
+    from ideep4py import intVector  # NOQA
+    from ideep4py import mdarrayVector  # NOQA
+    from ideep4py import batchNormalization  # NOQA
+    from ideep4py import relu  # NOQA
+    from ideep4py import convParam, convolution2D  # NOQA
+    from ideep4py import poolingParam, pooling2D  # NOQA
+    from ideep4py import concat  # NOQA
+    from ideep4py import linearParam, linear  # NOQA
+    from ideep4py import lrnParam, localResponseNormalization  # NOQA
+    from ideep4py import dropout  # NOQA
     from ideep4py import cosim  # NOQA
-    import ideep4py._ideep4py
-    from ideep4py._ideep4py import mdarray
-    from ideep4py._ideep4py import intVector  # NOQA
-    from ideep4py._ideep4py import mdarrayVector  # NOQA
-    from ideep4py._ideep4py import batchNormalization  # NOQA
-    from ideep4py._ideep4py import relu  # NOQA
-    from ideep4py._ideep4py import convParam, convolution2D  # NOQA
-    from ideep4py._ideep4py import poolingParam, pooling2D  # NOQA
-    from ideep4py._ideep4py import concat  # NOQA
-    from ideep4py._ideep4py import linearParam, linear  # NOQA
-    from ideep4py._ideep4py import lrnParam, localResponseNormalization  # NOQA
-    from ideep4py._ideep4py import dropout  # NOQA
     available = True
 except Exception as ex:
     print('*** CPU acceleration is disabled: %s' % ex)
@@ -117,7 +117,7 @@ def copyto(dst, src, casting='same_kind', where=None):
     if isinstance(src, numpy.ndarray):
         if src.flags.contiguous is False:
             src = numpy.ascontiguousarray(src)
-    ideep4py._ideep4py.basic_copyto(dst, src)
+    ideep4py.basic_copyto(dst, src)
 
 
 def acc_add(xs):
@@ -130,7 +130,7 @@ def acc_add(xs):
             fast = False
             break
     if fast is True:
-        return ideep4py._ideep4py.basic_acc_sum(xs)
+        return ideep4py.basic_acc_sum(xs)
     else:
         # y = sum(xs)
         y = xs[0] + xs[1]

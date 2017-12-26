@@ -1,7 +1,7 @@
-import ideep4py._ideep4py  # NOQA
+import ideep4py  # NOQA
 import numpy
 from chainer import testing
-from ideep4py._ideep4py import relu, mdarray
+from ideep4py import relu, mdarray
 
 print('mdarray sum [larg shape routine]')
 print('shape (256, 384, 13, 13) along (0, 2, 3)')

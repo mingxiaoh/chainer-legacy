@@ -2,8 +2,8 @@ import sys
 import unittest
 
 import numpy
-import ideep4py._ideep4py
-from ideep4py._ideep4py import dropout
+import ideep4py
+from ideep4py import dropout
 
 try:
     import testing
@@ -25,7 +25,7 @@ class TestDropoutF32(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.rand(128, 3, 224, 224).astype(self.dtype)
-        self.x_md = ideep4py._ideep4py.mdarray(self.x)
+        self.x_md = ideep4py.mdarray(self.x)
         self.gy = numpy.random.rand(128, 3, 224, 224).astype(self.dtype)
 
     def check_forward(self, x, x_md):
@@ -36,7 +36,7 @@ class TestDropoutF32(unittest.TestCase):
 
     def check_backward(self, x_md, gy):
         mask, y = dropout.Forward(x_md, self.dropout_ratio)
-        gy_md = ideep4py._ideep4py.mdarray(gy)
+        gy_md = ideep4py.mdarray(gy)
         gx = dropout.Backward(mask, gy_md)
         gx = numpy.array(gx, dtype=self.dtype)
         gx_expect = gy * mask

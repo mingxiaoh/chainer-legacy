@@ -4,8 +4,8 @@ import unittest
 import numpy
 import six
 
-import ideep4py._ideep4py
-from ideep4py._ideep4py import pooling2D, poolingParam
+import ideep4py
+from ideep4py import pooling2D, poolingParam
 
 try:
     import testing
@@ -45,7 +45,7 @@ class TestPooling2DPyF32(unittest.TestCase):
         self.check_backward_options = {'atol': 1e-5, 'rtol': 1e-4}
 
     def check_forward(self, x, pp):
-        x_mdarray = ideep4py._ideep4py.mdarray(x)
+        x_mdarray = ideep4py.mdarray(x)
         (y_act,) = pooling2D.Forward(x_mdarray, pp)
         y_act = numpy.array(y_act, dtype=self.dtype)
 
@@ -69,7 +69,7 @@ class TestPooling2DPyF32(unittest.TestCase):
                           (1, 1, 3, 3, 1, 1))
         gx_expect = col2im_cpu(gcol, 2, 2, 1, 1, h, w)
         gx_expect /= 3 * 3
-        gy_mdarray = ideep4py._ideep4py.mdarray(gy)
+        gy_mdarray = ideep4py.mdarray(gy)
         gx_act = pooling2D.Backward(gy_mdarray, None, pp)
         gx_act = numpy.array(gx_act, dtype=self.dtype)
 

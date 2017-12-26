@@ -1,13 +1,13 @@
 import numpy
 from chainer import testing
-import ideep4py._ideep4py
-from ideep4py._ideep4py import relu
+import ideep4py
+from ideep4py import relu
 
 # x = numpy.ndarray(shape=(1,32,224,224), dtype=numpy.float32, order='C')
 x = numpy.random.uniform(-1, 1, (1, 32, 224, 224)).astype(numpy.float32)
 y = numpy.maximum(x, 0, dtype=x.dtype)
 
-mx = ideep4py._ideep4py.mdarray(x)
+mx = ideep4py.mdarray(x)
 x2 = numpy.array(mx)
 testing.assert_allclose(x, x2)
 
@@ -27,8 +27,8 @@ gy = numpy.random.uniform(-1, 1, (1, 32, 224, 224)).astype(numpy.float32)
 gx = (x > 0) * gy
 
 
-mx = ideep4py._ideep4py.mdarray(x)
-mgy = ideep4py._ideep4py.mdarray(gy)
+mx = ideep4py.mdarray(x)
+mgy = ideep4py.mdarray(gy)
 mgx = relu.Backward(mx, mgy)
 
 

@@ -1,8 +1,8 @@
 import sys
 import unittest
 import numpy
-import ideep4py._ideep4py
-from ideep4py._ideep4py import convParam, convolution2D
+import ideep4py
+from ideep4py import convParam, convolution2D
 
 try:
     import testing
@@ -39,11 +39,11 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.b_shape = self.channel
 
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
-        self.x = ideep4py._ideep4py.mdarray(self.x)
+        self.x = ideep4py.mdarray(self.x)
         self.w = numpy.random.uniform(-1, 1, self.w_shape).astype(self.dtype)
-        self.w = ideep4py._ideep4py.mdarray(self.w)
+        self.w = ideep4py.mdarray(self.w)
         self.b = numpy.random.uniform(-1, 1, self.b_shape).astype(self.dtype)
-        self.b = ideep4py._ideep4py.mdarray(self.b)
+        self.b = ideep4py.mdarray(self.b)
 
         self.cp = convParam()
         self.cp.src_d1 = self.x_shape[0]
@@ -78,7 +78,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1,
             (self.n, self.outc, self.outh, self.outw)).astype(self.dtype)
-        self.gy = ideep4py._ideep4py.mdarray(self.gy)
+        self.gy = ideep4py.mdarray(self.gy)
 
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
