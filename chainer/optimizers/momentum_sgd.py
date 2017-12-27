@@ -34,7 +34,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
         xp = cuda.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
-        if ia.all_ready((self.state['v'], ), (2, 4)):
+        if ia.all_ready((self.state['v'], )):
             self.state['v'] = ia.array(
                 self.state['v'], itype=ia.weight)
 

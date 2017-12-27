@@ -125,6 +125,6 @@ class Linear(link.Link):
         """
         if self.W.data is None:
             self._initialize_params(x.size // x.shape[0])
-            if ia.all_ready((self.W,), (2, 4)):
+            if ia.all_ready((self.W, )):
                 self.to_ia()
         return linear.linear(x, self.W, self.b)

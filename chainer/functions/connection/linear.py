@@ -55,7 +55,7 @@ class LinearFunction(function_node.FunctionNode):
     def forward(self, inputs):
         x = inputs[0]
         W = inputs[1]
-        if (ia.all_ready(inputs, (2, 4))):
+        if (ia.all_ready(inputs)):
             return self.forward_ia(inputs)
 
         if not type_check.same_types(*inputs):
@@ -116,7 +116,7 @@ class LinearGradData(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         gy, W = inputs
 
-        if (ia.all_ready(inputs, (2, 4))):
+        if (ia.all_ready(inputs)):
             return self.forward_ia(inputs)
 
         if not type_check.same_types(*inputs):
@@ -171,7 +171,7 @@ class LinearGradWeight(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        if (ia.all_ready(inputs, (2, 4)) and
+        if ((ia.all_ready(inputs)) and
                 self.W_dtype == numpy.dtype('float32')):
             return self.forward_ia(inputs)
         x, gy = inputs

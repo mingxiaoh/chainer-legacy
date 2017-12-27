@@ -46,7 +46,7 @@ def disable():
         available = old
 
 
-def all_ready(inputs, check_with_ndim):
+def all_ready(inputs, check_with_ndim=(2, 4)):
     if not is_enabled():
         return False
     _inputs = [x.data if isinstance(x, variable.Variable)

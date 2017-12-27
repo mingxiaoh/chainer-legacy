@@ -315,7 +315,7 @@ class FunctionNode(object):
         assert len(inputs) > 0
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
-        elif chainer.ia.all_ready(inputs, (2, 4)):
+        elif chainer.ia.all_ready(inputs):
             if chainer.ia.cosim.is_cosim():
                 inputs_nd = ()
                 """

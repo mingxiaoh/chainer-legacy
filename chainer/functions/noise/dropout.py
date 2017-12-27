@@ -29,7 +29,7 @@ class Dropout(function_node.FunctionNode):
 
     def forward(self, x):
         # TODO: cosim
-        if ia.all_ready(x, (2, 4)):
+        if ia.all_ready(x):
             return self.forward_ia(x)
 
         if hasattr(self, 'mask'):
@@ -68,7 +68,7 @@ class DropoutGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         # TODO: cosim
-        if ia.all_ready(inputs, (2, 4)):
+        if ia.all_ready(inputs):
             return self.forward_ia(inputs)
         y = inputs[0] * self.mask
         return y,

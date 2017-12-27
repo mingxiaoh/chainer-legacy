@@ -530,7 +530,7 @@ class _BNMode(object):
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
-        self.ideep_ok = ia.all_ready((x, ), (2, 4)) and is_gamma_1d
+        self.ideep_ok = ia.all_ready((x, )) and is_gamma_1d
 
     def can_use_ideep(self):
         return self.ideep_ok

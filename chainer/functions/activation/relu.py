@@ -49,7 +49,7 @@ class ReLU(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         y = self.get_retained_outputs()[0]
-        if (ia.all_ready(gy, (2, 4))) or \
+        if (ia.all_ready(gy)) or \
                 (chainer.should_use_cudnn('==always') and self._use_cudnn):
             x = self.get_retained_inputs()[0]
             return ReLUGrad3(x, y).apply((gy[0],))
