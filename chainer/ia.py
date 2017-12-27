@@ -9,7 +9,7 @@ available = False
 
 try:
     import ideep4py
-    from ideep4py import mdarray
+    from ideep4py import mdarray  # NOQA
     from ideep4py import intVector  # NOQA
     from ideep4py import mdarrayVector  # NOQA
     from ideep4py import batchNormalization  # NOQA
