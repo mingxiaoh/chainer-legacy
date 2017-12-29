@@ -47,6 +47,7 @@ try:
     from ideep4py import localResponseNormalizationParam  # NOQA
     from ideep4py import localResponseNormalization  # NOQA
     from ideep4py import dropout  # NOQA
+    from ideep4py import basic_acc_sum as acc_add  # NOQA
     from ideep4py import cosim  # NOQA
     available = True
 except Exception as ex:
@@ -213,37 +214,3 @@ def array(x, itype=data):
         return mdarray(x, itype)
     else:
         return x
-
-
-def copyto(dst, src, casting='same_kind', where=None):
-    """
-    """
-    if dst.shape != src.shape or dst.dtype != src.dtype:
-        raise Exception("Can't copy, shape or type mismatch")
-    if isinstance(src, numpy.ndarray):
-        if src.flags.contiguous is False:
-            src = numpy.ascontiguousarray(src)
-    ideep4py.basic_copyto(dst, src)
-
-
-def acc_add(xs):
-    """
-    """
-    if xs[0].ndim == 2 or xs[0].ndim == 4:
-        fast = True
-    else:
-        fast = False
-    for x in xs:
-        if not isinstance(x, mdarray):
-            fast = False
-            break
-    if fast is True:
-        return ideep4py.basic_acc_sum(xs)
-    else:
-        # y = sum(xs)
-        y = xs[0] + xs[1]
-        for x in xs[2:]:
-            y += x
-        if type(y) != type(xs[0]):
-            y = numpy.asarray(y).astype(xs[0].dtype)
-        return y
