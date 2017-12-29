@@ -66,7 +66,7 @@ if available:
 # ------------------------------------------------------------------------------
 _SHOULD_USE_IDEEP = {
     '==always': {'always': True, 'auto': False, 'never': False},
-    '>=auto':   {'always': True, 'auto': True,  'never': False},
+    '>=auto': {'always': True, 'auto': True, 'never': False},
 }
 
 
@@ -185,7 +185,7 @@ def all_ready(inputs, supported_ndim=(2, 4)):
 
 
 # ------------------------------------------------------------------------------
-# ideep4py.mdarray allocation and copy
+# ideep4py.mdarray allocation
 # ------------------------------------------------------------------------------
 data = 'd'  # data array
 weight = 'w'  # weight array
