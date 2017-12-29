@@ -14,4 +14,5 @@ x = x1 + x2 + x3 + x4
 mx = ideep4py.basic_acc_sum((mx1, mx2, mx3, mx4))
 # mx = numpy.asarray(mx)
 res = numpy.allclose(mx, x, 1e-5, 1e-4, True)
-assert(res == True)
+if res is not True:
+    print("error!!!!")
