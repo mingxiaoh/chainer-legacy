@@ -2,7 +2,8 @@ import sys
 import unittest
 import numpy
 import ideep4py
-from ideep4py import convParam, convolution2D
+from ideep4py import convolution2DParam
+from ideep4py import convolution2D
 
 try:
     import testing
@@ -45,7 +46,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.b = numpy.random.uniform(-1, 1, self.b_shape).astype(self.dtype)
         self.b = ideep4py.mdarray(self.b)
 
-        self.cp = convParam()
+        self.cp = convolution2DParam()
         self.cp.src_d1 = self.x_shape[0]
         self.cp.src_d2 = self.x_shape[1]
         self.cp.src_d3 = self.x_shape[2]
@@ -142,7 +143,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         _set_cover_all(self, x, w)
         # create conv parameter
         # for IA specific
-        cp = convParam()
+        cp = convolution2DParam()
         cp.src_d1, cp.src_d2 = n, in_c
         cp.src_d3, cp.src_d4 = self.outh, self.outw
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape

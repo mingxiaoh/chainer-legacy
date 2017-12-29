@@ -1,7 +1,7 @@
 import numpy
 import ideep4py
 
-# from dnn._dnn import convParam, conv_test
+# from dnn._dnn import convolution2DParam, conv_test
 from ideep4py import intVector, mdarrayVector, concat
 
 x1 = numpy.ndarray(shape=(1, 16, 224, 224), dtype=numpy.float32, order='C')

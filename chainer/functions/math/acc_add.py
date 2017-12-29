@@ -30,7 +30,7 @@ class AccumulateAdd(function_node.FunctionNode):
 
     def forward(self, xs):
         self.len = len(xs)
-        if chainer.ia.is_enabled():
+        if chainer.ia.check_ideep_enabled():
             y = chainer.ia.acc_add(xs)
         else:
             y = xs[0] + xs[1]

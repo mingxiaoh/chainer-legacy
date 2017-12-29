@@ -5,7 +5,8 @@ import numpy
 import six
 
 import ideep4py
-from ideep4py import pooling2D, poolingParam
+from ideep4py import pooling2DParam
+from ideep4py import pooling2D
 
 try:
     import testing
@@ -30,7 +31,7 @@ class TestPooling2DPyF32(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (self.bs, self.channel, 2, 2)).astype(self.dtype)
 
-        self.pp = poolingParam()
+        self.pp = pooling2DParam()
         self.pp.src_d1, self.pp.src_d2 = self.bs, self.channel
         self.pp.src_d3, self.pp.src_d4 = 4, 3
         self.pp.dst_d1, self.pp.dst_d2 = self.gy.shape[0], self.gy.shape[1]
@@ -39,7 +40,7 @@ class TestPooling2DPyF32(unittest.TestCase):
         self.pp.sy, self.pp.sx = self.stride, self.stride
         self.pp.pad_lh, self.pp.pad_lw = 1, 1
         self.pp.pad_rh, self.pp.pad_rw = 1, 1
-        self.pp.algo_kind = poolingParam.pooling_avg_include_padding
+        self.pp.algo_kind = pooling2DParam.pooling_avg_include_padding
 
         self.check_forward_options = {'atol': 1e-5, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-5, 'rtol': 1e-4}

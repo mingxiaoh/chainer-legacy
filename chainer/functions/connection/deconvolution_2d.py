@@ -124,7 +124,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        cp = ia.convParam()
+        cp = ia.convolution2DParam()
         (cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4) \
             = (n, in_c, self.outh, self.outw)
         # deconv's weight dims should be different with conv's w

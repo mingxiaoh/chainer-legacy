@@ -90,7 +90,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ia.convParam()
+        cp = ia.convolution2DParam()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
         cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
@@ -291,7 +291,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ia.convParam()
+        cp = ia.convolution2DParam()
         cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
         (cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4) \
             = (out_c, input_c, self.kh, self.kw)

@@ -53,12 +53,12 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_ia(self, x):
-        pp = ia.lrnParam()
+        pp = ia.localResponseNormalizationParam()
         pp.n = self.n
         pp.k = self.k
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
-        pp.algo_kind = ia.lrnParam.lrn_across_channels
+        pp.algo_kind = ia.localResponseNormalizationParam.lrn_across_channels
         self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
         y, self.indexes = ia.localResponseNormalization.Forward(
             ia.array(x[0]), pp)
@@ -81,12 +81,12 @@ class LocalResponseNormalization(function.Function):
             return self.y,
 
     def backward_ia(self, x, gy):
-        pp = ia.lrnParam()
+        pp = ia.localResponseNormalizationParam()
         pp.n = self.n
         pp.k = self.k
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
-        pp.algo_kind = ia.lrnParam.lrn_across_channels
+        pp.algo_kind = ia.localResponseNormalizationParam.lrn_across_channels
         gx = ia.localResponseNormalization.Backward(
             ia.array(x[0]), ia.array(gy[0]), self.indexes, pp)
         return gx,

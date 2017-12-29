@@ -381,7 +381,7 @@ Assign a Parameter object directly to an attribute within a \
     def to_ia(self):
         """Copies parameter variables and persistent values to CPU.
         """
-        if not ia.is_enabled():
+        if not ia.check_ideep_enabled():
             raise Exception("ia is not ready!")
 
         d = self.__dict__
