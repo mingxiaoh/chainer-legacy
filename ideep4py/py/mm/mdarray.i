@@ -83,20 +83,23 @@
   %typemap(in) (...)(vector<int> args) {
      int i;
      int argc;
-     argc = PyTuple_Size(varargs);
+     argc = PySequence_Size(varargs);
      if (argc > 4) {
        PyErr_SetString(PyExc_ValueError,"Too many arguments");
        return NULL;
      }
      if (argc == 1) {
-       // args should be tuple
-       PyObject *o = PyTuple_GetItem(varargs,0);
-       if (!PyTuple_Check(o)) {
-         PyErr_SetString(PyExc_ValueError,"Expected a tuple");
+       Py_ssize_t size = 0; 
+       PyObject *o = PySequence_GetItem(varargs,0);
+       if (PyNumber_Check(o)) {
+         goto numpy_surrogate;
+       } else if (!PySequence_Check(o)) {
+         PyErr_SetString(PyExc_ValueError,"Expected a sequence");
          return NULL;
        }
-       Py_ssize_t size = PyTuple_GET_SIZE(o);
+       size = PySequence_Size(o);
        if (size != 4 && size != 2) {
+    numpy_surrogate:
          PyObject *surrogate = PyArray_FromAny($self, nullptr, 0, 0
                  , NPY_ARRAY_ELEMENTSTRIDES, nullptr);
 
@@ -109,10 +112,10 @@
          Py_DECREF(surrogate);
          return res;
        }
-       for (i = 0; i < PyTuple_GET_SIZE(o); i++) {
-         PyObject *obj = PyTuple_GET_ITEM(o, i);
+       for (i = 0; i < PySequence_Size(o); i++) {
+         PyObject *obj = PySequence_GetItem(o, i);
          if (!PyInt_Check(obj) && !PyLong_Check(obj)) {
-           PyErr_SetString(PyExc_ValueError,"Expected a int or long in tuple");
+           PyErr_SetString(PyExc_ValueError,"Expected a int or long in sequence");
            return NULL;
          }
          args.push_back(PyInt_AsLong(obj));
@@ -133,7 +136,7 @@
          return res;
        }
        for (i = 0; i < argc; i++) {
-         PyObject *o = PyTuple_GetItem(varargs,i);
+         PyObject *o = PySequence_GetItem(varargs,i);
          if (!PyInt_Check(o) && !PyLong_Check(o)) {
            PyErr_SetString(PyExc_ValueError,"Expected a int");
            return NULL;
