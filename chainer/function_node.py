@@ -334,15 +334,17 @@ class FunctionNode(object):
         return self.forward_cpu(inputs)
 
     def forward_ia(self, inputs):
-        """Computes the output arrays from the input NumPy arrays.
-        if function node not implement forward_ia, then bridge to forward_cpu
+        """Computes the output arrays from the input NumPy arrays or ideep arrays.
+
+        if function node does not implement forward_ia, then
+        bridges to forward_cpu
 
         Args:
             inputs: Tuple of input :class:`numpy.ndarray` or
-            :class:`mdarray` objects.
+                :class:`ideep4py.mdarray` objects.
 
         Returns:
-            Tuple of output arrays. Each element can be Mdarray or CuPy arrays.
+            Tuple of output arrays. Each element can be ideep4py mdarray.
 
         .. warning::
 
@@ -350,6 +352,8 @@ class FunctionNode(object):
             return value must be a tuple even if it returns only one array.
 
         """
+        inputs = tuple([x if isinstance(x, chainer.ia.mdarray) else
+                        numpy.array(x) for x in inputs])
         return self.forward_cpu(inputs)
 
     def forward_cpu(self, inputs):

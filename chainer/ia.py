@@ -1,6 +1,6 @@
 """Context management on ideep.
 
-Very thin wrapper to eploit the speed of IA (Intel Architecture)
+Very thin wrapper to exploit the speed of IA (Intel Architecture)
 computation. Following modules and classes defined in ideep are imported
 to :mod:`chainer.ia` module for convenience (refer to this table
 when reading chainer's source cods).
@@ -15,15 +15,12 @@ when reading chainer's source cods).
 
 """
 
-
-import os
-import warnings
 import contextlib
+import os
 
 import numpy
 
 import chainer
-from chainer import variable
 from chainer.configuration import config
 
 
@@ -33,26 +30,28 @@ ideep_enabled = False
 try:
     import ideep4py  # NOQA
     from ideep4py import mdarray  # NOQA
-    from ideep4py import intVector  # NOQA
     from ideep4py import mdarrayVector  # NOQA
+
+    from ideep4py import intVector  # NOQA
+
     from ideep4py import batchNormalization  # NOQA
-    from ideep4py import relu  # NOQA
-    from ideep4py import convolution2DParam  # NOQA
-    from ideep4py import convolution2D  # NOQA
-    from ideep4py import pooling2DParam  # NOQA
-    from ideep4py import pooling2D  # NOQA
     from ideep4py import concat  # NOQA
-    from ideep4py import linearParam  # NOQA
-    from ideep4py import linear  # NOQA
-    from ideep4py import localResponseNormalizationParam  # NOQA
-    from ideep4py import localResponseNormalization  # NOQA
+    from ideep4py import convolution2D  # NOQA
+    from ideep4py import convolution2DParam  # NOQA
     from ideep4py import dropout  # NOQA
+    from ideep4py import linear  # NOQA
+    from ideep4py import linearParam  # NOQA
+    from ideep4py import localResponseNormalization  # NOQA
+    from ideep4py import localResponseNormalizationParam  # NOQA
+    from ideep4py import pooling2D  # NOQA
+    from ideep4py import pooling2DParam  # NOQA
+    from ideep4py import relu  # NOQA
+
     from ideep4py import basic_acc_sum as acc_add  # NOQA
+
     from ideep4py import cosim  # NOQA
     available = True
 except Exception as ex:
-    warnings.warn('IA acceleration is disabled: %s' % ex)
-
     class mdarray(object):
         pass
 
@@ -152,7 +151,7 @@ def all_ready(inputs, supported_ndim=(2, 4)):
     if not ideep_enabled:
         return False
 
-    _inputs = [x.data if isinstance(x, variable.Variable)
+    _inputs = [x.data if isinstance(x, chainer.variable.Variable)
                else x for x in inputs]
 
     # Check with ideep4py supported dimension of input data
@@ -206,7 +205,7 @@ def array(x, itype=data):
 
     """
     if not check_ideep_enabled():
-        raise Exception("ideep4py is not installed coorectly")
+        raise Exception("ideep4py is not installed correctly")
     if isinstance(x, numpy.ndarray) and \
             x.dtype == numpy.dtype('float32'):
         if x.flags.contiguous is False:
