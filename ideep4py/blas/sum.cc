@@ -129,7 +129,7 @@ static T * sum_nChwXC_along_channel(T *src, mkldnn_memory_format_t format,
 
                     loc_buf += cg;
                 }
-            }       
+            }
         } else {
             for (int b = bstart; b < bend; b++) {
                 T *loc_buf = buf + ithr * ic;
@@ -282,7 +282,7 @@ static T * sum_along_axis(T *src, int src_ndims, mkldnn_dims_t src_dims,
     }
 
     int gbl_ws_size = 1;
-    for (int d = 0; d < src_ndims; d++) {
+    for (int d = 1; d < src_ndims; d++) {
         int a = 0;
         for (; a < axis.size(); a++)
             if (d == axis[a])
