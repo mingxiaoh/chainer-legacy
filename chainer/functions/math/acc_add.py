@@ -1,7 +1,7 @@
-import numpy
 import chainer
-from chainer.utils import type_check
 from chainer import function_node
+from chainer import utils
+from chainer.utils import type_check
 
 
 def accumulate_grad(gx, g_input):
@@ -45,10 +45,7 @@ class AccumulateAdd(function_node.FunctionNode):
             y = xs[0] + xs[1]
             for x in xs[2:]:
                 y += x
-            if type(y) != type(xs[0]):
-                y = numpy.asarray(y).astype(xs[0].dtype)
-
-        return y,
+        return utils.force_array(y),
 
     def backward(self, indexes, gy):
         gys = ()

@@ -30,7 +30,8 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
         self.pp.k = 2
         self.pp.alpha = 1e-4
         self.pp.beta = .75
-        self.pp.algo_kind = ideep4py.localResponseNormalizationParam.lrn_across_channels
+        self.pp.algo_kind =\
+            ideep4py.localResponseNormalizationParam.lrn_across_channels
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
 

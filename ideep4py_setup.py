@@ -17,8 +17,11 @@ def prepare_mkldnn():
 
 
 swig_opts = ['-c++', '-builtin', '-modern', '-modernargs',
-             '-Iideep4py/py/mm', '-Iideep4py/py/primitives', '-Iideep4py/py/swig_utils',
-             '-Iideep4py/include/primitives/', '-Iideep4py/include/mm/']
+             '-Iideep4py/py/mm',
+             '-Iideep4py/py/primitives',
+             '-Iideep4py/py/swig_utils',
+             '-Iideep4py/include/primitives/',
+             '-Iideep4py/include/mm/']
 
 if sys.version_info.major < 3:
     swig_opts += ['-DNEWBUFFER_ON']
