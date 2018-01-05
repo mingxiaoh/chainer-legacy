@@ -6,6 +6,7 @@ import six.moves.cPickle as pickle
 import chainer
 from chainer import cuda
 from chainer import gradient_check
+from chainer import ia
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -15,8 +16,9 @@ from chainer.utils import conv
 class TestDilatedConvolution2D(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.DilatedConvolution2D(
-            3, 2, 3, stride=2, pad=2, dilate=2)
+        with ia.disable():
+            self.link = links.DilatedConvolution2D(
+                3, 2, 3, stride=2, pad=2, dilate=2)
         b = self.link.b.data
         b[...] = numpy.random.uniform(-1, 1, b.shape)
         self.link.cleargrads()
@@ -100,7 +102,8 @@ class TestDilatedConvolution2D(unittest.TestCase):
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
     def test_pickling_cpu(self):
-        self.check_pickling(self.x)
+        with ia.disable():
+            self.check_pickling(self.x)
 
     @attr.gpu
     def test_pickling_gpu(self):
@@ -114,10 +117,12 @@ class TestDilatedConvolution2D(unittest.TestCase):
 class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.DilatedConvolution2D(*self.args, **self.kwargs)
+        with ia.disable():
+            self.link = links.DilatedConvolution2D(*self.args, **self.kwargs)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
-        self.link(chainer.Variable(self.x))
+        with ia.disable():
+            self.link(chainer.Variable(self.x))
         b = self.link.b.data
         b[...] = numpy.random.uniform(-1, 1, b.shape)
         self.link.cleargrads()
@@ -198,7 +203,8 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
     def test_pickling_cpu(self):
-        self.check_pickling(self.x)
+        with ia.disable():
+            self.check_pickling(self.x)
 
     @attr.gpu
     def test_pickling_gpu(self):

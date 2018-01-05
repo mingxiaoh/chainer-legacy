@@ -2,6 +2,7 @@ from chainer.functions.connection import dilated_convolution_2d
 from chainer import initializers
 from chainer import link
 from chainer import variable
+from chainer import ia
 
 
 class DilatedConvolution2D(link.Link):
@@ -129,6 +130,8 @@ class DilatedConvolution2D(link.Link):
         """
         if self.W.data is None:
             self._initialize_params(x.shape[1])
+            if ia.all_ready((self.W, )):
+                self.to_ia()
         return dilated_convolution_2d.dilated_convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.dilate)
 
