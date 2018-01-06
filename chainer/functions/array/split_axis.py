@@ -54,8 +54,8 @@ class SplitAxis(function_node.FunctionNode):
         return ret
 
     def forward(self, inputs):
-        # currently, only support axis == 1 and 4 dims
-        if self.axis == 1 and ia.all_ready((inputs), (4,)):
+        # currently, only support 4 dims
+        if ia.all_ready((inputs), (4,)):
             return self.forward_ia(inputs)
 
         x, = inputs

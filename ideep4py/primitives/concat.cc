@@ -57,7 +57,6 @@ Tensor *Concat<T>::Forward(
                 int axis)
 {
     // sanity check
-    assert (axis == 1); // currently, only support concat as channel
     assert (src.size() > 0);
 
     std::vector<mkldnn::memory::format> src_fmts;
@@ -77,9 +76,16 @@ Tensor *Concat<T>::Forward(
         src_reorder.push_back(src[i]->data());
 
         src_ds.push_back(src[i]->cxx_dims());
-        out_channel += (src[i]->cxx_dims())[1];
+        out_channel += (src[i]->cxx_dims())[axis];
     }
-    dst_d = {src_ds[0][0], out_channel, src_ds[0][2], src_ds[0][3]};
+
+    for (int i = 0; i < src_ds[0].size(); i++){
+        if (i == axis)
+            dst_d.push_back(out_channel);
+        else
+            dst_d.push_back(src_ds[0][i]);
+    }
+
     //LOG(INFO) << "dst_d={" << dst_d[0] << "," << dst_d[1] << "," << dst_d[2] << "," << dst_d[3] << "}";
     
     // get a concat fwd from primitive pool
@@ -132,7 +138,6 @@ std::vector<Tensor*> Concat<T>::Backward(
                 int axis)
 {
     //
-    assert (axis == 1);
     assert (offsets.size() > 0);
 
     std::vector<Tensor*> gxs;
@@ -150,13 +155,37 @@ std::vector<Tensor*> Concat<T>::Backward(
     // offsets: [2, 5, 6]
     std::vector<mkldnn::memory::dims> diff_src_d;
     mkldnn::memory::dims diff_dst_d = diff_dst->cxx_dims();
-    diff_src_d.push_back({diff_dst_d[0], offsets[0], diff_dst_d[2], diff_dst_d[3]});//get first element
-    for (int i = 1; i < offsets.size(); i++) {
-        int axis_value = offsets[i] - offsets[i-1]; 
-        diff_src_d.push_back({diff_dst_d[0], axis_value, diff_dst_d[2], diff_dst_d[3]});
-    }
-    diff_src_d.push_back({diff_dst_d[0], (diff_dst_d[1]-offsets.back()), diff_dst_d[2], diff_dst_d[3]}); // get last element
+    
+    // get elements
+    mkldnn::memory::dims tmp;
+    for (int i = 0; i < offsets.size(); i++) {
+        int axis_value = -1;
+        if (i == 0)
+            axis_value = offsets[0];
+        else
+            axis_value = offsets[i] - offsets[i-1];
 
+        for (int j = 0; j < diff_dst_d.size(); j++) {
+            if (j == axis)
+                tmp.push_back(axis_value);
+            else
+                tmp.push_back(diff_dst_d[j]);
+
+        }
+        diff_src_d.push_back(tmp);
+        tmp.clear();
+    }
+
+    // get last element
+    for (int i = 0; i < diff_dst_d.size(); i++){
+        if (i == axis)
+            tmp.push_back(diff_dst_d[axis]-offsets.back());
+        else
+            tmp.push_back(diff_dst_d[i]);
+    }
+    diff_src_d.push_back(tmp);
+    tmp.clear();
+    
     // get a concat bwd from primitive pool
     ConcatBwd<T> *concat_backward = NULL;
     concat_backward = ConcatBwdFactory<T>::get(diff_src_d, diff_dst_d, axis);
