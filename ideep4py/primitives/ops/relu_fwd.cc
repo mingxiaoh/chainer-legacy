@@ -72,34 +72,34 @@ using namespace mkldnn;
 
 extern engine cpu_engine;
 
-template<typename T>
-ReluFwd<T>::ReluFwd(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
+template<typename T1, typename T2>
+EltwiseFwd<T1, T2>::EltwiseFwd(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta)
 {
     fwd_stream_.reset(new stream(stream::kind::eager));
-    // create relu primitive
-    if (relu_fwd_ == nullptr) {
-        setup(src_d, src_fmt);
+    // create eltwise primitive
+    if (eltwise_fwd_ == nullptr) {
+        setup(src_d, alg_kind, src_fmt, alpha, beta);
     }
 }
 
-template<typename T>
-ReluFwd<T>::~ReluFwd()
+template<typename T1, typename T2>
+EltwiseFwd<T1, T2>::~EltwiseFwd()
 {
 }
 
-template<typename T>
-void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt)
+template<typename T1, typename T2>
+void EltwiseFwd<T1, T2>::setup(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta)
 {
-    //LOG(INFO) << "Relu forward_setup";
+    //LOG(INFO) << "Eltwise forward_setup";
     assert(src_d != nullptr);
 
-    /* create memory descriptors for relu data w/ no specified format */
-    src_md_.reset(new memory::desc({src_d}, memory_data_type<T>(),
+    /* create memory descriptors for eltwise data w/ no specified format */
+    src_md_.reset(new memory::desc({src_d}, memory_data_type<T1>(),
                                    src_fmt));
     src_mpd_.reset(new memory::primitive_desc(*src_md_, cpu_engine));
-    /* create a relu*/
-    fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, algorithm::eltwise_relu,
-                                             *src_md_, 0.0, 0.0));
+    /* create a eltwise*/
+    fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, alg_kind,
+                                             *src_md_, alpha, beta));
 
     fwd_pd_.reset(new eltwise_forward::primitive_desc(*fwd_desc_, cpu_engine));
 
@@ -111,17 +111,17 @@ void ReluFwd<T>::setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fm
     src_mem_.reset(new memory(*src_mpd_, dummy));
     dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
 
-    /* create relu primitive and add it to net */
-    relu_fwd_.reset(new eltwise_forward(*fwd_pd_, *src_mem_, *dst_mem_));
+    /* create eltwise primitive and add it to net */
+    eltwise_fwd_.reset(new eltwise_forward(*fwd_pd_, *src_mem_, *dst_mem_));
 
-    fwd_primitives_.push_back(*relu_fwd_);
+    fwd_primitives_.push_back(*eltwise_fwd_);
     return;
 }
 
-template<typename T>
-void ReluFwd<T>::execute(void* src, void* dst)
+template<typename T1, typename T2>
+void EltwiseFwd<T1, T2>::execute(void* src, void* dst)
 {
-    //LOG(INFO) << "Relu forward";
+    //LOG(INFO) << "Eltwise forward";
 
     src_mem_->set_data_handle(src);
     dst_mem_->set_data_handle(dst);
@@ -134,7 +134,7 @@ void ReluFwd<T>::execute(void* src, void* dst)
     return;
 }
 
-template class ReluFwd<float>;
+template class EltwiseFwd<float, float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
