@@ -67,23 +67,24 @@
 #include <vector>
 #include "op.h"
 
-template <typename T>
-class ReluFwd : public Op<T>
+template <typename...> class EltwiseFwd;
+template <typename T1, typename T2>
+class EltwiseFwd<T1, T2> : public Op<T1>
 {
 public:
-    ReluFwd(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt);
-    ~ReluFwd();
+    EltwiseFwd(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta);
+    ~EltwiseFwd();
 
     /*
-     * Relu forward primitive setup
+     * Eltwise forward primitive setup
      * Params:
      * src_d: input, (n,c,h,w)
      * dst_d: output, (n, out_c, out_h, out_w)
      */
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format src_fmt);
+    void setup(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta);
 
     /*
-     * Relu forward execute
+     * Eltwise forward execute
      */
     void execute(void* src, void* dst);
 
@@ -93,8 +94,8 @@ public:
     mkldnn::memory::format src_fmt_;
     mkldnn::memory::format dst_fmt_;
     
-    // Relu primitive
-    std::shared_ptr<mkldnn::primitive> relu_fwd_;
+    // Eltwise primitive
+    std::shared_ptr<mkldnn::primitive> eltwise_fwd_;
 
 private:
     //MKLDNN memory

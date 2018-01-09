@@ -34,51 +34,57 @@
 #include "utils.h"
 #include "relu_bwd.h"
 
-template <typename T>
-class ReluBwdFactory : public OpFactory<T>
+template <typename T1, typename T2>
+class EltwiseBwdFactory : public OpFactory<T1>
 {
 private:
-    ReluBwdFactory() {}
-    ~ReluBwdFactory() {}
+    EltwiseBwdFactory() {}
+    ~EltwiseBwdFactory() {}
 
 public:
-    static ReluBwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt) {
-        ReluBwd<T>* relu_backward = nullptr;
+    static EltwiseBwd<T1, T2>* get(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta) {
+        EltwiseBwd<T1, T2>* eltwise_backward = nullptr;
 
         //try to find a suitable one in pool
-        relu_backward = dynamic_cast<ReluBwd<T>*> (
-                            ReluBwdFactory<T>::get_instance().get_relu_bwd(x, dst_diff_fmt));
+        eltwise_backward = dynamic_cast<EltwiseBwd<T1, T2>*> (
+                            EltwiseBwdFactory<T1, T2>::get_instance().get_eltwise_bwd(x, alg_kind, dst_diff_fmt, alpha, beta));
 
-        if (relu_backward == nullptr) {
-            //LOG(INFO) << "create a new one for relu bwd";
-            relu_backward = new ReluBwd<T>(x, dst_diff_fmt);
-            ReluBwdFactory<T>::get_instance().set_relu_bwd(x, dst_diff_fmt, relu_backward);
+        if (eltwise_backward == nullptr) {
+            //LOG(INFO) << "create a new one for eltwise bwd";
+            eltwise_backward = new EltwiseBwd<T1, T2>(x, alg_kind, dst_diff_fmt, alpha, beta);
+            EltwiseBwdFactory<T1, T2>::get_instance().set_eltwise_bwd(x, alg_kind, dst_diff_fmt, alpha, beta, eltwise_backward);
         } else {
-            //LOG(INFO) << "reuse exist one for relu bwd";
+            //LOG(INFO) << "reuse exist one for eltwise bwd";
         }
-        return relu_backward;
+        return eltwise_backward;
     }
 
-    static ReluBwdFactory& get_instance() {
-        static ReluBwdFactory instance_;
+    static EltwiseBwdFactory& get_instance() {
+        static EltwiseBwdFactory instance_;
         return instance_;
     }
 
 private:
-#define RELU_BWD_PREFIX "relu_bwd_"
-    Op<T>* get_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt) {
-        std::string key = RELU_BWD_PREFIX;
+#define ELTWISE_BWD_PREFIX "eltwise_bwd_"
+    Op<T1>* get_eltwise_bwd(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta) {
+        std::string key = ELTWISE_BWD_PREFIX;
 
         key += dims_to_string(x);
+        key += int_to_string((int)alg_kind);
+        key + float_to_string((float)alpha);
+        key + float_to_string((float)beta);
         key += int_to_string(dst_diff_fmt);
 
         return this->get_op(key);
     }
 
-    void set_relu_bwd(mkldnn::memory::dims x, mkldnn::memory::format dst_diff_fmt, Op<T> *op) {
-        std::string key = RELU_BWD_PREFIX;
+    void set_eltwise_bwd(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta, Op<T1> *op) {
+        std::string key = ELTWISE_BWD_PREFIX;
 
         key += dims_to_string(x);
+        key += int_to_string((int)alg_kind);
+        key + float_to_string((float)alpha);
+        key + float_to_string((float)beta);
         key += int_to_string(dst_diff_fmt);
 
         this->set_op(key, op);

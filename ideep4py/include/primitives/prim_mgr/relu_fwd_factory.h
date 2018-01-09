@@ -28,57 +28,66 @@
 
 #include <mkldnn.hpp>
 #include <string>
+#include <typeinfo>
 #include "op.h"
 #include "op_factory.h"
 #include <unordered_map>
 #include "utils.h"
 #include "relu_fwd.h"
 
-template <typename T>
-class ReluFwdFactory : public OpFactory<T>
+template <typename T1, typename T2>
+class EltwiseFwdFactory : public OpFactory<T1>
 {
 private:
-    ReluFwdFactory() {}
-    ~ReluFwdFactory() {}
+    EltwiseFwdFactory() {}
+    ~EltwiseFwdFactory() {}
 
 public:
-    static ReluFwd<T>* get(mkldnn::memory::dims x, mkldnn::memory::format src_fmt) {
-        ReluFwd<T>* relu_forward = nullptr;
+    static EltwiseFwd<T1, T2>* get(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta) {
+        EltwiseFwd<T1, T2>* eltwise_forward = nullptr;
 
         //try to find a suitable one in pool
-        relu_forward = dynamic_cast<ReluFwd<T>*> (
-                            ReluFwdFactory<T>::get_instance().get_relu_fwd(x, src_fmt));
+        eltwise_forward = dynamic_cast<EltwiseFwd<T1, T2>*> (
+                            EltwiseFwdFactory<T1, T2>::get_instance().get_eltwise_fwd(x, alg_kind, src_fmt, alpha, beta));
 
-        if (relu_forward == nullptr) {
-            //LOG(INFO) << "create a new one for relu fwd";
-            relu_forward = new ReluFwd<T>(x, src_fmt);
-            ReluFwdFactory<T>::get_instance().set_relu_fwd(x, src_fmt, relu_forward);
+        if (eltwise_forward == nullptr) {
+            //LOG(INFO) << "create a new one for eltwise fwd";
+            eltwise_forward = new EltwiseFwd<T1, T2>(x, alg_kind, src_fmt, alpha, beta);
+            EltwiseFwdFactory<T1, T2>::get_instance().set_eltwise_fwd(x, alg_kind, src_fmt, alpha, beta, eltwise_forward);
         } else {
-            //LOG(INFO) << "reuse exist one for relu fwd";
+            //LOG(INFO) << "reuse exist one for eltwise fwd";
         }
-        return relu_forward;
+        return eltwise_forward;
     }
 
-    static ReluFwdFactory& get_instance() {
-        static ReluFwdFactory instance_;
+    static EltwiseFwdFactory& get_instance() {
+        static EltwiseFwdFactory instance_;
         return instance_;
     }
 
 private:
-#define RELU_FWD_PREFIX "relu_fwd_"
-    Op<T>* get_relu_fwd(mkldnn::memory::dims x, mkldnn::memory::format src_fmt) {
-        std::string key = RELU_FWD_PREFIX;
+#define ELTWISE_FWD_PREFIX "eltwise_fwd_"
+    Op<T1>* get_eltwise_fwd(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta) {
+        std::string key = ELTWISE_FWD_PREFIX;
 
         key += dims_to_string(x);
+        key += int_to_string((int)alg_kind);
+        // key += typeid(alpha).name();
+        key + float_to_string((float)alpha);
+        key + float_to_string((float)beta);
         key += int_to_string(src_fmt);
 
         return this->get_op(key);
     }
 
-    void set_relu_fwd(mkldnn::memory::dims x, mkldnn::memory::format src_fmt, Op<T>* op) {
-        std::string key = RELU_FWD_PREFIX;
+    void set_eltwise_fwd(mkldnn::memory::dims x, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta, Op<T1>* op) {
+        std::string key = ELTWISE_FWD_PREFIX;
 
         key += dims_to_string(x);
+        key += int_to_string((int)alg_kind);
+        // key += typeid(alpha).name();
+        key + float_to_string((float)alpha);
+        key + float_to_string((float)beta);
         key += int_to_string(src_fmt);
 
         this->set_op(key, op);

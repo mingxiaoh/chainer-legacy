@@ -58,10 +58,10 @@ Tensor *Relu<T>::Forward(Tensor *src)
     assert(memory_data_type<T>() == src.cxx_data_type());
 
     // get a relu fwd from primitive pool
-    ReluFwd<T> *relu_fwd = nullptr;
+    EltwiseFwd<T, float> *relu_fwd = nullptr;
     // FIXME: in this model, every call to relu_fwd will create a new tensor, when to free???
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
-    relu_fwd = ReluFwdFactory<T>::get(src->dims(), src_fmt);
+    relu_fwd = EltwiseFwdFactory<T, float>::get(src->dims(), mkldnn::eltwise_relu, src_fmt, 0.0, 0.0);
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
@@ -85,8 +85,8 @@ Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
     assert(src->size() == diff_dst->size());
 
     // get a relu bwd data from primitive pool
-    ReluBwd<T> *relu_bwd = nullptr;
-    relu_bwd = ReluBwdFactory<T>::get(diff_dst->dims(), diff_dst->cxx_format());
+    EltwiseBwd<T, float> *relu_bwd = nullptr;
+    relu_bwd = EltwiseBwdFactory<T, float>::get(diff_dst->dims(), mkldnn::eltwise_relu, diff_dst->cxx_format(), 0.0, 0.0);
 
     void *src_buf = src->data();
 

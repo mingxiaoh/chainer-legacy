@@ -67,23 +67,24 @@
 #include <vector>
 #include "op.h"
 
-template <typename T>
-class ReluBwd : public Op<T>
+template <typename...> class EltwiseBwd;
+template <typename T1, typename T2>
+class EltwiseBwd<T1, T2> : public Op<T1>
 {
 public:
-    ReluBwd(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
-    ~ReluBwd();
+    EltwiseBwd(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta);
+    ~EltwiseBwd();
 
     /*
-     * Relu backward primitive setup
+     * Eltwise backward primitive setup
      * Params:
      * src_d: input, (n,c,h,w)
      * dst_d: output, (n, out_c, out_h, out_w)
      */
-    void setup(mkldnn::memory::dims src_d, mkldnn::memory::format dst_diff_fmt);
+    void setup(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta);
 
     /*
-     * Relu backward execute
+     * Eltwise backward execute
      */
     void execute(void* src, void* dst_diff, void *src_diff);
 
@@ -92,8 +93,8 @@ public:
     // backward
     mkldnn::memory::format src_diff_fmt_;
     
-    // Relu primitive
-    std::shared_ptr<mkldnn::primitive> relu_bwd_;
+    // Eltwise primitive
+    std::shared_ptr<mkldnn::primitive> eltwise_bwd_;
 
 private:
     //MKLDNN memory
