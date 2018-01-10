@@ -121,11 +121,9 @@ Tensor *Convolution2D<T>::Forward(
             
             
             // set internal fmt back to weight tensor
-            if (cp->weights_optimization) {
-                weights->reset_memory(
-                        static_cast<mkldnn_memory_format_t>(conv2d_forward->weights_fmt_),
-                        w_reorder);
-            }
+            weights->reset_memory(
+                    static_cast<mkldnn_memory_format_t>(conv2d_forward->weights_fmt_),
+                    w_reorder);
         }
     }
 
