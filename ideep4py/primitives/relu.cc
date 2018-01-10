@@ -41,59 +41,61 @@ using namespace mkldnn;
 const mkldnn::memory::dims NONE_DIMS = {};
 extern engine cpu_engine;
 
-template<typename T>
-Relu<T>::Relu()
+template<typename T1, typename T2>
+Eltwise<T1, T2>::Eltwise()
 {
 }
 
-template<typename T>
-Relu<T>::~Relu()
+template<typename T1, typename T2>
+Eltwise<T1, T2>::~Eltwise()
 {
 }
 
-template<typename T>
-Tensor *Relu<T>::Forward(Tensor *src)
+template<typename T1, typename T2>
+Tensor *Eltwise<T1, T2>::Forward(Tensor *src, eltwise_algorithm_t alg_kind, T2 alpha, T2 beta)
 {
     //sanity check for data type
-    assert(memory_data_type<T>() == src.cxx_data_type());
+    assert(memory_data_type<T1>() == src.cxx_data_type());
 
-    // get a relu fwd from primitive pool
-    EltwiseFwd<T, float> *relu_fwd = nullptr;
-    // FIXME: in this model, every call to relu_fwd will create a new tensor, when to free???
+    // get a eltwise fwd from primitive pool
+    EltwiseFwd<T1, T2> *eltwise_fwd = nullptr;
+    // FIXME: in this model, every call to eltwise_fwd will create a new tensor, when to free???
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
-    relu_fwd = EltwiseFwdFactory<T, float>::get(src->dims(), mkldnn::eltwise_relu, src_fmt, 0.0, 0.0);
+    mkldnn::algorithm malg_kind = ideepy2mkldnn_eltwise_algorithm(alg_kind);
+    eltwise_fwd = EltwiseFwdFactory<T1, T2>::get(src->dims(), malg_kind, src_fmt, alpha, beta);
 
     // create tensor based on primitive's dst 
     // assume dst and src have same data type
-    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_RELU_FWD);
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_ELTWISE_FWD);
     Tensor *dst_tensor = new Tensor(src->ndims(), src->dims(), data,
-            (mkldnn_memory_format_t)relu_fwd->dst_fmt_,
+            (mkldnn_memory_format_t)eltwise_fwd->dst_fmt_,
             src->type());
 
     // do forward
-    relu_fwd->execute(src->data(), dst_tensor->data());
+    eltwise_fwd->execute(src->data(), dst_tensor->data());
 
     return dst_tensor;
 }
 
-template<typename T>
-Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
+template<typename T1, typename T2>
+Tensor *Eltwise<T1, T2>::Backward(Tensor *src, Tensor *diff_dst, eltwise_algorithm_t alg_kind, T2 alpha, T2 beta)
 {
     // sanity check for data type
-    assert(memory_data_type<T>() == diff_dst->cxx_data_type());
+    assert(memory_data_type<T1>() == diff_dst->cxx_data_type());
     assert(src->ndims() == diff_dst->ndims());
     assert(src->size() == diff_dst->size());
 
-    // get a relu bwd data from primitive pool
-    EltwiseBwd<T, float> *relu_bwd = nullptr;
-    relu_bwd = EltwiseBwdFactory<T, float>::get(diff_dst->dims(), mkldnn::eltwise_relu, diff_dst->cxx_format(), 0.0, 0.0);
+    // get a eltwise bwd data from primitive pool
+    EltwiseBwd<T1, T2> *eltwise_bwd = nullptr;
+    mkldnn::algorithm malg_kind = ideepy2mkldnn_eltwise_algorithm(alg_kind);
+    eltwise_bwd = EltwiseBwdFactory<T1, T2>::get(diff_dst->dims(), malg_kind, diff_dst->cxx_format(), alpha, beta);
 
     void *src_buf = src->data();
 
     if (src->cxx_format() != diff_dst->cxx_format()) {
-        //LOG(INFO) << "relu bwd data fmt not match, need to reorder";
+        //LOG(INFO) << "eltwise bwd data fmt not match, need to reorder";
         //LOG(INFO) << "diff_dst_fmt=" << diff_dst->cxx_format() <<", src format=" << src->cxx_format();
-        ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
+        ReorderOp<T1>* reorder_src_op = ReorderFactory<T1>::get(src->dims(), src->cxx_format(), diff_dst->cxx_format());
         //src_reorder = new avx::byte[diff_dst->len()];
         auto src_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
         reorder_src_op->execute(src_buf, src_reorder.get());
@@ -102,16 +104,16 @@ Tensor *Relu<T>::Backward(Tensor *src, Tensor *diff_dst)
 
     // create tensor based on selected primitive
     // assume dst and src have same data type
-    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_RELU_BWD);
+    auto data = Allocator::malloc(src->dims(), type2size(src->type()), MPOOL_ELTWISE_BWD);
     Tensor *diff_src = new Tensor(src->ndims(), src->dims(), data,
-                                    (mkldnn_memory_format_t)relu_bwd->src_diff_fmt_,
+                                    (mkldnn_memory_format_t)eltwise_bwd->src_diff_fmt_,
                                     src->type());
     
-    relu_bwd->execute(src_buf, diff_dst->data(), diff_src->data());
+    eltwise_bwd->execute(src_buf, diff_dst->data(), diff_src->data());
 
     return diff_src;
 }
 
-template class Relu<float>;
+template class Eltwise<float, float>;
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

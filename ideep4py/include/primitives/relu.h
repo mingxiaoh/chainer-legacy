@@ -69,31 +69,50 @@
 #include "layer.h"
 #include "tensor.h"
 
-template <typename T>
-class Relu : public Layer<T>
+typedef enum _eltwise_algorithm {
+    ELTWISE_RELU = mkldnn::eltwise_relu,
+    ELTWISE_TANH = mkldnn::eltwise_tanh,
+    ELTWISE_ELU = mkldnn::eltwise_elu,
+    ELTWISE_SQUARE = mkldnn::eltwise_square,
+    ELTWISE_ABS = mkldnn::eltwise_abs,
+    ELTWISE_SQRT = mkldnn::eltwise_sqrt,
+    ELTWISE_LINEAR = mkldnn::eltwise_linear,
+    ELTWISE_BOUNDED_RELU = mkldnn::eltwise_bounded_relu,
+    ELTWISE_SOFT_RELU = mkldnn::eltwise_soft_relu,
+    ELTWISE_LOGISTIC = mkldnn::eltwise_logistic,
+} eltwise_algorithm_t;
+
+
+static inline mkldnn::algorithm ideepy2mkldnn_eltwise_algorithm(eltwise_algorithm_t alg_kind) {
+    return (mkldnn::algorithm)alg_kind;
+}
+
+template <typename...> class Eltwise;
+template <typename T1, typename T2>
+class Eltwise<T1, T2> : public Layer<T1>
 {
 public:
-    Relu();
-    ~Relu();
+    Eltwise();
+    ~Eltwise();
     
     /*
-     * Relu Forward
+     * Eltwise Forward
      * params:
      * src: input, x
      * dst: output, y
      * y = max(x, 0)
      */
-    static Tensor *Forward(Tensor *src); 
+    static Tensor *Forward(Tensor *src, eltwise_algorithm_t alg_kind, T2 alpha, T2 beta); 
 
     /*
-     * Relu backward data
+     * Eltwise backward data
      * params:
      * src: input, x
      * diff_dst: input, gy
      * dst: output, gx
      * gx = gy*y
      */
-    static Tensor *Backward(Tensor *src, Tensor *diff_dst);
+    static Tensor *Backward(Tensor *src, Tensor *diff_dst, eltwise_algorithm_t alg_kind, T2 alpha, T2 beta);
 };
 
 

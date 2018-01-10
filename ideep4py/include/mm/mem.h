@@ -16,8 +16,8 @@ static constexpr int DEFAULT_ALIGNMENT = 64;
 typedef enum {
     MPOOL_ANON,
     MPOOL_REORDER,
-    MPOOL_RELU_FWD,
-    MPOOL_RELU_BWD,
+    MPOOL_ELTWISE_FWD,
+    MPOOL_ELTWISE_BWD,
     MPOOL_BN_FWD,
     MPOOL_BN_BWD,
     MPOOL_LRN_FWD,

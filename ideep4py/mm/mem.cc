@@ -37,10 +37,10 @@ std::shared_ptr<avx::byte> Allocator::malloc(size_t len, mem_pool_t mpool)
         case MPOOL_REORDER:
             data = std::shared_ptr<avx::byte>(reorder_malloc(len), reorder_free);
             break;
-        case MPOOL_RELU_FWD:
+        case MPOOL_ELTWISE_FWD:
             data = std::shared_ptr<avx::byte>(relu_fwd_malloc(len), relu_fwd_free);
             break;
-        case MPOOL_RELU_BWD:
+        case MPOOL_ELTWISE_BWD:
             data = std::shared_ptr<avx::byte>(relu_bwd_malloc(len), relu_bwd_free);
             break;
         case MPOOL_BN_FWD:
