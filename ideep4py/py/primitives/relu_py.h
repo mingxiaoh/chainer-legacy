@@ -74,8 +74,8 @@ public:
     static mdarray Forward(mdarray &src) {
         // Shoule be removed in future????
         implementation::mdarray *src_internal = src.get();
-        Tensor *dst_tensor = Relu<T>::Forward(
-                src_internal->tensor()); 
+        Tensor *dst_tensor = Eltwise<T, float>::Forward(
+                src_internal->tensor(), ELTWISE_RELU, 0.0 , 0.0); 
         
         mdarray dst_mdarray = mdarray(dst_tensor);
         return dst_mdarray;
@@ -87,7 +87,7 @@ public:
         Tensor *src_tensor = src.get()->tensor();
         Tensor *diff_dst_tensor = diff_dst.get()->tensor();
 
-        Tensor *diff_src_tensor = Relu<T>::Backward(src_tensor, diff_dst_tensor);
+        Tensor *diff_src_tensor = Eltwise<T, float>::Backward(src_tensor, diff_dst_tensor, ELTWISE_RELU, 0.0, 0.0);
 
         // FIXME
         // In future, mdarray will have a Tensor member, no need to create a new one
