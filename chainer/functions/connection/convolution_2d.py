@@ -91,11 +91,11 @@ class Convolution2DFunction(function_node.FunctionNode):
         # create conv parameter
         # for IA specific
         cp = ia.convolution2DParam()
-        cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
-        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
-        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = n, out_c, out_h, out_w
-        cp.bias_d1 = inputs[2].shape[0] if len(inputs) == 3 else -1
-        cp.with_bias = True if len(inputs) == 3 else False
+        cp.out_dims = ia.intVector()
+        cp.out_dims.push_back(n)
+        cp.out_dims.push_back(out_c)
+        cp.out_dims.push_back(out_h)
+        cp.out_dims.push_back(out_w)
         # MKLDNN, common conv is treated as 0 dilate,
         # but chainer treat is as 1 dilate, need to handle this
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
@@ -104,19 +104,15 @@ class Convolution2DFunction(function_node.FunctionNode):
         cp.pad_rh, cp.pad_rw = self.pd, self.pr
 
         if isinstance(W, numpy.ndarray):
-            cp.with_weights_opt = False
+            cp.weights_optimization = False
         elif isinstance(W, ia.mdarray):
             # if weight is mdarray
             # we can do weights opt (pass optimized weight back)
-            cp.with_weights_opt = True
+            cp.weights_optimization = True
 
-        if cp.with_bias:
-            y = ia.convolution2D.Forward(
-                ia.array(x), ia.array(W), ia.array(b), cp)
-        else:
-            y = ia.convolution2D.Forward(
-                ia.array(x), ia.array(W), None, cp)
-
+        y = ia.convolution2D.Forward(
+            ia.array(x), ia.array(W),
+            ia.array(b) if b is not None else None, cp)
         return y,
 
     def forward_cpu(self, inputs):
@@ -292,22 +288,20 @@ class Convolution2DGradW(function_node.FunctionNode):
         # create conv parameter
         # for IA specific
         cp = ia.convolution2DParam()
-        cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4 = x.shape
-        (cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4) \
-            = (out_c, input_c, self.kh, self.kw)
-        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = gy.shape
+        cp.out_dims = ia.intVector()
+        cp.out_dims.push_back(out_c)
+        cp.out_dims.push_back(input_c)
+        cp.out_dims.push_back(self.kh)
+        cp.out_dims.push_back(self.kw)
         # MKLDNN, common conv is treated as 0 dilate,
         # but chainer treat is as 1 dilate, need to handle this
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw = self.ph, self.pw
         cp.pad_rh, cp.pad_rw = self.pd, self.pr
-        # Chainer's this function is only to calculate gW, MUST no gb
-        cp.bias_d1 = -1
-        cp.with_bias = False
 
         # only calculate gW, no gb
-        gW, = ia.convolution2D.BackwardWeights(ia.array(x), ia.array(gy), cp)
+        gW = ia.convolution2D.BackwardWeights(ia.array(x), ia.array(gy), cp)
         return gW,
 
     def forward_cpu(self, inputs):

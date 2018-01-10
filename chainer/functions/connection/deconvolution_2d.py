@@ -125,20 +125,17 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # create conv parameter
         # for IA specific
         cp = ia.convolution2DParam()
-        (cp.src_d1, cp.src_d2, cp.src_d3, cp.src_d4) \
-            = (n, in_c, self.outh, self.outw)
-        # deconv's weight dims should be different with conv's w
-        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = W.shape
-        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
+        cp.out_dims = ia.intVector()
+        cp.out_dims.push_back(n)
+        cp.out_dims.push_back(in_c)
+        cp.out_dims.push_back(self.outh)
+        cp.out_dims.push_back(self.outw)
         # MKLDNN, common conv is treated as 0 dilate,
         # but chainer treat is as 1 dilate, need to handle this
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw = self.ph, self.pw
         cp.pad_rh, cp.pad_rw = self.pd, self.pr
-        # use conv bwd data to implement deconv fwd, not bias support
-        cp.bias_d1 = -1
-        cp.with_bias = False
 
         # y should be gx in conv bwd data
         y = ia.convolution2D.BackwardData(ia.array(W), ia.array(x), cp)
