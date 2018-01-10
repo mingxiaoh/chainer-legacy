@@ -101,9 +101,21 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static std::vector<Tensor *> BackwardWeights(Tensor *src, 
-                                               Tensor *diff_dst,
-                                               conv_param_t *cp);
+    static Tensor *BackwardWeights(Tensor *src,
+                                   Tensor *diff_dst,
+                                   conv_param_t *cp);
+
+    /*
+     * Convolution backward weights & bias
+     * gW = gy*x
+     * params:
+     * src: input, x
+     * diff_dst: diff dst, gy
+     * cp: convolution parameters
+     */
+    static std::vector<Tensor *> BackwardWeightsBias(Tensor *src,
+                                                     Tensor *diff_dst,
+                                                     conv_param_t *cp);
 
     /*
      * Convolution backward data

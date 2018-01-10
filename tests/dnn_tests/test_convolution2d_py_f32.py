@@ -4,6 +4,7 @@ import numpy
 import ideep4py
 from ideep4py import convolution2DParam
 from ideep4py import convolution2D
+from ideep4py import intVector
 
 try:
     import testing
@@ -47,22 +48,11 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.b = ideep4py.mdarray(self.b)
 
         self.cp = convolution2DParam()
-        self.cp.src_d1 = self.x_shape[0]
-        self.cp.src_d2 = self.x_shape[1]
-        self.cp.src_d3 = self.x_shape[2]
-        self.cp.src_d4 = self.x_shape[3]
-        self.cp.weights_d1 = self.w_shape[0]
-        self.cp.weights_d2 = self.w_shape[1]
-        self.cp.weights_d3 = self.w_shape[2]
-        self.cp.weights_d4 = self.w_shape[3]
-        self.cp.bias_d1 = self.x_shape[1]
-        self.cp.dst_d1 = self.x_shape[0]
-        self.cp.dst_d2 = self.x_shape[1]
-        self.cp.dst_d3 = self.x_shape[2]
-        self.cp.dst_d4 = self.x_shape[3]
+        self.cp.out_dims = intVector()
+        for d in self.x_shape:
+            self.cp.out_dims.push_back(d)
         self.cp.sy = self.cp.sx = 1
         self.cp.pad_lh = self.cp.pad_lw = self.cp.pad_rh = self.cp.pad_rw = 1
-        self.cp.with_bias = self.with_bias
 
         stride = 1
         pad = 1
@@ -85,7 +75,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x, w, b, cp):
-        if cp.with_bias:
+        if self.with_bias:
             y_act = convolution2D.Forward(x, w, b, cp)
         else:
             y_act = convolution2D.Forward(x, w, None, cp)
@@ -110,7 +100,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.check_forward(self.x, self.w, self.b, self.cp)
 
     def check_backward_weights(self, x, w, b, cp, gy):
-        gW_act, gB_act = convolution2D.BackwardWeights(x, gy, cp)
+        gW_act, gB_act = convolution2D.BackwardWeightsBias(x, gy, cp)
         gW_act = numpy.array(gW_act, dtype=self.dtype)
 
         x = numpy.array(x, dtype=self.dtype)
@@ -130,7 +120,14 @@ class TestConvolution2DPyF32(unittest.TestCase):
     @condition.retry(3)
     def test_backward_cpu_weights(self):
         print("test_backward_cpu_weights")
-        self.check_backward_weights(self.x, self.w, self.b, self.cp, self.gy)
+        cp = convolution2DParam()
+        cp.out_dims = intVector()
+        for d in self.w_shape:
+            cp.out_dims.push_back(d)
+        cp.sy = cp.sx = 1
+        cp.pad_lh = cp.pad_lw = cp.pad_rh = cp.pad_rw = 1
+
+        self.check_backward_weights(self.x, self.w, self.b, cp, self.gy)
 
     def check_backward_data(self, x, w, b, cp):
         out_c, in_c, kh, kw = w.shape
@@ -144,17 +141,14 @@ class TestConvolution2DPyF32(unittest.TestCase):
         # create conv parameter
         # for IA specific
         cp = convolution2DParam()
-        cp.src_d1, cp.src_d2 = n, in_c
-        cp.src_d3, cp.src_d4 = self.outh, self.outw
-        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape
-        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
+        cp.out_dims = intVector()
+        for d in x.shape:
+            cp.out_dims.push_back(d)
         cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
         cp.sy, cp.sx = self.sy, self.sx
         cp.pad_lh, cp.pad_lw = self.ph, self.pw
         cp.pad_rh, cp.pad_rw = self.pd, self.pr
         # use conv bwd data to implement deconv fwd, not bias support
-        cp.bias_d1 = -1
-        cp.with_bias = False
 
         y_act = convolution2D.BackwardData(w, x, cp)
         if b is not None:

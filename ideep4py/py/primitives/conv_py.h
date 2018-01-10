@@ -84,34 +84,17 @@ public:
      * bias: bias, b
      * cp: convolution parameters
      */
-    static mdarray Forward(mdarray *src, 
-                           mdarray *weights, 
+    static mdarray Forward(mdarray *src,
+                           mdarray *weights,
                            mdarray *bias,
                            conv_param_t *cp) {
-        // Shoule be removed in future????
-        implementation::mdarray *src_internal = src->get();
-        implementation::mdarray *w_internal = weights->get();
-        implementation::mdarray *b_internal;
-        if ( cp->with_bias )
-            b_internal = bias->get();
-        
-        Tensor *dst_tensor;
-        if ( cp->with_bias )
-            dst_tensor = Convolution2D<T>::Forward(
-                    (src_internal->tensor()), 
-                    (w_internal->tensor()), 
-                    (b_internal->tensor()), cp);
-        else
-            dst_tensor = Convolution2D<T>::Forward(
-                    (src_internal->tensor()), 
-                    (w_internal->tensor()), 
-                    NULL, cp);
-        
-        // FIXME
-        // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray dst_mdarray = mdarray(dst_tensor);
-        //mdarray dst_mdarray;
-        return dst_mdarray;
+        auto tensor = Convolution2D<T>::Forward(
+                src->get()->tensor(),
+                weights->get()->tensor(),
+                bias ? bias->get()->tensor() : nullptr, cp);
+
+        auto out = mdarray(tensor);
+        return out;
     }
 
     /*
@@ -122,26 +105,37 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static std::vector<mdarray> BackwardWeights(mdarray *src, 
-                                                mdarray *diff_dst,
-                                                conv_param_t *cp) {
-        std::vector<mdarray> grads;
+    static mdarray BackwardWeights(mdarray *src,
+                                   mdarray *diff_dst,
+                                   conv_param_t *cp) {
+        auto tensor = Convolution2D<T>::BackwardWeights(
+                          (src->get()->tensor()),
+                          (diff_dst->get()->tensor()), cp);
 
-        //FIXME
-        // Should be removed in future
-        implementation::mdarray *src_internal = src->get();
-        implementation::mdarray *diff_dst_internal = diff_dst->get();
+        auto out = mdarray(tensor);
+        return out;
+    }
 
-        std::vector<Tensor *> grads_tensor = Convolution2D<T>::BackwardWeights(
-                                        (src_internal->tensor()),
-                                        (diff_dst_internal->tensor()),
-                                        cp);
-        
-        //FIXME
-        for (int i = 0; i < grads_tensor.size(); i++) {
-            grads.push_back( mdarray(grads_tensor[i]) );
-        }
-        return grads;
+    /*
+     * Python Convolution backward weights & bias
+     * gW = gy*x
+     * params:
+     * src: input, x
+     * diff_dst: diff dst, gy
+     * cp: convolution parameters
+     */
+    static std::vector<mdarray> BackwardWeightsBias(mdarray *src,
+                                                    mdarray *diff_dst,
+                                                    conv_param_t *cp) {
+        std::vector<mdarray> outs;
+        auto tensors = Convolution2D<T>::BackwardWeightsBias(
+                           (src->get()->tensor()),
+                           (diff_dst->get()->tensor()), cp);
+
+        for (int i = 0; i < tensors.size(); i++)
+            outs.push_back(mdarray(tensors[i]));
+
+        return outs;
     }
 
     /*
@@ -152,23 +146,15 @@ public:
      * diff_dst: diff dst, gy
      * cp: convolution parameters
      */
-    static mdarray BackwardData(mdarray *weights, 
+    static mdarray BackwardData(mdarray *weights,
                                 mdarray *diff_dst,
                                 conv_param_t *cp) {
-        //FIXME
-        //Should be removed in future
-        implementation::mdarray *w_internal = weights->get();
-        implementation::mdarray *diff_dst_internal = diff_dst->get();
+        auto tensor = Convolution2D<T>::BackwardData(
+                          (weights->get()->tensor()),
+                          (diff_dst->get()->tensor()), cp);
 
-        Tensor *diff_src_tensor = Convolution2D<T>::BackwardData(
-                                (w_internal->tensor()),
-                                (diff_dst_internal->tensor()),
-                                cp);
-
-        // FIXME
-        // In future, mdarray will have a Tensor member, no need to create a new one
-        mdarray diff_src_mdarray = mdarray(diff_src_tensor);
-        return diff_src_mdarray;
+        auto out = mdarray(tensor);
+        return out;
     }
 
 };

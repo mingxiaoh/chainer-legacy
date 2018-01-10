@@ -60,15 +60,12 @@ Tensor *Convolution2D<T>::Forward(
                 conv_param_t *cp)
 {
     // sanity check
-    mkldnn::memory::dims src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
+    mkldnn::memory::dims src_dims = (mkldnn::memory::dims)src->dims();
+    mkldnn::memory::dims w_dims = (mkldnn::memory::dims)weights->dims();
+    mkldnn::memory::dims dst_dims = (mkldnn::memory::dims)cp->out_dims;
     mkldnn::memory::dims b_dims;
-    if (cp->with_bias) {
-        b_dims = {cp->bias_d1};
-        assert( b_dims == bias->cxx_dims());
-    }
-    assert(src_dims == src->cxx_dims() && w_dims = weights-.cxx_dims());
+    if (bias)
+        b_dims = (mkldnn::memory::dims)bias->dims();
 
     //sanity check for data type
     //assuem all x/w/b should have same data type as T
@@ -76,12 +73,12 @@ Tensor *Convolution2D<T>::Forward(
     //yli135: Is it possible x and w have different data type????
     assert(memory_data_type<T>() == src->cxx_data_type());
     assert(memory_data_type<T>() == weights->cxx_data_type());
-    if (cp->with_bias)
+    if (bias)
         assert(memory_data_type<T>() == bias->cxx_data_type());
     
     // get a conv2d fwd from primitive pool
     Convolution2DFwd<T> *conv2d_forward = NULL;
-    if (cp->with_bias)
+    if (bias)
         conv2d_forward = Convolution2DFwdFactory<T>::get(src_dims, w_dims, b_dims, dst_dims,
                 cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
     else
@@ -124,7 +121,7 @@ Tensor *Convolution2D<T>::Forward(
             
             
             // set internal fmt back to weight tensor
-            if ( cp->with_weights_opt ) {
+            if (cp->weights_optimization) {
                 weights->reset_memory(
                         static_cast<mkldnn_memory_format_t>(conv2d_forward->weights_fmt_),
                         w_reorder);
@@ -141,7 +138,7 @@ Tensor *Convolution2D<T>::Forward(
             src->type());
     
     // do forward
-    if (cp->with_bias) {
+    if (bias) {
         conv2d_forward->execute(src_tmp, w_tmp, bias->data(), dst_tensor->data());
     } else {
         conv2d_forward->execute(src_tmp, w_tmp, dst_tensor->data());
@@ -154,19 +151,17 @@ Tensor *Convolution2D<T>::Forward(
  * gW = gy *x
  */
 template<typename T>
-std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
+Tensor *Convolution2D<T>::BackwardWeights(
                 Tensor *src, Tensor *diff_dst,
                 conv_param_t *cp)
 {
     std::vector<Tensor *> bwd_weight_vec;
 
     // sanity check
-    mkldnn::memory::dims src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims diff_w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
-    mkldnn::memory::dims diff_b_dims;
-    if (cp->with_bias)
-        diff_b_dims = {cp->bias_d1};
+    mkldnn::memory::dims src_dims = (mkldnn::memory::dims)src->dims();
+    mkldnn::memory::dims diff_dst_dims = (mkldnn::memory::dims)diff_dst->dims();
+    mkldnn::memory::dims diff_w_dims = (mkldnn::memory::dims)cp->out_dims;
+
     assert(src_dims == src->cxx_dims() && diff_dst_dims = diff_dst->cxx_dims());
 
     // sanity check for data type
@@ -177,13 +172,8 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
 
     // get a conv2d bwd weights from primitive pool
     Convolution2DBwdWeights<T> *conv2d_bwd_weights = NULL;
-    if (cp->with_bias) {
-        conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, diff_b_dims, diff_dst_dims, 
-                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
-    } else {
-        conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, NONE_DIMS, diff_dst_dims, 
-                cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
-    }
+    conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, NONE_DIMS, diff_dst_dims,
+        cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
 
     // create tensor based on selected primitive
     mkldnn::memory::format src_fmt = src->cxx_format();
@@ -227,20 +217,88 @@ std::vector<Tensor *> Convolution2D<T>::BackwardWeights(
     Tensor *diff_w_tensor = new Tensor(diff_w_dims.size(), diff_w_dims, w_data,
             (mkldnn_memory_format_t)conv2d_bwd_weights->diff_weights_fmt_,
             src->type());
-        // do execute
-    if (cp->with_bias) {
-        // asume bias's format is always mkldnn::memory::format::x
-        //Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
-        auto b_data = Allocator::malloc(diff_b_dims, type2size(src->type()), MPOOL_CONV_BWD);
-        Tensor *diff_b_tensor = new Tensor(diff_b_dims.size(), diff_b_dims, b_data,
-                (mkldnn_memory_format_t)mkldnn::memory::format::x, src->type());
-        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_b_tensor->data(), diff_dst_tmp);
-        bwd_weight_vec.push_back(diff_w_tensor);
-        bwd_weight_vec.push_back(diff_b_tensor);
+
+    // do execute
+    conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_dst_tmp);
+    return diff_w_tensor;
+}
+
+template<typename T>
+std::vector<Tensor *> Convolution2D<T>::BackwardWeightsBias(
+                Tensor *src, Tensor *diff_dst,
+                conv_param_t *cp)
+{
+    std::vector<Tensor *> bwd_weight_vec;
+
+    // sanity check
+    mkldnn::memory::dims src_dims = (mkldnn::memory::dims)src->dims();
+    mkldnn::memory::dims diff_dst_dims = (mkldnn::memory::dims)diff_dst->dims();
+    mkldnn::memory::dims diff_w_dims = (mkldnn::memory::dims)cp->out_dims;
+    mkldnn::memory::dims diff_b_dims = {diff_w_dims[0]};
+
+    assert(src_dims == src->cxx_dims() && diff_dst_dims = diff_dst->cxx_dims());
+
+    // sanity check for data type
+    // FIXME
+    // is it possible y and w have different data type??
+    assert(memory_data_type<T>() == src->cxx_data_type());
+    assert(memory_data_type<T>() == diff_dst->cxx_data_type());
+
+    // get a conv2d bwd weights from primitive pool
+    Convolution2DBwdWeights<T> *conv2d_bwd_weights = NULL;
+    conv2d_bwd_weights = Convolution2DBwdWeightsFactory<T>::get(src_dims, diff_w_dims, diff_b_dims, diff_dst_dims,
+        cp->dilate_y, cp->dilate_x, cp->sy, cp->sx, cp->pad_lh, cp->pad_lw, cp->pad_rh, cp->pad_rw);
+
+    // create tensor based on selected primitive
+    mkldnn::memory::format src_fmt = src->cxx_format();
+    mkldnn::memory::format diff_dst_fmt = diff_dst->cxx_format();
+
+    //assum dst and src have same data type
+    void* src_tmp = src->data();
+    void* diff_dst_tmp = diff_dst->data();
+    shared_ptr<avx::byte> src_reorder;
+    shared_ptr<avx::byte> diff_dst_reorder;
+
+    //check whether fmt is same
+    if (src_fmt == conv2d_bwd_weights->src_fmt_ && diff_dst_fmt == conv2d_bwd_weights->diff_dst_fmt_) {
+       // LOG(INFO) << "primitive fmt matched";
     } else {
-        conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_dst_tmp);
-        bwd_weight_vec.push_back(diff_w_tensor);
+       // LOG(INFO) << "fmt not match, need to reorder";
+
+        if (src_fmt != conv2d_bwd_weights->src_fmt_) {
+            //LOG(INFO) << "src_fmt=" << src_fmt << ", conv2d_bwd_weights->src_fmt_=" << conv2d_bwd_weights->src_fmt_;
+            // FIXME: when to free the reordered memory
+            ReorderOp<T>* reorder_src_op = ReorderFactory<T>::get(src_dims, src_fmt, conv2d_bwd_weights->src_fmt_);
+            src_reorder = Allocator::malloc(src->len(), MPOOL_REORDER);
+            //src_reorder = new avx::byte[src->len()];
+            reorder_src_op->execute(src_tmp, src_reorder.get());
+            src_tmp = src_reorder.get();
+        }
+        if (diff_dst_fmt != conv2d_bwd_weights->diff_dst_fmt_) {
+           // LOG(INFO) << "diff_dst_fmt=" << diff_dst_fmt <<", conv2d_bwd_weights->diff_dst_fmt_=" << conv2d_bwd_weights->diff_dst_fmt_;
+            // FIXME: when to free the reordered memory
+            ReorderOp<T>* reorder_diff_dst_op = ReorderFactory<T>::get(diff_dst_dims, diff_dst_fmt, conv2d_bwd_weights->diff_dst_fmt_);
+            diff_dst_reorder = Allocator::malloc(diff_dst->len(), MPOOL_REORDER);
+            //diff_dst_reorder = new avx::byte[diff_dst->len()];
+            reorder_diff_dst_op->execute(diff_dst_tmp, diff_dst_reorder.get());
+            diff_dst_tmp = diff_dst_reorder.get();
+        }
     }
+
+    //assum dst and src have same data type
+    //Tensor *diff_w_tensor = new Tensor(diff_w_dims, src->cxx_data_type(), conv2d_bwd_weights->diff_weights_fmt_, cpu_engine);
+    auto w_data = Allocator::malloc(diff_w_dims, type2size(src->type()), MPOOL_CONV_BWD);
+    Tensor *diff_w_tensor = new Tensor(diff_w_dims.size(), diff_w_dims, w_data,
+            (mkldnn_memory_format_t)conv2d_bwd_weights->diff_weights_fmt_,
+            src->type());
+
+    auto b_data = Allocator::malloc(diff_b_dims, type2size(src->type()), MPOOL_CONV_BWD);
+    Tensor *diff_b_tensor = new Tensor(diff_b_dims.size(), diff_b_dims, b_data,
+            (mkldnn_memory_format_t)mkldnn::memory::format::x, src->type());
+
+    conv2d_bwd_weights->execute(src_tmp, diff_w_tensor->data(), diff_b_tensor->data(), diff_dst_tmp);
+    bwd_weight_vec.push_back(diff_w_tensor);
+    bwd_weight_vec.push_back(diff_b_tensor);
 
     return bwd_weight_vec;
 }
@@ -251,9 +309,9 @@ Tensor *Convolution2D<T>::BackwardData(
                 conv_param_t *cp)
 {
     //sanity check
-    mkldnn::memory::dims diff_src_dims = {cp->src_d1, cp->src_d2, cp->src_d3, cp->src_d4};
-    mkldnn::memory::dims w_dims = {cp->weights_d1, cp->weights_d2, cp->weights_d3, cp->weights_d4};
-    mkldnn::memory::dims diff_dst_dims = {cp->dst_d1, cp->dst_d2, cp->dst_d3, cp->dst_d4};
+    mkldnn::memory::dims diff_src_dims = (mkldnn::memory::dims)cp->out_dims;
+    mkldnn::memory::dims w_dims = (mkldnn::memory::dims)weights->dims();
+    mkldnn::memory::dims diff_dst_dims = (mkldnn::memory::dims)diff_dst->dims();
     assert(w_dims == weights->cxx_dims() && diff_dst_dims == diff_dst->cxx_dims());
 
     // sanity check for data type
