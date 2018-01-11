@@ -103,13 +103,6 @@ class Convolution2DFunction(function_node.FunctionNode):
         cp.pad_lh, cp.pad_lw = self.ph, self.pw
         cp.pad_rh, cp.pad_rw = self.pd, self.pr
 
-        if isinstance(W, numpy.ndarray):
-            cp.weights_optimization = False
-        elif isinstance(W, ia.mdarray):
-            # if weight is mdarray
-            # we can do weights opt (pass optimized weight back)
-            cp.weights_optimization = True
-
         y = ia.convolution2D.Forward(
             ia.array(x), ia.array(W),
             ia.array(b) if b is not None else None, cp)

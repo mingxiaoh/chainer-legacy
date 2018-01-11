@@ -5,7 +5,6 @@ struct conv_param_t {
     int dilate_y = 0, dilate_x = 0; // in MKL-DNN, common conv is treated as 0 dilate
     int sy, sx; // stride
     int pad_lh, pad_lw, pad_rh, pad_rw; //padding
-    bool weights_optimization = false; // whether pass back optimized weight
 };
 
 %rename (pooling2DParam) pooling_param_t;
