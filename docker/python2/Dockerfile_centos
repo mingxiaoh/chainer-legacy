@@ -33,17 +33,19 @@ RUN yum install -y \
 RUN yum clean all
 
 
-RUN export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib" &&\
+RUN export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib" && \
     export LIBRARY_PATH="$LD_LIBRARY_PATH"
 
 
-RUN  wget https://nchc.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz && \
+RUN  mkdir Downloads && \
+     cd Downloads && \
+     wget https://nchc.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz && \
      tar -xf swig-3.0.12.tar.gz && \
      cd swig-3.0.12/ && \
      ./configure && \
      make -j && \
      make install && \
-     cd ../
+     cd ../../
 
 
 RUN pip install --default-timeout=10000 six \
