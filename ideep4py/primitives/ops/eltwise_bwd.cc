@@ -64,7 +64,7 @@
 #include <glog/logging.h>
 #include <iostream>
 #include "mkldnn.hpp"
-#include "relu_fwd.h"
+#include "eltwise_bwd.h"
 #include "utils.h"
 #include "common.h"
 
@@ -73,68 +73,77 @@ using namespace mkldnn;
 extern engine cpu_engine;
 
 template<typename T1, typename T2>
-EltwiseFwd<T1, T2>::EltwiseFwd(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta)
+EltwiseBwd<T1, T2>::EltwiseBwd(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta)
 {
-    fwd_stream_.reset(new stream(stream::kind::eager));
+    bwd_stream_.reset(new stream(stream::kind::eager));
     // create eltwise primitive
-    if (eltwise_fwd_ == nullptr) {
-        setup(src_d, alg_kind, src_fmt, alpha, beta);
+    if (eltwise_bwd_ == nullptr) {
+        setup(src_d, alg_kind, dst_diff_fmt, alpha, beta);
     }
 }
 
 template<typename T1, typename T2>
-EltwiseFwd<T1, T2>::~EltwiseFwd()
+EltwiseBwd<T1, T2>::~EltwiseBwd()
 {
 }
 
 template<typename T1, typename T2>
-void EltwiseFwd<T1, T2>::setup(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format src_fmt, T2 alpha, T2 beta)
+void EltwiseBwd<T1, T2>::setup(mkldnn::memory::dims src_d, mkldnn::algorithm alg_kind, mkldnn::memory::format dst_diff_fmt, T2 alpha, T2 beta)
 {
-    //LOG(INFO) << "Eltwise forward_setup";
+    //LOG(INFO) << "Eltwise backward_setup";
     assert(src_d != nullptr);
 
     /* create memory descriptors for eltwise data w/ no specified format */
     src_md_.reset(new memory::desc({src_d}, memory_data_type<T1>(),
-                                   src_fmt));
+                                   dst_diff_fmt));
+    dst_diff_md_.reset(new memory::desc({src_d}, memory_data_type<T1>(),
+                                   dst_diff_fmt));
     src_mpd_.reset(new memory::primitive_desc(*src_md_, cpu_engine));
+    dst_diff_mpd_.reset(new memory::primitive_desc(*dst_diff_md_, cpu_engine));
     /* create a eltwise*/
     fwd_desc_.reset(new eltwise_forward::desc(prop_kind::forward, alg_kind,
                                              *src_md_, alpha, beta));
-
     fwd_pd_.reset(new eltwise_forward::primitive_desc(*fwd_desc_, cpu_engine));
 
+    bwd_desc_.reset(new eltwise_backward::desc(alg_kind,
+                                               *dst_diff_md_, *src_md_, alpha, beta));
+
+    bwd_pd_.reset(new eltwise_backward::primitive_desc(*bwd_desc_, cpu_engine, *fwd_pd_));
+
     //store the expected memory format
-    src_fmt_ = src_fmt;
-    dst_fmt_ = static_cast<mkldnn::memory::format>(fwd_pd_.get()->dst_primitive_desc().desc().data.format);
+    src_diff_fmt_ = static_cast<mkldnn::memory::format>(bwd_pd_.get()->diff_src_primitive_desc().desc().data.format);
     
     // create memory primitive based on dummy data
     src_mem_.reset(new memory(*src_mpd_, dummy));
-    dst_mem_.reset(new memory(fwd_pd_.get()->dst_primitive_desc(), dummy));
+    dst_diff_mem_.reset(new memory(*dst_diff_mpd_, dummy));
+    src_diff_mem_.reset(new memory(bwd_pd_.get()->diff_src_primitive_desc(), dummy));
 
     /* create eltwise primitive and add it to net */
-    eltwise_fwd_.reset(new eltwise_forward(*fwd_pd_, *src_mem_, *dst_mem_));
+    eltwise_bwd_.reset(new eltwise_backward(*bwd_pd_, *src_mem_, *dst_diff_mem_, *src_diff_mem_));
 
-    fwd_primitives_.push_back(*eltwise_fwd_);
+    bwd_primitives_.push_back(*eltwise_bwd_);
     return;
 }
 
 template<typename T1, typename T2>
-void EltwiseFwd<T1, T2>::execute(void* src, void* dst)
+void EltwiseBwd<T1, T2>::execute(void* src, void* dst_diff, void* src_diff)
 {
-    //LOG(INFO) << "Eltwise forward";
+    //LOG(INFO) << "Eltwise backward";
 
     src_mem_->set_data_handle(src);
-    dst_mem_->set_data_handle(dst);
-    fwd_stream_->submit(fwd_primitives_);
+    dst_diff_mem_->set_data_handle(dst_diff);
+    src_diff_mem_->set_data_handle(src_diff);
+    bwd_stream_->submit(bwd_primitives_);
     
     //after exec, set data handle back
     src_mem_->set_data_handle(dummy);
-    dst_mem_->set_data_handle(dummy);
+    dst_diff_mem_->set_data_handle(dummy);
+    src_diff_mem_->set_data_handle(dummy);
     
     return;
 }
 
-template class EltwiseFwd<float, float>;
+template class EltwiseBwd<float, float>;
 
 
 // vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

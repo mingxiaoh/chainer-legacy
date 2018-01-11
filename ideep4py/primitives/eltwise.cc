@@ -30,9 +30,9 @@
 #include <memory>
 #include "layer.h"
 #include "tensor.h"
-#include "relu.h"
-#include "relu_fwd.h"
-#include "relu_bwd.h"
+#include "eltwise.h"
+#include "eltwise_fwd.h"
+#include "eltwise_bwd.h"
 #include "prim_factory.h"
 #include "reorder_op.h"
 

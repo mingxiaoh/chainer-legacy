@@ -33,7 +33,7 @@
 #include "op_factory.h"
 #include <unordered_map>
 #include "utils.h"
-#include "relu_fwd.h"
+#include "eltwise_fwd.h"
 
 template <typename T1, typename T2>
 class EltwiseFwdFactory : public OpFactory<T1>

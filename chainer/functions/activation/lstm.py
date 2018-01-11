@@ -13,7 +13,7 @@ def _extract_gates(x):
     return [r[:, :, i] for i in six.moves.range(4)]
 
 
-def _sigmoid(x, xp=numpy):
+def _sigmoid(x, xp=chainer.ia):
     half = x.dtype.type(0.5)
     return xp.tanh(x * half) * half + half
 
@@ -84,14 +84,14 @@ class LSTM(function_node.FunctionNode):
         batch = len(x)
 
         if isinstance(x, (numpy.ndarray, chainer.ia.mdarray)):
-            a = numpy.tanh(a)
+            a = chainer.ia.tanh(a)
             i = _sigmoid(i)
             f = _sigmoid(f)
             o = _sigmoid(o)
 
             c_next = numpy.empty_like(c_prev)
             c_next[:batch] = a * i + f * c_prev[:batch]
-            h = o * numpy.tanh(c_next[:batch])
+            h = o * chainer.ia.tanh(c_next[:batch])
         else:
             c_next = cuda.cupy.empty_like(c_prev)
             h = cuda.cupy.empty_like(c_next[:batch])

@@ -6,7 +6,7 @@
 %}
 
 %include "mdarray.i"
-%include "relu.i"
+%include "eltwise.i"
 %include "conv.i"
 %include "pooling.i"
 %include "linear.i"

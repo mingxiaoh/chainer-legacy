@@ -212,3 +212,12 @@ def array(x, itype=data):
         return mdarray(x, itype)
     else:
         return x
+
+
+def tanh(x):
+    if all_ready((x,)) and x.size != 0:
+        y = ideep4py.tanh.Forward(array(x))
+    else:
+        y = numpy.tanh(x)
+
+    return y

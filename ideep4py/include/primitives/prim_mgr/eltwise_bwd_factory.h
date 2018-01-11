@@ -32,7 +32,7 @@
 #include "op_factory.h"
 #include <unordered_map>
 #include "utils.h"
-#include "relu_bwd.h"
+#include "eltwise_bwd.h"
 
 template <typename T1, typename T2>
 class EltwiseBwdFactory : public OpFactory<T1>
