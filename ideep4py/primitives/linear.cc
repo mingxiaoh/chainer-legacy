@@ -95,15 +95,14 @@ Linear<T>::~Linear()
 template<typename T>
 Tensor *Linear<T>::Forward(
         Tensor *src, Tensor *weights,
-        Tensor *bias,
-        linear_param_t *lp)
+        Tensor *bias)
 {
     //sanity check
     mkldnn::memory::dims src_dims = src->cxx_dims();
     mkldnn::memory::dims w_dims = weights->cxx_dims();
     mkldnn::memory::dims b_dims;
     mkldnn::memory::dims dst_dims ;
-    if (lp->with_bias) {
+    if (bias) {
         b_dims = bias->cxx_dims();
         assert(b_dims == bias->cxx_dims());
     }
@@ -120,12 +119,12 @@ Tensor *Linear<T>::Forward(
     //is it possible y and w have different data type?
     assert(memory_data_type<T>() == src->cxx_data_type());
     assert(memory_data_type<T>() == weights->cxx_data_type());
-    if (lp->with_bias) {
+    if (bias) {
         assert(memory_data_type<T>() == bias->cxx_data_type());
     }
     //get a linear from primitive pool
     LinearFwd<T> *linear_forward = NULL;
-    if (lp->with_bias)
+    if (bias)
         linear_forward = LinearFwdFactory<T>::get(src_dims, w_dims, b_dims, dst_dims);
     else 
         linear_forward = LinearFwdFactory<T>::get(src_dims, w_dims, NONE_DIMS, dst_dims);
@@ -158,11 +157,9 @@ Tensor *Linear<T>::Forward(
             reorder_w_op->execute(w_tmp, w_reorder.get());
             w_tmp = w_reorder.get();
             //set internal fmt back to weight tensor
-            if (lp->with_weights_opt) {
-                weights->reset_memory(
-                        static_cast<mkldnn_memory_format_t>(linear_forward->weights_fmt_),
-                        w_reorder);
-            }
+            weights->reset_memory(
+                    static_cast<mkldnn_memory_format_t>(linear_forward->weights_fmt_),
+                    w_reorder);
         }
     }
     //create mdarray based on primitive's dst
@@ -172,7 +169,7 @@ Tensor *Linear<T>::Forward(
             (mkldnn_memory_format_t)linear_forward->dst_fmt_,
             src->type());
     // do forward
-    if (lp->with_bias) {
+    if (bias) {
         linear_forward->execute(src_tmp, w_tmp, bias->data(), dst_tensor->data());
     } else {
         linear_forward->execute(src_tmp, w_tmp, dst_tensor->data());
@@ -186,7 +183,7 @@ Tensor *Linear<T>::Forward(
  */
 template<typename T>
 std::vector<Tensor *> Linear<T>::BackwardWeights(
-            Tensor *src, Tensor* diff_dst, linear_param_t *lp)
+            Tensor *src, Tensor* diff_dst, bool need_bias)
 {
     std::vector<Tensor *> bwd_weight_vec;
     mkldnn::memory::dims src_dims = src->cxx_dims();
@@ -202,7 +199,7 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     } else {
         LOG(INFO) << "Error:: src only support 2 dims or 4 dims";
     }*/
-    if (lp->with_bias) 
+    if (need_bias)
         diff_b_dims = {diff_w_dims[0]};
     // sanity check for data type
     // FIXME
@@ -211,7 +208,7 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
     assert(memory_data_type<T>() == diff_dst->cxx_data_type());
     //get a linear bwd weights from primitive pool
     LinearBwdWeights<T> *linear_bwd_weights = NULL;
-    if (lp->with_bias) {
+    if (need_bias) {
         linear_bwd_weights = LinearBwdWeightsFactory<T>::get(src_dims, diff_w_dims, diff_b_dims, diff_dst_dims);
     } else {
         linear_bwd_weights = LinearBwdWeightsFactory<T>::get(src_dims, diff_w_dims, NONE_DIMS, diff_dst_dims);
@@ -254,7 +251,7 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
             (mkldnn_memory_format_t)linear_bwd_weights->diff_weights_fmt_,
             src->type());
     //do execute
-    if(lp->with_bias) {
+    if (need_bias) {
         //assume bias's format is always mkldnn::memory::format::x
         //Tensor *diff_b_tensor = new Tensor(diff_b_dims, src->cxx_data_type(), mkldnn::memory::format::x, cpu_engine);
         auto b_data = Allocator::malloc(diff_b_dims, type2size(src->type()), MPOOL_IP_BWD);
@@ -273,8 +270,7 @@ std::vector<Tensor *> Linear<T>::BackwardWeights(
 
 template<typename T>
 Tensor *Linear<T>::BackwardData(
-            Tensor *weights, Tensor *diff_dst,
-            linear_param_t *lp)
+            Tensor *weights, Tensor *diff_dst)
 {
     //sanity check
     mkldnn::memory::dims w_dims = weights->cxx_dims();
