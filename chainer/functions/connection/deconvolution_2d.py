@@ -124,21 +124,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         """
         # create conv parameter
         # for IA specific
-        cp = ia.convolution2DParam()
-        cp.out_dims = ia.intVector()
-        cp.out_dims.push_back(n)
-        cp.out_dims.push_back(in_c)
-        cp.out_dims.push_back(self.outh)
-        cp.out_dims.push_back(self.outw)
-        # MKLDNN, common conv is treated as 0 dilate,
-        # but chainer treat is as 1 dilate, need to handle this
-        cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
-        cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw = self.ph, self.pw
-        cp.pad_rh, cp.pad_rw = self.pd, self.pr
-
-        # y should be gx in conv bwd data
-        y = ia.convolution2D.BackwardData(ia.array(W), ia.array(x), cp)
+        param = ia.convolution2DParam((n, in_c, self.outh, self.outw),
+                                      self.dy, self.dx,
+                                      self.sy, self.sx,
+                                      self.ph, self.pw,
+                                      self.pd, self.pr)
+        y = ia.convolution2D.BackwardData(ia.array(W), ia.array(x), param)
 
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)

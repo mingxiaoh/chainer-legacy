@@ -90,22 +90,14 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ia.convolution2DParam()
-        cp.out_dims = ia.intVector()
-        cp.out_dims.push_back(n)
-        cp.out_dims.push_back(out_c)
-        cp.out_dims.push_back(out_h)
-        cp.out_dims.push_back(out_w)
-        # MKLDNN, common conv is treated as 0 dilate,
-        # but chainer treat is as 1 dilate, need to handle this
-        cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
-        cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw = self.ph, self.pw
-        cp.pad_rh, cp.pad_rw = self.pd, self.pr
-
+        param = ia.convolution2DParam((n, out_c, out_h, out_w),
+                                      self.dy, self.dx,
+                                      self.sy, self.sx,
+                                      self.ph, self.pw,
+                                      self.pd, self.pr)
         y = ia.convolution2D.Forward(
             ia.array(x), ia.array(W),
-            ia.array(b) if b is not None else None, cp)
+            ia.array(b) if b is not None else None, param)
         return y,
 
     def forward_cpu(self, inputs):
@@ -280,21 +272,13 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # create conv parameter
         # for IA specific
-        cp = ia.convolution2DParam()
-        cp.out_dims = ia.intVector()
-        cp.out_dims.push_back(out_c)
-        cp.out_dims.push_back(input_c)
-        cp.out_dims.push_back(self.kh)
-        cp.out_dims.push_back(self.kw)
-        # MKLDNN, common conv is treated as 0 dilate,
-        # but chainer treat is as 1 dilate, need to handle this
-        cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
-        cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw = self.ph, self.pw
-        cp.pad_rh, cp.pad_rw = self.pd, self.pr
-
+        param = ia.convolution2DParam((out_c, input_c, self.kh, self.kw),
+                                      self.dy, self.dx,
+                                      self.sy, self.sx,
+                                      self.ph, self.pw,
+                                      self.pd, self.pr)
         # only calculate gW, no gb
-        gW = ia.convolution2D.BackwardWeights(ia.array(x), ia.array(gy), cp)
+        gW = ia.convolution2D.BackwardWeights(ia.array(x), ia.array(gy), param)
         return gW,
 
     def forward_cpu(self, inputs):

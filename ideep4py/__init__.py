@@ -8,7 +8,7 @@ from ideep4py._ideep4py import mdarrayVector  # NOQA
 from ideep4py._ideep4py import batchNormalization  # NOQA
 from ideep4py._ideep4py import concat  # NOQA
 from ideep4py._ideep4py import convolution2D  # NOQA
-from ideep4py._ideep4py import convolution2DParam  # NOQA
+from ideep4py._ideep4py import convolution2DParam as conv2DParam  # NOQA
 from ideep4py._ideep4py import dropout  # NOQA
 from ideep4py._ideep4py import linear  # NOQA
 from ideep4py._ideep4py import localResponseNormalization  # NOQA
@@ -52,3 +52,15 @@ def array(x, itype=dat_array):
         return mdarray(x, itype)
     else:
         return x
+
+
+def convolution2DParam(out_dims, dy, dx, sy, sx, ph, pw, pd, pr):
+    cp = conv2DParam()
+    cp.out_dims = intVector()
+    for d in out_dims:
+        cp.out_dims.push_back(d)
+    cp.dilate_y, cp.dilate_x = (dy - 1), (dx - 1)
+    cp.sy, cp.sx = sy, sx
+    cp.pad_lh, cp.pad_lw = ph, pw
+    cp.pad_rh, cp.pad_rw = pd, pr
+    return cp
