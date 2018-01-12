@@ -36,7 +36,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
         if ia.all_ready((self.state['v'], )):
             self.state['v'] = ia.array(
-                self.state['v'], itype=ia.weight)
+                self.state['v'], itype=ia.ideep4py.wgt_array)
 
     def update_core_cpu(self, param):
         grad = param.grad

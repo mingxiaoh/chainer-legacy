@@ -32,6 +32,8 @@ try:
     from ideep4py import mdarray  # NOQA
     from ideep4py import mdarrayVector  # NOQA
 
+    from ideep4py import array  # NOQA
+
     from ideep4py import intVector  # NOQA
 
     from ideep4py import batchNormalization  # NOQA
@@ -180,38 +182,6 @@ def all_ready(inputs, supported_ndim=(2, 4)):
         return False
 
     return True
-
-
-# ------------------------------------------------------------------------------
-# ideep4py.mdarray allocation
-# ------------------------------------------------------------------------------
-data = 'd'  # data array
-weight = 'w'  # weight array
-
-
-def array(x, itype=data):
-    """Create a :class:`ideep4py.mdarray` object according to ``x``.
-
-    Args:
-        array (numpy.ndarray or ideep4py.mdarray):
-            if ``x`` is numpy.ndarray not in C contiguous, it will be
-            converted to C contiguous before ideep4py.mdarray created.
-        itype (=data): ideep4py.mdarray created is optimized according
-            ``itype`` flag.
-
-    Returns:
-        Instance of :class:`ideep4py.mdarray`.
-
-    """
-    if not check_ideep_enabled():
-        raise Exception("ideep4py is not installed correctly")
-    if isinstance(x, numpy.ndarray) and \
-            x.dtype == numpy.dtype('float32'):
-        if x.flags.contiguous is False:
-            x = numpy.ascontiguousarray(x)
-        return mdarray(x, itype)
-    else:
-        return x
 
 
 def tanh(x):
