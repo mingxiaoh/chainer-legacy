@@ -59,10 +59,9 @@ class LocalResponseNormalization(function.Function):
         pp.alpha = self.n * self.alpha
         pp.beta = self.beta
         pp.algo_kind = ia.localResponseNormalizationParam.lrn_across_channels
-        self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
-        y, self.indexes = ia.localResponseNormalization.Forward(
-            ia.array(x[0]), pp)
-        return y,
+        self.y, self.indexes = \
+            ia.localResponseNormalization.Forward(ia.array(x[0]), pp)
+        return self.y,
 
     def forward_cpu(self, x):
         # pdb.set_trace()

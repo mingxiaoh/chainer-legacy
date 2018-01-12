@@ -88,8 +88,6 @@ struct pooling_param_t {
 };
 
 struct lrn_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
     int n; // local size
     double k;
     double alpha;
