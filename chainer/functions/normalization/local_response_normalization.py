@@ -53,14 +53,12 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_ia(self, x):
-        pp = ia.localResponseNormalizationParam()
-        pp.n = self.n
-        pp.k = self.k
-        pp.alpha = self.n * self.alpha
-        pp.beta = self.beta
-        pp.algo_kind = ia.localResponseNormalizationParam.lrn_across_channels
+        param = ia.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            ia.localResponseNormalizationParam.lrn_across_channels
+        )
         self.y, self.indexes = \
-            ia.localResponseNormalization.Forward(ia.array(x[0]), pp)
+            ia.localResponseNormalization.Forward(ia.array(x[0]), param)
         return self.y,
 
     def forward_cpu(self, x):
@@ -80,14 +78,12 @@ class LocalResponseNormalization(function.Function):
             return self.y,
 
     def backward_ia(self, x, gy):
-        pp = ia.localResponseNormalizationParam()
-        pp.n = self.n
-        pp.k = self.k
-        pp.alpha = self.n * self.alpha
-        pp.beta = self.beta
-        pp.algo_kind = ia.localResponseNormalizationParam.lrn_across_channels
+        param = ia.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            ia.localResponseNormalizationParam.lrn_across_channels
+        )
         gx = ia.localResponseNormalization.Backward(
-            ia.array(x[0]), ia.array(gy[0]), self.indexes, pp)
+            ia.array(x[0]), ia.array(gy[0]), self.indexes, param)
         return gx,
 
     def backward_cpu(self, x, gy):

@@ -25,13 +25,10 @@ class TestLocalResponseNormalizationPyF32(unittest.TestCase):
             -1, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(
             -1, 1, self.shape).astype(self.dtype)
-        self.pp = localResponseNormalizationParam()
-        self.pp.n = 5
-        self.pp.k = 2
-        self.pp.alpha = 1e-4
-        self.pp.beta = .75
-        self.pp.algo_kind =\
+        self.pp = localResponseNormalizationParam(
+            5, 2, 1e-4, .75,
             ideep4py.localResponseNormalizationParam.lrn_across_channels
+        )
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
 

@@ -13,7 +13,7 @@ from ideep4py._ideep4py import convolution2DParam as conv2DParam  # NOQA
 from ideep4py._ideep4py import dropout  # NOQA
 from ideep4py._ideep4py import linear  # NOQA
 from ideep4py._ideep4py import localResponseNormalization  # NOQA
-from ideep4py._ideep4py import localResponseNormalizationParam  # NOQA
+from ideep4py._ideep4py import localResponseNormalizationParam as lrnParam  # NOQA
 from ideep4py._ideep4py import pooling2D  # NOQA
 from ideep4py._ideep4py import pooling2DParam  # NOQA
 from ideep4py._ideep4py import relu  # NOQA
@@ -64,6 +64,22 @@ def convolution2DParam(out_dims, dy, dx, sy, sx, ph, pw, pd, pr):
     cp.pad_lh, cp.pad_lw = ph, pw
     cp.pad_rh, cp.pad_rw = pd, pr
     return cp
+
+
+def localResponseNormalizationParam(n, k, alpha, beta, algo):
+    pp = lrnParam()
+    pp.n = n
+    pp.k = k
+    pp.alpha = alpha
+    pp.beta = beta
+    pp.algo_kind = algo
+    return pp
+
+
+localResponseNormalizationParam.lrn_across_channels = \
+    lrnParam.lrn_across_channels
+localResponseNormalizationParam.lrn_within_channel = \
+    lrnParam.lrn_within_channel
 
 
 _ideep4py_ = sys.modules[__name__]
