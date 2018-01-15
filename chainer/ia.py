@@ -155,39 +155,17 @@ def all_ready(inputs, supported_ndim=(2, 4)):
     _inputs = [x.data if isinstance(x, chainer.variable.Variable)
                else x for x in inputs]
 
-    # Check with ideep4py supported dimension of input data
-    valid_ndim = False
-    for ndim in supported_ndim:
-        valid_ndim = valid_ndim or _inputs[0].ndim == ndim
-
-    if supported_ndim and not valid_ndim:
+    if ideep4py.check_ndim(_inputs, supported_ndim) is False:
         return False
-
-    if isinstance(_inputs[0], mdarray):
+    elif isinstance(_inputs[0], mdarray):
         return True
-    elif isinstance(_inputs[0], numpy.ndarray):
-        # Check whether ideep4py configured and used correctly
-        _should_use_ideep = True
-
-        for x in _inputs:
-            _should_use_ideep = _should_use_ideep and \
-                x.dtype == numpy.dtype('float32')
-        if _should_use_ideep:
-            _should_use_ideep = _should_use_ideep and \
-                should_use_ideep('>=auto')
-        if not _should_use_ideep:
-            return False
     else:
-        # cupy.ndarray
-        return False
-
-    return True
+        return ideep4py.check_type(_inputs) and \
+            should_use_ideep('>=auto')
 
 
-def tanh(x):
-    if all_ready((x,)) and x.size != 0:
-        y = ideep4py.tanh.Forward(array(x))
+def get_array_module(x):
+    if ideep_enabled:
+        return ideep4py.get_array_module(x)
     else:
-        y = numpy.tanh(x)
-
-    return y
+        return numpy
