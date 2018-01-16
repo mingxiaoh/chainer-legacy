@@ -70,13 +70,6 @@ class EmbedIDGrad(function_node.FunctionNode):
         gW = xp.zeros(self.w_shape, dtype=gy.dtype)
 
         if xp is numpy:
-            # FIXME:
-            # currently, mdarray doesn't support "iterable"
-            # transfer it back to ndarray
-            # will remove this after support
-            if not isinstance(gy, numpy.ndarray):
-                gy = numpy.array(gy)
-
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
             # too slow.
             for ix, igy in six.moves.zip(x.ravel(),
