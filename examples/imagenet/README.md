@@ -18,3 +18,15 @@ The text format is equivalent to what Caffe uses for ImageDataLayer.
 This example currently does not include dataset preparation script.
 
 This example requires "mean file" which is computed by `compute_mean.py`.
+
+## Training
+ Configuration suggestions about hyper parameters when training Imagenet with Intel Architectures by `train_imagenet_ia.py`
+
+ * googlenet: --batchsize 96 --epoch 60 --poly_policy 0 --poly_power 0.5 --base_lr 0.012 --iteration 800000 --weight_decay 0.0002 --momentum 0.9
+
+ * alexnet: --batchsize 256 --epoch 50 --poly_policy 0 --poly_power 1 --base_lr 0.07 --iteration 250000 --weight_decay 0.0005 --momentum 0.9
+
+ * resnet50: --batchsize 128 --epoch 32 --poly_policy 0 --poly_power 1 --base_lr 0.1 --iteration 320000 --weight_decay 0.0001 --momentum 0.9
+
+ * vgg16: --batchsize 128 --epoch 32 --poly_policy 0 --poly_power 0.6 --base_lr 0.01 --iteration 320000 --weight_decay 0.0005 --momentum 0.9
+
