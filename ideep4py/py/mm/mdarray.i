@@ -23,7 +23,7 @@
 %template(mdarrayVector) std::vector<mdarray>;
 %template(intVector) std::vector<int>;
 
-%tp_richcompare(mdarray)
+%tp_protocol(mdarray)
 %buffer_protocol_producer(mdarray)
 %buffer_protocol_typemap(Py_buffer *view)
 %getattr_wrapper(mdarray)
