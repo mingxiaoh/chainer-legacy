@@ -15,7 +15,7 @@ from ideep4py._ideep4py import linear  # NOQA
 from ideep4py._ideep4py import localResponseNormalization  # NOQA
 from ideep4py._ideep4py import localResponseNormalizationParam as lrnParam  # NOQA
 from ideep4py._ideep4py import pooling2D  # NOQA
-from ideep4py._ideep4py import pooling2DParam  # NOQA
+from ideep4py._ideep4py import pooling2DParam as pol2DParam  # NOQA
 from ideep4py._ideep4py import relu  # NOQA
 
 from ideep4py._ideep4py import basic_acc_sum  # NOQA
@@ -52,34 +52,6 @@ def array(x, itype=dat_array):
         return mdarray(x, itype)
     else:
         return x
-
-
-def convolution2DParam(out_dims, dy, dx, sy, sx, ph, pw, pd, pr):
-    cp = conv2DParam()
-    cp.out_dims = intVector()
-    for d in out_dims:
-        cp.out_dims.push_back(d)
-    cp.dilate_y, cp.dilate_x = (dy - 1), (dx - 1)
-    cp.sy, cp.sx = sy, sx
-    cp.pad_lh, cp.pad_lw = ph, pw
-    cp.pad_rh, cp.pad_rw = pd, pr
-    return cp
-
-
-def localResponseNormalizationParam(n, k, alpha, beta, algo):
-    pp = lrnParam()
-    pp.n = n
-    pp.k = k
-    pp.alpha = alpha
-    pp.beta = beta
-    pp.algo_kind = algo
-    return pp
-
-
-localResponseNormalizationParam.lrn_across_channels = \
-    lrnParam.lrn_across_channels
-localResponseNormalizationParam.lrn_within_channel = \
-    lrnParam.lrn_within_channel
 
 
 _ideep4py_ = sys.modules[__name__]
@@ -146,3 +118,52 @@ def tanh(x):
         y = numpy.tanh(x)
 
     return y
+
+
+def convolution2DParam(out_dims, dy, dx, sy, sx, ph, pw, pd, pr):
+    cp = conv2DParam()
+    cp.out_dims = intVector()
+    for d in out_dims:
+        cp.out_dims.push_back(d)
+    cp.dilate_y, cp.dilate_x = (dy - 1), (dx - 1)
+    cp.sy, cp.sx = sy, sx
+    cp.pad_lh, cp.pad_lw = ph, pw
+    cp.pad_rh, cp.pad_rw = pd, pr
+    return cp
+
+
+def pooling2DParam(out_dims, kh, kw, sy, sx, ph, pw, pd, pr, algo):
+    pp = pol2DParam()
+    pp.out_dims = intVector()
+    for d in out_dims:
+        pp.out_dims.push_back(d)
+    pp.kh, pp.kw = kh, kw
+    pp.sy, pp.sx = sy, sx
+    pp.pad_lh, pp.pad_lw = ph, pw
+    pp.pad_rh, pp.pad_rw = pd, pr
+    pp.algo_kind = algo
+    return pp
+
+
+pooling2DParam.pooling_max = pol2DParam.pooling_max
+pooling2DParam.pooling_avg = pol2DParam.pooling_avg
+pooling2DParam.pooling_avg_include_padding = \
+    pol2DParam.pooling_avg_include_padding
+pooling2DParam.pooling_avg_exclude_padding = \
+    pol2DParam.pooling_avg_exclude_padding
+
+
+def localResponseNormalizationParam(n, k, alpha, beta, algo):
+    lp = lrnParam()
+    lp.n = n
+    lp.k = k
+    lp.alpha = alpha
+    lp.beta = beta
+    lp.algo_kind = algo
+    return lp
+
+
+localResponseNormalizationParam.lrn_across_channels = \
+    lrnParam.lrn_across_channels
+localResponseNormalizationParam.lrn_within_channel = \
+    lrnParam.lrn_within_channel

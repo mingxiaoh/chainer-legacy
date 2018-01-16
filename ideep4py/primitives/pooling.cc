@@ -60,8 +60,8 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     std::vector<Tensor *> outputs;
 
     // sanity check
-    mkldnn::memory::dims src_dims = {pp->src_d1, pp->src_d2, pp->src_d3, pp->src_d4};
-    mkldnn::memory::dims dst_dims = {pp->dst_d1, pp->dst_d2, pp->dst_d3, pp->dst_d4};
+    mkldnn::memory::dims src_dims = (mkldnn::memory::dims)(src->dims());
+    mkldnn::memory::dims dst_dims = (mkldnn::memory::dims)(pp->out_dims);
     assert(src_dims == src->cxx_dims());
 
     //sanity check for data type
@@ -69,20 +69,20 @@ std::vector<Tensor *> Pooling2D<T>::Forward(
     //FIXME
     //yli135: Is it possible x and w have different data type????
     assert(memory_data_type<T>() == src->cxx_data_type());
-    
+
     // get a conv2d fwd from primitive pool
     Pooling2DFwd<T> *pooling2d_forward = NULL;
     pooling2d_forward = Pooling2DFwdFactory<T>::get(src_dims, dst_dims,
                 pp->kh, pp->kw,
-                pp->sy, pp->sx, 
+                pp->sy, pp->sx,
                 pp->pad_lh, pp->pad_lw, pp->pad_rh, pp->pad_rw,
                 pooling_algo_convert(pp->algo_kind));
-    
+
     mkldnn::memory::format src_fmt = src->cxx_format(); // src fmt in tensor
 
     void *src_tmp = src->data();
     shared_ptr<avx::byte> src_reorder;
-    
+
     // check wehther fmt is same
     if (src_fmt == pooling2d_forward->src_fmt_) {
         //LOG(INFO) << "pooling forward fmt matched";
@@ -138,8 +138,8 @@ Tensor *Pooling2D<T>::Backward(
                 pooling_param_t *pp)
 {
     //sanity check
-    mkldnn::memory::dims diff_src_dims = {pp->src_d1, pp->src_d2, pp->src_d3, pp->src_d4};
-    mkldnn::memory::dims diff_dst_dims = {pp->dst_d1, pp->dst_d2, pp->dst_d3, pp->dst_d4};
+    mkldnn::memory::dims diff_src_dims = (mkldnn::memory::dims)pp->out_dims;
+    mkldnn::memory::dims diff_dst_dims = (mkldnn::memory::dims)diff_dst->dims();
     assert(diff_dst_dims == diff_dst->cxx_dims());
 
     mkldnn::memory::dims ws_dims;
@@ -147,7 +147,6 @@ Tensor *Pooling2D<T>::Backward(
     if (pp->algo_kind == pooling_param_t::algorithm::pooling_max) {
         ws_dims = ws->cxx_dims();
         ws_dt = ws->cxx_data_type();
-        
     }
     // sanity check for data type
     // assuem all x/w/b should have same data type as T

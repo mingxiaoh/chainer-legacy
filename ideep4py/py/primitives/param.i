@@ -9,8 +9,7 @@ struct conv_param_t {
 
 %rename (pooling2DParam) pooling_param_t;
 struct pooling_param_t {
-    int src_d1, src_d2, src_d3, src_d4; // input shape
-    int dst_d1, dst_d2, dst_d3, dst_d4; // output shape
+    std::vector<int> out_dims;
     int kh, kw; // kernel size
     int sy, sx; // stride
     int pad_lh, pad_lw, pad_rh, pad_rw; //padding

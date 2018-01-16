@@ -36,16 +36,12 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling2DParam()
-        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
-        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
-        pp.kh, pp.kw = self.kh, self.kw
-        pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw = self.ph, self.pw
-        pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        # by default = pooling_avg_include_padding
-        pp.algo_kind = ia.pooling2DParam.pooling_avg_include_padding
-
+        pp = ia.pooling2DParam((n, c, y_h, y_w),
+                               self.kh, self.kw,
+                               self.sy, self.sx,
+                               self.ph, self.pw,
+                               self.pd, self.pr,
+                               ia.pooling2DParam.pooling_avg_include_padding)
         y, = ia.pooling2D.Forward(ia.array(x[0]), pp)
         return y,
 
@@ -127,16 +123,12 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ia.pooling2DParam()
-        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
-        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
-        pp.kh, pp.kw = self.kh, self.kw
-        pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw = self.ph, self.pw
-        pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        # by default = pooling_avg_include_padding
-        pp.algo_kind = ia.pooling2DParam.pooling_avg_include_padding
-
+        pp = ia.pooling2DParam(self._in_shape,
+                               self.kh, self.kw,
+                               self.sy, self.sx,
+                               self.ph, self.pw,
+                               self.pd, self.pr,
+                               ia.pooling2DParam.pooling_avg_include_padding)
         gx = ia.pooling2D.Backward(ia.array(gy[0]), None, pp)
         return gx,
 

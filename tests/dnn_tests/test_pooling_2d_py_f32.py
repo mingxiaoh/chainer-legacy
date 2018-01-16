@@ -31,16 +31,12 @@ class TestPooling2DPyF32(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (self.bs, self.channel, 2, 2)).astype(self.dtype)
 
-        self.pp = pooling2DParam()
-        self.pp.src_d1, self.pp.src_d2 = self.bs, self.channel
-        self.pp.src_d3, self.pp.src_d4 = 4, 3
-        self.pp.dst_d1, self.pp.dst_d2 = self.gy.shape[0], self.gy.shape[1]
-        self.pp.dst_d3, self.pp.dst_d4 = self.gy.shape[2], self.gy.shape[3]
-        self.pp.kh, self.pp.kw = 3, 3
-        self.pp.sy, self.pp.sx = self.stride, self.stride
-        self.pp.pad_lh, self.pp.pad_lw = 1, 1
-        self.pp.pad_rh, self.pp.pad_rw = 1, 1
-        self.pp.algo_kind = pooling2DParam.pooling_avg_include_padding
+        self.pp_fwd = pooling2DParam(
+            self.gy.shape, 3, 3, self.stride, self.stride, 1, 1,
+            1, 1, pooling2DParam.pooling_avg_include_padding)
+        self.pp_bwd = pooling2DParam(
+            (self.bs, self.channel, 4, 3), 3, 3, self.stride, self.stride,
+            1, 1, 1, 1, pooling2DParam.pooling_avg_include_padding)
 
         self.check_forward_options = {'atol': 1e-5, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-5, 'rtol': 1e-4}
@@ -61,7 +57,7 @@ class TestPooling2DPyF32(unittest.TestCase):
 
     @condition.retry(3)
     def test_forward_cpu(self):
-        self.check_forward(self.x, self.pp)
+        self.check_forward(self.x, self.pp_fwd)
 
     def check_backward(self, x, gy, pp):
         # self.shape[2:]
@@ -79,7 +75,7 @@ class TestPooling2DPyF32(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy, self.pp)
+        self.check_backward(self.x, self.gy, self.pp_bwd)
 
 
 testing.run_module(__name__, __file__)
