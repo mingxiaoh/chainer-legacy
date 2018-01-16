@@ -20,9 +20,9 @@ from chainer.training import extensions
 
 import alex
 import googlenet
-import resnet50
 import googlenetbn
 import nin
+import resnet50
 import vgg16
 
 
@@ -83,11 +83,11 @@ def main():
         description='Learning convnet from ILSVRC2012 dataset')
     parser.add_argument('train', help='Path to training image-label list file')
     parser.add_argument('val', help='Path to validation image-label list file')
-    parser.add_argument('--arch', '-a', choices=archs.keys(), default='alex',
-                        help='Convnet architecture')
-    parser.add_argument('--batchsize', '-B', type=int, default=256,
+    parser.add_argument('--arch', '-a', choices=archs.keys(),
+                        default='googlenet', help='Convnet architecture')
+    parser.add_argument('--batchsize', '-B', type=int, default=96,
                         help='Learning minibatch size')
-    parser.add_argument('--epoch', '-E', type=int, default=50,
+    parser.add_argument('--epoch', '-E', type=int, default=60,
                         help='Number of epochs to train')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU')
@@ -107,6 +107,18 @@ def main():
                         help='Root directory path of val image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
+    parser.add_argument('--poly_policy', '-l', type=int, default=0,
+                        help='poly power')
+    parser.add_argument('--poly_power', '-p', type=float, default=0.5,
+                        help='poly power')
+    parser.add_argument('--base_lr', '-LR', type=float, default=0.012,
+                        help='base learning rate')
+    parser.add_argument('--iteration', '-it', type=int, default=800000,
+                        help='iteration number')
+    parser.add_argument('--weight_decay', '-d', type=float, default=0.0002,
+                        help='weight decay')
+    parser.add_argument('--momentum', '-t', type=float, default=0.9,
+                        help='momentum')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
@@ -134,19 +146,26 @@ def main():
         val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
 
     # Set up an optimizer
-    optimizer = chainer.optimizers.MomentumSGD(lr=0.07, momentum=0.9)
+    optimizer = chainer.optimizers.MomentumSGD(lr=args.base_lr,
+                                               momentum=args.momentum)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
-
+    if args.poly_policy >= 0:
+        print("apply poly policy, set the weight decay")
+        optimizer.add_hook(chainer.optimizer.WeightDecay(args.weight_decay))
+    else:
+        print("apply fixed lr polocy")
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (10 if args.test else 5000), 'iteration'
-    log_interval = (10 if args.test else 100), 'iteration'
+    val_interval = (1 if args.test else 100000), 'iteration'
+    log_interval = (1 if args.test else 1000), 'iteration'
 
-    trainer.extend(extensions.poly.Poly('lr', (1, 250000)),
-                   trigger=(1, 'iteration'))
+    if args.poly_policy >= 0:
+        print("set the poly power")
+        trainer.extend(extensions.poly.Poly('lr',
+                                            (args.poly_power, args.iteration)),
+                       trigger=(1, 'iteration'))
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
@@ -161,7 +180,7 @@ def main():
         'epoch', 'iteration', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'lr', 'elapsed_time'
     ]), trigger=log_interval)
-    trainer.extend(extensions.ProgressBar(update_interval=1))
+    trainer.extend(extensions.ProgressBar(update_interval=10))
 
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
