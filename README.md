@@ -48,7 +48,7 @@ HDF5 serialization support
 You can use setup.py to install Chainer from the tarball:
 
 ```sh
-$ git clone https://github.com/chainer/chainer.git
+$ git clone -b master_v3 https://github.com/intel/chainer
 $ cd chainer
 $ python setup.py install
 ```
