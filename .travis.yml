@@ -40,6 +40,9 @@ install:
 
 
 script:
+  - flake8
+  - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
+  - test ! -s check_autopep8
   - python setup.py install
   - cd tests
   - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn" chainer_tests
