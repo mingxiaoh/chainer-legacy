@@ -88,7 +88,7 @@ class SLSTM(function.Function):
         a1, i1, f1, o1 = _extract_gates(x1)
         a2, i2, f2, o2 = _extract_gates(x2)
 
-        if isinstance(x1, (numpy.ndarray, chainer.ideepy.mdarray)):
+        if isinstance(x1, (numpy.ndarray, chainer.ia.mdarray)):
             self.a1 = numpy.tanh(a1)
             self.i1 = _sigmoid(i1)
             self.f1 = _sigmoid(f1)

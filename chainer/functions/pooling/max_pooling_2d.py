@@ -5,7 +5,7 @@ from chainer import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-from chainer import ideepy
+from chainer import ia
 
 
 class MaxPooling2D(pooling_2d.Pooling2D):
@@ -42,17 +42,13 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ideepy.pooling_param_t()
-        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = x[0].shape
-        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
-        pp.kh, pp.kw = self.kh, self.kw
-        pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw = self.ph, self.pw
-        pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        pp.algo_kind = ideepy.pooling_param_t.pooling_max
-
-        (x_mdarray,) = ideepy.to_mdarray((x[0],))
-        (y, self.indexes) = ideepy.Pooling2D_Py_F32.Forward(x_mdarray, pp)
+        pp = ia.pooling2DParam((n, c, y_h, y_w),
+                               self.kh, self.kw,
+                               self.sy, self.sx,
+                               self.ph, self.pw,
+                               self.pd, self.pr,
+                               ia.pooling2DParam.pooling_max)
+        y, self.indexes = ia.pooling2D.Forward(ia.array(x[0]), pp)
         return y,
 
     def forward_gpu(self, x):
@@ -141,7 +137,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         # FIXME
         # Here we expect indexes is returned from MKL-DNN
         # otherwise, there are dtype mismatch for reorder (int64-->uint8)
-        if not isinstance(self.indexes, ideepy.mdarray):
+        if not isinstance(self.indexes, ia.mdarray):
             return self.forward_cpu(gy)
 
         n, c, h, w = self._in_shape
@@ -150,17 +146,15 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
-        pp = ideepy.pooling_param_t()
-        pp.src_d1, pp.src_d2, pp.src_d3, pp.src_d4 = n, c, h, w
-        pp.dst_d1, pp.dst_d2, pp.dst_d3, pp.dst_d4 = n, c, y_h, y_w
-        pp.kh, pp.kw = self.kh, self.kw
-        pp.sy, pp.sx = self.sy, self.sx
-        pp.pad_lh, pp.pad_lw = self.ph, self.pw
-        pp.pad_rh, pp.pad_rw = self.pd, self.pr
-        pp.algo_kind = ideepy.pooling_param_t.pooling_max
+        pp = ia.pooling2DParam(self._in_shape,
+                               self.kh, self.kw,
+                               self.sy, self.sx,
+                               self.ph, self.pw,
+                               self.pd, self.pr,
+                               ia.pooling2DParam.pooling_max)
 
-        (gy_mdarray, self.indexes) = ideepy.to_mdarray((gy[0], self.indexes))
-        gx = ideepy.Pooling2D_Py_F32.Backward(gy_mdarray, self.indexes, pp)
+        self.indexes = ia.array(self.indexes)
+        gx = ia.pooling2D.Backward(ia.array(gy[0]), self.indexes, pp)
         return gx,
 
     def forward_cpu(self, gy):

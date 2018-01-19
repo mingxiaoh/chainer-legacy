@@ -2,7 +2,7 @@ from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
 from chainer import variable
-from chainer import ideepy
+from chainer import ia
 
 
 class Linear(link.Link):
@@ -125,6 +125,6 @@ class Linear(link.Link):
         """
         if self.W.data is None:
             self._initialize_params(x.size // x.shape[0])
-            if ideepy.all_ready((self.W,), (2, 4)):
+            if ia.all_ready((self.W, )):
                 self.to_ia()
         return linear.linear(x, self.W, self.b)

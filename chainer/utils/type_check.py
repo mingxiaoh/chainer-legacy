@@ -4,10 +4,9 @@ import sys
 import threading
 
 import numpy
+import chainer
 
 from chainer import cuda
-
-from dnn._dnn import mdarray
 
 _thread_local = threading.local()
 
@@ -94,7 +93,7 @@ def _get_type(name, index, array, accept_none):
         return Variable(TypeInfo((), None), var)
     assert(isinstance(array, numpy.ndarray) or
            isinstance(array, cuda.ndarray) or
-           isinstance(array, mdarray))
+           isinstance(array, chainer.ia.mdarray))
     return Variable(TypeInfo(array.shape, array.dtype), var)
 
 
@@ -518,7 +517,7 @@ def expect(*bool_exprs):
 def same_types(*arrays):
     for x in arrays:
         # ndarray and mdarray can be treated as same
-        if not isinstance(x, (numpy.ndarray, mdarray)):
+        if not isinstance(x, (numpy.ndarray, chainer.ia.mdarray)):
             break
     else:
         return True

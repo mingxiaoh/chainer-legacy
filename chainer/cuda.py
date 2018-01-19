@@ -255,7 +255,7 @@ def to_gpu(array, device=None, stream=None):
     check_cuda_available()
     if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
-    if isinstance(array, (chainer.ideepy.mdarray)):
+    if isinstance(array, (chainer.ia.mdarray)):
         array = numpy.array(array)
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
         raise TypeError(
@@ -321,7 +321,7 @@ def to_cpu(array, stream=None):
         return numpy.asarray(array)
     elif isinstance(array, (numpy.ndarray)):
         return array
-    elif isinstance(array, (chainer.ideepy.mdarray)):
+    elif isinstance(array, (chainer.ia.mdarray)):
         return numpy.array(array)
     else:
         raise TypeError(

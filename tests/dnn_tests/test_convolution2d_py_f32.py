@@ -1,8 +1,9 @@
 import sys
 import unittest
 import numpy
-import dnn._dnn
-from dnn._dnn import conv_param_t, Convolution2D_Py_F32
+import ideep4py
+from ideep4py import convolution2DParam
+from ideep4py import convolution2D
 
 try:
     import testing
@@ -39,29 +40,17 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.b_shape = self.channel
 
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
-        self.x = dnn._dnn.mdarray(self.x)
+        self.x = ideep4py.mdarray(self.x)
         self.w = numpy.random.uniform(-1, 1, self.w_shape).astype(self.dtype)
-        self.w = dnn._dnn.mdarray(self.w)
+        self.w = ideep4py.mdarray(self.w)
         self.b = numpy.random.uniform(-1, 1, self.b_shape).astype(self.dtype)
-        self.b = dnn._dnn.mdarray(self.b)
+        self.b = ideep4py.mdarray(self.b)
 
-        self.cp = conv_param_t()
-        self.cp.src_d1 = self.x_shape[0]
-        self.cp.src_d2 = self.x_shape[1]
-        self.cp.src_d3 = self.x_shape[2]
-        self.cp.src_d4 = self.x_shape[3]
-        self.cp.weights_d1 = self.w_shape[0]
-        self.cp.weights_d2 = self.w_shape[1]
-        self.cp.weights_d3 = self.w_shape[2]
-        self.cp.weights_d4 = self.w_shape[3]
-        self.cp.bias_d1 = self.x_shape[1]
-        self.cp.dst_d1 = self.x_shape[0]
-        self.cp.dst_d2 = self.x_shape[1]
-        self.cp.dst_d3 = self.x_shape[2]
-        self.cp.dst_d4 = self.x_shape[3]
-        self.cp.sy = self.cp.sx = 1
-        self.cp.pad_lh = self.cp.pad_lw = self.cp.pad_rh = self.cp.pad_rw = 1
-        self.cp.with_bias = self.with_bias
+        self.cp = convolution2DParam(self.x_shape,
+                                     1, 1,
+                                     1, 1,
+                                     1, 1,
+                                     1, 1)
 
         stride = 1
         pad = 1
@@ -78,16 +67,16 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1,
             (self.n, self.outc, self.outh, self.outw)).astype(self.dtype)
-        self.gy = dnn._dnn.mdarray(self.gy)
+        self.gy = ideep4py.mdarray(self.gy)
 
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x, w, b, cp):
-        if cp.with_bias:
-            y_act = Convolution2D_Py_F32.Forward(x, w, b, cp)
+        if self.with_bias:
+            y_act = convolution2D.Forward(x, w, b, cp)
         else:
-            y_act = Convolution2D_Py_F32.Forward(x, w, None, cp)
+            y_act = convolution2D.Forward(x, w, None, cp)
         y_act = numpy.array(y_act, dtype=self.dtype)
 
         x = numpy.array(x, dtype=self.dtype)
@@ -109,7 +98,7 @@ class TestConvolution2DPyF32(unittest.TestCase):
         self.check_forward(self.x, self.w, self.b, self.cp)
 
     def check_backward_weights(self, x, w, b, cp, gy):
-        gW_act, gB_act = Convolution2D_Py_F32.BackwardWeights(x, gy, cp)
+        gW_act, gB_act = convolution2D.BackwardWeightsBias(x, gy, cp)
         gW_act = numpy.array(gW_act, dtype=self.dtype)
 
         x = numpy.array(x, dtype=self.dtype)
@@ -129,7 +118,13 @@ class TestConvolution2DPyF32(unittest.TestCase):
     @condition.retry(3)
     def test_backward_cpu_weights(self):
         print("test_backward_cpu_weights")
-        self.check_backward_weights(self.x, self.w, self.b, self.cp, self.gy)
+        cp = convolution2DParam(self.w_shape,
+                                1, 1,
+                                1, 1,
+                                1, 1,
+                                1, 1)
+
+        self.check_backward_weights(self.x, self.w, self.b, cp, self.gy)
 
     def check_backward_data(self, x, w, b, cp):
         out_c, in_c, kh, kw = w.shape
@@ -142,20 +137,12 @@ class TestConvolution2DPyF32(unittest.TestCase):
         _set_cover_all(self, x, w)
         # create conv parameter
         # for IA specific
-        cp = conv_param_t()
-        cp.src_d1, cp.src_d2 = n, in_c
-        cp.src_d3, cp.src_d4 = self.outh, self.outw
-        cp.weights_d1, cp.weights_d2, cp.weights_d3, cp.weights_d4 = w.shape
-        cp.dst_d1, cp.dst_d2, cp.dst_d3, cp.dst_d4 = x.shape
-        cp.dilate_y, cp.dilate_x = (self.dy - 1), (self.dx - 1)
-        cp.sy, cp.sx = self.sy, self.sx
-        cp.pad_lh, cp.pad_lw = self.ph, self.pw
-        cp.pad_rh, cp.pad_rw = self.pd, self.pr
-        # use conv bwd data to implement deconv fwd, not bias support
-        cp.bias_d1 = -1
-        cp.with_bias = False
-
-        y_act = Convolution2D_Py_F32.BackwardData(w, x, cp)
+        param = convolution2DParam(x.shape,
+                                   self.dy, self.dx,
+                                   self.sy, self.sx,
+                                   self.ph, self.pw,
+                                   self.pd, self.pr)
+        y_act = convolution2D.BackwardData(w, x, param)
         if b is not None:
             y_act += b.reshape(1, b.size, 1, 1)
         y_act = numpy.array(y_act, dtype=self.dtype)

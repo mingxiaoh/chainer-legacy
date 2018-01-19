@@ -23,7 +23,7 @@ def _check_grad_type(func, x, gx):
     # this should be legal in intel chainer
     if (not isinstance(gx, type(x.data)) and
             (not isinstance(gx, (numpy.ndarray,
-                                 chainer.ideepy.mdarray)))):
+                                 chainer.ia.mdarray)))):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
         typ = TypeError
@@ -455,7 +455,7 @@ class Variable(object):
         if (data is not None and
                 not isinstance(data, (numpy.ndarray,
                                       cuda.ndarray,
-                                      chainer.ideepy.mdarray))):
+                                      chainer.ia.mdarray))):
             msg = '''numpy.ndarray or cuda.ndarray \
                 are expected.Actual: {0}'''.format(type(data))
             raise TypeError(msg)
@@ -729,7 +729,9 @@ class Variable(object):
         """ Copies the data and gradient arrays to ia specific mdarray
         """
         if self.data is not None:
-            self._data = [chainer.ideepy.to_ia(self.data)]
+            self._data = \
+                [chainer.ia.array(self.data,
+                                  itype=chainer.ia.ideep4py.wgt_array)]
         if self._grad_var is not None:
             self._grad_var.to_ia()
             # ensure that the node tracks the device migration

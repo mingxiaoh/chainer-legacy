@@ -4,7 +4,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
-from chainer import ideepy
+from chainer import ia
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -33,31 +33,19 @@ class LinearFunction(function_node.FunctionNode):
         x = inputs[0]
         W = inputs[1]
         b = inputs[2] if len(inputs) == 3 else None
-        # create linear parameter
-        # for IA specific
-        lp = ideepy.linear_param_t()
-        lp.with_bias = True if len(inputs) == 3 else False
 
-        if isinstance(W, numpy.ndarray):
-            lp.with_weights_opt = False
-        elif isinstance(W, ideepy.mdarray):
-            # if weight is empty,
-            # we can do weights opt(pass optimized weight back)
-            lp.with_weights_opt = True
-        (x, W) = ideepy.to_mdarray((x, W))
+        y = ia.linear.Forward(
+            ia.array(x), ia.array(W),
+            ia.array(b) if b is not None else None
+        )
 
-        if lp.with_bias:
-            (b, ) = ideepy.to_mdarray((b, ))
-            y = ideepy.Linear_Py_F32.Forward(x, W, b, lp)
-        else:
-            y = ideepy.Linear_Py_F32.Forward(x, W, None, lp)
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
     def forward(self, inputs):
         x = inputs[0]
         W = inputs[1]
-        if (ideepy.all_ready(inputs, (2, 4))):
+        if (ia.all_ready(inputs)):
             return self.forward_ia(inputs)
 
         if not type_check.same_types(*inputs):
@@ -105,21 +93,15 @@ class LinearGradData(function_node.FunctionNode):
     def forward_ia(self, inputs):
         self.retain_inputs((0, 1))
         gy, W = inputs
-        # create linear parameter
-        # for IA specific
-        lp = ideepy.linear_param_t()
-        lp.with_bias = False
-        lp.src_ndims = 2
 
-        (gy, W) = ideepy.to_mdarray((gy, W))
-        gx = ideepy.Linear_Py_F32.BackwardData(W, gy, lp)
+        gx = ia.linear.BackwardData(ia.array(W), ia.array(gy))
         return gx,
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         gy, W = inputs
 
-        if (ideepy.all_ready(inputs, (2, 4))):
+        if (ia.all_ready(inputs)):
             return self.forward_ia(inputs)
 
         if not type_check.same_types(*inputs):
@@ -162,19 +144,13 @@ class LinearGradWeight(function_node.FunctionNode):
     def forward_ia(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        # create linear parameter
-        # for IA specific
-        lp = ideepy.linear_param_t()
-        lp.with_bias = False
-        lp.src_ndims = 2
-        (x, gy) = ideepy.to_mdarray((x, gy))
-        # only calculate gW, no gb
-        (gW,) = ideepy.Linear_Py_F32.BackwardWeights(x, gy, lp)
+
+        gW = ia.linear.BackwardWeights(ia.array(x), ia.array(gy))
         return gW,
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        if (ideepy.all_ready(inputs, (2, 4)) and
+        if ((ia.all_ready(inputs)) and
                 self.W_dtype == numpy.dtype('float32')):
             return self.forward_ia(inputs)
         x, gy = inputs

@@ -4,7 +4,7 @@ import six
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-from chainer import ideepy
+from chainer import ia
 
 
 def _cu_conv_sum(y, x, n):
@@ -53,21 +53,17 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_ia(self, x):
-        pp = ideepy.lrn_param_t()
-        pp.n = self.n
-        pp.k = self.k
-        pp.alpha = self.n * self.alpha
-        pp.beta = self.beta
-        pp.algo_kind = ideepy.lrn_param_t.lrn_across_channels
-        self.y = numpy.empty(x[0].shape, dtype=x[0].dtype)
-        (x_mdarray,) = ideepy.to_mdarray((x[0],))
-        (y, self.indexes) = ideepy.LocalResponseNormalization_Py_F32.Forward(
-            x_mdarray, pp)
-        return y,
+        param = ia.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            ia.localResponseNormalizationParam.lrn_across_channels
+        )
+        self.y, self.indexes = \
+            ia.localResponseNormalization.Forward(ia.array(x[0]), param)
+        return self.y,
 
     def forward_cpu(self, x):
         # pdb.set_trace()
-        if ideepy.all_ready(x, (4,)):
+        if ia.all_ready(x, (4,)):
             return self.forward_ia(x)
         else:
             half_n = self.n // 2
@@ -82,20 +78,16 @@ class LocalResponseNormalization(function.Function):
             return self.y,
 
     def backward_ia(self, x, gy):
-        pp = ideepy.lrn_param_t()
-        pp.n = self.n
-        pp.k = self.k
-        pp.alpha = self.n * self.alpha
-        pp.beta = self.beta
-        pp.algo_kind = ideepy.lrn_param_t.lrn_across_channels
-        (x_mdarray,) = ideepy.to_mdarray((x[0],))
-        (gy_mdarray,) = ideepy.to_mdarray((gy[0],))
-        gx = ideepy.LocalResponseNormalization_Py_F32.Backward(
-            x_mdarray, gy_mdarray, self.indexes, pp)
+        param = ia.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            ia.localResponseNormalizationParam.lrn_across_channels
+        )
+        gx = ia.localResponseNormalization.Backward(
+            ia.array(x[0]), ia.array(gy[0]), self.indexes, param)
         return gx,
 
     def backward_cpu(self, x, gy):
-        if ideepy.all_ready(x, (4,)):
+        if ia.all_ready(x, (4,)):
             return self.backward_ia(x, gy)
         else:
             half_n = self.n // 2

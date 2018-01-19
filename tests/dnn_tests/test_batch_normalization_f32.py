@@ -3,8 +3,8 @@ import unittest
 
 import numpy
 import six
-import dnn._dnn
-from dnn._dnn import batchNormalizationF32
+import ideep4py
+from ideep4py import batchNormalization
 
 try:
     import testing
@@ -68,9 +68,9 @@ class TestBatchNormalizationF32(unittest.TestCase):
         beta = beta[expander]
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-        y_act, self.mean, self.var, inv_std = batchNormalizationF32.Forward(
-            dnn._dnn.mdarray(x),
-            dnn._dnn.mdarray(W),
+        y_act, self.mean, self.var, inv_std = batchNormalization.Forward(
+            ideep4py.mdarray(x),
+            ideep4py.mdarray(W),
             None,
             None,
             self.eps
@@ -106,12 +106,12 @@ class TestBatchNormalizationF32(unittest.TestCase):
         beta = numpy.zeros_like(gamma)
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
-        gx_act, gW = batchNormalizationF32.Backward(
-            dnn._dnn.mdarray(x),
-            dnn._dnn.mdarray(gy),
-            dnn._dnn.mdarray(self.mean),
-            dnn._dnn.mdarray(self.var),
-            dnn._dnn.mdarray(W),
+        gx_act, gW = batchNormalization.Backward(
+            ideep4py.mdarray(x),
+            ideep4py.mdarray(gy),
+            ideep4py.mdarray(self.mean),
+            ideep4py.mdarray(self.var),
+            ideep4py.mdarray(W),
             self.eps
         )
         if expand_dim:

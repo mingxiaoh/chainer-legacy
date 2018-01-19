@@ -10,7 +10,7 @@ from chainer import cuda
 from chainer import initializers
 from chainer import variable
 
-from chainer import ideepy
+from chainer import ia
 
 
 def _is_shape(value):
@@ -381,8 +381,8 @@ Assign a Parameter object directly to an attribute within a \
     def to_ia(self):
         """Copies parameter variables and persistent values to CPU.
         """
-        if not ideepy.is_enabled():
-            raise Exception("ideepy is not installed correctly!")
+        if not ia.check_ideep_enabled():
+            raise Exception("ia is not ready!")
 
         d = self.__dict__
         for name in self._params:
@@ -390,7 +390,7 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             value = d[name]
             if isinstance(value, numpy.ndarray):
-                d[name] = ideepy.to_ia(value)
+                d[name] = ia.array(value, itype=ia.ideep4py.wgt_array)
         return self
 
     def params(self, include_uninit=True):
