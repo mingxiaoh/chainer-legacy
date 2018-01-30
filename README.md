@@ -2,13 +2,12 @@
 
 # IntelChainer: Optimized-Chainer for Intel Architectures
 
-[![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/intel/chainer)
-[![travis](https://img.shields.io/travis/intel/chainer/master_v3.svg)](https://travis-ci.org/intel/chainer)
+[![GitHub license](https://img.shields.io/github/license/intel/chainer.svg)](https://github.com/intel/chainer)
+[![travis](https://img.shields.io/travis/intel/chainer/master.svg)](https://travis-ci.org/intel/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](https://docs.chainer.org/en/stable/?badge=stable)
 
 
-*Chainer* is a Python-based deep learning framework aiming at flexibility.
-It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks. IntelChainer is optimized-chainer for Intel architectures.
+Chainer* is a Python*-based deep learning framework aiming at flexibility and intuition. It provides automatic differentiation APIs based on the define-by-run approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks. It supports various network architectures including feed-forward nets, convnets, recurrent nets and recursive nets. It also supports per-batch architectures. Forward computation can include any control flow statements of Python without lacking the ability of backpropagation. It makes code intuitive and easy to debug. Intel® optimization for Chainer, is currently integrated with the latest release of Intel® Math Kernel Library for Deep Neural Networks (Intel® MKL-DNN) 2017 optimized for Intel® Advanced Vector Extensions 2 (Intel® AVX) and Intel® Advanced Vector Extensions 512 (Intel®AVX-512) instructions which are supported in Intel® Xeon® and Intel® Xeon Phi™ processors.
 
 ## Recommended Environments
 We recommend these Linux distributions.
@@ -18,6 +17,7 @@ We recommend these Linux distributions.
 The following versions of Python can be used: 
 - 2.7.5+, 3.5.2+, and 3.6.0+
 
+Above recommended environments are tested. We cannot guarantee that Intel® optimization for Chainer works on other environments including Windows* and macOS*, even if Intel optimization for Chainer looks to be running correctly.
 
 ## Dependencies
 Before installing Chainer, we recommend to upgrade setuptools if you are using an old one:
@@ -31,9 +31,6 @@ The following packages are required to install Chainer.
 
 The following packages are optional dependencies. Chainer can be installed without them, in which case the corresponding features are not available.
 
-CUDA/cuDNN support
-- cupy 2.0+
-
 Caffe model support
 - protobuf 3.0+
 
@@ -43,13 +40,17 @@ Image dataset support
 HDF5 serialization support
 - h5py 2.5+
 
+Testing utilities
+- pytest 3.2.5+
+
+Intel® MKL-DNN
+- You don’t need to manually install Intel MKL-DNN, when build Intel optimization for Chainer, Intel MKL-DNN will be downloaded and built automatically, thus, boost, glog and gflags are also required.
+
 
 ## Install Chainer from source
 You can use setup.py to install Chainer from the tarball:
 
 ```sh
-$ git clone -b master_v3 https://github.com/intel/chainer
-$ cd chainer
 $ python setup.py install
 ```
 
@@ -59,21 +60,39 @@ Use pip to uninstall Chainer:
 $ pip uninstall chainer
 ```
 
-## Install CUDA
-To enable CUDA support, [set up CUDA](http://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
-
-```sh
-$ pip install cupy
-```
-
 
 ## Run with Docker
 
-We provide the Dockerfile for cpu in chainer/docker directory based on python2 and python3, respectively. You can refer to wiki
+We are providing the Docker image and Dockerfile for Ubuntu and Centos based on python2 and python3, respectively. For details see: [How to build and run Intel optimization for Chainer Docker image](https://github.com/intel/chainer/wiki/How-to-build-and-run-Intel-Chainer-Docker-image).
 
-https://github.com/intel/chainer/wiki/How-to-build-and-run-Intel-Chainer-Docker-image
 
-to check how to build/run with docker.
+
+## Training Examples
+
+Training test with mnist dataset:
+```sh
+$ cd examples/mnist
+$ python train_mnist.py -g -1
+```
+
+Training test with cifar datasets:
+- run the CIFAR-100 dataset:
+```sh
+$ cd examples/cifar
+$ python train_cifar.py –g -1 --dataset='cifar100'
+```
+- run the CIFAR-10 dataset:
+```sh
+$ cd examples/cifar
+$ python train_cifar.py –g -1 --dataset='cifar10'
+```
+
+
+## Single Node Performance Test Configurations
+
+For Single Node Performance Test Configurations, please refer to following wiki:
+
+https://github.com/intel/chainer/wiki/Intel-Chainer-Single-Node-Performance-Test-Configurations
 
 
 ## License
@@ -91,14 +110,5 @@ The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIP
 
 
 ## More Information
-
-- Official site: http://chainer.org/
-- Official document: http://docs.chainer.org/
-- Pfn chainer github: https://github.com/pfnet/chainer
-- Intel chainer github: https://github.com/intel/chainer
-- Forum: https://groups.google.com/forum/#!forum/chainer
-- Forum (Japanese): https://groups.google.com/forum/#!forum/chainer-jp
-- Twitter: https://twitter.com/ChainerOfficial
-- Twitter (Japanese): https://twitter.com/chainerjp
-- External examples: https://github.com/pfnet/chainer/wiki/External-examples
-- Research projects using Chainer: https://github.com/pfnet/chainer/wiki/Research-projects-using-Chainer
+- [Intel® optimization for Chainer github](https://github.com/intel/chainer)
+- [Release notes](https://github.com/intel/chainer/releases)
