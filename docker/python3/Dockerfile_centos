@@ -68,6 +68,6 @@ RUN pip3 install --default-timeout=10000 six \
     filelock
 
 
-RUN git clone -b master_v3 https://github.com/intel/chainer && \
+RUN git clone https://github.com/intel/chainer && \
     cd chainer && \
     python3 setup.py install
