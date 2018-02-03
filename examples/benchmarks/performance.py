@@ -18,6 +18,7 @@ def test_performance(modelName, data_size, batch_size, insize, epoch, log):
     __log__(log, "Performance test for {0}...\n".format(modelName))
     # Assign the insize for each model
     model = get_model(modelName)
+    model.to_ia()
     optimizer = optimizers.SGD(lr=0.01)
     optimizer.setup(model)
 
